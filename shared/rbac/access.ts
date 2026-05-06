@@ -1,5 +1,5 @@
 import { db } from "@core/database";
-import type { AccessLevel } from "@prisma/client";
+import type { AccessLevel } from "@core/database";
 
 export type PermissionRequest = {
     resource: string;
@@ -13,47 +13,48 @@ export async function getPermissionLevel(
     userId: string, 
     request: PermissionRequest
 ): Promise<{ allowed: boolean; level: AccessLevel }> {
-    
-    const user = await db.user.findUnique({
-        where: { id: userId },
-        include: {
-            roles: {
-                include: {
-                    permissions: {
-                        where: { resource: request.resource }
+    try {
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            include: {
+                roles: {
+                    include: {
+                        permissions: {
+                            where: { resource: request.resource }
+                        }
                     }
                 }
             }
-        }
-    });
+        });
 
-    if (!user || !user.roles.length) {
+        if (!user || !user.roles.length) {
+            return { allowed: false, level: 'NONE' };
+        }
+
+        const permissions = user.roles.flatMap(role => role.permissions);
+
+        const getLevelForAction = (perm: (typeof permissions)[0]): AccessLevel => {
+            switch (request.action) {
+                case 'create': return perm.canCreate;
+                case 'read':   return perm.canRead;
+                case 'update': return perm.canUpdate;
+                case 'delete': return perm.canDelete;
+            }
+        };
+
+        const levels = permissions.map(getLevelForAction);
+
+        if (levels.includes('ALL')) {
+            return { allowed: true, level: 'ALL' };
+        }
+        if (levels.includes('OWN')) {
+            return { allowed: true, level: 'OWN' };
+        }
+
+        return { allowed: false, level: 'NONE' };
+
+    } catch (error) {
+        console.error("Error getting permission level:", error);
         return { allowed: false, level: 'NONE' };
     }
-
-    let highestLevel: AccessLevel = 'NONE';
-
-    for (const role of user.roles) {
-        for (const perm of role.permissions) {
-            const currentLevel = 
-                request.action === 'create' ? perm.canCreate :
-                request.action === 'read' ? perm.canRead :
-                request.action === 'update' ? perm.canUpdate :
-                perm.canDelete;
-
-            if (currentLevel === 'ALL') {
-                highestLevel = 'ALL';
-                break;
-            }
-            if (currentLevel === 'OWN' && highestLevel !== 'ALL') {
-                highestLevel = 'OWN';
-            }
-        }
-        if (highestLevel === 'ALL') break;
-    }
-
-    return {
-        allowed: highestLevel !== 'NONE',
-        level: highestLevel
-    };
 }

@@ -32,6 +32,9 @@ importers:
       '@core/database':
         specifier: workspace:*
         version: link:../../shared/database
+      '@core/rbac':
+        specifier: workspace:*
+        version: link:../../shared/rbac
       better-auth:
         specifier: ~1.4.21
         version: 1.4.22(c4d4e44f6a0503125acddf6355d9fd1a)
@@ -111,6 +114,9 @@ importers:
       '@core/database':
         specifier: workspace:*
         version: link:../../shared/database
+      '@core/rbac':
+        specifier: workspace:*
+        version: link:../../shared/rbac
       better-auth:
         specifier: ~1.4.21
         version: 1.4.22(@prisma/client@7.8.0(prisma@7.8.0(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3))(typescript@5.9.3))(@sveltejs/kit@2.59.1(@sveltejs/vite-plugin-svelte@7.1.0(svelte@5.55.5)(vite@6.4.2(@types/node@24.12.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)))(svelte@5.55.5)(typescript@5.9.3)(vite@6.4.2(@types/node@24.12.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)))(drizzle-orm@0.41.0(@electric-sql/pglite@0.4.1)(@prisma/client@7.8.0(prisma@7.8.0(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(kysely@0.28.17)(mysql2@3.15.3)(pg@8.20.0)(postgres@3.4.7)(prisma@7.8.0(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3)))(mysql2@3.15.3)(pg@8.20.0)(prisma@7.8.0(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(svelte@5.55.5)(vitest@4.1.5)
