@@ -1,0 +1,43 @@
+{
+  "name": "Marches",
+  "private": true,
+  "scripts": {
+    "postinstall": "pnpm --filter @core/database exec prisma generate",
+    "build": "turbo build",
+    "dev": "turbo dev --filter=@apps/frontend -- --host",
+    "dev:frontend": "turbo dev --filter=@apps/frontend -- --host",
+    "dev:admin": "turbo dev --filter=@apps/admin -- --host",
+    "dev:all": "turbo dev --filter=@apps/* -- --host",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,js,svelte,json,md}\""
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0",
+    "prettier": "^3.0.0",
+    "prisma": "^7.8.0",
+    "tsx": "^4.21.0",
+    "turbo": "^2.9.9"
+  },
+  "packageManager": "pnpm@10.33.3",
+  "pnpm": {
+    "overrides": {
+      "better-sqlite3": "npm:empty-npm-package"
+    },
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "tailwindcss",
+        "vite",
+        "postcss",
+        "better-sqlite3",
+        "drizzle-orm"
+      ],
+      "allowedVersions": {
+        "vite": "^6.0.0",
+        "@sveltejs/vite-plugin-svelte": "^7.0.0",
+        "tailwindcss": "^4.0.0",
+        "better-sqlite3": "*",
+        "drizzle-orm": "*"
+      }
+    }
+  }
+}
