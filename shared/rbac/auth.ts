@@ -1,35 +1,56 @@
-import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { db } from "@core/database";
-import type { BetterAuthOptions } from "better-auth";
+import { betterAuth, type BetterAuthPlugin } from "better-auth";
+import { betterAuthDbAdapter } from "@core/database";
 
-export function createAuth(options: Partial<BetterAuthOptions>) {
+export type AuthConfig = {
+    baseURL: string;
+    secret: string;
+    github?: {
+        clientId: string;
+        clientSecret: string;
+    };
+    /**
+     * Framework-specific plugins (e.g. sveltekitCookies).
+     * Pass these from the app layer so this package stays framework-agnostic.
+     */
+    plugins?: BetterAuthPlugin[];
+};
+
+/**
+ * Factory for the single shared auth instance.
+ * Apps call this once, injecting their env vars and framework plugins.
+ */
+export function createAuth({ baseURL, secret, github, plugins = [] }: AuthConfig) {
     return betterAuth({
-        database: prismaAdapter(db, {
-            provider: "postgresql",
-        }),
+        baseURL,
+        secret,
+        database: betterAuthDbAdapter,
         emailAndPassword: {
             enabled: true,
             autoSignIn: false,
         },
+        ...(github && {
+            socialProviders: {
+                github: {
+                    clientId: github.clientId,
+                    clientSecret: github.clientSecret,
+                },
+            },
+        }),
         user: {
             additionalFields: {
-                discordHandle: {
-                    type: "string",
-                    input: false,
-                },
-                mobile: {
-                    type: "string",
-                    input: false,
-                }
-            }
+                // Domain fields — defined here so both apps share the same schema
+                discordHandle: { type: "string", input: false },
+                mobile:        { type: "string", input: false },
+            },
         },
         session: {
             cookieCache: {
                 enabled: true,
-                maxAge: 86400, // 24 hours
-            }
+                maxAge: 300, // 5 minutes
+            },
         },
-        ...options,
+        plugins,
     });
 }
+
+export type Auth = ReturnType<typeof createAuth>;
