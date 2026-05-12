@@ -55,17 +55,21 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
     const user = await db.user.findUnique({
         where: { id: userId },
         include: {
-            roles: {
-                include: { permissions: true },
+            userRoles: {
+                include: {
+                    role: {
+                        include: { permissions: true },
+                    },
+                },
             },
         },
     });
 
-    if (!user?.roles.length) return new Map();
+    if (!user?.userRoles.length) return new Map();
 
     const resolved = new Map<string, ResolvedPermission>();
 
-    for (const role of user.roles) {
+    for (const { role } of user.userRoles) {
         for (const perm of role.permissions) {
             const existing = resolved.get(perm.resource);
             if (!existing) {

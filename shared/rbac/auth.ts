@@ -38,9 +38,18 @@ export function createAuth({ baseURL, secret, github, plugins = [] }: AuthConfig
         }),
         user: {
             additionalFields: {
-                // Domain fields — defined here so both apps share the same schema
-                discordHandle: { type: "string", input: false },
-                mobile:        { type: "string", input: false },
+                // These fields exist on the User model with @map() snake_case column names.
+                // fieldName tells better-auth the actual DB column to read/write.
+                discordHandle: {
+                    type:      "string",
+                    input:     false,   // not settable at signup; use a profile update endpoint
+                    fieldName: "discord_handle",
+                },
+                mobile: {
+                    type:      "string",
+                    input:     false,
+                    fieldName: "mobile",
+                },
             },
         },
         session: {

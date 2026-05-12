@@ -33,7 +33,7 @@ export async function seedUsers(db: PrismaClient) {
             // Empty string is a safe placeholder — this user cannot authenticate
             // until a proper Account row is created via the app.
             password:      '',
-            roles: { connect: { id: adminRole.id } },
+            userRoles: { create: { roleId: adminRole.id } },
         },
     });
 
