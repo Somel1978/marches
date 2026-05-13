@@ -1,3 +1,4 @@
+// apps/frontend/src/app.d.ts
 import type { User, Session } from 'better-auth/minimal';
 import type { UserPermissions } from '@core/rbac';
 

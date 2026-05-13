@@ -1,3 +1,4 @@
+// apps/admin/src/hooks.server.ts
 import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { building } from '$app/environment';

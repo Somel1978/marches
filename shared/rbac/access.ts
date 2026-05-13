@@ -1,5 +1,6 @@
+// shared/rbac/access.ts
 import { db } from "@core/database";
-import type { AccessLevel } from "@prisma/client";
+import type { AccessLevel } from "@core/database";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

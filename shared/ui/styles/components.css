@@ -7,7 +7,7 @@
 
 @layer components {
 
-  /* � Card � */
+  /* ── Card ──────────────────────────────────────────────── */
   .card {
     background-color: var(--bg-surface);
     border: 1px solid var(--border-base);
@@ -23,7 +23,7 @@
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   }
 
-  /* Frontend decorative card parchment tint + accent border */
+  /* Frontend decorative card — parchment tint + accent border */
   .card-parchment {
     background-color: var(--parchment, var(--bg-surface));
     border: 1px solid var(--border-accent);
@@ -31,7 +31,7 @@
     padding: 1.5rem;
   }
 
-  /* � Buttons  */
+  /* ── Buttons ───────────────────────────────────────────── */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -94,7 +94,7 @@
     aspect-ratio: 1;
   }
 
-  /*  Badges  */
+  /* ── Badges ────────────────────────────────────────────── */
   .badge {
     display: inline-flex;
     align-items: center;
@@ -111,7 +111,7 @@
   .badge-danger   { background-color: var(--color-danger);     color: #fff; }
   .badge-muted    { background-color: var(--bg-overlay);       color: var(--text-muted); }
 
-  /*  Form inputs  */
+  /* ── Form inputs ───────────────────────────────────────── */
   .input {
     width: 100%;
     background-color: var(--bg-overlay);
@@ -142,14 +142,14 @@
     margin-bottom: 0.375rem;
   }
 
-  /* � Divider  */
+  /* ── Divider ───────────────────────────────────────────── */
   .divider {
     border: none;
     border-top: 1px solid var(--border-muted);
     margin: 1rem 0;
   }
 
-  /* � Stat block (admin dashboard)  */
+  /* ── Stat block (admin dashboard) ─────────────────────── */
   .stat-card {
     display: flex;
     flex-direction: column;

@@ -1,7 +1,8 @@
+// shared/rbac/auth.ts
 import { betterAuth, type BetterAuthPlugin } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "@core/database";
- 
+
 export type AuthConfig = {
     baseURL: string;
     secret: string;
@@ -15,7 +16,7 @@ export type AuthConfig = {
      */
     plugins?: BetterAuthPlugin[];
 };
- 
+
 /**
  * Factory for the single shared auth instance.
  * Apps call this once, injecting their env vars and framework plugins.
@@ -64,5 +65,5 @@ export function createAuth({ baseURL, secret, github, plugins = [] }: AuthConfig
         plugins,
     });
 }
- 
+
 export type Auth = ReturnType<typeof createAuth>;

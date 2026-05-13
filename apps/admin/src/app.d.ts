@@ -1,3 +1,4 @@
+// apps/admin/src/app.d.ts
 import type { User, Session } from 'better-auth/minimal';
 import type { UserPermissions } from '@core/rbac';
 
@@ -7,8 +8,8 @@ declare global {
 			user?: User;
 			session?: Session;
 			// Populated by hooks.server.ts after session hydration.
-			// Empty Map when unauthenticated — public routes still work,
-			// checkPermission() will return { allowed: false } for everything.
+			// Empty Map when unauthenticated. Use checkPermission() against this —
+			// never call getUserPermissions() inside a route load.
 			permissions: UserPermissions;
 		}
 

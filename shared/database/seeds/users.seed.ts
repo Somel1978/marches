@@ -1,22 +1,13 @@
-import { hash } from '@node-rs/argon2';
+// shared/database/seeds/users.seed.ts
 import type { PrismaClient } from '@prisma/client';
 
-const ARGON2_OPTIONS = {
-    memoryCost:  19456,
-    timeCost:    2,
-    outputLen:   32,
-    parallelism: 1,
-};
-
 export async function seedUsers(db: PrismaClient) {
-    console.log('  └─ Seeding Users...');
+    console.log('  \u2514\u2500 Seeding Users...');
 
     const adminRole = await db.role.findUnique({ where: { name: 'SUPERADMIN' } });
     if (!adminRole) throw new Error('SUPERADMIN role not found. Run seedRoles first.');
 
-    const ADMIN_EMAIL    = 'admin@marches.local';
-    const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD;
-    if (!ADMIN_PASSWORD) throw new Error('SEED_ADMIN_PASSWORD env var is required to seed users.');
+    const ADMIN_EMAIL = 'admin@marches.local';
 
     const existing = await db.user.findUnique({ where: { email: ADMIN_EMAIL } });
     if (existing) {
@@ -24,28 +15,19 @@ export async function seedUsers(db: PrismaClient) {
         return;
     }
 
-    const hashedPassword = await hash(ADMIN_PASSWORD, ARGON2_OPTIONS);
-
-    await db.$transaction(async (tx) => {
-        const user = await tx.user.create({
-            data: {
-                name:          'System Admin',
-                email:         ADMIN_EMAIL,
-                emailVerified: true,
-                userRoles:     { create: { roleId: adminRole.id } },
-            },
-        });
-
-        await tx.account.create({
-            data: {
-                userId:     user.id,
-                accountId:  user.id,
-                providerId: 'credential',
-                password:   hashedPassword,
-            },
-        });
+    // Create the User row and attach the SUPERADMIN role.
+    // The Account row (hashed password) must be created separately via the
+    // init-admin script in apps/admin, which uses auth.api.signUpEmail to
+    // guarantee the hash format matches better-auth's internal implementation.
+    await db.user.create({
+        data: {
+            name:          'System Admin',
+            email:         ADMIN_EMAIL,
+            emailVerified: true,
+            userRoles:     { create: { roleId: adminRole.id } },
+        },
     });
 
     console.log('     Created admin user: ' + ADMIN_EMAIL);
-    console.log('     ⚠  Change the password after first login.');
+    console.log('     \u26a0  Run: pnpm --filter @apps/admin init-admin to set the password.');
 }

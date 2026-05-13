@@ -1,3 +1,4 @@
+// apps/frontend/src/hooks.server.ts
 import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { building } from '$app/environment';
@@ -8,7 +9,8 @@ import { getUserPermissions } from '@core/rbac';
 // ─── Auth handler ─────────────────────────────────────────────────────────────
 // Hydrates session and user from the request cookie/header,
 // then loads the full permission map for the user in a single DB query.
-// All route load functions get permissions for free via event.locals.permissions.
+// Unauthenticated requests get an empty Map — public routes work normally,
+// protected routes check permissions and throw error(403) themselves.
 const handleAuth: Handle = async ({ event, resolve }) => {
 	// Always initialise to an empty Map so routes never have to null-check.
 	event.locals.permissions = new Map();
@@ -16,14 +18,12 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	const session = await auth.api.getSession({ headers: event.request.headers });
 
 	if (session) {
-		event.locals.user       = session.user;
-		event.locals.session    = session.session;
+		event.locals.user        = session.user;
+		event.locals.session     = session.session;
 		event.locals.permissions = await getUserPermissions(session.user.id);
 	}
 
 	return svelteKitHandler({ event, resolve, auth, building });
 };
 
-// sequence() makes it easy to add future handlers (logging, rate-limiting, etc.)
-// without touching this file — just append to the array.
 export const handle: Handle = sequence(handleAuth);

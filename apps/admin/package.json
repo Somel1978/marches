@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "test:unit": "vitest",
     "test": "pnpm run test:unit -- --run && pnpm run test:e2e",
-    "test:e2e": "playwright install && playwright test"
+    "test:e2e": "playwright install && playwright test",
+    "init-admin": "dotenv -e ../../.env -- tsx scripts/init-admin.ts"
   },
   "dependencies": {
     "@core/database": "workspace:*",

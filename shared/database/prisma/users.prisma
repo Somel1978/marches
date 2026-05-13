@@ -1,3 +1,4 @@
+/* shared/database/prisma/users.prisma */
 // ─── Domain Models ────────────────────────────────────────────────────────────
 // All models live in the "users" Postgres schema.
 // ─────────────────────────────────────────────────────────────────────────────

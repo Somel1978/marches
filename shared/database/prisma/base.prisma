@@ -1,3 +1,4 @@
+/* shared/database/prisma/base.prisma */
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
@@ -5,5 +6,5 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["public", "users"]
+  schemas  = ["users"]
 }

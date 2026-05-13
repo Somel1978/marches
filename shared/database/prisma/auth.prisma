@@ -1,3 +1,15 @@
+/* shared/database/prisma/auth.prisma */
+// ─── Better-Auth Models ───────────────────────────────────────────────────────
+// These models are owned by better-auth. Do not rename fields or change types
+// without checking better-auth's schema requirements first.
+// Ref: https://www.better-auth.com/docs/concepts/database#core-schema
+//
+// Naming convention:
+//   - Prisma model fields: camelCase  (better-auth's expectation)
+//   - DB columns: snake_case          (via @map)
+//   - DB table:   snake_case plural   (via @@map)
+// ─────────────────────────────────────────────────────────────────────────────
+
 model Session {
   id        String   @id @default(uuid())
   expiresAt DateTime @map("expires_at")
@@ -6,7 +18,7 @@ model Session {
   updatedAt DateTime @updatedAt      @map("updated_at")
   ipAddress String?  @map("ip_address")
   userAgent String?  @map("user_agent")
-  
+
   userId    String   @map("user_id")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -20,15 +32,17 @@ model Account {
   providerId            String    @map("provider_id")
   userId                String    @map("user_id")
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   accessToken           String?   @map("access_token")
   refreshToken          String?   @map("refresh_token")
   idToken               String?   @map("id_token")
   accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
   refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
   scope                 String?
+  // This is where better-auth stores the hashed password for email/password auth.
+  // User.password does NOT exist — see users.prisma.
   password              String?
-  
+
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt      @map("updated_at")
 

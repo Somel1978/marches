@@ -3,7 +3,7 @@ import { createAuth } from '@core/rbac';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
- 
+
 export const auth = createAuth({
 	baseURL: env.ORIGIN,
 	secret:  env.BETTER_AUTH_SECRET,
