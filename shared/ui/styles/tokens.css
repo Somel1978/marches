@@ -1,0 +1,94 @@
+/* shared/ui/styles/tokens.css */
+/* ============================================================
+   MARCHES DESIGN TOKENS
+   Single source of truth for both apps.
+ 
+   Usage:
+     - apps/frontend/src/app.html  ‚<html data-theme="frontend">
+     - apps/admin/src/app.html     ‚ <html data-theme="admin">
+ 
+   Both themes share the brand accent (#B8734A / #E6A87A).
+   Frontend is warm + immersive. Admin is cool + focused.
+   ============================================================ */
+ 
+/* ‚Shared brand (never changes per theme)  */
+:root {
+  --brand-accent:       #B8734A;
+  --brand-accent-light: #E6A87A;
+  --brand-accent-dim:   #7A4D32;
+ 
+  /* Semantic feedback same across both themes */
+  --color-success:      #4A7C59;
+  --color-warning:      #B8934A;
+  --color-danger:       #8B3A3A;
+  --color-info:         #3A6B8B;
+ 
+  /* Radii */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+ 
+  /* Transitions */
+  --transition-fast:    150ms ease;
+  --transition-base:    250ms ease;
+  --transition-slow:    400ms ease;
+ 
+  /* Sidebar */
+  --sidebar-width:           240px;
+  --sidebar-width-collapsed: 64px;
+  --header-height:           56px;
+}
+ 
+/* ‚Frontend theme ‚Warm, immersive, inviting  */
+[data-theme="frontend"] {
+  /* Backgrounds */
+  --bg-base:     #14171C;
+  --bg-surface:  #1E2228;
+  --bg-overlay:  #252B33;
+  --bg-muted:    #2A3040;
+ 
+  /* Text */
+  --text-primary:  #F3E9DC;
+  --text-secondary: #C4B5A5;
+  --text-muted:    #8A7D72;
+  --text-disabled: #5A504A;
+ 
+  /* Borders */
+  --border-base:    rgba(184, 115, 74, 0.15);
+  --border-muted:   rgba(243, 233, 220, 0.08);
+  --border-accent:  rgba(184, 115, 74, 0.40);
+ 
+  /* Accent (aliased from brand for convenience) */
+  --accent:       var(--brand-accent);
+  --accent-light: var(--brand-accent-light);
+  --accent-dim:   var(--brand-accent-dim);
+ 
+  /* Decorative (parchment tint for cards/panels) */
+  --parchment:    rgba(243, 233, 220, 0.03);
+}
+ 
+/* ‚Admin theme ‚Professional, focused, efficient ‚*/
+[data-theme="admin"] {
+  /* Backgrounds ‚cooler, darker than frontend */
+  --bg-base:     #0F1216;
+  --bg-surface:  #1B1F25;
+  --bg-overlay:  #2A2F37;
+  --bg-muted:    #333A44;
+ 
+  /* Text ‚grey-leaning, not warm parchment */
+  --text-primary:   #AEB4BD;
+  --text-secondary: #7E8694;
+  --text-muted:     #555D6B;
+  --text-disabled:  #3A4050;
+ 
+  /* Borders */
+  --border-base:   rgba(174, 180, 189, 0.10);
+  --border-muted:  rgba(174, 180, 189, 0.06);
+  --border-accent: rgba(184, 115, 74, 0.35);
+ 
+  /* Accent  same brand color, different surrounding mood */
+  --accent:       var(--brand-accent);
+  --accent-light: var(--brand-accent-light);
+  --accent-dim:   var(--brand-accent-dim);
+}
