@@ -1,13 +1,9 @@
 /* shared/database/prisma/auth.prisma */
-// ─── Better-Auth Models ───────────────────────────────────────────────────────
-// These models are owned by better-auth. Do not rename fields or change types
-// without checking better-auth's schema requirements first.
+
+// ── Better-Auth Models (schema: auth, order: 03) ─────────────────────────────
+// Owned by better-auth. Do not rename fields or change types without checking
+// better-auth schema requirements. FKs to users.User.
 // Ref: https://www.better-auth.com/docs/concepts/database#core-schema
-//
-// Naming convention:
-//   - Prisma model fields: camelCase  (better-auth's expectation)
-//   - DB columns: snake_case          (via @map)
-//   - DB table:   snake_case plural   (via @@map)
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Session {
@@ -23,7 +19,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
-  @@schema("users")
+  @@schema("auth")
 }
 
 model Account {
@@ -39,15 +35,13 @@ model Account {
   accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
   refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
   scope                 String?
-  // This is where better-auth stores the hashed password for email/password auth.
-  // User.password does NOT exist — see users.prisma.
   password              String?
 
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt      @map("updated_at")
 
   @@map("accounts")
-  @@schema("users")
+  @@schema("auth")
 }
 
 model Verification {
@@ -59,5 +53,5 @@ model Verification {
   updatedAt  DateTime? @updatedAt      @map("updated_at")
 
   @@map("verifications")
-  @@schema("users")
+  @@schema("auth")
 }

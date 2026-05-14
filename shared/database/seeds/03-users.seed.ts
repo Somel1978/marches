@@ -1,11 +1,20 @@
-// shared/database/seeds/users.seed.ts
+// shared/database/seeds/03-users.seed.ts
+
+// �Users Seed (order: 03)
+// Depends on: 02-roles.seed.ts (SUPERADMIN role must exist)
+//
+// Creates the User row and attaches the SUPERADMIN role.
+// Does NOT create an Account row — run init-admin after seeding:
+//   pnpm --filter @apps/admin init-admin
+// 
+
 import type { PrismaClient } from '@prisma/client';
 
 export async function seedUsers(db: PrismaClient) {
-    console.log('  \u2514\u2500 Seeding Users...');
+    console.log('  └─ Seeding Users...');
 
     const adminRole = await db.role.findUnique({ where: { name: 'SUPERADMIN' } });
-    if (!adminRole) throw new Error('SUPERADMIN role not found. Run seedRoles first.');
+    if (!adminRole) throw new Error('SUPERADMIN role not found. Run 02-roles.seed.ts first.');
 
     const ADMIN_EMAIL = 'admin@marches.local';
 
@@ -15,10 +24,6 @@ export async function seedUsers(db: PrismaClient) {
         return;
     }
 
-    // Create the User row and attach the SUPERADMIN role.
-    // The Account row (hashed password) must be created separately via the
-    // init-admin script in apps/admin, which uses auth.api.signUpEmail to
-    // guarantee the hash format matches better-auth's internal implementation.
     await db.user.create({
         data: {
             name:          'System Admin',
@@ -29,5 +34,5 @@ export async function seedUsers(db: PrismaClient) {
     });
 
     console.log('     Created admin user: ' + ADMIN_EMAIL);
-    console.log('     \u26a0  Run: pnpm --filter @apps/admin init-admin to set the password.');
+    console.log('     Run: pnpm --filter @apps/admin init-admin to set the password.');
 }

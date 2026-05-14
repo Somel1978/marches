@@ -1,0 +1,49 @@
+/* shared/database/prisma/audit.prisma */
+
+// Audit Log (schema: audit, order: 04)
+// Append-only. Never update or delete rows.
+// Records who did what to which resource, with before/after snapshots.
+// Written inside dbapi transactions so audit entries are atomic with changes.
+// 
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  ASSIGN
+  REVOKE
+
+  @@schema("audit")
+}
+
+model AuditLog {
+  id           String      @id @default(uuid())
+
+  // Who performed the action. Null for system/seed actions.
+  actorId      String?     @map("actor_id")
+  actor        User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  action       AuditAction
+
+  // What kind of entity was affected (matches platform.Resource.key)
+  resourceKey  String      @map("resource_key")
+  // Which specific entity
+  resourceId   String      @map("resource_id")
+
+  // JSON snapshots. Null for creates (no before) or deletes (no after).
+  before       Json?
+  after        Json?
+
+  // Optional extra context (e.g. IP address, request ID)
+  metadata     Json?
+
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  // Indexed for common query patterns
+  @@index([actorId])
+  @@index([resourceKey, resourceId])
+  @@index([createdAt])
+
+  @@map("audit_logs")
+  @@schema("audit")
+}

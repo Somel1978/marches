@@ -1,0 +1,46 @@
+/* shared/database/prisma/platform.prisma */
+
+// ── Platform Registry (schema: platform, order: 01) ──────────────────────────
+// No dependencies. Foundation for RBAC and feature discovery.
+//
+// Resource.key   — immutable machine identifier ("Quest"). Used as FK target
+//                  in users.RolePermission.resourceKey. Never rename without
+//                  a coordinated migration.
+// Resource.displayName — mutable human label. Rename freely in the UI.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Module {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  sortOrder   Int        @default(0) @map("sort_order")
+
+  resources   Resource[]
+
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt      @map("updated_at")
+
+  @@map("modules")
+  @@schema("platform")
+}
+
+model Resource {
+  id          String   @id @default(uuid())
+  // key: immutable, machine identifier — FK target for RolePermission.resourceKey
+  key         String   @unique
+  // displayName: mutable, shown in UI — renaming has no impact on permissions
+  displayName String   @map("display_name")
+  description String?
+  moduleId    String   @map("module_id")
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  // Cross-schema relation — users.RolePermission references this via resourceKey
+  rolePermissions RolePermission[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt      @map("updated_at")
+
+  @@map("resources")
+  @@schema("platform")
+}

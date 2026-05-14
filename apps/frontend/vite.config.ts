@@ -5,13 +5,15 @@ import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig(({ mode }) => {
-	// Load the root .env (two levels up from apps/frontend)
-	// and inject into process.env so SSR modules using process.env work.
 	const env = loadEnv(mode, '../../', '');
 	Object.assign(process.env, env);
 
 	return {
 		plugins: [tailwindcss(), sveltekit()],
+		server: {
+			port: 5173,
+			strictPort: true,
+		},
 		test: {
 			expect: { requireAssertions: true },
 			projects: [
