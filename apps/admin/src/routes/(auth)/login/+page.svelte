@@ -64,7 +64,9 @@
 		</button>
 	</form>
 </div>
-
+<p class="forgot-link">
+    <a href="/forgot-password">Forgot your password?</a>
+</p>
 <style>
 	.login {
 		display: flex;
@@ -125,4 +127,7 @@
 		width: 100%;
 		margin-top: 0.25rem;
 	}
+	.forgot-link { text-align: center; font-size: 0.875rem; color: var(--text-muted); margin: 0; }
+    .forgot-link a { color: var(--accent-light); text-decoration: none; }
+    .forgot-link a:hover { text-decoration: underline; }
 </style>

@@ -1,9 +1,7 @@
 /* shared/database/prisma/auth.prisma */
 
 // ── Better-Auth Models (schema: auth, order: 03) ─────────────────────────────
-// Owned by better-auth. Do not rename fields or change types without checking
-// better-auth schema requirements. FKs to users.User.
-// Ref: https://www.better-auth.com/docs/concepts/database#core-schema
+// Owned by better-auth. FKs to users.User.
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Session {
@@ -40,6 +38,8 @@ model Account {
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt      @map("updated_at")
 
+  // Required for upsert by accountId + providerId (e.g. password reset)
+  @@unique([accountId, providerId])
   @@map("accounts")
   @@schema("auth")
 }

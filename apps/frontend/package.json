@@ -21,7 +21,8 @@
     "better-auth": "~1.4.21",
     "@core/rbac": "workspace:*",
     "@core/ui": "workspace:*",
-    "@core/errors": "workspace:*"
+    "@core/errors": "workspace:*",
+    "@core/email": "workspace:*"
   },
   "devDependencies": {
     "@better-auth/cli": "~1.4.21",

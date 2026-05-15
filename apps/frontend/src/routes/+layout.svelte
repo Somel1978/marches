@@ -7,6 +7,10 @@
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
+
+	// Cast pathname to string — typed routes rejects paths for not-yet-created routes.
+	// Remove the cast once the routes exist.
+	const pathname = $derived(page.url.pathname as string);
 </script>
 
 <svelte:head>
@@ -16,10 +20,10 @@
 <div class="site">
 	<NavBar user={data.user ?? null}>
 		{#snippet links()}
-			<a href="/quests" class="nav-link" class:nav-link--active={page.url.pathname.startsWith('/quests')}>
+			<a href="/quests" class="nav-link" class:nav-link--active={pathname.startsWith('/quests')}>
 				Quests
 			</a>
-			<a href="/map" class="nav-link" class:nav-link--active={page.url.pathname === '/map'}>
+			<a href="/map" class="nav-link" class:nav-link--active={pathname === '/map'}>
 				Map
 			</a>
 		{/snippet}

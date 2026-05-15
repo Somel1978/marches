@@ -2,11 +2,25 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": [".svelte-kit/**", "dist/**", ".next/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".svelte-kit/**",
+        "dist/**",
+        ".next/**"
+      ]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": [
+        "^lint"
+      ]
+    },
+    "check": {
+      "dependsOn": [
+        "^build"
+      ],
+      "cache": false
     },
     "dev": {
       "cache": false,
@@ -17,6 +31,42 @@
     },
     "db:push": {
       "cache": false
+    },
+    "db:seed": {
+      "cache": false,
+      "dependsOn": [
+        "db:generate"
+      ]
+    },
+    "init-admin": {
+      "cache": false,
+      "dependsOn": [
+        "db:seed"
+      ]
+    },
+    "@core/errors#build": {},
+    "@core/database#build": {
+      "dependsOn": [
+        "@core/errors#build"
+      ]
+    },
+    "@core/rbac#build": {
+      "dependsOn": [
+        "@core/database#build"
+      ]
+    },
+    "@core/ui#build": {},
+    "@apps/admin#build": {
+      "dependsOn": [
+        "@core/rbac#build",
+        "@core/ui#build"
+      ]
+    },
+    "@apps/frontend#build": {
+      "dependsOn": [
+        "@core/rbac#build",
+        "@core/ui#build"
+      ]
     }
   }
 }

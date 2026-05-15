@@ -1,12 +1,4 @@
 // shared/database/seeds/01-platform.seed.ts
-
-// ── Platform Registry Seed (order: 01) ───────────────────────────────────────
-// Runs first — no dependencies.
-// Resource.key is the immutable contract used by RolePermission.resourceKey.
-// Resource.displayName is the human-readable label shown in the UI.
-// Roles seed (02) depends on these keys being present.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import type { PrismaClient } from '@prisma/client';
 
 const MODULES: {
@@ -14,10 +6,11 @@ const MODULES: {
     description: string;
     sortOrder:   number;
     resources: {
-        key:         string;   // immutable — used as FK in RolePermission
-        displayName: string;   // mutable — shown in UI
-        description: string;
-        sortOrder:   number;
+        key:           string;
+        displayName:   string;
+        description:   string;
+        sortOrder:     number;
+        navVisibility: 'NONE' | 'ANY' | 'ALL';
     }[];
 }[] = [
     {
@@ -25,10 +18,10 @@ const MODULES: {
         description: 'Core platform administration',
         sortOrder:   0,
         resources: [
-            { key: 'System',   displayName: 'System',           description: 'Global system settings', sortOrder: 0 },
-            { key: 'Module',   displayName: 'Modules',          description: 'Feature module registry', sortOrder: 1 },
-            { key: 'Resource', displayName: 'Resources',        description: 'Resource registry',       sortOrder: 2 },
-            { key: 'AuditLog', displayName: 'Audit Log',        description: 'Platform audit trail',    sortOrder: 3 },
+            { key: 'System',   displayName: 'System',    description: 'Admin panel access gate',  sortOrder: 0, navVisibility: 'ANY'  },
+            { key: 'Module',   displayName: 'Modules',   description: 'Feature module registry', sortOrder: 1, navVisibility: 'NONE' },
+            { key: 'Resource', displayName: 'Resources', description: 'Resource registry',       sortOrder: 2, navVisibility: 'NONE' },
+            { key: 'AuditLog', displayName: 'Audit Log', description: 'Platform audit trail',    sortOrder: 3, navVisibility: 'ANY'  },
         ],
     },
     {
@@ -36,13 +29,31 @@ const MODULES: {
         description: 'Users, roles and permissions',
         sortOrder:   1,
         resources: [
-            { key: 'User',       displayName: 'Users',       description: 'User accounts',    sortOrder: 0 },
-            { key: 'Role',       displayName: 'Roles',       description: 'Roles',            sortOrder: 1 },
-            { key: 'Permission', displayName: 'Permissions', description: 'Role permissions', sortOrder: 2 },
+            { key: 'User',       displayName: 'Users',       description: 'User accounts',    sortOrder: 0, navVisibility: 'ANY'  },
+            { key: 'Role',       displayName: 'Roles',       description: 'Roles',            sortOrder: 1, navVisibility: 'ALL'  },
+            { key: 'Permission', displayName: 'Permissions', description: 'Role permissions', sortOrder: 2, navVisibility: 'NONE' },
         ],
     },
-    // Add new modules here as features are built.
-    // Remember: key is immutable once set. displayName can be changed freely.
+];
+
+const SETTINGS: {
+    key:         string;
+    value:       string | null;
+    description: string;
+    isSecret:    boolean;
+}[] = [
+    // SMTP
+    { key: 'smtp.host',    value: null,                    description: 'SMTP server hostname',           isSecret: false },
+    { key: 'smtp.port',    value: '587',                   description: 'SMTP server port',               isSecret: false },
+    { key: 'smtp.user',    value: null,                    description: 'SMTP username',                   isSecret: false },
+    { key: 'smtp.pass',    value: null,                    description: 'SMTP password',                   isSecret: true  },
+    { key: 'smtp.secure',  value: 'false',                 description: 'Use TLS (true for port 465)',    isSecret: false },
+    // Email
+    { key: 'email.from',     value: 'noreply@marches.local', description: 'From address for system emails', isSecret: false },
+    { key: 'email.fromName', value: 'Marches',               description: 'From name for system emails',   isSecret: false },
+    // Site
+    { key: 'site.url',  value: 'http://localhost:5173', description: 'Frontend URL — used in email links', isSecret: false },
+    { key: 'site.name', value: 'Marches',               description: 'Site name used in emails',          isSecret: false },
 ];
 
 export async function seedPlatform(db: PrismaClient) {
@@ -54,21 +65,23 @@ export async function seedPlatform(db: PrismaClient) {
             update: {},
             create: { name: mod.name, description: mod.description, sortOrder: mod.sortOrder },
         });
-
         for (const res of mod.resources) {
             await db.resource.upsert({
                 where:  { key: res.key },
-                update: { displayName: res.displayName },  // displayName is safe to update
-                create: {
-                    key:         res.key,
-                    displayName: res.displayName,
-                    description: res.description,
-                    sortOrder:   res.sortOrder,
-                    moduleId:    module.id,
-                },
+                update: { displayName: res.displayName, navVisibility: res.navVisibility },
+                create: { key: res.key, displayName: res.displayName, description: res.description, sortOrder: res.sortOrder, navVisibility: res.navVisibility, moduleId: module.id },
             });
         }
-
         console.log(`     Module: ${mod.name} (${mod.resources.length} resources)`);
     }
+
+    for (const setting of SETTINGS) {
+        await db.setting.upsert({
+            where:  { key: setting.key },
+            // Never overwrite an existing value on reseed — admin may have changed it
+            update: {},
+            create: { key: setting.key, value: setting.value, description: setting.description, isSecret: setting.isSecret },
+        });
+    }
+    console.log(`     Settings: ${SETTINGS.length} seeded`);
 }

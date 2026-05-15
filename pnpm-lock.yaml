@@ -32,6 +32,9 @@ importers:
       '@core/database':
         specifier: workspace:*
         version: link:../../shared/database
+      '@core/email':
+        specifier: workspace:*
+        version: link:../../shared/email
       '@core/errors':
         specifier: workspace:*
         version: link:../../shared/errors
@@ -120,6 +123,9 @@ importers:
       '@core/database':
         specifier: workspace:*
         version: link:../../shared/database
+      '@core/email':
+        specifier: workspace:*
+        version: link:../../shared/email
       '@core/errors':
         specifier: workspace:*
         version: link:../../shared/errors
@@ -228,6 +234,22 @@ importers:
         specifier: 7.8.0
         version: 7.8.0(@types/react@19.2.14)(empty-npm-package@1.0.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@5.9.3)
 
+  shared/email:
+    dependencies:
+      '@core/database':
+        specifier: workspace:*
+        version: link:../database
+      '@core/errors':
+        specifier: workspace:*
+        version: link:../errors
+      nodemailer:
+        specifier: ^6.9.0
+        version: 6.10.1
+    devDependencies:
+      '@types/nodemailer':
+        specifier: ^6.4.0
+        version: 6.4.23
+
   shared/errors: {}
 
   shared/rbac:
@@ -241,6 +263,9 @@ importers:
       better-auth:
         specifier: ~1.4.21
         version: 1.4.22(96117a4fa2c94db34c86fe763ab1e158)
+      lru-cache:
+        specifier: ^11.0.0
+        version: 11.3.6
     devDependencies:
       typescript:
         specifier: ^5.7.3
@@ -1407,6 +1432,9 @@ packages:
   '@types/node@24.12.2':
     resolution: {integrity: sha512-A1sre26ke7HDIuY/M23nd9gfB+nrmhtYyMINbjI1zHJxYteKR6qSMX56FsmjMcDb3SMcjJg5BiRRgOCC/yBD0g==}
 
+  '@types/nodemailer@6.4.23':
+    resolution: {integrity: sha512-aFV3/NsYFLSx9mbb5gtirBSXJnAlrusoKNuPbxsASWc7vrKLmIrTQRpdcxNcSFL3VW2A2XpeLEavwb2qMi6nlQ==}
+
   '@types/pg@8.20.0':
     resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
 
@@ -2309,6 +2337,10 @@ packages:
   long@5.3.2:
     resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
 
+  lru-cache@11.3.6:
+    resolution: {integrity: sha512-Gf/KoL3C/MlI7Bt0PGI9I+TeTC/I6r/csU58N4BSNc4lppLBeKsOdFYkK+dX0ABDUMJNfCHTyPpzwwO21Awd3A==}
+    engines: {node: 20 || >=22}
+
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
@@ -2363,6 +2395,10 @@ packages:
 
   node-releases@2.0.38:
     resolution: {integrity: sha512-3qT/88Y3FbH/Kx4szpQQ4HzUbVrHPKTLVpVocKiLfoYvw9XSGOX2FmD2d6DrXbVYyAQTF2HeF6My8jmzx7/CRw==}
+
+  nodemailer@6.10.1:
+    resolution: {integrity: sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA==}
+    engines: {node: '>=6.0.0'}
 
   obug@2.1.1:
     resolution: {integrity: sha512-uTqF9MuPraAQ+IsnPf366RG4cP9RtUi7MLO1N3KEc+wb0a6yKpeL0lmk2IB1jY5KHPAlTc6T/JRdC/YqxHNwkQ==}
@@ -4105,6 +4141,10 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
+  '@types/nodemailer@6.4.23':
+    dependencies:
+      '@types/node': 24.12.2
+
   '@types/pg@8.20.0':
     dependencies:
       '@types/node': 24.12.2
@@ -4967,6 +5007,8 @@ snapshots:
 
   long@5.3.2: {}
 
+  lru-cache@11.3.6: {}
+
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
@@ -5014,6 +5056,8 @@ snapshots:
   natural-compare@1.4.0: {}
 
   node-releases@2.0.38: {}
+
+  nodemailer@6.10.1: {}
 
   obug@2.1.1: {}
 

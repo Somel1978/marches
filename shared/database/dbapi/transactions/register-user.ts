@@ -1,34 +1,72 @@
 // shared/database/dbapi/transactions/register-user.ts
 
-// Creates a User row and attaches roles atomically.
-// Does NOT create an Account row âdone via better-auth at the app layer.
+// Single transaction for creating a user with roles and account (password).
+// This is the only entry point for user creation.
 
 import { db } from '../../index.ts';
+import { logAudit } from '../write/audit/log.ts';
+import { hashPassword } from 'better-auth/crypto';
+import { ConflictError, NotFoundError } from '@core/errors';
 
 export type RegisterUserInput = {
-    name:       string;
-    email:      string;
-    roleNames:  string[];
-    createdBy?: string;
+    name:           string;
+    email:          string;
+    password:       string;
+    discordHandle?: string;
+    mobile?:        string;
+    roleIds:        string[];
+    createdBy?:     string;
 };
 
 export async function registerUser(input: RegisterUserInput) {
-    return db.$transaction(async (tx) => {
-        const roles = await tx.role.findMany({ where: { name: { in: input.roleNames } } });
+    const existing = await db.user.findUnique({ where: { email: input.email } });
+    if (existing) throw new ConflictError(`User already exists: ${input.email}`);
 
-        if (roles.length !== input.roleNames.length) {
-            const missing = input.roleNames.filter(n => !roles.map(r => r.name).includes(n));
-            throw new Error(`Roles not found: ${missing.join(', ')}`);
+    if (input.roleIds.length) {
+        const found = await db.role.findMany({
+            where:  { id: { in: input.roleIds } },
+            select: { id: true },
+        });
+        if (found.length !== input.roleIds.length) {
+            const missing = input.roleIds.filter(id => !found.map(r => r.id).includes(id));
+            throw new NotFoundError('Role', missing.join(', '));
         }
+    }
 
-        return tx.user.create({
+    const hashed = await hashPassword(input.password);
+
+    return db.$transaction(async (tx) => {
+        const user = await tx.user.create({
             data: {
                 name:          input.name,
                 email:         input.email,
+                discordHandle: input.discordHandle || undefined,
+                mobile:        input.mobile        || undefined,
                 emailVerified: false,
                 createdBy:     input.createdBy,
-                userRoles: { create: roles.map(r => ({ roleId: r.id, assignedBy: input.createdBy })) },
+                userRoles:     input.roleIds.length
+                    ? { create: input.roleIds.map(roleId => ({ roleId, assignedBy: input.createdBy })) }
+                    : undefined,
             },
         });
+
+        await tx.account.create({
+            data: {
+                userId:     user.id,
+                accountId:  user.id,
+                providerId: 'credential',
+                password:   hashed,
+            },
+        });
+
+        await logAudit(tx, {
+            actorId:     input.createdBy,
+            action:      'CREATE',
+            resourceKey: 'User',
+            resourceId:  user.id,
+            after:       { id: user.id, name: user.name, email: user.email },
+        });
+
+        return user;
     });
 }

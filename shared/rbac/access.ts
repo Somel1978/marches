@@ -2,6 +2,7 @@
 import { db } from "@core/database";
 import type { AccessLevel } from "@core/database";
 import { ForbiddenError } from "@core/errors";
+import { permissionCache } from "./cache.ts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -15,7 +16,7 @@ export type PermissionRequest = {
 export type PermissionResult =
     | { allowed: false; level: 'NONE' }
     | { allowed: true;  level: 'ALL'  }
-    | { allowed: true;  level: 'OWN'  };  // caller must enforce ownership via isOwner()
+    | { allowed: true;  level: 'OWN'  };
 
 export type ResolvedPermission = {
     canCreate: AccessLevel;
@@ -25,6 +26,8 @@ export type ResolvedPermission = {
 };
 
 export type UserPermissions = Map<string, ResolvedPermission>;
+
+export type NavVisibility = 'NONE' | 'ANY' | 'ALL';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -45,11 +48,10 @@ function actionLevel(perm: ResolvedPermission, action: PermissionAction): Access
 
 // ── Core Engine ───────────────────────────────────────────────────────────────
 
-/**
- * Loads ALL permissions for a user in a single DB query, merging across roles.
- * Call once per request in hooks.server.ts — store in event.locals.permissions.
- */
 export async function getUserPermissions(userId: string): Promise<UserPermissions> {
+    const cached = permissionCache.get(userId);
+    if (cached) return cached;
+
     const user = await db.user.findUnique({
         where: { id: userId },
         include: {
@@ -61,7 +63,11 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
         },
     });
 
-    if (!user?.userRoles.length) return new Map();
+    if (!user?.userRoles.length) {
+        const empty = new Map<string, ResolvedPermission>();
+        permissionCache.set(userId, empty);
+        return empty;
+    }
 
     const resolved = new Map<string, ResolvedPermission>();
 
@@ -86,13 +92,26 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
         }
     }
 
+    permissionCache.set(userId, resolved);
     return resolved;
 }
 
-/**
- * Zero-cost permission check against pre-loaded UserPermissions map.
- * Use inside routes after getUserPermissions() ran in hooks.
- */
+export function invalidateUserPermissions(userId: string): void {
+    permissionCache.delete(userId);
+}
+
+export async function invalidateRolePermissions(roleId: string): Promise<void> {
+    const userRoles = await db.userRole.findMany({
+        where:  { roleId },
+        select: { userId: true },
+    });
+    for (const { userId } of userRoles) {
+        permissionCache.delete(userId);
+    }
+}
+
+// ── Core check ────────────────────────────────────────────────────────────────
+
 export function checkPermission(
     permissions: UserPermissions,
     request:     PermissionRequest,
@@ -106,10 +125,6 @@ export function checkPermission(
     return { allowed: true, level };
 }
 
-/**
- * Single-shot DB check — for scripts/seeds/background jobs.
- * Prefer getUserPermissions + checkPermission inside request handlers.
- */
 export async function getPermissionLevel(
     userId:  string,
     request: PermissionRequest,
@@ -118,21 +133,100 @@ export async function getPermissionLevel(
     return checkPermission(permissions, request);
 }
 
-// ── Ownership ─────────────────────────────────────────────────────────────────
+// ── Nav visibility ────────────────────────────────────────────────────────────
 
 /**
- * Enforces OWN access level. Call when checkPermission returns level === 'OWN'.
+ * Determines if a nav item should be shown based on the resource's
+ * navVisibility setting and the user's permission level.
+ *
+ *   NONE — never show (internal/door-key resources)
+ *   ANY  — show if user has OWN or ALL
+ *   ALL  — show only if user has ALL
  */
+export function canNavigate(
+    permissions:   UserPermissions,
+    resourceKey:   string,
+    navVisibility: NavVisibility,
+): boolean {
+    if (navVisibility === 'NONE') return false;
+
+    const result = checkPermission(permissions, { resourceKey, action: 'read' });
+    if (!result.allowed) return false;
+
+    if (navVisibility === 'ALL') return result.level === 'ALL';
+    return true; // ANY — OWN or ALL both pass
+}
+
+// ── Route guards ──────────────────────────────────────────────────────────────
+
+/**
+ * List routes — requires ALL.
+ * OWN never grants access to a list of all records.
+ * Throws ForbiddenError if denied.
+ */
+export function assertListPermission(
+    permissions: UserPermissions,
+    resourceKey: string,
+    action:      PermissionAction = 'read',
+): void {
+    const result = checkPermission(permissions, { resourceKey, action });
+    if (!result.allowed || result.level !== 'ALL') {
+        throw new ForbiddenError(action, resourceKey);
+    }
+}
+
+/**
+ * Single record routes — ALL always passes, OWN passes only if owner.
+ * Throws ForbiddenError if denied.
+ */
+export function assertRecordPermission(
+    permissions:      UserPermissions,
+    resourceKey:      string,
+    action:           PermissionAction,
+    resourceOwnerId:  string,
+    requestingUserId: string,
+): void {
+    const result = checkPermission(permissions, { resourceKey, action });
+    if (!result.allowed) throw new ForbiddenError(action, resourceKey);
+    if (result.level === 'OWN' && resourceOwnerId !== requestingUserId) {
+        throw new ForbiddenError(action, resourceKey);
+    }
+}
+
+/**
+ * Write routes — ALL always passes, OWN passes only if operating on own record.
+ * For operations with no owner concept (create), only ALL passes.
+ * Throws ForbiddenError if denied.
+ */
+export function assertWritePermission(
+    permissions:       UserPermissions,
+    resourceKey:       string,
+    action:            PermissionAction,
+    resourceOwnerId?:  string,
+    requestingUserId?: string,
+): void {
+    const result = checkPermission(permissions, { resourceKey, action });
+    if (!result.allowed) throw new ForbiddenError(action, resourceKey);
+
+    if (result.level === 'OWN') {
+        // OWN requires an owner context — if none provided, deny
+        if (!resourceOwnerId || !requestingUserId) {
+            throw new ForbiddenError(action, resourceKey);
+        }
+        if (resourceOwnerId !== requestingUserId) {
+            throw new ForbiddenError(action, resourceKey);
+        }
+    }
+}
+
+// ── Ownership ─────────────────────────────────────────────────────────────────
+
 export function isOwner(resourceOwnerId: string, requestingUserId: string): boolean {
     return resourceOwnerId === requestingUserId;
 }
 
-// ── Guard ─────────────────────────────────────────────────────────────────────
+// ── Legacy guard (kept for compatibility) ─────────────────────────────────────
 
-/**
- * Throws ForbiddenError if result is denied.
- * Apps catch and map to error(403).
- */
 export function assertPermission(
     result:      PermissionResult,
     resourceKey: string,

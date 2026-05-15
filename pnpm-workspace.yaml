@@ -1,3 +1,4 @@
+# pnpm-workspace.yaml
 packages:
   - "shared/*"
   - "apps/*"
@@ -8,6 +9,8 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   prisma: true
+  "@node-rs/argon2": true
 onlyBuiltDependencies:
   - "@tailwindcss/oxide"
   - esbuild
+ 

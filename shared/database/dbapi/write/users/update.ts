@@ -5,6 +5,7 @@ import { NotFoundError } from '@core/errors';
 
 export type UpdateUserInput = {
     name?:          string;
+    email?:         string;
     image?:         string;
     discordHandle?: string;
     mobile?:        string;
@@ -34,8 +35,8 @@ export async function updateUser(id: string, input: UpdateUserInput) {
             action:      'UPDATE',
             resourceKey: 'User',
             resourceId:  id,
-            before:      { name: before.name, image: before.image, discordHandle: before.discordHandle, mobile: before.mobile },
-            after:       { name: after.name,  image: after.image,  discordHandle: after.discordHandle,  mobile: after.mobile  },
+            before:      { name: before.name, email: before.email, image: before.image, discordHandle: before.discordHandle, mobile: before.mobile },
+            after:       { name: after.name,  email: after.email,  image: after.image,  discordHandle: after.discordHandle,  mobile: after.mobile  },
         });
 
         return after;

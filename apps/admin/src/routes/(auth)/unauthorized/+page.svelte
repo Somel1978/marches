@@ -11,8 +11,9 @@
 		Contact a system administrator to request access.
 	</p>
 	<div class="unauth__actions">
-		<a href="/" class="btn btn-ghost">Back to site</a>
-		<form method="post" action="/api/auth/sign-out" use:enhance>
+		<a href="http://localhost:5173" class="btn btn-ghost">Back to site</a>
+		<!-- Sign out via the (app) root page action — avoids direct better-auth endpoint -->
+		<form method="post" action="/?/signOut" use:enhance>
 			<button type="submit" class="btn btn-primary">Sign out</button>
 		</form>
 	</div>
@@ -31,15 +32,8 @@
 		border-radius: var(--radius-lg);
 	}
 
-	.unauth__icon {
-		font-size: 2.5rem;
-	}
-
-	.unauth__title {
-		font-size: 1.25rem;
-		font-weight: 700;
-		color: var(--text-primary);
-	}
+	.unauth__icon { font-size: 2.5rem; }
+	.unauth__title { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
 
 	.unauth__message {
 		font-size: 0.875rem;
@@ -49,9 +43,5 @@
 		line-height: 1.6;
 	}
 
-	.unauth__actions {
-		display: flex;
-		gap: 0.75rem;
-		margin-top: 0.5rem;
-	}
+	.unauth__actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
 </style>

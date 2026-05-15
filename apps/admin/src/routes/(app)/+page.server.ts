@@ -1,11 +1,13 @@
 // apps/admin/src/routes/(app)/+page.server.ts
 import { redirect } from '@sveltejs/kit';
 import { auth } from '$lib/server/auth';
+import { analytics } from '@core/database';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals }) => {
-	// Guard already ran in +layout.server.ts — user is guaranteed here.
-	return {};
+export const load: PageServerLoad = async () => {
+	return {
+		metrics: await analytics.getPlatformMetrics(),
+	};
 };
 
 export const actions: Actions = {

@@ -5,7 +5,7 @@ export async function getWithPermissions(roleId: string) {
     return db.role.findUnique({
         where:   { id: roleId },
         include: {
-            permissions: { orderBy: { resource: 'asc' } },
+            permissions: { orderBy: { resourceKey: 'asc' } },
             _count: { select: { userRoles: true } },
         },
     });
@@ -17,6 +17,6 @@ export async function getWithPermissions(roleId: string) {
 export async function getAllWithPermissions() {
     return db.role.findMany({
         orderBy: { name: 'asc' },
-        include: { permissions: { orderBy: { resource: 'asc' } } },
+        include: { permissions: { orderBy: { resourceKey: 'asc' } } },
     });
 }
