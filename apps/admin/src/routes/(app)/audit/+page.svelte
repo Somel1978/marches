@@ -121,15 +121,15 @@
 	</div>
 
 	<!-- Table -->
-	<div class="card">
+	<div class="table-wrap card">
 		<table class="table">
 			<thead>
 				<tr>
 					<th>When</th>
 					<th>Actor</th>
 					<th>Action</th>
-					<th>Resource</th>
-					<th>ID</th>
+					<th class="col-hide-mobile">Resource</th>
+					<th class="col-hide-tablet">ID</th>
 					<th></th>
 				</tr>
 			</thead>
@@ -154,8 +154,8 @@
 						<td>
 							<span class="badge {actionClass(log.action)}">{log.action}</span>
 						</td>
-						<td>{log.resourceKey}</td>
-						<td class="table__id">{log.resourceId.slice(0, 8)}…</td>
+						<td class="col-hide-mobile">{log.resourceKey}</td>
+						<td class="table__id col-hide-tablet">{log.resourceId.slice(0, 8)}…</td>
 						<td class="table__action">
 							<button class="btn btn-ghost btn-icon btn-sm" aria-label="View details">
 								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -219,98 +219,3 @@
 {#if selected}
 	<button class="overlay" onclick={() => selected = null} aria-label="Close detail panel"></button>
 {/if}
-
-<style>
-	.page { display: flex; flex-direction: column; gap: 1.5rem; }
-	.page__header { display: flex; align-items: flex-start; justify-content: space-between; }
-	.page__title { font-size: 1.25rem; font-weight: 700; }
-	.page__subtitle { font-size: 0.875rem; color: var(--text-muted); margin: 0.25rem 0 0; }
-
-	.filters { padding: 1rem 1.25rem; }
-	.filters__row {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-		gap: 0.75rem;
-		margin-bottom: 0.75rem;
-	}
-	.filter-field { display: flex; flex-direction: column; gap: 0.25rem; }
-	.filters__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-
-	.table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-	.table th {
-		text-align: left;
-		padding: 0.625rem 1rem;
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: var(--text-muted);
-		border-bottom: 1px solid var(--border-muted);
-	}
-	.table td {
-		padding: 0.75rem 1rem;
-		border-bottom: 1px solid var(--border-muted);
-		vertical-align: middle;
-	}
-	.table tr:last-child td { border-bottom: none; }
-
-	.table__row { cursor: pointer; transition: background-color var(--transition-fast); }
-	.table__row:hover td { background-color: var(--bg-overlay); }
-	.table__row--active td { background-color: var(--bg-overlay); }
-
-	.table__muted { color: var(--text-secondary) !important; font-size: 0.8125rem; }
-	.table__id { font-family: monospace; font-size: 0.8125rem; color: var(--text-muted); }
-	.table__action { text-align: right; width: 48px; }
-	.table__empty { text-align: center; padding: 2rem !important; color: var(--text-muted) !important; }
-
-	.actor { display: flex; flex-direction: column; }
-	.actor__name { font-size: 0.875rem; font-weight: 500; color: var(--text-primary); }
-	.actor__email { font-size: 0.75rem; color: var(--text-muted); }
-
-	.detail-row td { padding: 0; border-bottom: 2px solid var(--border-accent); }
-	.detail-panel {
-		padding: 1.25rem 1.5rem;
-		background-color: var(--bg-overlay);
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.detail-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-	.detail-col { display: flex; flex-direction: column; gap: 0.375rem; }
-	.detail-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
-
-	.detail-json {
-		background-color: var(--bg-base);
-		border: 1px solid var(--border-muted);
-		border-radius: var(--radius-md);
-		padding: 0.75rem;
-		font-size: 0.8125rem;
-		font-family: monospace;
-		color: var(--text-secondary);
-		white-space: pre-wrap;
-		word-break: break-all;
-		max-height: 240px;
-		overflow-y: auto;
-		margin: 0;
-	}
-
-	.detail-meta { display: flex; flex-direction: column; gap: 0.375rem; }
-	.detail-full-id { font-size: 0.8125rem; color: var(--text-muted); margin: 0; }
-	.detail-full-id code { font-family: monospace; color: var(--text-secondary); }
-
-	.pagination { display: flex; gap: 0.375rem; justify-content: center; }
-	.pagination__page {
-		width: 2rem; height: 2rem;
-		display: flex; align-items: center; justify-content: center;
-		border-radius: var(--radius-sm);
-		font-size: 0.875rem;
-		color: var(--text-secondary);
-		text-decoration: none;
-		transition: background-color var(--transition-fast), color var(--transition-fast);
-	}
-	.pagination__page:hover { background-color: var(--bg-overlay); color: var(--text-primary); }
-	.pagination__page--active { background-color: var(--accent); color: #fff; }
-
-	.overlay {
-		display: none; /* detail panel is inline, no overlay needed */
-	}
-</style>

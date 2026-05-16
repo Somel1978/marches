@@ -2,19 +2,18 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
-// Guard for all (protected) player routes.
-// Public routes (landing, quest browse, map) live outside this group.
 export const load: LayoutServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
-		const redirectTo = `?redirectTo=${url.pathname}`;
-		redirect(302, `/login${redirectTo}`);
+		redirect(302, `/login?redirectTo=${url.pathname}`);
 	}
-
 	return {
 		user: {
-			id:    locals.user.id,
-			name:  locals.user.name,
-			image: locals.user.image,
+			id:            locals.user.id,
+			name:          locals.user.name,
+			email:         locals.user.email,
+			image:         locals.user.image,
+			discordHandle: (locals.user as any).discordHandle ?? null,
+			mobile:        (locals.user as any).mobile        ?? null,
 		},
 	};
 };

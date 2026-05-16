@@ -61,31 +61,3 @@
 		</form>
 	</div>
 </div>
-
-<style>
-	.page { display: flex; flex-direction: column; gap: 1.5rem; }
-	.page__header { display: flex; flex-direction: column; gap: 0.25rem; }
-	.page__title { font-size: 1.25rem; font-weight: 700; }
-	.back-link { font-size: 0.875rem; color: var(--text-muted); text-decoration: none; }
-	.back-link:hover { color: var(--text-primary); }
-
-	.field { display: flex; flex-direction: column; gap: 0.375rem; margin-bottom: 1.25rem; }
-	.optional { font-size: 0.75rem; color: var(--text-muted); font-weight: 400; }
-
-	.form-error {
-		background-color: rgba(139, 58, 58, 0.15);
-		border: 1px solid var(--color-danger);
-		border-radius: var(--radius-md);
-		padding: 0.625rem 0.875rem;
-		font-size: 0.875rem;
-		color: #e08080;
-		margin-bottom: 1rem;
-	}
-
-	.form-actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.75rem;
-		margin-top: 0.5rem;
-	}
-</style>

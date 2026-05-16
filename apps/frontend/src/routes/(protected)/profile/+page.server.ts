@@ -1,0 +1,84 @@
+// apps/frontend/src/routes/(protected)/profile/+page.server.ts
+import { fail } from '@sveltejs/kit';
+import { isMarchesError } from '@core/errors';
+import { users } from '@core/database';
+import { assertRecordPermission } from '@core/rbac';
+import { auth } from '$lib/server/auth';
+import { APIError } from 'better-auth/api';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ locals }) => {
+	const user = await users.getById(locals.user!.id);
+	return { user: user! };
+};
+
+export const actions: Actions = {
+	updateProfile: async ({ request, locals }) => {
+		try {
+			assertRecordPermission(
+				locals.permissions, 'User', 'update',
+				locals.user!.id, locals.user!.id
+			);
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { profileMessage: e.message });
+			throw e;
+		}
+
+		const data          = await request.formData();
+		const name          = data.get('name')?.toString().trim()          ?? '';
+		const image         = data.get('image')?.toString().trim()         ?? '';
+		const discordHandle = data.get('discordHandle')?.toString().trim() ?? '';
+		const mobile        = data.get('mobile')?.toString().trim()        ?? '';
+
+		if (!name) return fail(400, { profileMessage: 'Name is required.' });
+
+		try {
+			await users.update(locals.user!.id, {
+				name,
+				image:         image         || undefined,
+				discordHandle: discordHandle || undefined,
+				mobile:        mobile        || undefined,
+				actorId:       locals.user!.id,
+			});
+			return { profileSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { profileMessage: e.message });
+			throw e;
+		}
+	},
+
+	changeEmail: async ({ request, locals }) => {
+		const data            = await request.formData();
+		const newEmail        = data.get('newEmail')?.toString().trim() ?? '';
+		const currentPassword = data.get('currentPassword')?.toString() ?? '';
+
+		if (!newEmail)        return fail(400, { emailMessage: 'New email is required.' });
+		if (!currentPassword) return fail(400, { emailMessage: 'Current password is required.' });
+		if (newEmail === locals.user!.email) {
+			return fail(400, { emailMessage: 'New email must be different from your current email.' });
+		}
+
+		// Verify current password first
+		try {
+			await auth.api.signInEmail({
+				body: { email: locals.user!.email, password: currentPassword },
+			});
+		} catch (e) {
+			if (e instanceof APIError) return fail(400, { emailMessage: 'Incorrect password.' });
+			throw e;
+		}
+
+		try {
+			await auth.api.changeEmail({
+				body:    { newEmail, callbackURL: '/profile' },
+				headers: request.headers,
+			});
+			return { emailSuccess: true, newEmail };
+		} catch (e) {
+			if (e instanceof APIError) {
+				return fail(400, { emailMessage: 'Could not initiate email change. Please try again.' });
+			}
+			throw e;
+		}
+	},
+};

@@ -42,15 +42,15 @@
 		/>
 	</div>
 
-	<div class="card">
+	<div class="table-wrap card">
 		<table class="table">
 			<thead>
 				<tr>
 					<th>Name</th>
-					<th>Email</th>
+					<th class="col-hide-mobile">Email</th>
 					<th>Roles</th>
-					<th>Verified</th>
-					<th>Created</th>
+					<th class="col-hide-tablet">Verified</th>
+					<th class="col-hide-tablet">Created</th>
 					<th></th>
 				</tr>
 			</thead>
@@ -67,7 +67,7 @@
 							{/if}
 							<span>{user.name}</span>
 						</td>
-						<td class="table__muted">{user.email}</td>
+						<td class="table__muted col-hide-mobile">{user.email}</td>
 						<td>
 							<div class="role-badges">
 								{#each user.userRoles as { role }}
@@ -85,7 +85,7 @@
 								<span class="badge badge-muted">Pending</span>
 							{/if}
 						</td>
-						<td class="table__muted">{formatDate(user.createdAt)}</td>
+						<td class="table__muted col-hide-tablet">{formatDate(user.createdAt)}</td>
 						<td class="table__action">
 							<a href="/users/{user.id}" class="btn btn-ghost btn-sm">Edit</a>
 						</td>
@@ -116,97 +116,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	.page { display: flex; flex-direction: column; gap: 1.5rem; }
-
-	.page__header {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-	}
-
-	.page__title { font-size: 1.25rem; font-weight: 700; }
-	.page__subtitle { font-size: 0.875rem; color: var(--text-muted); margin: 0.25rem 0 0; }
-
-	.toolbar { display: flex; gap: 0.75rem; align-items: center; }
-
-	.table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-
-	.table th {
-		text-align: left;
-		padding: 0.625rem 1rem;
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: var(--text-muted);
-		border-bottom: 1px solid var(--border-muted);
-	}
-
-	.table td {
-		padding: 0.75rem 1rem;
-		border-bottom: 1px solid var(--border-muted);
-		color: var(--text-primary);
-		vertical-align: middle;
-	}
-
-	.table tr:last-child td { border-bottom: none; }
-	.table tr:hover td { background-color: var(--bg-overlay); }
-	.table__muted { color: var(--text-secondary) !important; }
-	.table__action { text-align: right; width: 80px; }
-
-	.table__name {
-		display: flex;
-		align-items: center;
-		gap: 0.625rem;
-	}
-
-	.table__empty {
-		text-align: center;
-		padding: 2rem !important;
-		color: var(--text-muted) !important;
-	}
-
-	.avatar-sm {
-		width: 1.75rem;
-		height: 1.75rem;
-		border-radius: 50%;
-		object-fit: cover;
-		flex-shrink: 0;
-	}
-
-	.avatar-sm--initials {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background-color: var(--accent-dim);
-		border: 1px solid var(--border-accent);
-		font-size: 0.6875rem;
-		font-weight: 600;
-		color: var(--accent-light);
-		flex-shrink: 0;
-	}
-
-	.role-badges { display: flex; gap: 0.375rem; flex-wrap: wrap; }
-
-	.pagination {
-		display: flex;
-		gap: 0.375rem;
-		justify-content: center;
-	}
-
-	.pagination__page {
-		width: 2rem;
-		height: 2rem;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: var(--radius-sm);
-		font-size: 0.875rem;
-		color: var(--text-secondary);
-		text-decoration: none;
-		transition: background-color var(--transition-fast), color var(--transition-fast);
-	}
-
-	.pagination__page:hover { background-color: var(--bg-overlay); color: var(--text-primary); }
-	.pagination__page--active { background-color: var(--accent); color: #fff; }
-</style>

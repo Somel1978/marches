@@ -19,14 +19,38 @@
 
 	let { title, nav, actions, footer, user, children }: Props = $props();
 
-	let collapsed = $state(false);
+	// Desktop: sidebar collapsed state
+	let collapsed    = $state(false);
+	// Mobile: drawer open state
+	let drawerOpen   = $state(false);
+
+	function closDrawer() { drawerOpen = false; }
 </script>
 
+<!-- Mobile overlay backdrop -->
+{#if drawerOpen}
+	<button
+		class="shell__backdrop"
+		onclick={closDrawer}
+		aria-label="Close menu"
+	></button>
+{/if}
+
 <div class="shell">
-	<Sidebar bind:collapsed {nav} {footer} />
+	<Sidebar
+		bind:collapsed
+		bind:drawerOpen
+		{nav}
+		{footer}
+	/>
 
 	<div class="shell__body">
-		<Header {title} {actions} {user} />
+		<Header
+			{title}
+			{actions}
+			{user}
+			onMenuClick={() => drawerOpen = !drawerOpen}
+		/>
 
 		<main class="shell__main">
 			{@render children()}
@@ -45,7 +69,7 @@
 		display: flex;
 		flex-direction: column;
 		flex: 1;
-		min-width: 0; /* prevent flex blowout */
+		min-width: 0;
 		overflow: hidden;
 	}
 
@@ -53,5 +77,19 @@
 		flex: 1;
 		padding: 1.5rem;
 		overflow-y: auto;
+	}
+
+	@media (max-width: 640px) {
+		.shell__main { padding: 1rem; }
+	}
+
+	/* Mobile backdrop */
+	.shell__backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 19;
+		background: rgba(0, 0, 0, 0.5);
+		border: none;
+		cursor: default;
 	}
 </style>

@@ -1,7 +1,7 @@
 // apps/frontend/src/lib/server/auth.ts
 import { createAuth } from '@core/rbac';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
-import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail } from '@core/email';
+import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail, sendEmailChangeEmail } from '@core/email';
 import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
 
@@ -16,6 +16,7 @@ export const auth = createAuth({
 		sendWelcome:      sendWelcomeEmail,
 		sendVerification: sendVerificationEmail,
 		sendReset:        sendPasswordResetEmail,
+		sendEmailChange:  sendEmailChangeEmail,
 	},
 	...(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET && {
 		github: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET },

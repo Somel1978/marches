@@ -18,30 +18,3 @@
 		</form>
 	</div>
 </div>
-
-<style>
-	.unauth {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 1rem;
-		text-align: center;
-		padding: 2rem;
-		background-color: var(--bg-surface);
-		border: 1px solid var(--border-base);
-		border-radius: var(--radius-lg);
-	}
-
-	.unauth__icon { font-size: 2.5rem; }
-	.unauth__title { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
-
-	.unauth__message {
-		font-size: 0.875rem;
-		color: var(--text-secondary);
-		max-width: 320px;
-		margin: 0;
-		line-height: 1.6;
-	}
-
-	.unauth__actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
-</style>

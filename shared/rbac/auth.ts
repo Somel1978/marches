@@ -7,8 +7,6 @@ export type AuthConfig = {
     baseURL:         string;
     secret:          string;
     trustedOrigins?: string[];
-    // Frontend URL — used as base for email verification and reset links
-    // so links point to the user-facing app, not the admin app.
     frontendURL?:    string;
     github?: {
         clientId:     string;
@@ -18,6 +16,7 @@ export type AuthConfig = {
         sendWelcome:      (to: string, name: string) => Promise<void>;
         sendVerification: (to: string, name: string, url: string) => Promise<void>;
         sendReset:        (to: string, name: string, url: string) => Promise<void>;
+        sendEmailChange:  (to: string, name: string, newEmail: string, url: string) => Promise<void>;
     };
     plugins?: BetterAuthPlugin[];
 };
@@ -49,12 +48,11 @@ export function createAuth({
         trustedOrigins: trustedOrigins ?? [],
         database: prismaAdapter(db, { provider: "postgresql" }),
         emailAndPassword: {
-            enabled:   true,
-            autoSignIn: false,
-            requireEmailVerification: false,
+            enabled:                  true,
+            autoSignIn:               false,
+            requireEmailVerification: true,
             sendResetPassword: emailSender
                 ? async ({ user, url }) => {
-                    // Rebase to frontendURL so reset link opens the user-facing app
                     const link = frontendURL ? rebaseUrl(url, frontendURL) : url;
                     await emailSender.sendReset(user.email, user.name, link);
                   }
@@ -65,23 +63,33 @@ export function createAuth({
                 sendOnSignUp:                true,
                 autoSignInAfterVerification: true,
                 sendVerificationEmail: async ({ user, url }) => {
-                    // Rebase to frontendURL so verification link opens the user-facing app
                     const link = frontendURL ? rebaseUrl(url, frontendURL) : url;
                     await emailSender.sendVerification(user.email, user.name, link);
                 },
               }
             : undefined,
-        ...(github && {
-            socialProviders: {
-                github: { clientId: github.clientId, clientSecret: github.clientSecret },
-            },
-        }),
         user: {
+            changeEmail: {
+                enabled: true,
+                // Sends verification to the NEW email address.
+                // Email is only updated after the user clicks the link.
+                sendChangeEmailVerification: emailSender
+                    ? async ({ user, newEmail, url }) => {
+                        const link = frontendURL ? rebaseUrl(url, frontendURL) : url;
+                        await emailSender.sendEmailChange(user.email, user.name, newEmail, link);
+                      }
+                    : undefined,
+            },
             additionalFields: {
                 discordHandle: { type: "string", input: false, fieldName: "discord_handle" },
                 mobile:        { type: "string", input: false, fieldName: "mobile" },
             },
         },
+        ...(github && {
+            socialProviders: {
+                github: { clientId: github.clientId, clientSecret: github.clientSecret },
+            },
+        }),
         session: {
             cookieCache: { enabled: true, maxAge: 300 },
         },
