@@ -11,7 +11,7 @@
   "dependencies": {
     "@core/database": "workspace:*",
     "@core/errors": "workspace:*",
-    "better-auth": "~1.4.21",
+    "better-auth": "~1.4.22",
     "lru-cache": "^11.0.0"
   },
   "devDependencies": {

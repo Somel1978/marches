@@ -7,9 +7,11 @@ import { auth } from '$lib/server/auth';
 import { APIError } from 'better-auth/api';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	const user = await users.getById(locals.user!.id);
-	return { user: user! };
+export const load: PageServerLoad = async ({ locals, url }) => {
+	// Always fetch fresh from DB — session may have stale email after email change
+	const user         = await users.getById(locals.user!.id);
+	const emailChanged = url.searchParams.get('emailChanged') === '1';
+	return { user: user!, emailChanged };
 };
 
 export const actions: Actions = {
@@ -70,7 +72,7 @@ export const actions: Actions = {
 
 		try {
 			await auth.api.changeEmail({
-				body:    { newEmail, callbackURL: '/profile' },
+				body:    { newEmail, callbackURL: '/profile/email-changed' },
 				headers: request.headers,
 			});
 			return { emailSuccess: true, newEmail };

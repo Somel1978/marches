@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 
+	import { goto } from '$app/navigation';
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let savingProfile = $state(false);
 	let savingEmail   = $state(false);
@@ -15,6 +16,12 @@
 			<p class="page__subtitle">{data.user.email}</p>
 		</div>
 	</div>
+
+	{#if data.emailChanged}
+		<div class="form-success">
+			Your email has been updated to <strong>{data.user.email}</strong>.
+		</div>
+	{/if}
 
 	<div class="sections">
 		<!-- Profile details -->
@@ -112,8 +119,8 @@
 			</form>
 
 			<p class="field-hint" style="margin-top: 0.75rem;">
-				A verification link will be sent to your new email address.
-				Your email will only change after you verify it.
+				A verification link will be sent to your <strong>new</strong> email address.
+				Your email will only change after you click the link.
 			</p>
 		</div>
 	</div>

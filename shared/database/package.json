@@ -21,8 +21,8 @@
     "@core/errors": "workspace:*",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "7.8.0",
-    "pg": "^8.20.0",
-    "better-auth": "~1.4.21"
+    "better-auth": "~1.4.22",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",
