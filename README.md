@@ -16,7 +16,9 @@ marches/
 └── shared/
     ├── database/   — @core/database
     ├── rbac/       — @core/rbac
-    └── ui/         — @core/ui
+    ├── email/      — @core/email
+    ├── ui/         — @core/ui
+    └── errors/     — @core/errors
 ```
 
 ### Dependency chain
@@ -28,7 +30,11 @@ apps (admin / frontend)
               └── PostgreSQL
 
 apps (admin / frontend)
-  └── @core/ui            design tokens, components
+  └── @core/email         SMTP client, email templates
+        └── @core/database  reads SMTP settings at send time
+
+apps (admin / frontend)
+  └── @core/ui            design tokens, components, mobile-first CSS
 ```
 
 `@core/database` is the only package that touches Prisma or PostgreSQL directly. Everything above it consumes typed functions — never raw Prisma queries.
@@ -44,7 +50,7 @@ apps (admin / frontend)
 | Styling | Tailwind CSS v4 |
 | Database | PostgreSQL (multi-schema) |
 | ORM | Prisma v7 (prismaSchemaFolder) |
-| Auth | better-auth v1.4.x |
+| Auth | better-auth v1.4.22 |
 | Monorepo | pnpm workspaces + Turborepo |
 | Runtime | Node.js v24 |
 
@@ -139,9 +145,10 @@ shared/email/
   client.ts          — sendEmail(), getSiteConfig()
   index.ts
   templates/
-    welcome.ts       — sendWelcomeEmail()
-    verify-email.ts  — sendVerificationEmail()
-    reset-password.ts — sendPasswordResetEmail()
+    welcome.ts         — sendWelcomeEmail()
+    verify-email.ts    — sendVerificationEmail()
+    reset-password.ts  — sendPasswordResetEmail()
+    change-email.ts    — sendEmailChangeEmail() (approval to current email)
 ```
 
 **Usage:**
@@ -300,22 +307,41 @@ Both themes share `--brand-accent: #B8734A` (copper).
 **CSS files** (import via `@core/ui/styles/index.css`):
 - `tokens.css` — CSS custom properties for both themes
 - `base.css` — resets, scrollbar, focus ring, body defaults
-- `components.css` — Tailwind `@layer components`: `.card`, `.btn`, `.btn-primary`, `.btn-ghost`, `.badge`, `.input`, `.stat-card`
+- `components/*.css` — Tailwind `@layer components` split into logical files, all imported directly in `index.css`
+
+**Rule: no `<style>` blocks in pages.** All visual patterns live in `components/`. If a component needs slots or logic it becomes a Svelte component in `@core/ui/components/`. Pages only use class names.
+
+**Component CSS files:**
+
+| File | Contents |
+|---|---|
+| `components/layout.css` | `.page`, `.page__header`, `.sections`, `.fields`, `.field`, `.form-error`, `.form-success`, `.form-actions`, `.save-bar`, `.toolbar`, `.back-link` |
+| `components/ui.css` | `.card`, `.btn`, `.badge`, `.input`, `.label`, `.auth-card`, `.forgot-link`, `.nav-signout`, `.settings-group` |
+| `components/avatar.css` | `.avatar-preview`, `.avatar-preview-btn`, `.lightbox`, `.avatar-sm`, `.role-list`, `.role-option` |
+| `components/table.css` | `.table`, `.table-wrap`, `.col-hide-mobile`, `.col-hide-tablet`, `.pagination` |
+| `components/matrix.css` | `.matrix`, `.nav-badge`, `.legend` |
+| `components/audit.css` | `.detail-panel`, `.detail-json`, `.actor`, `.filters__row` |
+| `components/dashboard.css` | `.dashboard`, `.stat-card`, `.quick-link` |
+| `components/site.css` | `.site`, `.nav-bar`, `.landing`, `.auth-layout`, `.auth-shell`, `.login` |
+
+**Adding styles for a new feature:** create `components/<feature>.css` with `@layer components { }` and add `@import './components/<feature>.css';` to `index.css`. Never add to `components.css` — it is kept as a reference stub only.
+
+**Important:** Tailwind v4 does not resolve nested `@import` chains. All component imports must be at the root level in `index.css`, not chained through an intermediary file.
 
 **Components:**
 
 | Component | Usage |
 |---|---|
-| `AppShell` | Admin app shell — wraps Sidebar + Header + main content |
-| `Sidebar` | Collapsible sidebar with snippet-based nav and footer slots |
+| `AppShell` | Admin app shell — Sidebar + Header + main. Mobile: drawer with backdrop overlay |
+| `Sidebar` | Collapsible desktop sidebar / mobile drawer. `drawerOpen` prop for mobile toggle |
+| `Header` | Sticky top header with hamburger (mobile), user avatar, action slot |
 | `NavItem` | Single nav item with active state and icon-only collapsed mode |
-| `Header` | Sticky top header with user avatar and action slot |
 | `NavBar` | Frontend top navigation bar |
-| `Footer` | Frontend footer |
-| `Button` | `.btn` variants: primary, ghost, danger |
+| `Button` | `.btn` variants: primary, ghost, danger, sm, lg, icon, full |
 | `Card` | `.card` variants: default, elevated, parchment |
 | `Badge` | Status badges: accent, success, warning, danger, muted |
 | `Avatar` | User avatar with initials fallback |
+| `PermissionCell` | Permission level selector cell for the roles matrix |
 
 ---
 
@@ -330,18 +356,41 @@ Management panel. All routes require authentication and `System/read` permission
 ```
 src/routes/
   +layout.svelte              CSS imports only (no chrome, no guard)
+  signout/                    POST action — signs out and redirects to /login
   (auth)/
     +layout.svelte            Centered card layout, no guard
-    login/                    Email/password login
-    unauthorized/             Access denied page
+    login/                    Email/password login + forgot password link
+    forgot-password/          Request password reset link (no session required)
+    reset-password/           Token validation + set new password
+    unauthorized/             Access denied + sign out
   (app)/
-    +layout.server.ts         Auth guard — redirects to /login or /unauthorized
-    +layout.svelte            AppShell with sidebar nav
-    +page.svelte              Dashboard
-    +page.server.ts           signOut action
+    +layout.server.ts         Auth guard + nav resolution from nav.ts
+    +layout.svelte            AppShell, renders data.nav and data.footer
+    +page.server.ts           Dashboard with getPlatformMetrics()
+    +page.svelte              Stat cards + quick links
+    users/                    assertListPermission (ALL only)
+    users/new/                registerUser transaction + welcome email
+    users/[id]/               assertRecordPermission + assertWritePermission
+    roles/                    assertListPermission (ALL only)
+    roles/new/                createRole
+    roles/[id]/               Permission matrix, navVisibility badges, SUPERADMIN locked
+    audit/                    OWN silently forces actorId=userId filter
+    settings/                 SMTP + site config (System/read required)
 ```
 
-**Nav source of truth** — `apps/admin/src/lib/nav.ts`. Settings appears in the footer when the user has `System/read` (`navVisibility: ANY`). Nav items with `navVisibility: NONE` (System, Module, Resource, Permission) never appear in nav but still gate access via route guards. defines all nav items with their `resourceKey`. The layout server filters them using `canNavigate()` against each resource's `navVisibility`. Adding a new route = one entry in `nav.ts`, nothing else changes.
+**Nav source of truth** — `apps/admin/src/lib/nav.ts`. Defines `NavItemDef[]` with `resourceKey` and a `href` that can be a static string or a function `(ctx: NavContext) => string`. The layout server resolves all hrefs server-side — the layout svelte only ever receives resolved strings.
+
+```typescript
+// OWN users navigate to their own profile; ALL users see the full list
+{
+    resourceKey: 'User',
+    href: ({ userId, level }) => level === 'OWN' ? `/users/${userId}` : '/users',
+    activeMatch: (pathname, { userId, level }) =>
+        level === 'OWN' ? pathname === `/users/${userId}` : pathname.startsWith('/users'),
+}
+```
+
+Adding a new route = one entry in `nav.ts`. Nothing else changes. Settings appears in the footer for any user with `System/read` (`navVisibility: ANY`).
 
 **Auth guard logic** (`(app)/+layout.server.ts`):
 1. No session → redirect to `/login?redirectTo=<current path>`
@@ -359,9 +408,21 @@ src/routes/
   +layout.server.ts           Passes user to NavBar (no guard)
   +layout.svelte              NavBar + Footer wrapper
   +page.svelte                Landing page (public)
+  api/auth/[...auth]/         better-auth API handler (verify-email, reset-password, etc.)
+  signout/                    POST action — signs out, redirects to /
+  change-email/               Ensures user is logged in before processing change-email token
+  (auth)/
+    +layout.svelte            Centered auth card layout
+    login/                    Email/password login. EMAIL_NOT_VERIFIED → pending message
+    signup/                   Self-registration → PLAYER role + welcome email → /signup/pending
+    signup/pending/           "Awaiting admin activation" page
+    forgot-password/          Request password reset
+    reset-password/           Token validation + set new password
   (protected)/
-    +layout.server.ts         Auth guard — redirects to /login
-    +layout.svelte            Inherits root layout, adds player context
+    +layout.server.ts         Auth guard — redirects to /login?redirectTo=<path>
+    +layout.svelte            Inherits root layout
+    profile/                  Three sections: profile details, change password, change email
+    profile/email-changed/    Landing after email change verification → redirects to /profile?emailChanged=1
 ```
 
 ---
@@ -402,6 +463,9 @@ BETTER_AUTH_URL="http://localhost:5174"
 
 # Frontend URL — used as base for email verification and reset links
 FRONTEND_URL=http://localhost:5173
+
+# Trusted origins for better-auth CORS (comma-separated)
+TRUSTED_ORIGINS=http://localhost:5174,http://localhost:5173
 
 # GitHub OAuth (optional — leave empty to disable)
 GITHUB_CLIENT_ID=
@@ -519,6 +583,21 @@ Nav visibility and minimum route access level are the same concern expressed in 
 
 **Why does admin user creation use the forgot-password flow for activation rather than a verification link?**
 Better-auth's `sendVerificationEmail` API validates that the requesting session owns the email being verified — it rejects requests from an admin session trying to verify another user's email (`EMAIL_MISMATCH`). Rather than working around this with internal token manipulation, admin-created users receive a welcome email directing them to `/forgot-password`. They enter their email, receive a proper better-auth reset link, and set their own password — which both activates their account and verifies their email in one step. This is better UX than a separate verification flow.
+
+**`pnpm peers check` tailwindcss warning:**
+A persistent `conflicting peer tailwindcss` warning appears in `pnpm peers check`. This is a false positive — pnpm's semver parser incorrectly flags Tailwind v4 against the compound `||` range declared by `@tailwindcss/forms` and `@tailwindcss/typography`. Both plugins work correctly at runtime. The warning cannot be suppressed via `peerDependencyRules` because `pnpm peers check` always reports conflicts regardless of suppression config. It is safe to ignore.
+
+**Why is the avatar lightbox implemented in CSS rather than a Svelte component?**
+The lightbox uses only CSS classes (`.lightbox`, `.lightbox__backdrop`, `.lightbox__card`, `.lightbox__image`) and a single `$state(false)` variable in the page. No props, no events, no slots — a Svelte component would add indirection without benefit. The threshold for extracting to a component is when the pattern repeats across multiple pages or requires logic beyond a boolean toggle.
+
+**Why is `changePassword` used server-side but `changeEmail` required a workaround?**
+`auth.api.changePassword` works correctly server-side — it verifies the current password, updates the hash, and returns cleanly. `auth.api.changeEmail` has a known bug where calling it server-side bypasses the verification flow. The two APIs have different behaviours despite appearing symmetric.
+
+**Why does email change route through `/change-email` before `/api/auth/verify-email`?**
+Better-auth's `change-email-confirmation` token handler requires an active session cookie to process the change. If the user clicks the link in a different browser or device where they're not logged in, the token is silently ignored. The `/change-email` page server checks for an active session first — if not logged in, redirects to `/login?redirectTo=<link>`. Once logged in, it forwards to `/api/auth/verify-email` with the session cookie present. The `callbackURL` chain is: `changeEmail action → /profile/email-changed → /profile?emailChanged=1` to avoid query string mangling through the redirect chain.
+
+**Why self-registered users get PLAYER role automatically but must be activated by admin?**
+Self-registration is public-facing — anyone can create an account. The PLAYER role provides the minimum permissions needed for the frontend (own User record). `emailVerified: false` blocks login until an admin activates them via `/users/[id]`, providing a human review gate before users can access the platform.
 
 **Why `pg_trgm` GIN indexes rather than full-text search (`tsvector`)?**
 `pg_trgm` handles the primary use case (substring search on name/email) with no query changes — existing `ILIKE` queries automatically use the index once it exists. Full-text search (`tsvector`) offers better ranking and language-aware stemming but requires query changes and additional schema complexity. `pg_trgm` is the right starting point; full-text search can be layered on specific features (e.g. quest search) if needed later.
