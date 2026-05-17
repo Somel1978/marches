@@ -1,15 +1,7 @@
 /* shared/ui/styles/components.css */
 /* ============================================================
-   COMPONENT LAYER ORCHESTRATOR
-   Imports all component sub-files. Add styles to the relevant
-   sub-file — never add visual styles directly here.
+   KEPT FOR REFERENCE ONLY — imports have moved to index.css.
+   Tailwind v4 does not resolve nested @import chains.
+   Add new component files in components/ and import them
+   directly in index.css.
    ============================================================ */
-
-@import "./components/layout.css";
-@import "./components/ui.css";
-@import "./components/avatar.css";
-@import "./components/table.css";
-@import "./components/matrix.css";
-@import "./components/audit.css";
-@import "./components/dashboard.css";
-@import "./components/site.css";

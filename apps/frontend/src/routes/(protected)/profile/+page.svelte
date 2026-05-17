@@ -3,11 +3,13 @@
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 
-	import { goto } from '$app/navigation';
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-	let savingProfile = $state(false);
-	let lightboxOpen  = $state(false);
-	let savingEmail   = $state(false);
+	let savingProfile  = $state(false);
+	let savingEmail    = $state(false);
+	let savingPassword = $state(false);
+	let lightboxOpen   = $state(false);
+	let showCurrent    = $state(false);
+	let showNew        = $state(false);
 </script>
 
 <div class="page">
@@ -92,6 +94,56 @@
 			</form>
 		</div>
 
+		<!-- Change password -->
+		<div class="card">
+			<h3 class="section-title">Change password</h3>
+
+			{#if form?.passwordMessage}
+				<div class="form-error">{form.passwordMessage}</div>
+			{/if}
+			{#if form?.passwordSuccess}
+				<div class="form-success">Password updated successfully.</div>
+			{/if}
+
+			<form method="post" action="?/changePassword" use:enhance={() => {
+				savingPassword = true;
+				return async ({ update }) => { savingPassword = false; await update(); };
+			}}>
+				<div class="fields">
+					<div class="field">
+						<label class="label" for="currentPasswordPwd">Current password</label>
+						<div class="input-group">
+							<input id="currentPasswordPwd" name="currentPassword"
+								type={showCurrent ? 'text' : 'password'}
+								class="input" required />
+							<button type="button" class="input-toggle"
+								onclick={() => showCurrent = !showCurrent}>
+								{showCurrent ? 'Hide' : 'Show'}
+							</button>
+						</div>
+					</div>
+					<div class="field">
+						<label class="label" for="newPassword">New password</label>
+						<div class="input-group">
+							<input id="newPassword" name="newPassword"
+								type={showNew ? 'text' : 'password'}
+								class="input" placeholder="Min. 8 characters"
+								required minlength="8" />
+							<button type="button" class="input-toggle"
+								onclick={() => showNew = !showNew}>
+								{showNew ? 'Hide' : 'Show'}
+							</button>
+						</div>
+					</div>
+				</div>
+				<div class="form-actions">
+					<button type="submit" class="btn btn-primary" disabled={savingPassword}>
+						{savingPassword ? 'Saving…' : 'Update password'}
+					</button>
+				</div>
+			</form>
+		</div>
+
 		<!-- Change email -->
 		<div class="card">
 			<h3 class="section-title">Change email</h3>
@@ -101,8 +153,8 @@
 			{/if}
 			{#if form?.emailSuccess}
 				<div class="form-success">
-					Verification email sent to <strong>{form.newEmail}</strong>.
-					Click the link to confirm your new email address.
+					Approval email sent to your current address.
+					After approving, a verification link will be sent to <strong>{form.newEmail}</strong>.
 				</div>
 			{/if}
 
@@ -130,8 +182,9 @@
 			</form>
 
 			<p class="field-hint" style="margin-top: 0.75rem;">
-				A verification link will be sent to your <strong>new</strong> email address.
-				Your email will only change after you click the link.
+				An approval link will be sent to your <strong>current</strong> email address.
+				After approving, a verification link will be sent to the new address.
+				Your email only changes after both steps are complete.
 			</p>
 		</div>
 	</div>

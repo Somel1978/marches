@@ -48,22 +48,3 @@
 		<a href="/forgot-password">Forgot your password?</a>
 	</p>
 </div>
-
-<style>
-	/* Login-specific chrome only — no visual styles */
-	.login {
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-	.login__header {
-		text-align: center;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.5rem;
-	}
-	.login__icon     { font-size: 2rem; color: var(--accent-light); }
-	.login__title    { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
-	.login__subtitle { font-size: 0.875rem; color: var(--text-muted); margin: 0; }
-</style>

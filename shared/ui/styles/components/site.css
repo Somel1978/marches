@@ -3,7 +3,6 @@
 
 @layer components {
 
-
   /* ── Frontend site layout ───────────────────────────────── */
   .site { display: flex; flex-direction: column; min-height: 100dvh; background-color: var(--bg-base); color: var(--text-primary); }
 
@@ -100,4 +99,51 @@
     flex-wrap: wrap;
     justify-content: center;
   }
+
+  /* ── Auth layout (centered card) ───────────────────────── */
+  .auth-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60dvh;
+    padding: 2rem 1rem;
+  }
+
+  /* Signup pending icon */
+  .pending__icon { font-size: 2.5rem; text-align: center; }
+
+  /* Auth card links row */
+  .auth-card__links { display: flex; flex-direction: column; gap: 0.5rem; align-items: center; }
+
+  /* ── Admin auth shell (centered full-height wrapper) ────── */
+  .auth-shell {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background-color: var(--bg-base);
+  }
+  .auth-shell__card {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  /* ── Login page chrome ──────────────────────────────────── */
+  .login {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .login__header {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .login__icon     { font-size: 2rem; color: var(--accent-light); }
+  .login__title    { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+  .login__subtitle { font-size: 0.875rem; color: var(--text-muted); margin: 0; }
+
 }

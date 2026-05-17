@@ -43,29 +43,3 @@
 
 	{@render children()}
 </AppShell>
-
-<style>
-	.nav-signout {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		width: 100%;
-		padding: 0.5rem 0.75rem;
-		border-radius: var(--radius-md);
-		background: transparent;
-		border: none;
-		color: var(--text-muted);
-		font-size: 0.875rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: background-color var(--transition-fast), color var(--transition-fast);
-	}
-	.nav-signout:hover {
-		background-color: var(--bg-overlay);
-		color: var(--color-danger);
-	}
-	.nav-signout--collapsed {
-		justify-content: center;
-		padding: 0.5rem;
-	}
-</style>

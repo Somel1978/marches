@@ -49,6 +49,30 @@ export const actions: Actions = {
 		}
 	},
 
+	changePassword: async ({ request, locals }) => {
+		const data            = await request.formData();
+		const currentPassword = data.get('currentPassword')?.toString() ?? '';
+		const newPassword     = data.get('newPassword')?.toString()     ?? '';
+
+		if (!currentPassword) return fail(400, { passwordMessage: 'Current password is required.' });
+		if (!newPassword)     return fail(400, { passwordMessage: 'New password is required.' });
+		if (newPassword.length < 8) return fail(400, { passwordMessage: 'New password must be at least 8 characters.' });
+		if (currentPassword === newPassword) return fail(400, { passwordMessage: 'New password must be different from current password.' });
+
+		try {
+			await auth.api.changePassword({
+				body:    { currentPassword, newPassword, revokeOtherSessions: false },
+				headers: request.headers,
+			});
+			return { passwordSuccess: true };
+		} catch (e) {
+			if (e instanceof APIError) {
+				return fail(400, { passwordMessage: 'Current password is incorrect.' });
+			}
+			throw e;
+		}
+	},
+
 	changeEmail: async ({ request, locals }) => {
 		const data            = await request.formData();
 		const newEmail        = data.get('newEmail')?.toString().trim() ?? '';

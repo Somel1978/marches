@@ -8,4 +8,14 @@
 /* Design tokens — must come after Tailwind so @theme overrides work */
 @import './tokens.css';
 @import './base.css';
-@import './components.css';
+
+/* Component layer — imported directly so Tailwind resolves them at root level.
+   Nested @import chains are not resolved by Tailwind v4's bundler. */
+@import './components/layout.css';
+@import './components/ui.css';
+@import './components/avatar.css';
+@import './components/table.css';
+@import './components/matrix.css';
+@import './components/audit.css';
+@import './components/dashboard.css';
+@import './components/site.css';
