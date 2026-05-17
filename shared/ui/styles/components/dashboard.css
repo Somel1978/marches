@@ -1,0 +1,48 @@
+/* shared/ui/styles/components/dashboard.css */
+/* Dashboard layout, stat cards, quick links */
+
+@layer components {
+
+
+  /* ── Dashboard layout ──────────────────────────────────── */
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .dashboard__heading { font-size: 1.25rem; font-weight: 700; margin: 0; }
+  .dashboard__welcome { font-size: 0.9375rem; color: var(--text-secondary); margin: 0; }
+
+  .dashboard__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+
+  .dashboard__links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .quick-link {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.875rem 1.25rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-base);
+    border-radius: var(--radius-lg);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+  }
+  .quick-link:hover {
+    border-color: var(--border-accent);
+    color: var(--accent-light);
+    background-color: var(--bg-overlay);
+  }
+}

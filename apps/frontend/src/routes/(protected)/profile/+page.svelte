@@ -6,6 +6,7 @@
 	import { goto } from '$app/navigation';
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let savingProfile = $state(false);
+	let lightboxOpen  = $state(false);
 	let savingEmail   = $state(false);
 </script>
 
@@ -55,6 +56,16 @@
 						<label class="label" for="image">
 							Avatar URL <span class="optional">(optional)</span>
 						</label>
+						{#if data.user.image}
+							<button class="avatar-preview-btn" onclick={() => lightboxOpen = true} aria-label="View full image">
+								<img
+									src={data.user.image}
+									alt="{data.user.name} avatar"
+									class="avatar-preview"
+									onerror={() => { const el = event?.target as HTMLImageElement; if (el) el.closest('.avatar-preview-btn')?.remove(); }}
+								/>
+							</button>
+						{/if}
 						<input id="image" name="image" type="url" class="input"
 							value={data.user.image ?? ''} placeholder="https://..." />
 					</div>
@@ -125,3 +136,18 @@
 		</div>
 	</div>
 </div>
+
+{#if lightboxOpen}
+	<div class="lightbox" role="dialog" aria-modal="true" aria-label="Avatar preview">
+		<button class="lightbox__backdrop" onclick={() => lightboxOpen = false} aria-label="Close"></button>
+		<div class="lightbox__card card">
+			<button class="lightbox__close btn btn-ghost btn-sm btn-icon" onclick={() => lightboxOpen = false} aria-label="Close">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+				</svg>
+			</button>
+			<img src={data.user.image} alt="{data.user.name} avatar" class="lightbox__image" />
+			<p class="lightbox__name">{data.user.name}</p>
+		</div>
+	</div>
+{/if}

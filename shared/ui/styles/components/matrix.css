@@ -1,0 +1,71 @@
+/* shared/ui/styles/components/matrix.css */
+/* Permission matrix, nav badges, legend */
+
+@layer components {
+
+
+  /* ── Permission matrix ─────────────────────────────────── */
+  .matrix-wrap { padding: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .matrix th {
+    padding: 0.75rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-muted);
+    white-space: nowrap;
+  }
+  .matrix td {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border-muted);
+    vertical-align: middle;
+  }
+  .matrix tr:last-child td { border-bottom: none; }
+
+  .matrix__group td {
+    padding: 0.5rem 1rem 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background-color: var(--bg-overlay);
+    border-bottom: 1px solid var(--border-muted);
+  }
+
+  .matrix__resource      { text-align: left; }
+  .matrix__resource-name { color: var(--text-secondary); padding-left: 1.5rem !important; }
+  .matrix__cell          { text-align: center; width: 80px; }
+  .matrix__nav           { text-align: center; width: 60px; }
+
+  /* Nav visibility badge in permission matrix */
+  .nav-badge {
+    display: inline-block;
+    padding: 0.125rem 0.375rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .nav-badge--none { background-color: var(--bg-overlay);              color: var(--text-disabled); }
+  .nav-badge--any  { background-color: rgba(184, 115, 74, 0.15);       color: var(--accent-light); }
+  .nav-badge--all  { background-color: rgba(184, 115, 74, 0.3);        color: var(--accent); }
+
+  /* Permission legend (NONE/OWN/ALL key) */
+  .legend {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+  .legend--none { border: 1.5px solid var(--text-disabled); }
+  .legend--own  { border: 1.5px solid var(--brand-accent-light); background: transparent; border-radius: 50%; }
+  .legend--all  { background: var(--accent); }
+}
