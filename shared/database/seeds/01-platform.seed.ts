@@ -31,7 +31,8 @@ const MODULES: {
         resources: [
             { key: 'User',       displayName: 'Users',       description: 'User accounts',    sortOrder: 0, navVisibility: 'ANY'  },
             { key: 'Role',       displayName: 'Roles',       description: 'Roles',            sortOrder: 1, navVisibility: 'ALL'  },
-            { key: 'Permission', displayName: 'Permissions', description: 'Role permissions', sortOrder: 2, navVisibility: 'NONE' },
+            { key: 'Permission',  displayName: 'Permissions',  description: 'Role permissions',              sortOrder: 2, navVisibility: 'NONE' },
+            { key: 'Character',   displayName: 'Characters',   description: 'Player character management',    sortOrder: 3, navVisibility: 'ANY'  },
         ],
     },
     {
@@ -61,7 +62,11 @@ const SETTINGS: {
     { key: 'email.fromName', value: 'Marches',               description: 'From name for system emails',   isSecret: false },
     // Site
     { key: 'site.url',  value: 'http://localhost:5173', description: 'Frontend URL — used in email links', isSecret: false },
-    { key: 'site.name', value: 'Marches',               description: 'Site name used in emails',          isSecret: false },
+    { key: 'site.name',            value: 'Marches',               description: 'Site name used in emails',                         isSecret: false },
+    // Character feature settings
+    { key: 'character.baseSlots',    value: '3',                     description: 'Base character slots per player',                  isSecret: false },
+    { key: 'character.startingGold', value: '100',                   description: 'Starting gold for each new character',             isSecret: false },
+    { key: 'character.restDays',     value: '7',                     description: 'Rest period in days after quest completion',       isSecret: false },
 ];
 
 export async function seedPlatform(db: PrismaClient) {

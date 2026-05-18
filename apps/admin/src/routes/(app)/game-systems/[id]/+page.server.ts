@@ -249,6 +249,76 @@ export const actions: Actions = {
 		}
 	},
 
+	addSpecies: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+
+		const data        = await request.formData();
+		const name        = data.get('speciesName')?.toString().trim()        ?? '';
+		const description = data.get('speciesDescription')?.toString().trim() ?? '';
+		const source      = data.get('speciesSource')?.toString().trim()      ?? '';
+		const link        = data.get('speciesLink')?.toString().trim()        ?? '';
+
+		if (!name) return fail(400, { message: 'Species name is required.' });
+
+		try {
+			await gameSystems.species.create({
+				gameSystemId: params.id, name,
+				description: description || undefined,
+				source:      source      || undefined,
+				link:        link        || undefined,
+			}, locals.user!.id);
+			return { speciesSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	updateSpecies: async ({ request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+
+		const data        = await request.formData();
+		const speciesId   = data.get('speciesId')?.toString()                  ?? '';
+		const name        = data.get('speciesName')?.toString().trim()         ?? '';
+		const description = data.get('speciesDescription')?.toString().trim()  ?? '';
+		const source      = data.get('speciesSource')?.toString().trim()       ?? '';
+		const link        = data.get('speciesLink')?.toString().trim()         ?? '';
+		const isAvailable = data.get('isAvailable') === 'true';
+
+		if (!name) return fail(400, { message: 'Species name is required.' });
+
+		try {
+			await gameSystems.species.update(speciesId, {
+				name, isAvailable,
+				description: description || undefined,
+				source:      source      || undefined,
+				link:        link        || undefined,
+			}, locals.user!.id);
+			return { speciesSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	deleteSpecies: async ({ request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+
+		const data      = await request.formData();
+		const speciesId = data.get('speciesId')?.toString() ?? '';
+
+		try {
+			await gameSystems.species.delete(speciesId, locals.user!.id);
+			return { speciesSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
 	deleteSystem: async ({ params, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });

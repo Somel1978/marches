@@ -15,6 +15,7 @@
 				icon={item.icon}
 				active={item.active}
 				{collapsed}
+				children={item.children}
 			/>
 		{/each}
 	{/snippet}

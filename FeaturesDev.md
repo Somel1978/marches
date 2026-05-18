@@ -108,7 +108,7 @@ NONE — internal/door-key resources (never navigable)
 ```
 ✅ 0. Core platform (RBAC, users, audit, email, settings)
 ⬜ 1. GameSystem feature
-⬜ 2. Character Hub
+✅ 2. Character Hub (complete)
 ⬜ 3. DM Hub
 ⬜ 4. Quest System
 ⬜ 5. Rewards Engine
@@ -149,6 +149,12 @@ Subclass {
   isAvailable, sortOrder
 }
 
+Species {
+  id, gameSystemId, name, description
+  source, link
+  isAvailable, sortOrder
+}
+
 ProgressionThreshold {
   id, gameSystemId, label, xpRequired, description, sortOrder
   // label = system-specific name (e.g. "Level 1", "Tier 2", "Neonate")
@@ -160,13 +166,14 @@ ProgressionThreshold {
 ```
 /game-systems              — list all game systems
 /game-systems/new          — create game system
-/game-systems/[id]         — edit system + manage classes/subclasses/progression inline
+/game-systems/[id]         — edit system + manage classes/subclasses/species/progression inline
 ```
 
 All data managed inline on the detail page:
 - Game system details (name, description, availability)
 - Classes — add, edit (name, description, source, link, availability), delete
 - Subclasses — add per class, edit (name, description, source, link, availability), delete
+- Species — add, edit (name, description, source, link, availability), delete
 - Progression thresholds — add, edit (label, xpRequired, description), delete
 
 Source and link fields on classes/subclasses allow referencing the source book and URL.
@@ -187,7 +194,7 @@ Subclass      navVisibility: ALL
 
 ---
 
-### 2. Character Hub
+### 2. Character Hub ✅
 
 **Schema:** `characters`
 
@@ -200,7 +207,7 @@ Character {
   name             // unique globally
   avatarUrl        // circular display image
   portraitUrl      // full portrait image
-  status           // PENDING | ACTIVE | RESTING | SUSPENDED | RETIRED | DECEASED
+  status           // PENDING | ACTIVE | RESTING | SUSPENDED | RETIRED | DECEASED | REJECTED
   statusReason     // LEVEL_UP_PENDING | QUEST_REST | ADMIN | SYSTEM | null
   statusChangedAt
   totalXp
@@ -254,6 +261,7 @@ character.restDays       // rest period in days after quest completion
 | SUSPENDED | Admin only | Admin only |
 | RETIRED | Player or admin | Admin only |
 | DECEASED | System (quest death) or admin | Admin only (resurrection) |
+| REJECTED | Admin (new character rejection) | Admin only — character never deleted by workflow |
 
 **Character slot calculation:**
 ```
@@ -287,6 +295,26 @@ if totalLevel > allocatedLevel:
 Player creates character → PENDING
 Admin approves → ACTIVE (character.startingGold assigned via CharacterTransaction)
 Admin rejects → deleted or returned with note
+```
+
+**Admin routes:**
+```
+/characters              — list with status filter, shows player name
+/characters/[id]         — approve/reject, edit details, classes, species, currency, status, transactions, delete
+/characters/slots        — per-user slot management (summary table + grant form for all users)
+/characters/settings     — character feature settings
+```
+
+**Nav sub-menu under Characters:**
+- All Characters → /characters
+- Slots → /characters/slots
+- Settings → /characters/settings
+
+**Frontend routes:**
+```
+/characters              — grid of own characters with slot info
+/characters/new          — create character (slot check, game system, species, initial classes)
+/characters/[id]         — view/edit, portrait lightbox, class allocation, transactions
 ```
 
 **Resources:**
@@ -849,6 +877,25 @@ For now: tracked as a balance, awarded by rewards, no spending mechanism yet.
 ---
 
 ## Key Architectural Decisions
+
+### Currency adjustments are always transactional
+`adjustCurrency` validates the new value won't go below 0, updates the character field, creates a `CharacterTransaction` with `sourceType: ADMIN`, and logs to the audit trail. A note is required. This ensures all XP/Gold/Token changes are traceable and don't conflict with automatic quest rewards (which also create transactions via the same pipeline).
+
+### Character slot management lives at /characters/slots
+Slots are a Character Hub concept — not a platform concept (not in /users) and not a per-character concept (not in /characters/[id]). The dedicated /characters/slots page shows all users with their slot summary and allows inline grants per user. `getAllSlotInfo` loads all users in a single pass sharing the `resolveGrantorNames` helper with `getSlotInfo`.
+
+### Characters are never deleted by workflow
+`rejectCharacter` checks `statusReason` to determine behaviour:
+- `LEVEL_UP_PENDING` → revert to `ACTIVE` (character survives, class allocation discarded)
+- New character rejection → set `REJECTED` status (character stays in DB for audit trail)
+
+Admin can manually delete characters from the admin panel as a deliberate action. No automated workflow deletes character records — this protects data integrity and audit history.
+
+### Cross-schema Prisma relations require explicit naming
+`CharacterClass` references `Class` and `Subclass` from the `gamesystem` schema. Prisma supports cross-schema relations but requires explicit relation field names (`classRef`, `subclassRef`) and back-relations on both sides. The `@ignore` attribute on back-relations breaks type generation — both sides must be present without `@ignore`. The `db:generate` command must use `--schema=./prisma` explicitly to avoid using a cached schema.
+
+### `GameSystemWithDetails` explicit return type
+`getGameSystemById` exports a `GameSystemWithDetails` type using `Prisma.GameSystemGetPayload<{ include: typeof gameSystemInclude }>` with a `satisfies Prisma.GameSystemInclude` const. This ensures SvelteKit's type generator correctly infers `species` and other included relations in `PageData`.
 
 ### SUPERADMIN permission bypass
 SUPERADMIN role bypasses the permission check engine entirely — no explicit permission grants needed in the roles table. `getUserPermissions` detects the SUPERADMIN role and returns a sentinel map (`__SUPERADMIN__`). `checkPermission` and `canNavigate` detect the sentinel and return `ALL` / `true` for every resource. This means:

@@ -34,7 +34,13 @@ function resolveNavItems(
                     : pathname === item.activeMatch
                 : pathname.startsWith(href);
 
-            return { label: item.label, icon: item.icon, href, active };
+            const children = item.children?.map(child => ({
+                label:  child.label,
+                href:   child.href,
+                active: pathname === child.href || pathname.startsWith(child.href + '/'),
+            }));
+
+            return { label: item.label, icon: item.icon, href, active, children };
         });
 }
 

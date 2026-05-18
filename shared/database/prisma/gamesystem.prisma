@@ -12,7 +12,8 @@ model GameSystem {
   isAvailable Boolean  @default(true) @map("is_available")
   sortOrder   Int      @default(0)    @map("sort_order")
 
-  classes              Class[]
+  classes               Class[]
+  species               Species[]
   progressionThresholds ProgressionThreshold[]
 
   createdAt   DateTime @default(now()) @map("created_at")
@@ -33,7 +34,8 @@ model Class {
   isAvailable  Boolean    @default(true) @map("is_available")
   sortOrder    Int        @default(0)    @map("sort_order")
 
-  subclasses   Subclass[]
+  subclasses        Subclass[]
+  characterClasses  CharacterClass[]
 
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt      @map("updated_at")
@@ -57,8 +59,29 @@ model Subclass {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt      @map("updated_at")
 
+  characterClasses  CharacterClass[]
+
   @@unique([classId, name])
   @@map("subclasses")
+  @@schema("gamesystem")
+}
+
+model Species {
+  id           String     @id @default(uuid())
+  gameSystemId String     @map("game_system_id")
+  gameSystem   GameSystem @relation(fields: [gameSystemId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  source       String?
+  link         String?
+  isAvailable  Boolean    @default(true) @map("is_available")
+  sortOrder    Int        @default(0)    @map("sort_order")
+
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt      @map("updated_at")
+
+  @@unique([gameSystemId, name])
+  @@map("species")
   @@schema("gamesystem")
 }
 

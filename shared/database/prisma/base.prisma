@@ -4,15 +4,15 @@ generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
-
 datasource db {
   provider   = "postgresql"
   extensions = [pg_trgm]
   // Schema order — dependency chain, never reorder existing entries:
-  // 01 platform  no dependencies, foundation for everything
-  // 02 users     cross-schema FK from RolePermission → platform.Resource
-  // 03 auth      FKs to users.User (better-auth owned)
-  // 04 audit     FKs to users.User
-  // 05+ features FK to platform.Resource.key
-  schemas    = ["platform", "users", "auth", "audit","gamesystem"]
+  // 01 platform   no dependencies, foundation for everything
+  // 02 users      cross-schema FK from RolePermission → platform.Resource
+  // 03 auth       FKs to users.User (better-auth owned)
+  // 04 audit      FKs to users.User
+  // 05 gamesystem feature schemas start here
+  // 06 characters feature
+  schemas    = ["platform", "users", "auth", "audit", "gamesystem", "characters"]
 }

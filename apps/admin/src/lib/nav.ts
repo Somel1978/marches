@@ -29,14 +29,17 @@ export type NavItemDef = {
     // Optional: override active check. Default: pathname.startsWith(resolvedHref)
     // Use when OWN and ALL resolve to different hrefs with different active patterns
     activeMatch?: string | ((pathname: string, ctx: NavContext) => boolean);
+    // Optional sub-items shown when parent is active
+    children?: { label: string; href: string }[];
 };
 
 // Resolved nav item — what the layout svelte receives (no functions)
 export type ResolvedNavItem = {
-    label:  string;
-    icon:   string;
-    href:   string;
-    active: boolean;
+    label:    string;
+    icon:     string;
+    href:     string;
+    active:   boolean;
+    children?: { label: string; href: string; active: boolean }[];
 };
 
 export const NAV_ITEMS: NavItemDef[] = [
@@ -64,6 +67,17 @@ export const NAV_ITEMS: NavItemDef[] = [
         label:       'Roles & Permissions',
         href:        '/roles',
         icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    },
+    {
+        resourceKey: 'Character',
+        label:       'Characters',
+        href:        '/characters',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+        children: [
+            { label: 'All Characters', href: '/characters' },
+            { label: 'Slots',          href: '/characters/slots' },
+            { label: 'Settings',       href: '/characters/settings' },
+        ],
     },
     {
         resourceKey: 'GameSystem',

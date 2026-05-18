@@ -23,6 +23,7 @@
 
 			<div class="nav-bar__actions">
 				{#if data.user}
+					<a href="/characters" class="nav-link">Characters</a>
 					<a href="/profile" class="btn btn-ghost btn-sm">Profile</a>
 					<form method="post" action="/signout" style="display:contents">
 						<button type="submit" class="btn btn-ghost btn-sm">Sign out</button>

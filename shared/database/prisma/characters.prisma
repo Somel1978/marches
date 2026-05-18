@@ -1,0 +1,138 @@
+/* shared/database/prisma/characters.prisma */
+
+// ── Characters (schema: characters, order: 06) ───────────────────────────────
+
+enum CharacterStatus {
+  PENDING   // awaiting admin approval (new char or level-up)
+  ACTIVE    // approved, available for quests
+  RESTING   // post-quest rest or level-up pending
+  SUSPENDED // admin only
+  RETIRED   // player or admin
+  DECEASED  // auto on quest death, admin can override
+  REJECTED  // new character rejected by admin — soft delete, stays in DB
+
+  @@schema("characters")
+}
+
+enum CharacterStatusReason {
+  LEVEL_UP_PENDING // unallocated levels, player must submit allocation
+  QUEST_REST       // recovering after quest, clears after restDays
+  ADMIN            // manually set by admin
+  SYSTEM           // set by platform (e.g. quest death)
+
+  @@schema("characters")
+}
+
+enum TransactionType {
+  XP
+  GOLD
+  TOKEN
+  STATUS
+  ITEM
+  REWARD
+
+  @@schema("characters")
+}
+
+enum TransactionSourceType {
+  QUEST
+  MARKETPLACE
+  ADMIN
+  REWARD
+  SYSTEM
+
+  @@schema("characters")
+}
+
+enum InventorySourceType {
+  PURCHASE
+  REWARD
+
+  @@schema("characters")
+}
+
+model Character {
+  id           String                  @id @default(uuid())
+  userId       String                  @map("user_id")
+  gameSystemId String                  @map("game_system_id")
+  name         String                  @unique
+  speciesId    String?                 @map("species_id")
+  avatarUrl    String?                 @map("avatar_url")
+  portraitUrl  String?                 @map("portrait_url")
+  status       CharacterStatus         @default(PENDING)
+  statusReason CharacterStatusReason?  @map("status_reason")
+  statusChangedAt DateTime?            @map("status_changed_at")
+  totalXp      Int                     @default(0)  @map("total_xp")
+  totalGold    Int                     @default(0)  @map("total_gold")
+  totalTokens  Int                     @default(0)  @map("total_tokens")
+  restUntil    DateTime?               @map("rest_until")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt      @map("updated_at")
+
+  classes      CharacterClass[]
+  transactions CharacterTransaction[]
+  inventory    CharacterInventory[]
+
+  @@map("characters")
+  @@schema("characters")
+}
+
+model CharacterClass {
+  id             String    @id @default(uuid())
+  characterId    String    @map("character_id")
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  classId        String    @map("class_id")
+  classRef       Class     @relation(fields: [classId], references: [id])
+  subclassId     String?   @map("subclass_id")
+  subclassRef    Subclass? @relation(fields: [subclassId], references: [id])
+  allocatedLevel Int       @default(1) @map("allocated_level")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt      @map("updated_at")
+
+  @@unique([characterId, classId])
+  @@map("character_classes")
+  @@schema("characters")
+}
+
+model CharacterSlotGrant {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  delta       Int      // positive = grant slots, negative = remove slots
+  reason      String
+  grantedBy   String   @map("granted_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("character_slot_grants")
+  @@schema("characters")
+}
+
+model CharacterTransaction {
+  id           String                @id @default(uuid())
+  characterId  String                @map("character_id")
+  character    Character             @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  type         TransactionType
+  delta        Int?                  // XP/GOLD/TOKEN changes
+  fromValue    String?               @map("from_value")  // STATUS changes
+  toValue      String?               @map("to_value")    // STATUS changes
+  sourceType   TransactionSourceType @map("source_type")
+  sourceId     String?               @map("source_id")
+  note         String?
+  createdBy    String                @map("created_by")
+  createdAt    DateTime              @default(now()) @map("created_at")
+
+  @@map("character_transactions")
+  @@schema("characters")
+}
+
+model CharacterInventory {
+  id          String              @id @default(uuid())
+  characterId String              @map("character_id")
+  character   Character           @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  itemId      String              @map("item_id")
+  quantity    Int                 @default(1)
+  acquiredAt  DateTime            @default(now()) @map("acquired_at")
+  sourceType  InventorySourceType @map("source_type")
+
+  @@map("character_inventory")
+  @@schema("characters")
+}

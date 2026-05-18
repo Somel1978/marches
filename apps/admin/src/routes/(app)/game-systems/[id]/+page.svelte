@@ -18,6 +18,8 @@
 
 	// Per-threshold edit mode
 	let editingThreshold = $state<string | null>(null);
+	let addingSpecies    = $state(false);
+	let editingSpecies   = $state<string | null>(null);
 
 	$effect(() => {
 		if (form?.deleted) goto('/game-systems');
@@ -178,6 +180,122 @@
 				<button class="btn btn-ghost btn-sm" onclick={() => addingThreshold = true}>+ Add threshold</button>
 			{/if}
 		</div>
+	</div>
+
+	<!-- ── Species ─────────────────────────────────────────── -->
+	<div class="card">
+		<div class="page__header" style="margin-bottom: 1rem;">
+			<h3 class="section-title" style="margin:0">Species</h3>
+			<button class="btn btn-ghost btn-sm" onclick={() => addingSpecies = !addingSpecies}>
+				{addingSpecies ? 'Cancel' : '+ Add species'}
+			</button>
+		</div>
+
+		{#if form?.speciesSuccess}<div class="form-success">Saved.</div>{/if}
+
+		{#if addingSpecies}
+			<form method="post" action="?/addSpecies"
+				use:enhance={() => { return async ({ update }) => { addingSpecies = false; await update(); await invalidateAll(); }; }}
+				style="margin-bottom: 1.5rem;">
+				<div class="fields">
+					<div class="field">
+						<label class="label" for="speciesName">Name</label>
+						<input id="speciesName" name="speciesName" type="text" class="input" placeholder="e.g. Elf" required />
+					</div>
+					<div class="field">
+						<label class="label" for="speciesDescription">Description <span class="optional">(optional)</span></label>
+						<input id="speciesDescription" name="speciesDescription" type="text" class="input" />
+					</div>
+					<div class="field">
+						<label class="label" for="speciesSource">Source <span class="optional">(optional)</span></label>
+						<input id="speciesSource" name="speciesSource" type="text" class="input" placeholder="e.g. Player's Handbook" />
+					</div>
+					<div class="field">
+						<label class="label" for="speciesLink">Link <span class="optional">(optional)</span></label>
+						<input id="speciesLink" name="speciesLink" type="url" class="input" placeholder="https://..." />
+					</div>
+				</div>
+				<div class="form-actions">
+					<button type="button" class="btn btn-ghost" onclick={() => addingSpecies = false}>Cancel</button>
+					<button type="submit" class="btn btn-primary">Add species</button>
+				</div>
+			</form>
+		{/if}
+
+		{#if data.gs.species?.length}
+			<div class="gs-subclasses" style="border-radius:var(--radius-md);">
+				{#each (data.gs.species ?? []) as sp}
+					{#if editingSpecies === sp.id}
+						<div class="gs-subclass-edit" style="width:100%;">
+							<form method="post" action="?/updateSpecies"
+								use:enhance={() => { return async ({ update }) => { editingSpecies = null; await update(); await invalidateAll(); }; }}>
+								<input type="hidden" name="speciesId" value={sp.id} />
+								<div class="fields">
+									<div class="field">
+										<label class="label" for="edit-spname-{sp.id}">Name</label>
+										<input id="edit-spname-{sp.id}" name="speciesName" type="text" class="input" value={sp.name} required />
+									</div>
+									<div class="field">
+										<label class="label" for="edit-spdesc-{sp.id}">Description <span class="optional">(optional)</span></label>
+										<input id="edit-spdesc-{sp.id}" name="speciesDescription" type="text" class="input" value={sp.description ?? ''} />
+									</div>
+									<div class="field">
+										<label class="label" for="edit-spsource-{sp.id}">Source <span class="optional">(optional)</span></label>
+										<input id="edit-spsource-{sp.id}" name="speciesSource" type="text" class="input" value={sp.source ?? ''} />
+									</div>
+									<div class="field">
+										<label class="label" for="edit-splink-{sp.id}">Link <span class="optional">(optional)</span></label>
+										<input id="edit-splink-{sp.id}" name="speciesLink" type="url" class="input" value={sp.link ?? ''} />
+									</div>
+									<div class="field field--inline">
+										<label class="label" for="edit-spavail-{sp.id}">Available</label>
+										<select id="edit-spavail-{sp.id}" name="isAvailable" class="input input--select">
+											<option value="true"  selected={sp.isAvailable}>Yes</option>
+											<option value="false" selected={!sp.isAvailable}>No</option>
+										</select>
+									</div>
+								</div>
+								<div class="form-actions">
+									<button type="button" class="btn btn-ghost btn-sm" onclick={() => editingSpecies = null}>Cancel</button>
+									<button type="submit" class="btn btn-primary btn-sm">Save</button>
+								</div>
+							</form>
+						</div>
+					{:else}
+						<div class="gs-subclass">
+							<div class="gs-subclass__body">
+								<span class="gs-subclass__name {sp.isAvailable ? '' : 'gs-subclass__name--hidden'}">{sp.name}</span>
+								{#if sp.source}
+									<span class="gs-subclass__source">
+										{#if sp.link}<a href={sp.link} target="_blank" rel="noopener">{sp.source}</a>{:else}{sp.source}{/if}
+									</span>
+								{/if}
+							</div>
+							<div style="display:flex; gap:0.25rem;">
+								<button class="btn btn-ghost btn-sm btn-icon" onclick={() => editingSpecies = sp.id} aria-label="Edit">
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+									</svg>
+								</button>
+								<form method="post" action="?/deleteSpecies" style="display:contents" use:enhance={enhance_reload}>
+									<input type="hidden" name="speciesId" value={sp.id} />
+									<button type="submit" class="btn btn-ghost btn-sm btn-icon"
+										onclick={(e) => { if (!confirm('Delete species?')) e.preventDefault(); }}
+									aria-label="Delete">
+										<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+										</svg>
+									</button>
+								</form>
+							</div>
+						</div>
+					{/if}
+				{/each}
+			</div>
+		{:else}
+			{#if !addingSpecies}<p class="table__empty">No species yet.</p>{/if}
+		{/if}
 	</div>
 
 	<!-- ── Classes ─────────────────────────────────────────── -->

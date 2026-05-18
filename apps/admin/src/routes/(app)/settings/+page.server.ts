@@ -5,12 +5,19 @@ import { assertWritePermission, checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
+// Core platform settings only — feature settings live under their own routes
+const CORE_PREFIXES = ['smtp.', 'email.', 'site.'];
+
+function isCoreSettings(key: string) {
+	return CORE_PREFIXES.some(prefix => key.startsWith(prefix));
+}
+
 export const load: PageServerLoad = async ({ locals }) => {
 	const canRead = checkPermission(locals.permissions, { resourceKey: 'System', action: 'read' });
 	if (!canRead.allowed) throw error(403, 'Forbidden');
 
-	// Only return non-secret values + masked secrets for display
-	return { settings: await platform.getSettings(true) };
+	const all = await platform.getSettings(true);
+	return { settings: all.filter(s => isCoreSettings(s.key)) };
 };
 
 export const actions: Actions = {
@@ -22,14 +29,12 @@ export const actions: Actions = {
 			throw e;
 		}
 
-		const data    = await request.formData();
-		// Get all current settings keys then update each submitted value
-		const all     = await platform.getSettings(false);
-		const entries: { key: string; value: string | null }[] = [];
+		const data = await request.formData();
+		const all  = await platform.getSettings(false);
 
-		for (const setting of all) {
+		const entries: { key: string; value: string | null }[] = [];
+		for (const setting of all.filter(s => isCoreSettings(s.key))) {
 			const raw = data.get(setting.key)?.toString() ?? null;
-			// Skip masked secrets — if the user didn't change them they come back as '••••••••'
 			if (setting.isSecret && raw === '••••••••') continue;
 			entries.push({ key: setting.key, value: raw?.trim() || null });
 		}
