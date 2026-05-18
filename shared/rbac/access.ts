@@ -69,6 +69,17 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
         return empty;
     }
 
+    // SUPERADMIN bypass — exempt from permission checks entirely.
+    // Returns a sentinel map that checkPermission recognises as ALL access.
+    // New features automatically work for SUPERADMIN with no seed changes needed.
+    const isSuperAdmin = user.userRoles.some(ur => ur.role.name === 'SUPERADMIN');
+    if (isSuperAdmin) {
+        const superMap = new Map<string, ResolvedPermission>();
+        superMap.set('__SUPERADMIN__', { canCreate: 'ALL', canRead: 'ALL', canUpdate: 'ALL', canDelete: 'ALL' });
+        permissionCache.set(userId, superMap);
+        return superMap;
+    }
+
     const resolved = new Map<string, ResolvedPermission>();
 
     for (const { role } of user.userRoles) {
@@ -116,6 +127,11 @@ export function checkPermission(
     permissions: UserPermissions,
     request:     PermissionRequest,
 ): PermissionResult {
+    // SUPERADMIN sentinel — ALL access to everything
+    if (permissions.has('__SUPERADMIN__')) {
+        return { allowed: true, level: 'ALL' };
+    }
+
     const perm  = permissions.get(request.resourceKey);
     if (!perm) return { allowed: false, level: 'NONE' };
 
@@ -149,6 +165,9 @@ export function canNavigate(
     navVisibility: NavVisibility,
 ): boolean {
     if (navVisibility === 'NONE') return false;
+
+    // SUPERADMIN sees all navigable items regardless of navVisibility
+    if (permissions.has('__SUPERADMIN__')) return true;
 
     const result = checkPermission(permissions, { resourceKey, action: 'read' });
     if (!result.allowed) return false;

@@ -2,9 +2,7 @@
 
 // ── Roles Seed (order: 02) ────────────────────────────────────────────────────
 // Depends on: 01-platform.seed.ts
-// resourceKey values here must exactly match platform.Resource.key.
-// The cross-schema FK enforces this at DB level — seed will fail if a key
-// does not exist in platform.resources.
+// resourceKey values must exactly match platform.Resource.key.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { PrismaClient } from '@prisma/client';
@@ -22,21 +20,16 @@ const ROLES: {
 }[] = [
     {
         name:        'SUPERADMIN',
-        description: 'Full platform access',
-        permissions: [
-            { resourceKey: 'System',     canCreate: 'ALL', canRead: 'ALL', canUpdate: 'ALL', canDelete: 'ALL' },
-            { resourceKey: 'Module',     canCreate: 'ALL', canRead: 'ALL', canUpdate: 'ALL', canDelete: 'ALL' },
-            { resourceKey: 'Resource',   canCreate: 'ALL', canRead: 'ALL', canUpdate: 'ALL', canDelete: 'ALL' },
-            { resourceKey: 'AuditLog',   canCreate: 'ALL', canRead: 'ALL', canUpdate: 'NONE', canDelete: 'NONE' },
-            { resourceKey: 'User',       canCreate: 'ALL', canRead: 'ALL', canUpdate: 'ALL', canDelete: 'ALL' },
-            { resourceKey: 'Role',       canCreate: 'ALL', canRead: 'ALL', canUpdate: 'ALL', canDelete: 'ALL' },
-            { resourceKey: 'Permission', canCreate: 'ALL', canRead: 'ALL', canUpdate: 'ALL', canDelete: 'ALL' },
-        ],
+        description: 'Full platform access — bypasses permission checks entirely via RBAC engine',
+        permissions: [],  // SUPERADMIN uses sentinel bypass in getUserPermissions, no explicit grants needed
     },
     {
         name:        'PLAYER',
-        description: 'Standard player — owns their own profile',
+        description: 'Standard player — can only read and update their own profile',
         permissions: [
+            // Players can only access their own User record.
+            // No System access = cannot enter admin panel.
+            // No Role/Permission access = cannot see RBAC resources.
             { resourceKey: 'User', canCreate: 'NONE', canRead: 'OWN', canUpdate: 'OWN', canDelete: 'NONE' },
         ],
     },

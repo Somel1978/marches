@@ -14,5 +14,5 @@ datasource db {
   // 03 auth      FKs to users.User (better-auth owned)
   // 04 audit     FKs to users.User
   // 05+ features FK to platform.Resource.key
-  schemas    = ["platform", "users", "auth", "audit"]
+  schemas    = ["platform", "users", "auth", "audit","gamesystem"]
 }

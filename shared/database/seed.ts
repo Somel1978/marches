@@ -21,26 +21,21 @@
 // Never change the order of existing seed calls.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { db }             from './index.ts';
-import { seedPlatform }   from './seeds/01-platform.seed.ts';
-import { seedRoles }      from './seeds/02-roles.seed.ts';
-import { seedUsers }      from './seeds/03-users.seed.ts';
+import { db } from './index.ts';
+import { seedPlatform  } from './seeds/01-platform.seed.ts';
+import { seedRoles     } from './seeds/02-roles.seed.ts';
+import { seedUsers     } from './seeds/03-users.seed.ts';
+import { seedGameSystems } from './seeds/04-gamesystem.seed.ts';
 
 async function main() {
-    console.log('🌱 Starting Modular Seed Process...');
-
+    console.log('Seeding database...');
     await seedPlatform(db);
     await seedRoles(db);
     await seedUsers(db);
-
-    console.log('✅ All modules seeded successfully.');
+    await seedGameSystems(db);
+    console.log('Done.');
 }
 
 main()
-    .catch((e) => {
-        console.error('❌ Seed failed:', e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await db.$disconnect();
-    });
+    .catch(console.error)
+    .finally(() => db.$disconnect());

@@ -35,9 +35,44 @@ import { getUserGrowth                               } from './dbapi/analytics/g
 import { getAuditLogs                                } from './dbapi/read/audit/get-logs.ts';
 import { registerUser                                } from './dbapi/transactions/register-user.ts';
 
+// GameSystem
+import { getAllGameSystems, getAvailableGameSystems  } from './dbapi/read/gamesystem/get-all.ts';
+import { getGameSystemById                           } from './dbapi/read/gamesystem/get-by-id.ts';
+import { createGameSystem, updateGameSystem,
+         deleteGameSystem                            } from './dbapi/write/gamesystem/game-system.ts';
+import { createClass, updateClass, deleteClass       } from './dbapi/write/gamesystem/class.ts';
+import { createSubclass, updateSubclass,
+         deleteSubclass                              } from './dbapi/write/gamesystem/subclass.ts';
+import { createProgressionThreshold,
+         updateProgressionThreshold,
+         deleteProgressionThreshold                  } from './dbapi/write/gamesystem/progression.ts';
+
 export const users = { getAll: getAllUsers, getById: getUserById, create: createUser, update: updateUser, delete: deleteUser, setPassword };
 export const roles = { getAll: getAllRoles, getWithPermissions, getAllWithPermissions, create: createRole, updatePermissions, setUserRoles, delete: deleteRole };
 export const platform = { getResources, getResourceNames, getResourceNavVisibility, getSettings, getSettingsMap, updateSetting, updateSettings };
 export const analytics = { getPlatformMetrics, getUserGrowth };
 export const audit = { getLogs: getAuditLogs };
 export const transactions = { registerUser };
+export const gameSystems = {
+    getAll:      getAllGameSystems,
+    getAvailable: getAvailableGameSystems,
+    getById:     getGameSystemById,
+    create:      createGameSystem,
+    update:      updateGameSystem,
+    delete:      deleteGameSystem,
+    classes: {
+        create: createClass,
+        update: updateClass,
+        delete: deleteClass,
+    },
+    subclasses: {
+        create: createSubclass,
+        update: updateSubclass,
+        delete: deleteSubclass,
+    },
+    progression: {
+        create: createProgressionThreshold,
+        update: updateProgressionThreshold,
+        delete: deleteProgressionThreshold,
+    },
+};

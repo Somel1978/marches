@@ -34,6 +34,14 @@ const MODULES: {
             { key: 'Permission', displayName: 'Permissions', description: 'Role permissions', sortOrder: 2, navVisibility: 'NONE' },
         ],
     },
+    {
+        name:        'Game Systems',
+        description: 'Game system catalogue management',
+        sortOrder:   2,
+        resources: [
+            { key: 'GameSystem', displayName: 'Game Systems', description: 'Manage game systems, classes and progression', sortOrder: 0, navVisibility: 'ALL' },
+        ],
+    },
 ];
 
 const SETTINGS: {
