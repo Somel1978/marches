@@ -22,9 +22,10 @@ export async function updateUser(id: string, input: UpdateUserInput) {
             where: { id },
             data: {
                 name:          input.name,
-                image:         input.image,
-                discordHandle: input.discordHandle,
-                mobile:        input.mobile,
+                // Explicitly null when empty string — allows clearing optional fields
+                image:         input.image         !== undefined ? (input.image         || null) : undefined,
+                discordHandle: input.discordHandle  !== undefined ? (input.discordHandle  || null) : undefined,
+                mobile:        input.mobile         !== undefined ? (input.mobile         || null) : undefined,
                 emailVerified: input.emailVerified,
                 updatedBy:     input.actorId,
             },

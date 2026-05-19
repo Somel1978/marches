@@ -355,9 +355,8 @@
 		<p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1rem;">
 			Permanently deletes this character and all associated data. This cannot be undone.
 		</p>
-		<form method="post" action="?/deleteCharacter" use:enhance>
-			<button type="submit" class="btn btn-danger btn-sm"
-				onclick={(e) => { if (!confirm(`Permanently delete "${data.character.name}"? This cannot be undone.`)) e.preventDefault(); }}>
+		<form method="post" action="?/deleteCharacter" use:enhance={({ cancel }) => { if (!confirm(`Permanently delete "${data.character.name}"? This cannot be undone.`)) { cancel(); return; } return async ({ update }) => { await update(); }; }}>
+			<button type="submit" class="btn btn-danger btn-sm">
 				Delete character permanently
 			</button>
 		</form>

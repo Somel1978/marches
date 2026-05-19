@@ -33,6 +33,8 @@ const MODULES: {
             { key: 'Role',       displayName: 'Roles',       description: 'Roles',            sortOrder: 1, navVisibility: 'ALL'  },
             { key: 'Permission',  displayName: 'Permissions',  description: 'Role permissions',              sortOrder: 2, navVisibility: 'NONE' },
             { key: 'Character',   displayName: 'Characters',   description: 'Player character management',    sortOrder: 3, navVisibility: 'ANY'  },
+            { key: 'DMProfile',   displayName: 'DM Profiles',   description: 'DM profile management',         sortOrder: 4, navVisibility: 'ANY'  },
+            { key: 'RoleRequest', displayName: 'Role Requests', description: 'DM role request management',     sortOrder: 5, navVisibility: 'ALL'  },
         ],
     },
     {

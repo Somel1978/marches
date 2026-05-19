@@ -19,7 +19,7 @@
 		DECEASED:  'badge-muted',
 	};
 
-	const totalLevel     = $derived(data.character.classes.reduce((s: number, c: any) => s + c.allocatedLevel, 0));
+	const totalLevel     = $derived((data.character as any).classes?.reduce((s: number, c: any) => s + c.allocatedLevel, 0) ?? 0);
 	const availableLevel = $derived(totalLevel); // In future: calculated from XP threshold
 
 	function openLightbox(src: string) { lightboxSrc = src; lightboxOpen = true; }
@@ -34,7 +34,7 @@
 	let allocations = $state<ClassAlloc[]>([]);
 
 	$effect.pre(() => {
-		allocations = data.character.classes.map((c: any) => ({
+		allocations = ((data.character as any).classes ?? []).map((c: any) => ({
 			classId:        c.classId,
 			subclassId:     c.subclassId ?? null,
 			allocatedLevel: c.allocatedLevel,
@@ -154,9 +154,8 @@
 			{#if data.character.status === 'ACTIVE' || data.character.status === 'RESTING'}
 				<hr class="divider" />
 				<form method="post" action="?/retire"
-					use:enhance={() => { return async ({ update }) => { await update(); await invalidateAll(); }; }}>
-					<button type="submit" class="btn btn-ghost btn-sm"
-						onclick={(e) => { if (!confirm('Retire this character? This cannot be undone.')) e.preventDefault(); }}>
+					use:enhance={({ cancel }) => { if (!confirm('Retire this character? This cannot be undone.')) { cancel(); return; } return async ({ update }) => { await update(); await invalidateAll(); }; }}>
+					<button type="submit" class="btn btn-ghost btn-sm">
 						Retire character
 					</button>
 				</form>
@@ -176,9 +175,9 @@
 				{/if}
 			</div>
 
-			{#if data.character.classes.length && !showClasses}
+			{#if (data.character as any).classes?.length && !showClasses}
 				<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-					{#each data.character.classes as cc}
+					{#each (data.character as any).classes as cc}
 						<div class="character-class-tag">
 							<span>{(cc as any).classRef?.name ?? cc.classId}</span>
 							{#if (cc as any).subclassRef}<span class="table__muted">· {(cc as any).subclassRef.name}</span>{/if}

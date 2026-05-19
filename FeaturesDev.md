@@ -109,7 +109,48 @@ NONE — internal/door-key resources (never navigable)
 ✅ 0. Core platform (RBAC, users, audit, email, settings)
 ⬜ 1. GameSystem feature
 ✅ 2. Character Hub (complete)
-⬜ 3. DM Hub
+✅ 3. DM Hub
+✅ 3. DM Hub (complete)
+
+### DM Hub ✅
+
+**Schema:** `dms`
+**Models:** `DMProfile`, `DMGameSystem`, `RoleRequest`, `DMRating`
+
+**Admin routes:**
+```
+/role-requests         — pending requests (approve/reject/delete) + resolved history
+/dms                   — list of DM profiles
+/dms/[id]              — edit profile (bio, specialties, rules, preferred systems, public/active) + revoke DM role
+/dms/settings          — dm.ratingsEnabled toggle
+```
+
+**Nav sub-menu under DM Hub:** DM Profiles | Role Requests | Settings
+
+**Frontend routes:**
+```
+/dm                    — DM dashboard (requires DM role); quests/regions placeholder
+/dm/profile            — DM edits own profile (creates on first save if none exists)
+/dm-request            — request DM role; shows pending/approved/rejected state
+```
+
+**DM Rules field:** stored on `DMProfile.rules`, pre-populates quest rules on creation, editable inline before submission.
+
+**dbapi:**
+```
+dms.profiles.{getAll, getById, getByUserId, create, update, revoke}
+dms.roleRequests.{getAll, getPending, getLatestByUser, create, approve, reject, delete}
+```
+
+**Key decisions:**
+- DM role ≠ DM profile. A user can have the DM role without a DM profile. A DM profile requires the DM role.
+- Nav checks `hasDMProfile` (active DM profile) not the DM role. Active profile → "DM Hub". No active profile → "Become a DM".
+- `/dm-request` redirects to `/dm` only if user has an active DM profile.
+- `/dm` requires DM role but not a profile — profile is optional and created on demand at `/dm/profile`.
+- Approving a role request: assigns the role, creates DMProfile if none exists, calls `invalidateUserPermissions` to clear the permission cache immediately.
+- Revoking DM role: deactivates DMProfile, removes UserRole, updates approved role request to REJECTED so player sees correct state on `/dm-request`.
+- Feature settings (`dm.ratingsEnabled`) live in `05-dms.seed.ts`, not in platform seed.
+
 ⬜ 4. Quest System
 ⬜ 5. Rewards Engine
 ⬜ 6. Marketplace

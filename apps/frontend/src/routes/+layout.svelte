@@ -24,6 +24,11 @@
 			<div class="nav-bar__actions">
 				{#if data.user}
 					<a href="/characters" class="nav-link">Characters</a>
+					{#if data.user.hasDMProfile}
+						<a href="/dm" class="nav-link">DM Hub</a>
+					{:else}
+						<a href="/dm-request" class="nav-link">Become a DM</a>
+					{/if}
 					<a href="/profile" class="btn btn-ghost btn-sm">Profile</a>
 					<form method="post" action="/signout" style="display:contents">
 						<button type="submit" class="btn btn-ghost btn-sm">Sign out</button>
@@ -42,5 +47,5 @@
 
 	<footer class="site__footer">
 		<p class="site__footer-text">© {new Date().getFullYear()} Marches</p>
-	</footer>
+		</footer>
 </div>

@@ -12,7 +12,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	]);
 	if (!user) throw error(404, 'User not found');
 
-	// Record access — ALL always, OWN only if own record
 	try {
 		assertRecordPermission(locals.permissions, 'User', 'read', user.id, locals.user!.id);
 	} catch (e) {
@@ -20,7 +19,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw e;
 	}
 
-	// Only SUPERADMIN (ALL) can see all roles — OWN users only see their own roles
 	const canReadAllRoles = (() => {
 		try { assertListPermission(locals.permissions, 'Role', 'read'); return true; }
 		catch { return false; }
@@ -53,15 +51,23 @@ export const actions: Actions = {
 		const name          = data.get('name')?.toString().trim()          ?? '';
 		const email         = data.get('email')?.toString().trim()         ?? '';
 		const image         = data.get('image')?.toString().trim()         ?? '';
-		const discordHandle = data.get('discordHandle')?.toString().trim() ?? undefined;
-		const mobile        = data.get('mobile')?.toString().trim()        ?? undefined;
+		const discordHandle = data.get('discordHandle')?.toString().trim() ?? '';
+		const mobile        = data.get('mobile')?.toString().trim()        ?? '';
 		const emailVerified = data.get('emailVerified') === 'true';
 
 		if (!name)  return fail(400, { message: 'Name is required.' });
 		if (!email) return fail(400, { message: 'Email is required.' });
 
 		try {
-			await users.update(params.id, { name, email, image: image || undefined, discordHandle, mobile, emailVerified, actorId: locals.user!.id });
+			await users.update(params.id, {
+				name,
+				email,
+				image,         // empty string → dbapi converts to null
+				discordHandle, // empty string → dbapi converts to null
+				mobile,        // empty string → dbapi converts to null
+				emailVerified,
+				actorId: locals.user!.id,
+			});
 			return { profileSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -96,7 +102,6 @@ export const actions: Actions = {
 	},
 
 	updateRoles: async ({ params, request, locals }) => {
-		// Only ALL can change roles — OWN cannot assign roles to others
 		try {
 			assertListPermission(locals.permissions, 'Role', 'read');
 		} catch (e) {
@@ -118,7 +123,6 @@ export const actions: Actions = {
 	},
 
 	deleteUser: async ({ params, locals }) => {
-		// Delete requires ALL — cannot delete someone else with OWN
 		try {
 			assertWritePermission(locals.permissions, 'User', 'delete');
 		} catch (e) {

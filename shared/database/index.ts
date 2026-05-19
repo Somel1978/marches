@@ -42,7 +42,16 @@ import { createSubclass, updateSubclass, deleteSubclass } from './dbapi/write/ga
 import { createProgressionThreshold, updateProgressionThreshold, deleteProgressionThreshold } from './dbapi/write/gamesystem/progression.ts';
 import { createSpecies, updateSpecies, deleteSpecies } from './dbapi/write/gamesystem/species.ts';
 
-// ── Characters ────────────────────────────────────────────────────────────────
+// ── DMs ──────────────────────────────────────────────────────────────────────────
+import { getAllDMProfiles, getAllRoleRequests   } from './dbapi/read/dms/get-all.ts';
+import { getDMProfileById, getDMProfileByUserId,
+         getPendingRoleRequestByUser,
+         getLatestRoleRequestByUser              } from './dbapi/read/dms/get-by-id.ts';
+import { createRoleRequest, approveRoleRequest,
+         rejectRoleRequest, deleteRoleRequest    } from './dbapi/write/dms/role-request.ts';
+import { updateDMProfile, revokeDMRole          } from './dbapi/write/dms/dm-profile.ts';
+
+// ── Characters ────────────────────────────────────────────────────────────────────
 import { getAllCharacters                         } from './dbapi/read/characters/get-all.ts';
 import { getCharacterById, getCharactersByUserId } from './dbapi/read/characters/get-by-id.ts';
 import { getSlotInfo, getAllSlotInfo             } from './dbapi/read/characters/get-slot-info.ts';
@@ -101,6 +110,25 @@ export const gameSystems = {
     subclasses: { create: createSubclass, update: updateSubclass, delete: deleteSubclass },
     progression:{ create: createProgressionThreshold, update: updateProgressionThreshold, delete: deleteProgressionThreshold },
     species:    { create: createSpecies,  update: updateSpecies,  delete: deleteSpecies  },
+};
+
+export const dms = {
+    profiles: {
+        getAll:       getAllDMProfiles,
+        getById:      getDMProfileById,
+        getByUserId:  getDMProfileByUserId,
+        update:       updateDMProfile,
+        revoke:       revokeDMRole,
+    },
+    roleRequests: {
+        getAll:    getAllRoleRequests,
+        getPending:  getPendingRoleRequestByUser,
+        getLatestByUser: getLatestRoleRequestByUser,
+        create:    createRoleRequest,
+        approve:   approveRoleRequest,
+        reject:    rejectRoleRequest,
+        delete:    deleteRoleRequest,
+    },
 };
 
 export const characters = {

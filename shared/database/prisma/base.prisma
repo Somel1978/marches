@@ -4,6 +4,7 @@ generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
+
 datasource db {
   provider   = "postgresql"
   extensions = [pg_trgm]
@@ -14,5 +15,6 @@ datasource db {
   // 04 audit      FKs to users.User
   // 05 gamesystem feature schemas start here
   // 06 characters feature
-  schemas    = ["platform", "users", "auth", "audit", "gamesystem", "characters"]
+  // 07 dms feature
+  schemas    = ["platform", "users", "auth", "audit", "gamesystem", "characters", "dms"]
 }

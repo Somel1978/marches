@@ -24,6 +24,16 @@ const ROLES: {
         permissions: [],  // SUPERADMIN uses sentinel bypass in getUserPermissions, no explicit grants needed
     },
     {
+        name:        'DM',
+        description: 'Dungeon Master — can create and manage quests, access DM Hub',
+        permissions: [
+            { resourceKey: 'User',        canCreate: 'NONE', canRead: 'OWN',  canUpdate: 'OWN',  canDelete: 'NONE' },
+            { resourceKey: 'Character',   canCreate: 'NONE', canRead: 'ALL',  canUpdate: 'NONE', canDelete: 'NONE' },
+            { resourceKey: 'DMProfile',   canCreate: 'NONE', canRead: 'OWN',  canUpdate: 'OWN',  canDelete: 'NONE' },
+            { resourceKey: 'RoleRequest', canCreate: 'NONE', canRead: 'NONE', canUpdate: 'NONE', canDelete: 'NONE' },
+        ],
+    },
+    {
         name:        'PLAYER',
         description: 'Standard player — can only read and update their own profile',
         permissions: [

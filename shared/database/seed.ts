@@ -20,12 +20,12 @@
 //
 // Never change the order of existing seed calls.
 // ─────────────────────────────────────────────────────────────────────────────
-
 import { db } from './index.ts';
 import { seedPlatform  } from './seeds/01-platform.seed.ts';
 import { seedRoles     } from './seeds/02-roles.seed.ts';
 import { seedUsers     } from './seeds/03-users.seed.ts';
 import { seedGameSystems } from './seeds/04-gamesystem.seed.ts';
+import { seedDMs          } from './seeds/05-dms.seed.ts';
 
 async function main() {
     console.log('Seeding database...');
@@ -33,6 +33,7 @@ async function main() {
     await seedRoles(db);
     await seedUsers(db);
     await seedGameSystems(db);
+    await seedDMs(db);
     console.log('Done.');
 }
 

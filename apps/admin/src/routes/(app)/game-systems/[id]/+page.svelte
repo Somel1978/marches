@@ -25,10 +25,20 @@
 		if (form?.deleted) goto('/game-systems');
 	});
 
-	function enhance_reload() {
+	function enhance_reload({ cancel }: any) {
 		return async ({ update }: any) => {
 			await update();
 			await invalidateAll();
+		};
+	}
+
+	function confirm_enhance(msg: string) {
+		return ({ cancel }: any) => {
+			if (!confirm(msg)) { cancel(); return; }
+			return async ({ update }: any) => {
+				await update();
+				await invalidateAll();
+			};
 		};
 	}
 </script>
@@ -77,9 +87,9 @@
 
 			<hr class="divider" />
 
-			<form method="post" action="?/deleteSystem" use:enhance={enhance_reload}>
+			<form method="post" action="?/deleteSystem" use:enhance={confirm_enhance('Delete this game system? All classes and progression will be removed.')}>
 				<button type="submit" class="btn btn-danger btn-sm"
-					onclick={(e) => { if (!confirm('Delete this game system? All classes and progression will be removed.')) e.preventDefault(); }}>
+					>
 					Delete game system
 				</button>
 			</form>
@@ -135,10 +145,10 @@
 									<td class="table__action">
 										<div style="display:flex; gap:0.375rem; justify-content:flex-end;">
 											<button class="btn btn-ghost btn-sm" onclick={() => editingThreshold = pt.id}>Edit</button>
-											<form method="post" action="?/deleteThreshold" style="display:contents" use:enhance={enhance_reload}>
+											<form method="post" action="?/deleteThreshold" style="display:contents" use:enhance={confirm_enhance('Remove threshold?')}>
 												<input type="hidden" name="thresholdId" value={pt.id} />
 												<button type="submit" class="btn btn-ghost btn-sm btn-icon"
-													onclick={(e) => { if (!confirm('Remove threshold?')) e.preventDefault(); }}
+													
 													aria-label="Delete">
 													<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 														<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
@@ -278,10 +288,10 @@
 										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
 									</svg>
 								</button>
-								<form method="post" action="?/deleteSpecies" style="display:contents" use:enhance={enhance_reload}>
+								<form method="post" action="?/deleteSpecies" style="display:contents" use:enhance={confirm_enhance('Delete species?')}>
 									<input type="hidden" name="speciesId" value={sp.id} />
 									<button type="submit" class="btn btn-ghost btn-sm btn-icon"
-										onclick={(e) => { if (!confirm('Delete species?')) e.preventDefault(); }}
+										
 									aria-label="Delete">
 										<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 											<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
@@ -367,10 +377,10 @@
 							onclick={() => addingSubclass = addingSubclass === cls.id ? null : cls.id}>
 							+ Subclass
 						</button>
-						<form method="post" action="?/deleteClass" style="display:contents" use:enhance={enhance_reload}>
+						<form method="post" action="?/deleteClass" style="display:contents" use:enhance={confirm_enhance('Delete class and all its subclasses?')}>
 							<input type="hidden" name="classId" value={cls.id} />
 							<button type="submit" class="btn btn-ghost btn-sm btn-icon"
-								onclick={(e) => { if (!confirm('Delete class and all its subclasses?')) e.preventDefault(); }}
+								
 								aria-label="Delete class">
 								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 									<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
@@ -478,10 +488,10 @@
 												<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
 											</svg>
 										</button>
-										<form method="post" action="?/deleteSubclass" style="display:contents" use:enhance={enhance_reload}>
+										<form method="post" action="?/deleteSubclass" style="display:contents" use:enhance={confirm_enhance('Delete subclass?')}>
 											<input type="hidden" name="subclassId" value={sub.id} />
 											<button type="submit" class="btn btn-ghost btn-sm btn-icon"
-												onclick={(e) => { if (!confirm('Delete subclass?')) e.preventDefault(); }}
+												
 												aria-label="Delete subclass">
 												<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 													<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
