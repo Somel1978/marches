@@ -151,7 +151,59 @@ dms.roleRequests.{getAll, getPending, getLatestByUser, create, approve, reject, 
 - Revoking DM role: deactivates DMProfile, removes UserRole, updates approved role request to REJECTED so player sees correct state on `/dm-request`.
 - Feature settings (`dm.ratingsEnabled`) live in `05-dms.seed.ts`, not in platform seed.
 
-⬜ 4. Quest System
+✅ 4. Quest System (core complete — pending full test after Rewards + World)
+
+### Quest System ✅ (core built)
+
+**Schema:** `quests`
+**Models:** Quest, QuestDM, QuestReward, QuestSignup, QuestResult, QuestResultCharacter
+
+**Status flow:** DRAFT → PENDING_APPROVAL → PUBLISHED → IN_PROGRESS → PENDING_RESULT → COMPLETED | CANCELLED
+
+**Settings:** `quest.minCapacity`, `quest.maxCapacity` — DM capacity must stay within global bounds
+
+**Admin routes:**
+```
+/quests              — list with status filter
+/quests/[id]         — approve/reject quest, edit details (missionXp, capacity, levels),
+                       edit rewards, per-player breakdown, approve/reject results,
+                       signup cards, delete (danger zone)
+/quests/settings     — global min/max capacity
+```
+
+**DM routes:**
+```
+/dm                  — dashboard with quest list
+/dm/quests/new       — create quest (rules pre-filled from DM profile)
+/dm/quests/[id]      — manage: edit details, edit rewards (DRAFT/PENDING only),
+                       start/end quest, submit results, confirm waitlist promotions,
+                       add co-DMs, signup cards
+```
+
+**Player routes:**
+```
+/quests              — list of published quests
+/quests/[id]         — quest detail, per-player reward breakdown table,
+                       signup with eligible character, cancel signup, signup cards
+```
+
+**Key decisions:**
+- `missionXp` on Quest itself — always divided equally among confirmed players, minimum 1
+- Extra rewards (GOLD, TOKEN) in QuestReward — divided equally, minimum 1, only shown if amount > 0
+- ITEM rewards are per-player placeholders — marketplace integration pending
+- Reward breakdown always shows a range table: for each player count from minCapacity to maxCapacity
+- Rewards changed after PUBLISHED/IN_PROGRESS → `rewardAdjusted` flag set, quest reverted to PENDING_APPROVAL
+- Waitlist auto-promotes to PENDING_CONFIRMATION on cancellation — DM confirms to CONFIRMED
+- Co-DMs added by main DM only, have full management access equal to main DM
+- Admin rejection sets status to CANCELLED with reviewNote — DM sees reason on manage page
+- XP/Gold/Tokens applied to characters on result approval via CharacterTransaction
+
+**Pending (requires Rewards + World):**
+- Item reward distribution (marketplace zero-cost transactions)
+- Region assignment on quest (World System)
+- Full end-to-end test after Rewards + World are built
+
+⬜ 5. Rewards Engine
 ⬜ 5. Rewards Engine
 ⬜ 6. Marketplace
 ⬜ 7. World System

@@ -16,5 +16,6 @@ datasource db {
   // 05 gamesystem feature schemas start here
   // 06 characters feature
   // 07 dms feature
-  schemas    = ["platform", "users", "auth", "audit", "gamesystem", "characters", "dms"]
+  // 08 quests feature
+  schemas    = ["platform", "users", "auth", "audit", "gamesystem", "characters", "dms", "quests"]
 }

@@ -24,6 +24,7 @@
 			<div class="nav-bar__actions">
 				{#if data.user}
 					<a href="/characters" class="nav-link">Characters</a>
+					<a href="/quests" class="nav-link">Quests</a>
 					{#if data.user.hasDMProfile}
 						<a href="/dm" class="nav-link">DM Hub</a>
 					{:else}

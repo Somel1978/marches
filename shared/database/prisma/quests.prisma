@@ -1,0 +1,143 @@
+/* shared/database/prisma/quests.prisma */
+
+// ── Quest System (schema: quests, order: 08) ─────────────────────────────────
+
+enum QuestStatus {
+  DRAFT               // DM working on it
+  PENDING_APPROVAL    // submitted to admin for review
+  PUBLISHED           // approved, visible to players
+  IN_PROGRESS         // DM triggered start
+  PENDING_RESULT      // quest ended, DM must submit results
+  COMPLETED           // results approved
+  CANCELLED           // cancelled by DM or admin
+
+  @@schema("quests")
+}
+
+enum SignupStatus {
+  CONFIRMED             // player confirmed
+  WAITLIST              // waiting for a spot
+  PENDING_CONFIRMATION  // promoted from waitlist, awaiting DM confirmation
+  CANCELLED             // cancelled by player or DM
+
+  @@schema("quests")
+}
+
+enum RewardType {
+  XP
+  GOLD
+  TOKEN
+  ITEM
+
+  @@schema("quests")
+}
+
+enum QuestResultStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+
+  @@schema("quests")
+}
+
+model Quest {
+  id          String      @id @default(uuid())
+  dmProfileId String      @map("dm_profile_id")
+  regionId    String?     @map("region_id")   // nullable until World System is built
+  title       String
+  description String?
+  rules       String?     // pre-populated from DM profile rules
+  missionXp   Int         @default(0) @map("mission_xp")
+  minCapacity Int         @default(2)  @map("min_capacity")
+  maxCapacity Int         @default(6)  @map("max_capacity")
+  minLevel    Int         @default(1)  @map("min_level")
+  maxLevel    Int         @default(20) @map("max_level")
+  status      QuestStatus @default(DRAFT)
+  reviewNote  String?     @map("review_note")
+  rewardAdjusted Boolean  @default(false) @map("reward_adjusted")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt      @map("updated_at")
+
+  coDMs     QuestDM[]
+  rewards   QuestReward[]
+  signups   QuestSignup[]
+  result    QuestResult?
+
+  @@map("quests")
+  @@schema("quests")
+}
+
+model QuestDM {
+  id          String   @id @default(uuid())
+  questId     String   @map("quest_id")
+  quest       Quest    @relation(fields: [questId], references: [id], onDelete: Cascade)
+  dmProfileId String   @map("dm_profile_id")
+  addedBy     String   @map("added_by")
+  addedAt     DateTime @default(now()) @map("added_at")
+
+  @@unique([questId, dmProfileId])
+  @@map("quest_dms")
+  @@schema("quests")
+}
+
+model QuestReward {
+  id             String     @id @default(uuid())
+  questId        String     @map("quest_id")
+  quest          Quest      @relation(fields: [questId], references: [id], onDelete: Cascade)
+  type           RewardType
+  amount         Int        @default(0)
+  itemId         String?    @map("item_id")   // FK to marketplace.Item (zero-cost)
+  itemName       String?    @map("item_name") // display name snapshot
+  rewardAdjusted Boolean    @default(false)   @map("reward_adjusted")
+  createdAt      DateTime   @default(now())   @map("created_at")
+  updatedAt      DateTime   @updatedAt        @map("updated_at")
+
+  @@map("quest_rewards")
+  @@schema("quests")
+}
+
+model QuestSignup {
+  id          String       @id @default(uuid())
+  questId     String       @map("quest_id")
+  quest       Quest        @relation(fields: [questId], references: [id], onDelete: Cascade)
+  characterId String       @map("character_id")
+  status      SignupStatus @default(CONFIRMED)
+  signedUpAt  DateTime     @default(now()) @map("signed_up_at")
+  updatedAt   DateTime     @updatedAt      @map("updated_at")
+  cancelNote  String?      @map("cancel_note")
+
+  @@unique([questId, characterId])
+  @@map("quest_signups")
+  @@schema("quests")
+}
+
+model QuestResult {
+  id          String            @id @default(uuid())
+  questId     String            @unique @map("quest_id")
+  quest       Quest             @relation(fields: [questId], references: [id], onDelete: Cascade)
+  missionXp   Int               @map("mission_xp")
+  submittedBy String            @map("submitted_by")  // dmProfileId
+  status      QuestResultStatus @default(PENDING_APPROVAL)
+  reviewNote  String?           @map("review_note")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt      @map("updated_at")
+
+  characters  QuestResultCharacter[]
+
+  @@map("quest_results")
+  @@schema("quests")
+}
+
+model QuestResultCharacter {
+  id            String      @id @default(uuid())
+  resultId      String      @map("result_id")
+  result        QuestResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  characterId   String      @map("character_id")
+  xpAwarded     Int         @default(0) @map("xp_awarded")
+  goldAwarded   Int         @default(0) @map("gold_awarded")
+  tokensAwarded Int         @default(0) @map("tokens_awarded")
+
+  @@unique([resultId, characterId])
+  @@map("quest_result_characters")
+  @@schema("quests")
+}

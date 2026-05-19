@@ -42,6 +42,19 @@ import { createSubclass, updateSubclass, deleteSubclass } from './dbapi/write/ga
 import { createProgressionThreshold, updateProgressionThreshold, deleteProgressionThreshold } from './dbapi/write/gamesystem/progression.ts';
 import { createSpecies, updateSpecies, deleteSpecies } from './dbapi/write/gamesystem/species.ts';
 
+// ── Quests ───────────────────────────────────────────────────────────────────────
+import { getAllQuests                                     } from './dbapi/read/quests/get-all.ts';
+import { getQuestById, getQuestsByDM                     } from './dbapi/read/quests/get-by-id.ts';
+import { createQuest                                     } from './dbapi/write/quests/create.ts';
+import { updateQuest, updateQuestRewards, addCoDM,
+         removeCoDM                                      } from './dbapi/write/quests/update.ts';
+import { updateQuestStatus                               } from './dbapi/write/quests/update-status.ts';
+import { signupForQuest, cancelSignup,
+         confirmWaitlistPromotion                        } from './dbapi/write/quests/signup.ts';
+import { submitQuestResult, approveQuestResult,
+         rejectQuestResult                               } from './dbapi/write/quests/submit-result.ts';
+import { deleteQuest                                     } from './dbapi/write/quests/delete.ts';
+
 // ── DMs ──────────────────────────────────────────────────────────────────────────
 import { getAllDMProfiles, getAllRoleRequests   } from './dbapi/read/dms/get-all.ts';
 import { getDMProfileById, getDMProfileByUserId,
@@ -148,4 +161,23 @@ export const characters = {
     adjustCurrency,
     grantSlot:     grantCharacterSlot,
     checkRest:     checkAndClearRest,
+};
+
+export const quests = {
+    getAll:                getAllQuests,
+    getById:               getQuestById,
+    getByDM:               getQuestsByDM,
+    create:                createQuest,
+    update:                updateQuest,
+    updateRewards:         updateQuestRewards,
+    updateStatus:          updateQuestStatus,
+    addCoDM,
+    removeCoDM,
+    signup:                signupForQuest,
+    cancelSignup,
+    confirmWaitlistPromotion,
+    submitResult:          submitQuestResult,
+    approveResult:         approveQuestResult,
+    rejectResult:          rejectQuestResult,
+    delete:                deleteQuest,
 };
