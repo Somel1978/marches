@@ -6,8 +6,8 @@
 	let { data, children }: { data: LayoutData; children: any } = $props();
 </script>
 
-<AppShell title="Admin" user={data.user}>
-	{#snippet nav({ collapsed })}
+<AppShell title={data.siteName ?? 'Admin'} siteLogo={data.siteLogo ?? ''} user={data.user}>
+	{#snippet nav({ collapsed }: { collapsed: boolean })}
 		{#each data.nav as item}
 			<NavItem
 				href={item.href}
@@ -20,7 +20,7 @@
 		{/each}
 	{/snippet}
 
-	{#snippet footer({ collapsed })}
+	{#snippet footer({ collapsed }: { collapsed: boolean })}
 		{#each data.footer as item}
 			<NavItem
 				href={item.href}

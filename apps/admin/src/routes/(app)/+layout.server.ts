@@ -46,7 +46,7 @@ function resolveNavItems(
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
-		const redirectTo = url.pathname !== '/' ? `?redirectTo=${url.pathname}` : '';
+		const redirectTo = url.pathname !== '/' ? `?redirectTo=${encodeURIComponent(url.pathname)}` : '';
 		redirect(302, `/login${redirectTo}`);
 	}
 

@@ -47,3 +47,12 @@
     .nav-mobile                { display: flex; }
   }
 }
+
+/* SVG logo size constraints */
+.sidebar__brand svg,
+.nav-bar__brand svg,
+.header__brand svg {
+  height: 28px;
+  width: auto;
+  display: block;
+}

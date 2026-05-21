@@ -8,6 +8,8 @@
 		oncollapse?: (collapsed: boolean) => void;
 		nav:         Snippet<[{ collapsed: boolean }]>;
 		footer?:     Snippet<[{ collapsed: boolean }]>;
+		siteName?:   string;
+		siteLogo?:   string;
 	}
 
 	let {
@@ -16,6 +18,8 @@
 		oncollapse,
 		nav,
 		footer,
+		siteName    = 'Marches',
+		siteLogo    = '',
 	}: Props = $props();
 
 	function toggle() {
@@ -32,7 +36,13 @@
 	<!-- Brand -->
 	<div class="sidebar__brand">
 		{#if !collapsed}
-			<span class="sidebar__brand-text">⚔ Marches</span>
+			{#if siteLogo && siteLogo.startsWith('<')}
+				<span style="display:inline-flex; align-items:center; height:28px; width:auto; flex-shrink:0;">{@html siteLogo}</span>
+			{:else if siteLogo}
+				<img src={siteLogo} alt={siteName} style="height:28px; width:auto;" />
+			{:else}
+				<span class="sidebar__brand-text">⚔ {siteName}</span>
+			{/if}
 		{:else}
 			<span class="sidebar__brand-icon">⚔</span>
 		{/if}

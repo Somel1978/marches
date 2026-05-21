@@ -5,7 +5,8 @@
 	import Header  from './Header.svelte';
 
 	interface Props {
-		title?:   string;
+		title?:    string;
+		siteLogo?: string;
 		nav:      Snippet<[{ collapsed: boolean }]>;
 		actions?: Snippet;
 		footer?:  Snippet<[{ collapsed: boolean }]>;
@@ -17,7 +18,9 @@
 		children: Snippet;
 	}
 
-	let { title, nav, actions, footer, user, children }: Props = $props();
+	let { title, siteLogo, nav, actions, footer, user, children }: Props = $props();
+
+	const displayTitle = $derived(siteLogo ? '' : (title ?? ''));
 
 	// Desktop: sidebar collapsed state
 	let collapsed    = $state(false);
@@ -42,11 +45,16 @@
 		bind:drawerOpen
 		{nav}
 		{footer}
+		siteName={title ?? 'Marches'}
+		siteLogo={siteLogo ?? ''}
 	/>
 
 	<div class="shell__body">
 		<Header
-			{title}
+			title={displayTitle}
+			logoHtml={siteLogo && siteLogo.startsWith('<') ? siteLogo : ''}
+			logoUrl={siteLogo && !siteLogo.startsWith('<') ? siteLogo : ''}
+			logoAlt={title ?? ''}
 			{actions}
 			{user}
 			onMenuClick={() => drawerOpen = !drawerOpen}

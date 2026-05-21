@@ -64,7 +64,8 @@ const SETTINGS: {
     { key: 'email.fromName', value: 'Marches',               description: 'From name for system emails',   isSecret: false },
     // Site
     { key: 'site.url',  value: 'http://localhost:5173', description: 'Frontend URL — used in email links', isSecret: false },
-    { key: 'site.name',            value: 'Marches',               description: 'Site name used in emails',                         isSecret: false },
+    { key: 'site.name',            value: 'Marches',               description: 'Application name shown in nav and browser tab',    isSecret: false },
+    { key: 'site.logo',            value: '',                      description: 'SVG markup or image URL for the site logo',        isSecret: false },
     // Character feature settings
     { key: 'character.baseSlots',    value: '3',                     description: 'Base character slots per player',                  isSecret: false },
     { key: 'character.startingGold', value: '100',                   description: 'Starting gold for each new character',             isSecret: false },

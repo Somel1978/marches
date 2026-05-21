@@ -17,8 +17,14 @@
 	<header class="site__nav">
 		<nav class="nav-bar">
 			<a href="/" class="nav-bar__brand" onclick={closeMenu}>
-				<span class="nav-bar__logo">⚔</span>
-				<span class="nav-bar__name">Marches</span>
+				{#if (data as any).siteLogo && (data as any).siteLogo.startsWith('<')}
+					<span style="display:inline-flex; align-items:center; height:28px; width:auto;">{@html (data as any).siteLogo}</span>
+				{:else if (data as any).siteLogo}
+					<img src={(data as any).siteLogo} alt={(data as any).siteName} style="height:28px; width:auto;" />
+				{:else}
+					<span class="nav-bar__logo">⚔</span>
+					<span class="nav-bar__name">{(data as any).siteName}</span>
+				{/if}
 			</a>
 
 			<!-- Hamburger (mobile) -->
@@ -98,6 +104,6 @@
 	</main>
 
 	<footer class="site__footer">
-		<p class="site__footer-text">© {new Date().getFullYear()} Marches</p>
+		<p class="site__footer-text">© {new Date().getFullYear()} {(data as any).siteName}</p>
 	</footer>
 </div>

@@ -125,6 +125,28 @@ explicitly via `invalidateUserPermissions(userId)` after role changes.
 
 ---
 
+### Site Branding
+
+**Settings:** `site.name`, `site.logo`, `site.url`
+
+`site.name` — application name shown in the sidebar, nav bar, browser tab, and footer.
+
+`site.logo` — full SVG markup (`<svg>...</svg>`) or an image URL. Renders in the sidebar
+(expanded) and frontend nav bar. When collapsed, the sidebar falls back to the hardcoded
+`⚔` icon. Use `currentColor` for fill/stroke so the logo inherits `--accent-light` (`#E6A87A`).
+Remove hardcoded `width`/`height` attributes — use only `viewBox`. The CSS constrains height
+to 28px and preserves aspect ratio.
+
+**Current implementation:** Option A — one logo field, same SVG everywhere.
+**Known limitation:** collapsed sidebar ignores `site.logo` and shows the fallback icon.
+**Future:** Option B — add `site.logoIcon` for the compact collapsed state.
+
+**Recommended viewBox sizes:**
+- Icon only: `viewBox="0 0 28 28"`
+- Logo + wordmark: `viewBox="0 0 120 28"` to `viewBox="0 0 160 28"`
+
+---
+
 ### 1. GameSystem ✅
 
 **Schema:** `gamesystem`

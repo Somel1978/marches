@@ -3,7 +3,10 @@
 	import type { Snippet } from 'svelte';
 
 	interface Props {
-		title?:       string;
+		title?:    string;
+		logoHtml?: string;
+		logoUrl?:  string;
+		logoAlt?:  string;
 		actions?:     Snippet;
 		onMenuClick?: () => void;
 		user?: {
@@ -13,7 +16,7 @@
 		};
 	}
 
-	let { title, actions, user, onMenuClick }: Props = $props();
+	let { title, logoHtml, logoUrl, logoAlt, actions, user, onMenuClick }: Props = $props();
 
 	const initials = $derived(
 		user?.name
@@ -32,7 +35,11 @@
 		</svg>
 	</button>
 
-	{#if title}
+	{#if logoHtml}
+		<span style="display:inline-flex; align-items:center; height:28px; width:auto; flex-shrink:0;">{@html logoHtml}</span>
+	{:else if logoUrl}
+		<img src={logoUrl} alt={logoAlt ?? ''} style="height:28px; width:auto;" />
+	{:else if title}
 		<span class="header__title">{title}</span>
 	{/if}
 
