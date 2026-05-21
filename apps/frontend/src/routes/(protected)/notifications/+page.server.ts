@@ -11,8 +11,9 @@ export const actions: Actions = {
 		redirect(302, to || '/');
 	},
 
-	readAll: async ({ locals }) => {
+	readAll: async ({ request, locals }) => {
 		await notifications.markAllRead(locals.user!.id);
-		return { success: true };
+		const referer = request.headers.get('referer') ?? '/';
+		redirect(302, referer);
 	},
 };
