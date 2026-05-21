@@ -1,0 +1,33 @@
+/* shared/ui/styles/components/world-map.css */
+
+@layer components {
+  .world-map-marker {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--marker-color, #6366f1);
+    border: 3px solid white;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--marker-color, #6366f1) 40%, transparent);
+    transition: transform 0.15s;
+  }
+
+  .world-map-marker:hover {
+    transform: scale(1.4);
+  }
+
+  .world-map-label {
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    background: rgba(0,0,0,0.6);
+    padding: 1px 5px;
+    border-radius: 3px;
+    pointer-events: none;
+  }
+}

@@ -82,9 +82,9 @@ model CharacterClass {
   characterId    String    @map("character_id")
   character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   classId        String    @map("class_id")
-  classRef       Class     @relation(fields: [classId], references: [id])
+  classRef       Class     @relation("ClassRef", fields: [classId], references: [id])
   subclassId     String?   @map("subclass_id")
-  subclassRef    Subclass? @relation(fields: [subclassId], references: [id])
+  subclassRef    Subclass? @relation("SubclassRef", fields: [subclassId], references: [id])
   allocatedLevel Int       @default(1) @map("allocated_level")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt      @map("updated_at")
@@ -125,13 +125,20 @@ model CharacterTransaction {
 }
 
 model CharacterInventory {
-  id          String              @id @default(uuid())
-  characterId String              @map("character_id")
-  character   Character           @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  itemId      String              @map("item_id")
-  quantity    Int                 @default(1)
-  acquiredAt  DateTime            @default(now()) @map("acquired_at")
-  sourceType  InventorySourceType @map("source_type")
+  id                 String              @id @default(uuid())
+  characterId        String              @map("character_id")
+  character          Character           @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  itemId             String?             @map("item_id")           // FK to marketplace item
+  itemName           String              @map("item_name")          // snapshot at acquisition
+  itemCategory       String?             @map("item_category")      // snapshot
+  itemRarity         String?             @map("item_rarity")        // snapshot
+  itemSource         String?             @map("item_source")        // snapshot
+  quantity           Int                 @default(1)
+  purchasePrice      Float?              @map("purchase_price")     // price paid per unit
+  sourceType         InventorySourceType @map("source_type")
+  transactionId      String?             @map("transaction_id")     // marketplace transaction ref
+  acquiredAt         DateTime            @default(now()) @map("acquired_at")
+  notes              String?
 
   @@map("character_inventory")
   @@schema("characters")

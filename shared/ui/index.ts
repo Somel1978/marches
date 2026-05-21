@@ -14,3 +14,6 @@ export { default as Card }           from './components/ui/Card.svelte';
 export { default as Badge }          from './components/ui/Badge.svelte';
 export { default as Avatar }         from './components/ui/Avatar.svelte';
 export { default as PermissionCell } from './components/ui/PermissionCell.svelte';
+
+// Markdown
+export { renderMarkdown } from './src/markdown.ts';

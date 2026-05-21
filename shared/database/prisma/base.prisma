@@ -17,5 +17,7 @@ datasource db {
   // 06 characters feature
   // 07 dms feature
   // 08 quests feature
-  schemas    = ["platform", "users", "auth", "audit", "gamesystem", "characters", "dms", "quests"]
+  // 09 marketplace feature
+  // 10 world feature
+  schemas    = ["platform", "users", "auth", "audit", "gamesystem", "characters", "dms", "quests", "marketplace", "world"]
 }

@@ -1,26 +1,4 @@
 // shared/database/seed.ts
-
-// ── Seed Execution Order ──────────────────────────────────────────────────────
-// Mirrors schema dependency order exactly:
-//
-//   01-platform  schema: platform — no deps, must exist first so role
-//                permissions can reference resource names
-//
-//   02-roles     schema: users — references platform.Resource names
-//
-//   03-users     schema: users — references roles from 02
-//
-// auth schema is not seeded — better-auth owns it entirely.
-//
-// When adding a new feature:
-//   1. Add its .prisma file (schema 04+) and run db:generate + db:push
-//   2. Add resources to 01-platform.seed.ts
-//   3. Add a seed file as 04-<feature>.seed.ts
-//   4. Import and call it here after 03-users
-//
-// Never change the order of existing seed calls.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { db } from './index.ts';
 import { seedPlatform  } from './seeds/01-platform.seed.ts';
 import { seedRoles     } from './seeds/02-roles.seed.ts';
@@ -28,6 +6,8 @@ import { seedUsers     } from './seeds/03-users.seed.ts';
 import { seedGameSystems } from './seeds/04-gamesystem.seed.ts';
 import { seedDMs          } from './seeds/05-dms.seed.ts';
 import { seedQuests      } from './seeds/06-quests.seed.ts';
+import { seedMarketplace } from './seeds/07-marketplace.seed.ts';
+import { seedWorld      } from './seeds/08-world.seed.ts';
 
 async function main() {
     console.log('Seeding database...');
@@ -37,6 +17,8 @@ async function main() {
     await seedGameSystems(db);
     await seedDMs(db);
     await seedQuests(db);
+    await seedMarketplace(db);
+    await seedWorld(db);
     console.log('Done.');
 }
 

@@ -42,6 +42,28 @@ import { createSubclass, updateSubclass, deleteSubclass } from './dbapi/write/ga
 import { createProgressionThreshold, updateProgressionThreshold, deleteProgressionThreshold } from './dbapi/write/gamesystem/progression.ts';
 import { createSpecies, updateSpecies, deleteSpecies } from './dbapi/write/gamesystem/species.ts';
 
+// ── World ────────────────────────────────────────────────────────────────────────
+import { getAllWorlds, getWorldBySlug, getWorldById  } from './dbapi/read/world/get-worlds.ts';
+import { getRegionBySlug, getRegionById,
+         getLocationBySlug                           } from './dbapi/read/world/get-regions.ts';
+import { getWikiPage                                 } from './dbapi/read/world/get-wiki.ts';
+import { createWorld, updateWorld, createRegion,
+         updateRegion, assignDMToRegion,
+         removeDMFromRegion, createLocation,
+         updateLocation                              } from './dbapi/write/world/worlds.ts';
+import { upsertWikiPage                              } from './dbapi/write/world/wiki.ts';
+
+// ── Marketplace ──────────────────────────────────────────────────────────────────
+import { getMarketplaceItems, getMarketplaceItemById,
+         getMarketplaceItemByName                         } from './dbapi/read/marketplace/get-items.ts';
+import { getMarketplaceTransactions                       } from './dbapi/read/marketplace/get-transactions.ts';
+import { upsertMarketplaceItem, updateMarketplaceItem,
+         deleteMarketplaceItem                           } from './dbapi/write/marketplace/items.ts';
+import { createBuyTransaction, createSellTransaction,
+         approveTransaction, rejectTransaction,
+         cancelTransaction, grantRewardItem               } from './dbapi/write/marketplace/transactions.ts';
+import { importMarketplaceItems                           } from './dbapi/write/marketplace/import.ts';
+
 // ── Quests ───────────────────────────────────────────────────────────────────────
 import { getAllQuests                                     } from './dbapi/read/quests/get-all.ts';
 import { getQuestById, getQuestsByDM                     } from './dbapi/read/quests/get-by-id.ts';
@@ -69,6 +91,8 @@ import { getAllCharacters                         } from './dbapi/read/character
 import { getCharacterById, getCharactersByUserId } from './dbapi/read/characters/get-by-id.ts';
 import { getSlotInfo, getAllSlotInfo             } from './dbapi/read/characters/get-slot-info.ts';
 import { getCharacterTransactions                } from './dbapi/read/characters/get-transactions.ts';
+import { getCharacterInventory                   } from './dbapi/read/characters/get-inventory.ts';
+import { removeFromInventory, addToInventory      } from './dbapi/write/characters/inventory.ts';
 import { createCharacter                         } from './dbapi/write/characters/create.ts';
 import { updateCharacter                         } from './dbapi/write/characters/update.ts';
 import { updateCharacterStatus                   } from './dbapi/write/characters/update-status.ts';
@@ -150,7 +174,10 @@ export const characters = {
     getByUserId:   getCharactersByUserId,
     getSlotInfo,
     getAllSlotInfo,
-    getTransactions: getCharacterTransactions,
+    getTransactions:  getCharacterTransactions,
+    getInventory:     getCharacterInventory,
+    addInventory:     addToInventory,
+    removeInventory:  removeFromInventory,
     create:        createCharacter,
     update:        updateCharacter,
     updateStatus:  updateCharacterStatus,
@@ -180,4 +207,50 @@ export const quests = {
     approveResult:         approveQuestResult,
     rejectResult:          rejectQuestResult,
     delete:                deleteQuest,
+};
+
+export const marketplace = {
+    items: {
+        getAll:       getMarketplaceItems,
+        getById:      getMarketplaceItemById,
+        getByName:    getMarketplaceItemByName,
+        upsert:       upsertMarketplaceItem,
+        update:       updateMarketplaceItem,
+        delete:       deleteMarketplaceItem,
+        import:       importMarketplaceItems,
+    },
+    transactions: {
+        getAll:   getMarketplaceTransactions,
+        buy:      createBuyTransaction,
+        sell:     createSellTransaction,
+        approve:  approveTransaction,
+        reject:   rejectTransaction,
+        cancel:   cancelTransaction,
+        reward:   grantRewardItem,
+    },
+};
+
+export const worlds = {
+    getAll:           getAllWorlds,
+    getBySlug:        getWorldBySlug,
+    getById:          getWorldById,
+    create:           createWorld,
+    update:           updateWorld,
+    regions: {
+        getBySlug:    getRegionBySlug,
+        getById:      getRegionById,
+        create:       createRegion,
+        update:       updateRegion,
+        assignDM:     assignDMToRegion,
+        removeDM:     removeDMFromRegion,
+    },
+    locations: {
+        getBySlug:    getLocationBySlug,
+        create:       createLocation,
+        update:       updateLocation,
+    },
+    wiki: {
+        get:          getWikiPage,
+        upsert:       upsertWikiPage,
+    },
 };

@@ -1,0 +1,49 @@
+/* shared/ui/styles/components/nav-mobile.css */
+
+@layer components {
+  .nav-bar__hamburger {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-primary);
+    padding: 0.25rem;
+    margin-left: auto;
+  }
+
+  .nav-bar__links--desktop,
+  .nav-bar__actions--desktop {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .nav-mobile {
+    display: none;
+    flex-direction: column;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-muted);
+    padding: 0.75rem 1rem 1rem;
+    gap: 0.125rem;
+  }
+
+  .nav-mobile__link {
+    display: block;
+    padding: 0.625rem 0.5rem;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+  }
+
+  .nav-mobile__link:hover {
+    background: var(--bg-overlay);
+  }
+
+  @media (max-width: 640px) {
+    .nav-bar__hamburger        { display: flex; }
+    .nav-bar__links--desktop   { display: none; }
+    .nav-bar__actions--desktop { display: none; }
+    .nav-mobile                { display: flex; }
+  }
+}

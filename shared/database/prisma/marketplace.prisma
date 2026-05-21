@@ -1,0 +1,88 @@
+/* shared/database/prisma/marketplace.prisma */
+
+// ── Marketplace (schema: marketplace, order: 09) ─────────────────────────────
+
+enum ItemCategory {
+  Combat
+  Consumable
+  Utility
+  Destroyable
+
+  @@schema("marketplace")
+}
+
+enum ItemRarity {
+  Mundane
+  Common
+  Uncommon
+  Rare
+  Very_Rare
+  Legendary
+  Artifact
+  Unknown
+
+  @@schema("marketplace")
+}
+
+enum MarketTransactionType {
+  BUY
+  SELL
+  REWARD
+
+  @@schema("marketplace")
+}
+
+enum TransactionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@schema("marketplace")
+}
+
+model MarketplaceItem {
+  id                 String       @id @default(uuid())
+  name               String       @unique
+  category           ItemCategory
+  baseItem           String       @map("base_item")
+  isVariant          Boolean      @default(false) @map("is_variant")
+  rarity             ItemRarity   @default(Mundane)
+  requiresAttunement Boolean      @default(false) @map("requires_attunement")
+  requirements       String?
+  weight             Float?
+  source             String?
+  imageUrl           String?      @map("image_url")
+  link               String?
+  description        String?
+  buyPrice           Float        @default(0) @map("buy_price")
+  isDestroyable      Boolean      @default(false) @map("is_destroyable")
+  isAvailable        Boolean      @default(true)  @map("is_available")
+  stock              Int?         // null = unlimited
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt      @map("updated_at")
+
+  transactions       MarketplaceTransaction[]
+
+  @@map("marketplace_items")
+  @@schema("marketplace")
+}
+
+model MarketplaceTransaction {
+  id                   String            @id @default(uuid())
+  itemId               String            @map("item_id")
+  item                 MarketplaceItem   @relation(fields: [itemId], references: [id])
+  characterId          String            @map("character_id")
+  type                 MarketTransactionType
+  status               TransactionStatus @default(PENDING)
+  quantity             Int               @default(1)
+  priceAtTransaction   Float             @map("price_at_transaction")  // snapshot
+  totalPrice           Float             @map("total_price")           // quantity * price
+  requestedBy          String            @map("requested_by")          // userId
+  reviewedBy           String?           @map("reviewed_by")
+  reviewNote           String?           @map("review_note")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt      @map("updated_at")
+
+  @@map("marketplace_transactions")
+  @@schema("marketplace")
+}

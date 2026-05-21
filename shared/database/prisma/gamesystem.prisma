@@ -35,7 +35,7 @@ model Class {
   sortOrder    Int        @default(0)    @map("sort_order")
 
   subclasses        Subclass[]
-  characterClasses  CharacterClass[]
+  characterClasses  CharacterClass[] @relation("ClassRef")
 
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt      @map("updated_at")
@@ -59,7 +59,7 @@ model Subclass {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt      @map("updated_at")
 
-  characterClasses  CharacterClass[]
+  characterClasses  CharacterClass[] @relation("SubclassRef")
 
   @@unique([classId, name])
   @@map("subclasses")

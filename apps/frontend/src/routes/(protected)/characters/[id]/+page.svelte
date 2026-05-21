@@ -54,6 +54,13 @@
 	function getSubclasses(classId: string) {
 		return data.gameSystem?.classes.find((c: any) => c.id === classId)?.subclasses ?? [];
 	}
+
+	const rarityColors: Record<string, string> = {
+		Mundane:   'badge-muted', Common:    'badge-muted',
+		Uncommon:  'badge-accent', Rare:     'badge-success',
+		Very_Rare: 'badge-warning', Legendary:'badge-danger',
+		Artifact:  'badge-danger', Unknown:  'badge-muted',
+	};
 </script>
 
 <div class="page">
@@ -282,6 +289,79 @@
 			</table>
 		</div>
 	{/if}
+	<!-- Pending purchases -->
+	{#if ((data as any).pendingBuys ?? []).length}
+		<div class="card">
+			<h3 class="section-title">Pending purchases ({((data as any).pendingBuys ?? []).length})</h3>
+			<p class="field-hint" style="margin-bottom:0.75rem;">Gold is reserved. Admin approval required to receive items.</p>
+			<div style="display:flex; flex-direction:column; gap:0.5rem;">
+				{#each ((data as any).pendingBuys ?? []) as tx}
+					<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:0.625rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
+						<div>
+							<p style="font-weight:600; font-size:0.9rem; margin:0;">{tx.item.name} ×{tx.quantity}</p>
+							<p style="font-size:0.8125rem; color:var(--text-muted); margin:0;">{tx.totalPrice.toLocaleString()} GP reserved</p>
+						</div>
+						<form method="post" action="?/cancel" use:enhance={() => {
+								return async ({ update }) => { await update(); await invalidateAll(); };
+							}}>
+							<input type="hidden" name="txId" value={tx.id} />
+							<button type="submit" class="btn btn-ghost btn-sm">Cancel &amp; refund</button>
+						</form>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
+
+	<!-- Inventory -->
+	<div class="card">
+		<div class="page__header" style="margin-bottom:1rem;">
+			<h3 class="section-title" style="margin:0;">Inventory ({((data as any).inventory ?? []).length})</h3>
+		</div>
+		{#if (form as any)?.sellSuccess}<div class="form-success">Sell request submitted — awaiting admin approval.</div>{/if}
+		{#if ((data as any).inventory ?? []).length}
+			<div style="display:flex; flex-direction:column; gap:0.75rem;">
+				{#each ((data as any).inventory ?? []) as inv}
+					<div style="display:flex; align-items:center; gap:1rem; padding:0.75rem; background:var(--bg-overlay); border-radius:var(--radius-md); flex-wrap:wrap;">
+						{#if inv.imageUrl}
+							<img src={inv.imageUrl} alt="" style="width:40px; height:40px; object-fit:contain; border-radius:var(--radius-sm); flex-shrink:0;" />
+						{/if}
+						<div style="flex:1; min-width:0;">
+							<p style="font-weight:600; font-size:0.9375rem; margin:0;">{inv.itemName}</p>
+							<div style="display:flex; gap:0.375rem; flex-wrap:wrap; margin-top:0.25rem;">
+								{#if inv.liveRarity ?? inv.itemRarity}
+									<span class="badge {(rarityColors as any)[inv.liveRarity ?? inv.itemRarity ?? ''] ?? 'badge-muted'}">
+										{(inv.liveRarity ?? inv.itemRarity ?? '').replace('_', ' ')}
+									</span>
+								{/if}
+								{#if inv.itemCategory}<span class="badge badge-muted">{inv.itemCategory}</span>{/if}
+								<span class="badge badge-muted">×{inv.quantity}</span>
+							</div>
+							<p style="font-size:0.8125rem; color:var(--text-muted); margin:0.25rem 0 0;">
+								Paid: {inv.purchasePrice?.toLocaleString() ?? '—'} GP
+								{#if inv.livePrice !== null} · Live: {inv.livePrice.toLocaleString()} GP{/if}
+							</p>
+						</div>
+						{#if inv.itemId && !((data as any).pendingSells ?? []).some((t: any) => t.itemId === inv.itemId)}
+							<form method="post" action="?/sell" use:enhance={() => {
+									return async ({ update }) => { await update(); await invalidateAll(); };
+								}}>
+								<input type="hidden" name="inventoryId" value={inv.id} />
+								<input type="hidden" name="quantity"    value="1" />
+								<button type="submit" class="btn btn-ghost btn-sm">
+									Sell ({inv.livePrice !== null ? Math.floor(inv.livePrice * 0.5).toLocaleString() : '?'} GP)
+								</button>
+							</form>
+						{:else if ((data as any).pendingSells ?? []).some((t: any) => t.itemId === inv.itemId)}
+							<span class="badge badge-warning">Sell pending</span>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<p class="table__empty">No items in inventory.</p>
+		{/if}
+	</div>
 </div>
 
 <!-- Lightbox -->

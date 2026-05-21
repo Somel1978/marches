@@ -52,6 +52,13 @@
 	function enhance_reload() {
 		return async ({ update }: any) => { await update(); await invalidateAll(); };
 	}
+
+	const rarityColors: Record<string, string> = {
+		Mundane:   'badge-muted', Common:    'badge-muted',
+		Uncommon:  'badge-accent', Rare:     'badge-success',
+		Very_Rare: 'badge-warning', Legendary:'badge-danger',
+		Artifact:  'badge-danger', Unknown:  'badge-muted',
+	};
 </script>
 
 <div class="page">
@@ -347,6 +354,68 @@
 				<span>Tokens: <strong style="color:var(--text-primary);">{data.character.totalTokens.toLocaleString()}</strong></span>
 			</div>
 		</form>
+	</div>
+
+	<!-- Inventory -->
+	<div class="card">
+		<div class="page__header" style="margin-bottom:1rem;">
+			<h3 class="section-title" style="margin:0;">Inventory ({((data as any).inventory ?? []).length} items)</h3>
+		</div>
+		{#if (form as any)?.inventorySuccess}<div class="form-success">Inventory updated.</div>{/if}
+		{#if ((data as any).inventory ?? []).length}
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Item</th>
+						<th>Rarity</th>
+						<th>Qty</th>
+						<th>Paid (GP)</th>
+						<th>Live (GP)</th>
+						<th>Source</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each ((data as any).inventory ?? []) as inv}
+						<tr>
+							<td>
+								{#if inv.itemId}
+									<a href="/marketplace/items/{inv.itemId}" class="table__name">{inv.itemName}</a>
+								{:else}
+									<span class="table__name">{inv.itemName}</span>
+								{/if}
+								{#if inv.itemCategory}<span class="badge badge-muted" style="margin-left:0.25rem; font-size:0.7rem;">{inv.itemCategory}</span>{/if}
+							</td>
+							<td>
+								{#if inv.liveRarity ?? inv.itemRarity}
+									<span class="badge {(rarityColors as any)[inv.liveRarity ?? inv.itemRarity ?? ''] ?? 'badge-muted'}">
+										{(inv.liveRarity ?? inv.itemRarity ?? '').replace('_', ' ')}
+									</span>
+								{/if}
+							</td>
+							<td>{inv.quantity}</td>
+							<td class="table__muted">{inv.purchasePrice?.toLocaleString() ?? '—'}</td>
+							<td class="table__muted">{inv.livePrice?.toLocaleString() ?? '—'}</td>
+							<td><span class="badge badge-muted">{inv.sourceType}</span></td>
+							<td class="table__action">
+								<form method="post" action="?/removeInventory"
+									use:enhance={({ cancel }) => { if (!confirm('Remove from inventory?')) { cancel(); return; } return async ({ update }) => { await update(); await invalidateAll(); }; }}>
+									<input type="hidden" name="inventoryId" value={inv.id} />
+									<input type="hidden" name="quantity"    value={inv.quantity} />
+									<button type="submit" class="btn btn-ghost btn-sm btn-icon" aria-label="Remove">
+										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+										</svg>
+									</button>
+								</form>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		{:else}
+			<p class="table__empty">No items in inventory.</p>
+		{/if}
 	</div>
 
 	<!-- Danger zone -->

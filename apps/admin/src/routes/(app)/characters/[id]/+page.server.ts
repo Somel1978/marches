@@ -24,7 +24,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		gameSystems.getById(character.gameSystemId),
 	]);
 
-	return { character, owner, transactions, gameSystem };
+	const inventory = await characters.getInventory(params.id);
+	return { character, owner, transactions, gameSystem, inventory };
 };
 
 export const actions: Actions = {
@@ -134,6 +135,23 @@ export const actions: Actions = {
 		try {
 			await characters.adjustCurrency(params.id, type as any, delta, note, locals.user!.id);
 			return { currencySuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	removeInventory: async ({ request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+
+		const data        = await request.formData();
+		const inventoryId = data.get('inventoryId')?.toString() ?? '';
+		const quantity    = Number(data.get('quantity') ?? 1);
+
+		try {
+			await characters.removeInventory(inventoryId, quantity, locals.user!.id, 'Admin removal');
+			return { inventorySuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

@@ -1,0 +1,138 @@
+/* shared/database/prisma/world.prisma */
+
+// ── World System (schema: world, order: 10) ──────────────────────────────────
+
+enum DangerRating {
+  Safe        // 1
+  Low         // 2
+  Moderate    // 3
+  High        // 4
+  Extreme     // 5
+
+  @@schema("world")
+}
+
+enum LocationType {
+  Town
+  City
+  Dungeon
+  Ruins
+  Landmark
+  Wilderness
+  Other
+
+  @@schema("world")
+}
+
+enum WikiEntityType {
+  WORLD
+  REGION
+  LOCATION
+
+  @@schema("world")
+}
+
+model World {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  mapImageUrl  String?  @map("map_image_url")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt      @map("updated_at")
+
+  regions      Region[]
+
+  @@map("worlds")
+  @@schema("world")
+}
+
+model Region {
+  id           String       @id @default(uuid())
+  worldId      String       @map("world_id")
+  world        World        @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  name         String
+  slug         String       @map("slug")
+  description  String?
+  mapX         Float?       @map("map_x")   // % position on world map (0-100)
+  mapY         Float?       @map("map_y")   // % position on world map (0-100)
+  color        String       @default("#6366f1") // marker + overlay color
+  minLevel     Int?         @map("min_level")
+  maxLevel     Int?         @map("max_level")
+  dangerRating DangerRating @default(Safe) @map("danger_rating")
+  isActive     Boolean      @default(true)  @map("is_active")
+  imageUrl     String?      @map("image_url")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt      @map("updated_at")
+
+  dms          RegionDM[]
+  locations    Location[]
+
+  @@unique([worldId, slug])
+  @@map("regions")
+  @@schema("world")
+}
+
+model RegionDM {
+  id          String   @id @default(uuid())
+  regionId    String   @map("region_id")
+  region      Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  dmProfileId String   @map("dm_profile_id")
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+  assignedBy  String   @map("assigned_by")
+
+  @@unique([regionId, dmProfileId])
+  @@map("region_dms")
+  @@schema("world")
+}
+
+model Location {
+  id           String       @id @default(uuid())
+  regionId     String       @map("region_id")
+  region       Region       @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  name         String
+  slug         String       @map("slug")
+  description  String?
+  type         LocationType @default(Other)
+  minLevel     Int?         @map("min_level")
+  maxLevel     Int?         @map("max_level")
+  dangerRating DangerRating @default(Safe)  @map("danger_rating")
+  isActive     Boolean      @default(true)  @map("is_active")
+  imageUrl     String?      @map("image_url")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt      @map("updated_at")
+
+  @@unique([regionId, slug])
+  @@map("locations")
+  @@schema("world")
+}
+
+model WikiPage {
+  id          String         @id @default(uuid())
+  entityType  WikiEntityType @map("entity_type")
+  entityId    String         @map("entity_id")
+  title       String
+  content     String         // markdown
+  editedBy    String         @map("edited_by")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt      @map("updated_at")
+
+  revisions   WikiRevision[]
+
+  @@unique([entityType, entityId])
+  @@map("wiki_pages")
+  @@schema("world")
+}
+
+model WikiRevision {
+  id        String   @id @default(uuid())
+  pageId    String   @map("page_id")
+  page      WikiPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  content   String
+  editedBy  String   @map("edited_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("wiki_revisions")
+  @@schema("world")
+}

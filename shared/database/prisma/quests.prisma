@@ -43,7 +43,8 @@ enum QuestResultStatus {
 model Quest {
   id          String      @id @default(uuid())
   dmProfileId String      @map("dm_profile_id")
-  regionId    String?     @map("region_id")   // nullable until World System is built
+  regionId    String?     @map("region_id")   // FK to world.Region
+  locationId  String?     @map("location_id") // FK to world.Location (optional POI)
   title       String
   description String?
   rules       String?     // pre-populated from DM profile rules

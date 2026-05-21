@@ -19,11 +19,12 @@
   },
   "dependencies": {
     "@core/database": "workspace:*",
-    "better-auth": "~1.4.22",
+    "@core/email": "workspace:*",
+    "@core/errors": "workspace:*",
     "@core/rbac": "workspace:*",
     "@core/ui": "workspace:*",
-    "@core/errors": "workspace:*",
-    "@core/email": "workspace:*"
+    "better-auth": "~1.4.22",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@better-auth/cli": "~1.4.22",

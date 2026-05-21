@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/characters/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { characters, gameSystems } from '@core/database';
+import { characters, gameSystems, marketplace, platform } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -19,7 +19,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	// Load game system with classes and subclasses for class allocation UI
 	const gameSystem = await gameSystems.getById(character.gameSystemId);
 
-	return { character, transactions, gameSystem };
+	const [inventory, pendingTx, settings] = await Promise.all([
+		characters.getInventory(params.id),
+		marketplace.transactions.getAll({ characterId: params.id, status: 'PENDING' }),
+		platform.getSettingsMap(),
+	]);
+	const pendingBuys  = pendingTx.items.filter((t: any) => t.type === 'BUY');
+	const pendingSells = pendingTx.items.filter((t: any) => t.type === 'SELL');
+	const sellPct = Number(settings['marketplace.sellPricePercent'] ?? 50);
+	return { character, transactions, gameSystem, inventory, pendingBuys, pendingSells, sellPct };
 };
 
 export const actions: Actions = {
@@ -64,6 +72,32 @@ export const actions: Actions = {
 			// Set character to PENDING for admin approval
 			await characters.updateStatus(params.id, 'PENDING', null, 'Level-up allocation submitted', locals.user!.id);
 			return { levelUpSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	cancel: async ({ request, locals }) => {
+		const data = await request.formData();
+		const txId = data.get('txId')?.toString() ?? '';
+		try {
+			await marketplace.transactions.cancel(txId, locals.user!.id);
+			return { cancelSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	sell: async ({ params, request, locals }) => {
+		const data        = await request.formData();
+		const inventoryId = data.get('inventoryId')?.toString() ?? '';
+		const quantity    = Number(data.get('quantity') ?? 1);
+
+		try {
+			await marketplace.transactions.sell(params.id, inventoryId, quantity, locals.user!.id);
+			return { sellSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

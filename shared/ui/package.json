@@ -9,6 +9,7 @@
     "./styles/*": "./styles/*"
   },
   "dependencies": {
+    "marked": "^18.0.4",
     "svelte": "^5.0.0"
   },
   "devDependencies": {
