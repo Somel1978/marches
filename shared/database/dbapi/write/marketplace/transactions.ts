@@ -2,6 +2,7 @@
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
+import { createNotification, createNotificationsForAdmins } from '../notifications/notifications.ts';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
 
 const RARITY_ORDER = ['Mundane', 'Common', 'Uncommon', 'Rare', 'Very_Rare', 'Legendary', 'Artifact', 'Unknown'];
@@ -93,13 +94,8 @@ export async function createBuyTransaction(
             },
         });
 
-        await logAudit(dbTx, {
-            actorId:     requestedBy,
-            action:      'CREATE',
-            resourceKey: 'MarketplaceTransaction',
-            resourceId:  tx.id,
-            after:       { type: 'BUY', itemId, characterId, quantity, totalPrice },
-        });
+        await createNotificationsForAdmins('MARKETPLACE_PENDING', 'Purchase request pending', `Purchase request for "${item.name}" ×${quantity} needs approval.`, '/marketplace/transactions');
+        await logAudit(dbTx, { actorId: requestedBy, action: 'CREATE', resourceKey: 'MarketplaceTransaction', resourceId: tx.id, after: { type: 'BUY', itemId, characterId, quantity, totalPrice } });
 
         return tx;
     });
@@ -281,10 +277,9 @@ export async function rejectTransaction(id: string, reviewNote: string, actorId:
     if (!reviewNote?.trim()) throw new ValidationError('Review note is required.');
 
     return db.$transaction(async (dbTx) => {
-        await dbTx.marketplaceTransaction.update({
-            where: { id },
-            data:  { status: 'REJECTED', reviewedBy: actorId, reviewNote },
-        });
+        const _cR = await dbTx.character.findUnique({ where: { id: tx.characterId }, select: { userId: true } }).catch(() => null);
+        if (_cR) await createNotification(_cR.userId, 'MARKETPLACE_REJECTED', 'Purchase rejected', `Your purchase of "${tx.item?.name ?? 'item'}" was rejected. ${reviewNote}`, '/characters');
+        await dbTx.marketplaceTransaction.update({ where: { id }, data: { status: 'REJECTED', reviewedBy: actorId, reviewNote } });
 
         // Refund gold for BUY rejections
         if (tx.type === 'BUY') {

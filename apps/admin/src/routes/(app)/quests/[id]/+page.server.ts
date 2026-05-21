@@ -1,6 +1,6 @@
 // apps/admin/src/routes/(app)/quests/[id]/+page.server.ts
 import { fail, error, redirect } from '@sveltejs/kit';
-import { quests } from '@core/database';
+import { quests, worlds } from '@core/database';
 import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -9,10 +9,13 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const can = checkPermission(locals.permissions, { resourceKey: 'Quest', action: 'read' });
 	if (!can.allowed) throw error(403, 'Forbidden');
 
-	const quest = await quests.getById(params.id);
+	const [quest, allWorlds] = await Promise.all([
+		quests.getById(params.id),
+		worlds.getAll(),
+	]);
 	if (!quest) throw error(404, 'Quest not found');
 
-	return { quest };
+	return { quest, allWorlds };
 };
 
 export const actions: Actions = {
@@ -49,7 +52,10 @@ export const actions: Actions = {
 		const can = checkPermission(locals.permissions, { resourceKey: 'Quest', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
 		try {
-			const quest = await quests.getById(params.id);
+			const [quest, allWorlds] = await Promise.all([
+		quests.getById(params.id),
+		worlds.getAll(),
+	]);
 			if (!quest?.result) return fail(400, { message: 'No result to approve.' });
 			await quests.approveResult(quest.result.id, locals.user!.id);
 			return { success: true, action: 'result_approved' };
@@ -71,6 +77,8 @@ export const actions: Actions = {
 		const maxLevel    = Number(data.get('maxLevel')    ?? 20);
 
 		try {
+			const regionId   = data.get('regionId')?.toString()   || null;
+			const locationId = data.get('locationId')?.toString() || null;
 			await quests.update(params.id, { missionXp, minCapacity, maxCapacity, minLevel, maxLevel }, locals.user!.id);
 			return { success: true, action: 'details_updated' };
 		} catch (e) {
@@ -119,7 +127,10 @@ export const actions: Actions = {
 		const note = data.get('note')?.toString().trim() ?? '';
 		if (!note) return fail(400, { message: 'Review note is required.' });
 		try {
-			const quest = await quests.getById(params.id);
+			const [quest, allWorlds] = await Promise.all([
+		quests.getById(params.id),
+		worlds.getAll(),
+	]);
 			if (!quest?.result) return fail(400, { message: 'No result to reject.' });
 			await quests.rejectResult(quest.result.id, note, locals.user!.id);
 			return { success: true, action: 'result_rejected' };

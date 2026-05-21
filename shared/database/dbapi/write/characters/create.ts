@@ -4,6 +4,7 @@ import { logAudit } from '../audit/log.ts';
 import { ConflictError, ValidationError } from '@core/errors';
 import { getSlotInfo } from '../../read/characters/get-slot-info.ts';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
+import { createNotificationsForAdmins } from '../notifications/notifications.ts';
 
 export async function createCharacter(
     input: {
@@ -29,7 +30,7 @@ export async function createCharacter(
     const settings     = await getSettingsMap();
     const startingGold = Number(settings['character.startingGold'] ?? 100);
 
-    return db.$transaction(async (tx) => {
+    const character = await db.$transaction(async (tx) => {
         const character = await tx.character.create({
             data: {
                 userId:       input.userId,
@@ -67,4 +68,12 @@ export async function createCharacter(
 
         return character;
     });
+
+    await createNotificationsForAdmins(
+        'CHARACTER_PENDING', 'New character awaiting approval',
+        `A new character "${input.name}" has been submitted for approval.`,
+        `/characters/${character.id}`,
+    );
+
+    return character;
 }

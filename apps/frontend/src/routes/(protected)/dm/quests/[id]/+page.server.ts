@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/dm/quests/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { dms, quests } from '@core/database';
+import { dms, quests, worlds } from '@core/database';
 import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -21,9 +21,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const access = await checkDMAccess(params.id, locals.user!.id);
 	if (!access) throw error(403, 'Forbidden');
 
-	const allDMProfiles = await dms.profiles.getAll();
+	const [allDMProfiles, allWorlds] = await Promise.all([
+		dms.profiles.getAll(),
+		worlds.getAll(),
+	]);
 
-	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles };
+	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds };
 };
 
 export const actions: Actions = {
@@ -92,6 +95,7 @@ export const actions: Actions = {
 		if (!access) return fail(403, { message: 'Forbidden' });
 
 		const data        = await request.formData();
+		const description = data.get('description')?.toString().trim() || undefined;
 		const missionXp   = Number(data.get('missionXp')   ?? 0);
 		const minCapacity = Number(data.get('minCapacity') ?? 2);
 		const maxCapacity = Number(data.get('maxCapacity') ?? 6);
@@ -99,7 +103,9 @@ export const actions: Actions = {
 		const maxLevel    = Number(data.get('maxLevel')    ?? 20);
 
 		try {
-			await quests.update(params.id, { missionXp, minCapacity, maxCapacity, minLevel, maxLevel }, locals.user!.id);
+			const regionId   = data.get('regionId')?.toString()   || undefined;
+			const locationId = data.get('locationId')?.toString() || undefined;
+			await quests.update(params.id, { missionXp, minCapacity, maxCapacity, minLevel, maxLevel, regionId, locationId, description }, locals.user!.id);
 			return { success: true, action: 'details_updated' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

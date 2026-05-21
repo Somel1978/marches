@@ -1,7 +1,7 @@
 // apps/admin/src/routes/(app)/+layout.server.ts
 import { redirect } from '@sveltejs/kit';
 import { checkPermission, canNavigate } from '@core/rbac';
-import { platform } from '@core/database';
+import { platform, notifications } from '@core/database';
 import { NAV_ITEMS, FOOTER_ITEMS } from '$lib/nav';
 import type { NavItemDef, NavContext, ResolvedNavItem } from '$lib/nav';
 import type { LayoutServerLoad } from './$types';
@@ -58,6 +58,8 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 
 	const navVis = await platform.getResourceNavVisibility();
 
+	const unread = await notifications.getUnread(locals.user.id);
+
 	return {
 		user: {
 			id:    locals.user.id,
@@ -65,6 +67,8 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 			email: locals.user.email,
 			image: locals.user.image,
 		},
+		notifications: unread,
+		notifCount:    unread.length,
 		nav:    resolveNavItems(NAV_ITEMS,    locals.permissions, navVis, locals.user.id, url.pathname),
 		footer: resolveNavItems(FOOTER_ITEMS, locals.permissions, navVis, locals.user.id, url.pathname),
 	};

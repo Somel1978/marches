@@ -1,6 +1,7 @@
 // shared/database/dbapi/write/quests/submit-result.ts
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
+import { createNotificationsForAdmins } from '../notifications/notifications.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 
 export async function submitQuestResult(
@@ -31,6 +32,12 @@ export async function submitQuestResult(
     const tokenReward  = rewards.find(r => r.type === 'TOKEN');
     const goldPerPlayer   = goldReward  ? Math.max(1, Math.floor(goldReward.amount  / count)) : 0;
     const tokensPerPlayer = tokenReward ? Math.max(1, Math.floor(tokenReward.amount / count)) : 0;
+
+    await createNotificationsForAdmins(
+        'QUEST_RESULT_PENDING', 'Quest result awaiting approval',
+        `Results submitted for "${quest.title}".`,
+        `/quests/${questId}`,
+    );
 
     return db.$transaction(async (tx) => {
         const result = await tx.questResult.create({

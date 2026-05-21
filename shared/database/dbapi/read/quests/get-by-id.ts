@@ -67,7 +67,42 @@ export async function getQuestById(id: string) {
     if (!quest) return null;
 
     const enrichedSignups = await enrichSignups(quest.signups);
-    return { ...quest, signups: enrichedSignups };
+
+    // Enrich with region and location names
+    let regionName:   string | null = null;
+    let locationName: string | null = null;
+
+    // Enrich DM name
+    let dmName: string | null = null;
+    const dmProfile = await db.dMProfile.findUnique({
+        where:  { id: quest.dmProfileId },
+        select: { userId: true },
+    }).catch(() => null);
+    if (dmProfile) {
+        const dmUser = await db.user.findUnique({
+            where:  { id: dmProfile.userId },
+            select: { name: true },
+        }).catch(() => null);
+        dmName = dmUser?.name ?? null;
+    }
+
+    if (quest.regionId) {
+        const region = await db.region.findUnique({
+            where:  { id: quest.regionId },
+            select: { name: true, world: { select: { name: true } } },
+        }).catch(() => null);
+        regionName = region?.name ?? null;
+        (quest as any).__worldName = (region as any)?.world?.name ?? null;
+    }
+    if (quest.locationId) {
+        const location = await db.location.findUnique({
+            where:  { id: quest.locationId },
+            select: { name: true },
+        }).catch(() => null);
+        locationName = location?.name ?? null;
+    }
+
+    return { ...quest, signups: enrichedSignups, regionName, locationName, worldName: (quest as any).__worldName ?? null, dmName };
 }
 
 export async function getQuestsByDM(dmProfileId: string) {

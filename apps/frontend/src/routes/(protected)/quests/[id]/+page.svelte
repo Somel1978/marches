@@ -28,6 +28,21 @@
 		</div>
 	</div>
 
+	{#if (data.quest as any).regionName}
+		<div style="display:flex; align-items:center; gap:0.375rem; margin-bottom:0.75rem; font-size:0.875rem;">
+			<span>📍</span>
+			{#if (data.quest as any).worldName}
+				<span style="color:var(--text-secondary);">{(data.quest as any).worldName}</span>
+				<span style="color:var(--text-muted);">›</span>
+			{/if}
+			<span style="color:var(--text-secondary);">{(data.quest as any).regionName}</span>
+			{#if (data.quest as any).locationName}
+				<span style="color:var(--text-muted);">·</span>
+				<span style="color:var(--text-muted);">{(data.quest as any).locationName}</span>
+			{/if}
+		</div>
+	{/if}
+
 	{#if form?.message}<div class="form-error">{form.message}</div>{/if}
 	{#if form?.success}<div class="form-success">Signed up successfully!</div>{/if}
 	{#if form?.cancelled}<div class="form-success">Signup cancelled.</div>{/if}

@@ -1,6 +1,7 @@
 // shared/database/dbapi/write/dms/role-request.ts
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
+import { createNotificationsForAdmins } from '../notifications/notifications.ts';
 import { NotFoundError, ConflictError, ValidationError } from '@core/errors';
 
 export async function createRoleRequest(
@@ -24,6 +25,12 @@ export async function approveRoleRequest(id: string, reviewNote: string | undefi
     const request = await db.roleRequest.findUnique({ where: { id } });
     if (!request) throw new NotFoundError('RoleRequest', id);
     if (request.status !== 'PENDING') throw new ValidationError('Request is not pending.');
+
+    await createNotificationsForAdmins(
+        'DM_REQUEST_PENDING', 'New DM role request',
+        'A player has submitted a request to become a DM.',
+        '/role-requests',
+    );
 
     return db.$transaction(async (tx) => {
         const updated = await tx.roleRequest.update({

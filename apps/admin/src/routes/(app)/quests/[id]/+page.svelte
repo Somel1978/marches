@@ -27,6 +27,29 @@
 			? data.quest.rewards.map(r => ({ type: r.type, amount: r.amount }))
 			: [{ type: 'XP', amount: 0 }];
 	});
+
+	// Region/location selectors
+	const _allWorlds = $derived(((data as any).allWorlds ?? []) as any[]);
+	let selectedWorldId    = $state('');
+	let selectedRegionId   = $state('');
+	let selectedLocationId = $state('');
+
+	$effect.pre(() => {
+		const allW = (data as any).allWorlds ?? [];
+		const rid  = (data.quest as any)?.regionId   ?? '';
+		const lid  = (data.quest as any)?.locationId ?? '';
+		selectedRegionId   = rid;
+		selectedLocationId = lid;
+		selectedWorldId    = rid
+			? allW.find((w: any) => w.regions?.some((r: any) => r.id === rid))?.id ?? ''
+			: '';
+	});
+
+	const selectedWorld   = $derived(_allWorlds.find((w: any) => w.id === selectedWorldId));
+	const regionOptions   = $derived((selectedWorld?.regions ?? []) as any[]);
+	const locationOptions = $derived(
+		regionOptions.find((r: any) => r.id === selectedRegionId)?.locations ?? [] as any[]
+	);
 </script>
 
 <div class="page">
@@ -41,6 +64,26 @@
 				{/if}
 			</div>
 		</div>
+	</div>
+
+	<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+		{#if (data.quest as any).regionName}
+			<div style="display:flex; align-items:center; gap:0.375rem; font-size:0.875rem;">
+				<span>📍</span>
+				{#if (data.quest as any).worldName}
+					<span style="color:var(--text-secondary);">{(data.quest as any).worldName}</span>
+					<span style="color:var(--text-muted);">›</span>
+				{/if}
+				<span style="color:var(--text-secondary);">{(data.quest as any).regionName}</span>
+				{#if (data.quest as any).locationName}
+					<span style="color:var(--text-muted);">·</span>
+					<span style="color:var(--text-muted);">{(data.quest as any).locationName}</span>
+				{/if}
+			</div>
+		{/if}
+		{#if (data.quest as any).dmName}
+			<span style="font-size:0.875rem; color:var(--text-muted);">DM: <strong style="color:var(--text-secondary);">{(data.quest as any).dmName}</strong></span>
+		{/if}
 	</div>
 
 	{#if form?.message}<div class="form-error">{form.message}</div>{/if}
@@ -126,6 +169,48 @@
 						</div>
 					</div>
 				</div>
+
+					<!-- Region & Location -->
+					<div class="field">
+						<label class="label" for="q-world">World <span class="optional">(optional)</span></label>
+						<select id="q-world" class="input input--select"
+							bind:value={selectedWorldId}
+							onchange={() => { selectedRegionId = ''; selectedLocationId = ''; }}>
+							<option value="">No world</option>
+							{#each ((data as any).allWorlds ?? []) as w}
+								<option value={w.id} selected={w.id === selectedWorldId}>{w.name}</option>
+							{/each}
+						</select>
+					</div>
+					{#if regionOptions.length}
+						<div class="field">
+							<label class="label" for="q-region">Region</label>
+							<select id="q-region" name="regionId" class="input input--select"
+								bind:value={selectedRegionId}
+								onchange={() => selectedLocationId = ''}>
+								<option value="">None</option>
+								{#each regionOptions as r}
+									<option value={r.id} selected={r.id === selectedRegionId}>{r.name}</option>
+								{/each}
+							</select>
+						</div>
+					{:else}
+						<input type="hidden" name="regionId" value={selectedRegionId} />
+					{/if}
+					{#if locationOptions.length}
+						<div class="field">
+							<label class="label" for="q-location">Location <span class="optional">(optional)</span></label>
+							<select id="q-location" name="locationId" class="input input--select"
+								bind:value={selectedLocationId}>
+								<option value="">None</option>
+								{#each locationOptions as l}
+									<option value={l.id} selected={l.id === selectedLocationId}>{l.name}</option>
+								{/each}
+							</select>
+						</div>
+					{:else}
+						<input type="hidden" name="locationId" value={selectedLocationId} />
+					{/if}
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">Save details</button>
 				</div>

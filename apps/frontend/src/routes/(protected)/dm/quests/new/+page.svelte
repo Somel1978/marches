@@ -11,6 +11,17 @@
 
 	function addReward() { rewards = [...rewards, { type: 'GOLD', amount: 0 }]; }
 	function removeReward(i: number) { rewards = rewards.filter((_, idx) => idx !== i); }
+
+	// Region/location selectors
+	const _allWorlds      = $derived(((data as any).allWorlds ?? []) as any[]);
+	let selectedWorldId    = $state('');
+	let selectedRegionId   = $state('');
+	let selectedLocationId = $state('');
+	const selectedWorld   = $derived(_allWorlds.find((w: any) => w.id === selectedWorldId));
+	const regionOptions   = $derived((selectedWorld?.regions ?? []) as any[]);
+	const locationOptions = $derived(
+		regionOptions.find((r: any) => r.id === selectedRegionId)?.locations ?? [] as any[]
+	);
 </script>
 
 <div class="page">
@@ -104,6 +115,48 @@
 				</div>
 				<button type="button" class="btn btn-ghost btn-sm" onclick={addReward}>+ Add reward</button>
 			</div>
+
+			<!-- Region & Location -->
+			<div class="field">
+				<label class="label" for="q-world">World <span class="optional">(optional)</span></label>
+				<select id="q-world" class="input input--select"
+					bind:value={selectedWorldId}
+					onchange={() => { selectedRegionId = ''; selectedLocationId = ''; }}>
+					<option value="">No world</option>
+					{#each _allWorlds as w}
+						<option value={w.id}>{w.name}</option>
+					{/each}
+				</select>
+			</div>
+			{#if regionOptions.length}
+				<div class="field">
+					<label class="label" for="q-region">Region</label>
+					<select id="q-region" name="regionId" class="input input--select"
+						bind:value={selectedRegionId}
+						onchange={() => selectedLocationId = ''}>
+						<option value="">None</option>
+						{#each regionOptions as r}
+							<option value={r.id}>{r.name}</option>
+						{/each}
+					</select>
+				</div>
+			{:else}
+				<input type="hidden" name="regionId" value="" />
+			{/if}
+			{#if locationOptions.length}
+				<div class="field">
+					<label class="label" for="q-location">Location <span class="optional">(optional)</span></label>
+					<select id="q-location" name="locationId" class="input input--select"
+						bind:value={selectedLocationId}>
+						<option value="">None</option>
+						{#each locationOptions as l}
+							<option value={l.id}>{l.name}</option>
+						{/each}
+					</select>
+				</div>
+			{:else}
+				<input type="hidden" name="locationId" value="" />
+			{/if}
 
 			<div class="form-actions">
 				<a href="/dm" class="btn btn-ghost">Cancel</a>

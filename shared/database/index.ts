@@ -42,6 +42,11 @@ import { createSubclass, updateSubclass, deleteSubclass } from './dbapi/write/ga
 import { createProgressionThreshold, updateProgressionThreshold, deleteProgressionThreshold } from './dbapi/write/gamesystem/progression.ts';
 import { createSpecies, updateSpecies, deleteSpecies } from './dbapi/write/gamesystem/species.ts';
 
+// ── Notifications ────────────────────────────────────────────────────────────────
+import { getUnreadNotifications, getNotifications  } from './dbapi/read/notifications/get-notifications.ts';
+import { createNotification, createNotificationsForAdmins,
+         markNotificationRead, markAllNotificationsRead } from './dbapi/write/notifications/notifications.ts';
+
 // ── World ────────────────────────────────────────────────────────────────────────
 import { getAllWorlds, getWorldBySlug, getWorldById  } from './dbapi/read/world/get-worlds.ts';
 import { getRegionBySlug, getRegionById,
@@ -253,4 +258,13 @@ export const worlds = {
         get:          getWikiPage,
         upsert:       upsertWikiPage,
     },
+};
+
+export const notifications = {
+    getUnread:      getUnreadNotifications,
+    getAll:         getNotifications,
+    create:         createNotification,
+    createForAdmins: createNotificationsForAdmins,
+    markRead:       markNotificationRead,
+    markAllRead:    markAllNotificationsRead,
 };

@@ -70,8 +70,9 @@ marches/
 ✅ 4. Quest System (core — item rewards pending Rewards Engine)
 ✅ 5. Marketplace + Character Inventory
 ✅ 6. World System
-⬜ 7. Rewards Engine
-⬜ 8. Discord
+✅ 7. Notification System
+⬜ 8. Rewards Engine
+⬜ 9. Discord
 ```
 
 ---
@@ -302,7 +303,7 @@ DRAFT → PENDING_APPROVAL → PUBLISHED → IN_PROGRESS
 - Waitlist auto-promotes to PENDING_CONFIRMATION on cancellation; DM confirms
 - Co-DMs have equal access to main DM
 - Rewards changed after PUBLISHED → `rewardAdjusted` flag, reverts to PENDING_APPROVAL
-- Quest regionId + locationId fields exist on schema (UI pending)
+- Quest regionId + locationId — fully wired: create, edit (DM + admin), display (World › Region · Location + DM name)
 
 ---
 
@@ -439,7 +440,53 @@ current content as a WikiRevision before overwriting. Rendered via
 
 ---
 
-### 7. Rewards Engine ⬜
+### 7. Notification System ✅
+
+**Schema:** `platform` (Notification model added to existing schema)
+
+**Model:**
+```
+Notification — userId, type, title, message, actionUrl, isRead, createdAt
+               @@index([userId, isRead])
+```
+
+**Triggers — fires on:**
+| Event | Notified |
+|---|---|
+| Character submitted (create) | All SUPERADMIN users |
+| Character approved/rejected | Player (character owner) |
+| Quest submitted for approval | All SUPERADMIN users |
+| Quest approved | DM |
+| Quest rejected | DM |
+| Quest result submitted | All SUPERADMIN users |
+| Quest result approved | DM |
+| Quest result rejected | DM |
+| DM role request submitted | All SUPERADMIN users |
+| Marketplace purchase created | All SUPERADMIN users |
+| Marketplace purchase approved | Player |
+| Marketplace purchase rejected | Player |
+
+**UI:**
+- Bell icon with red unread count badge in admin Header and frontend nav
+- Click bell → dropdown panel shows unread notifications
+- Unread items highlighted with accent left border
+- Click notification → POST to `/notifications?id=X&to=URL&/read` → marks read + redirects to actionUrl
+- "Mark all read" button in panel header
+- Panel closes on outside click via `use:clickOutside` action
+
+**Admin routes:** `(app)/notifications/+page.server.ts` (actions only, +page.svelte redirects to /)
+**Frontend routes:** `(protected)/notifications/+page.server.ts` (actions only, +page.svelte redirects to /)
+
+**Key decisions:**
+- Notifications loaded on every page load (no polling/SSE) — acceptable for this use case
+- `createNotificationsForAdmins` queries SUPERADMIN role users at runtime
+- `use:clickOutside` action used instead of `svelte:window onclick` due to Svelte 5 type constraints
+- Notification action URLs use `?id=X&to=URL&/read` format (SvelteKit named action with query params before action name)
+- Both apps share `NotificationBell` component from `@core/ui`
+
+---
+
+### 8. Rewards Engine ⬜
 
 **Schema:** `rewards`
 
@@ -450,7 +497,7 @@ Random item rewards use the Marketplace at cost 0.
 
 ---
 
-### 8. Discord Integration ⬜
+### 9. Discord Integration ⬜
 
 **Purpose:** Notification and bot interaction layer. Platform is primary.
 
@@ -507,6 +554,26 @@ Never delete revisions.
 `renderMarkdown(content: string): string` exported from `@core/ui`. Uses `marked`
 with GFM + line breaks. All wiki displays use `{@html renderMarkdown(content)}` with
 `.markdown-body` CSS class.
+
+### Notification action URL format
+SvelteKit named actions with query params must place params **before** the action name:
+```
+/notifications?id=X&to=%2Fpath&/read   ✓
+/notifications?/read?id=X&to=%2Fpath   ✗  (404)
+```
+Server reads params from `url.searchParams` in the action handler.
+
+### click-outside pattern (Svelte 5)
+`svelte:window onclick` is not typed correctly in Svelte 5. Use a `use:` action instead:
+```typescript
+function clickOutside(node: HTMLElement) {
+    function handle(e: MouseEvent) {
+        if (!node.contains(e.target as Node)) open = false;
+    }
+    document.addEventListener('click', handle, true);
+    return { destroy() { document.removeEventListener('click', handle, true); } };
+}
+```
 
 ### Admin auth guard placement
 The auth redirect guard lives **only** in `(app)/+layout.server.ts`, not the root layout.
@@ -582,6 +649,7 @@ worlds.{getAll, getBySlug, getById, create, update}
 worlds.regions.{getBySlug, getById, create, update, assignDM, removeDM}
 worlds.locations.{getBySlug, create, update}
 worlds.wiki.{get, upsert}
+notifications.{getUnread, getAll, create, createForAdmins, markRead, markAllRead}
 ```
 
 ---
@@ -676,14 +744,17 @@ shared/ui/components/layout/
 - [x] Character Inventory (snapshots, pending purchases, sell requests, admin removal with refund)
 - [x] World System (multi-world, regions with map markers, locations, wiki with markdown + revision history, DM wiki edit)
 - [x] Site branding (site.name, site.logo, site.footer — platform settings, live in nav/sidebar/footer)
+- [x] Quest region/location assignment UI (new + edit forms, DM + admin, world › region › location display)
+- [x] Notification System (bell icon, unread count, panel, mark read, mark all read, all approval triggers)
 
 ### ⬜ Pending
 - [ ] Rewards Engine (titles, badges, token grants, random item from marketplace)
 - [ ] Quest item reward distribution (marketplace zero-cost transactions)
 - [ ] Quest region/location assignment UI
 - [ ] Discord integration
-- [ ] Remove debug console.log from marketplace/transactions.ts
+- [ ] Remove debug console.log from marketplace/transactions.ts and get-by-id.ts
 - [ ] site.logoIcon setting for collapsed sidebar (Option B)
+- [ ] Quest region/location also shown on quest list pages (admin + frontend)
 
 ---
 

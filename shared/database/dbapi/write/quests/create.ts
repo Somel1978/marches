@@ -15,6 +15,7 @@ export type CreateQuestInput = {
     minLevel:     number;
     maxLevel:     number;
     regionId?:    string;
+    locationId?:  string;
     rewards:      { type: string; amount: number; itemId?: string; itemName?: string }[];
 };
 
@@ -44,7 +45,8 @@ export async function createQuest(input: CreateQuestInput, actorId: string) {
                 maxCapacity:  input.maxCapacity,
                 minLevel:     input.minLevel,
                 maxLevel:     input.maxLevel,
-                regionId:     input.regionId,
+                regionId:     input.regionId    ?? null,
+                locationId:   input.locationId  ?? null,
                 status:       'DRAFT',
             },
         });

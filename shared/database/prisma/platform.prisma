@@ -56,3 +56,18 @@ model Setting {
   @@map("settings")
   @@schema("platform")
 }
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  message   String
+  actionUrl String?  @map("action_url")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, isRead])
+  @@map("notifications")
+  @@schema("platform")
+}

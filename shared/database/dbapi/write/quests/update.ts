@@ -16,6 +16,7 @@ export async function updateQuest(
         minLevel?:    number;
         maxLevel?:    number;
         regionId?:    string | null;
+        locationId?:  string | null;
     },
     actorId: string,
 ) {

@@ -31,6 +31,29 @@
 	const confirmed = $derived(data.quest.signups.filter((s: any) => s.status === 'CONFIRMED'));
 	const waitlist  = $derived(data.quest.signups.filter((s: any) => s.status === 'WAITLIST'));
 	const pending   = $derived(data.quest.signups.filter((s: any) => s.status === 'PENDING_CONFIRMATION'));
+
+	// Region/location selectors
+	const _allWorlds = $derived(((data as any).allWorlds ?? []) as any[]);
+	let selectedWorldId    = $state('');
+	let selectedRegionId   = $state('');
+	let selectedLocationId = $state('');
+
+	$effect.pre(() => {
+		const allW = (data as any).allWorlds ?? [];
+		const rid  = (data.quest as any)?.regionId   ?? '';
+		const lid  = (data.quest as any)?.locationId ?? '';
+		selectedRegionId   = rid;
+		selectedLocationId = lid;
+		selectedWorldId    = rid
+			? allW.find((w: any) => w.regions?.some((r: any) => r.id === rid))?.id ?? ''
+			: '';
+	});
+
+	const selectedWorld   = $derived(_allWorlds.find((w: any) => w.id === selectedWorldId));
+	const regionOptions   = $derived((selectedWorld?.regions ?? []) as any[]);
+	const locationOptions = $derived(
+		regionOptions.find((r: any) => r.id === selectedRegionId)?.locations ?? [] as any[]
+	);
 </script>
 
 <div class="page">
@@ -98,6 +121,10 @@
 			<form method="post" action="?/updateDetails" use:enhance={e_reload}>
 				<div class="fields">
 					<div class="field">
+						<label class="label" for="qdesc">Description <span class="optional">(optional)</span></label>
+						<textarea id="qdesc" name="description" class="input" rows="3">{data.quest.description ?? ''}</textarea>
+					</div>
+					<div class="field">
 						<label class="label" for="missionXp">Mission XP</label>
 						<input id="missionXp" name="missionXp" type="number" class="input" min="0" value={data.quest.missionXp} required />
 						<p class="field-hint">Divided equally among confirmed players.</p>
@@ -123,6 +150,48 @@
 						</div>
 					</div>
 				</div>
+
+					<!-- Region & Location -->
+					<div class="field">
+						<label class="label" for="q-world">World <span class="optional">(optional)</span></label>
+						<select id="q-world" class="input input--select"
+							bind:value={selectedWorldId}
+							onchange={() => { selectedRegionId = ''; selectedLocationId = ''; }}>
+							<option value="">No world</option>
+							{#each _allWorlds as w}
+								<option value={w.id} selected={w.id === selectedWorldId}>{w.name}</option>
+							{/each}
+						</select>
+					</div>
+					{#if regionOptions.length}
+						<div class="field">
+							<label class="label" for="q-region">Region</label>
+							<select id="q-region" name="regionId" class="input input--select"
+								bind:value={selectedRegionId}
+								onchange={() => selectedLocationId = ''}>
+								<option value="">None</option>
+								{#each regionOptions as r}
+									<option value={r.id} selected={r.id === selectedRegionId}>{r.name}</option>
+								{/each}
+							</select>
+						</div>
+					{:else}
+						<input type="hidden" name="regionId" value={selectedRegionId} />
+					{/if}
+					{#if locationOptions.length}
+						<div class="field">
+							<label class="label" for="q-location">Location <span class="optional">(optional)</span></label>
+							<select id="q-location" name="locationId" class="input input--select"
+								bind:value={selectedLocationId}>
+								<option value="">None</option>
+								{#each locationOptions as l}
+									<option value={l.id} selected={l.id === selectedLocationId}>{l.name}</option>
+								{/each}
+							</select>
+						</div>
+					{:else}
+						<input type="hidden" name="locationId" value={selectedLocationId} />
+					{/if}
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">Save details</button>
 				</div>

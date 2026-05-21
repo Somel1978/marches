@@ -5,8 +5,10 @@
 	import Header  from './Header.svelte';
 
 	interface Props {
-		title?:    string;
-		siteLogo?: string;
+		title?:      string;
+		siteLogo?:   string;
+		notifCount?: number;
+		notifications?: any[];
 		nav:      Snippet<[{ collapsed: boolean }]>;
 		actions?: Snippet;
 		footer?:  Snippet<[{ collapsed: boolean }]>;
@@ -18,7 +20,7 @@
 		children: Snippet;
 	}
 
-	let { title, siteLogo, nav, actions, footer, user, children }: Props = $props();
+	let { title, siteLogo, nav, actions, footer, user, children, notifCount = 0, notifications = [] }: Props = $props();
 
 	const displayTitle = $derived(siteLogo ? '' : (title ?? ''));
 
@@ -57,6 +59,8 @@
 			logoAlt={title ?? ''}
 			{actions}
 			{user}
+			{notifCount}
+			{notifications}
 			onMenuClick={() => drawerOpen = !drawerOpen}
 		/>
 

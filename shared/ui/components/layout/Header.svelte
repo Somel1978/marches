@@ -1,12 +1,17 @@
 <!-- shared/ui/components/layout/Header.svelte -->
 <script lang="ts">
+	import { NotificationBell } from '@core/ui';
 	import type { Snippet } from 'svelte';
 
 	interface Props {
-		title?:    string;
-		logoHtml?: string;
-		logoUrl?:  string;
-		logoAlt?:  string;
+		title?:         string;
+		logoHtml?:      string;
+		logoUrl?:       string;
+		logoAlt?:       string;
+		notifCount?:    number;
+		notifications?: any[];
+		notifReadUrl?:  string;
+		notifAllUrl?:   string;
 		actions?:     Snippet;
 		onMenuClick?: () => void;
 		user?: {
@@ -16,7 +21,7 @@
 		};
 	}
 
-	let { title, logoHtml, logoUrl, logoAlt, actions, user, onMenuClick }: Props = $props();
+	let { title, logoHtml, logoUrl, logoAlt, notifCount = 0, notifications = [], notifReadUrl = '/notifications?/read', notifAllUrl = '/notifications?/readAll', actions, user, onMenuClick }: Props = $props();
 
 	const initials = $derived(
 		user?.name
@@ -52,6 +57,7 @@
 	{/if}
 
 	{#if user}
+		<NotificationBell count={notifCount} {notifications} markReadUrl={notifReadUrl} markAllUrl={notifAllUrl} />
 		<div class="header__user">
 			<span class="header__user-name">{user.name}</span>
 			{#if user.image}

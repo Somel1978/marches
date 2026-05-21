@@ -1,6 +1,7 @@
 <!-- apps/frontend/src/routes/+layout.svelte -->
 <script lang="ts">
 	import '@core/ui/styles/index.css';
+	import { NotificationBell } from '@core/ui';
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
@@ -62,6 +63,11 @@
 			<!-- Desktop actions -->
 			<div class="nav-bar__actions nav-bar__actions--desktop">
 				{#if data.user}
+					<NotificationBell
+						count={(data as any).notifCount ?? 0}
+						notifications={(data as any).notifications ?? []}
+						markReadUrl="/notifications?/read"
+						markAllUrl="/notifications?/readAll" />
 					<a href="/profile" class="btn btn-ghost btn-sm">Profile</a>
 					<form method="post" action="/signout" style="display:contents">
 						<button type="submit" class="btn btn-ghost btn-sm">Sign out</button>

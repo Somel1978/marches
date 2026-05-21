@@ -1,6 +1,7 @@
 // shared/database/dbapi/write/characters/approve.ts
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
+import { createNotification } from '../notifications/notifications.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 
 export async function approveCharacter(id: string, actorId: string) {
@@ -9,6 +10,12 @@ export async function approveCharacter(id: string, actorId: string) {
     if (character.status !== 'PENDING') {
         throw new ValidationError('Character is not in PENDING status.');
     }
+
+    await createNotification(
+        character.userId, 'CHARACTER_APPROVED', 'Character approved',
+        `Your character has been approved!`,
+        `/characters/${id}`,
+    );
 
     return db.$transaction(async (tx) => {
         const updated = await tx.character.update({

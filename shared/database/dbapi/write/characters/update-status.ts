@@ -1,6 +1,7 @@
 // shared/database/dbapi/write/characters/update-status.ts
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
+import { createNotification } from '../notifications/notifications.ts';
 import { NotFoundError } from '@core/errors';
 import type { CharacterStatus, CharacterStatusReason } from '@prisma/client';
 
@@ -17,6 +18,20 @@ export async function updateCharacterStatus(
     const restUntil = status === 'RESTING' && reason === 'QUEST_REST'
         ? await getRestUntil()
         : null;
+
+    if (status === 'ACTIVE') {
+        await createNotification(
+            character.userId, 'CHARACTER_APPROVED', 'Character approved',
+            'Your character has been approved and is ready to play!',
+            `/characters/${id}`,
+        );
+    } else if (status === 'REJECTED') {
+        await createNotification(
+            character.userId, 'CHARACTER_REJECTED', 'Character rejected',
+            `Your character was rejected.${note ? ' Reason: ' + note : ''}`,
+            `/characters/${id}`,
+        );
+    }
 
     return db.$transaction(async (tx) => {
         const updated = await tx.character.update({
