@@ -96,13 +96,13 @@
 		<!-- Portrait + stats -->
 		<div class="card">
 			{#if data.character.portraitUrl || data.character.avatarUrl}
-				<div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">
+				<div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; align-items:flex-end;">
 					{#if data.character.portraitUrl}
-						<button class="avatar-preview-btn" onclick={() => openLightbox(data.character.portraitUrl!)} aria-label="View portrait">
+						<button class="avatar-preview-btn" style="width:auto; height:auto; border-radius:var(--radius-md);" onclick={() => openLightbox(data.character.portraitUrl!)} aria-label="View portrait">
 							<img src={data.character.portraitUrl} alt="" class="character-portrait" />
 						</button>
 					{/if}
-					{#if data.character.avatarUrl}
+					{#if data.character.avatarUrl && data.character.avatarUrl !== data.character.portraitUrl}
 						<button class="avatar-preview-btn" onclick={() => openLightbox(data.character.avatarUrl!)} aria-label="View avatar">
 							<img src={data.character.avatarUrl} alt="" class="avatar-preview" />
 						</button>

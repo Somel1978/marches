@@ -104,6 +104,10 @@
 	</main>
 
 	<footer class="site__footer">
+		{#if (data as any).siteFooter}
+		{@html (data as any).siteFooter}
+	{:else}
 		<p class="site__footer-text">© {new Date().getFullYear()} {(data as any).siteName}</p>
+	{/if}
 	</footer>
 </div>

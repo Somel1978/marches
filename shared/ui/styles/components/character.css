@@ -40,6 +40,8 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: top center;
+    display: block;
   }
 
   .character-card__placeholder {
@@ -90,9 +92,38 @@
     width: 120px;
     height: 160px;
     object-fit: cover;
+    object-position: top center;
     border-radius: var(--radius-md);
     border: 2px solid var(--border-accent);
     cursor: zoom-in;
+    flex-shrink: 0;
+    display: block;
+  }
+
+  /* ── Avatar preview (detail page, circular) ─────────────── */
+  .avatar-preview {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    object-position: center top;
+    border-radius: 50%;
+    border: 2px solid var(--border-accent);
+    cursor: zoom-in;
+    flex-shrink: 0;
+    display: block;
+  }
+
+  .avatar-preview-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: zoom-in;
+    display: block;
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    overflow: hidden;
   }
 
   /* ── Pending approval banner ────────────────────────────── */
@@ -235,3 +266,52 @@
   }
 
 }
+
+  /* ── Lightbox ────────────────────────────────────────────── */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .lightbox__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .lightbox__card {
+    position: relative;
+    z-index: 1;
+    max-width: min(90vw, 800px);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0.5rem;
+  }
+
+  .lightbox__close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
+  }
+
+  .lightbox__image {
+    max-width: 100%;
+    max-height: calc(90vh - 3rem);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    border-radius: var(--radius-sm);
+  }

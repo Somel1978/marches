@@ -8,7 +8,8 @@ import type { LayoutServerLoad } from './$types';
 export const load: LayoutServerLoad = async () => {
 	const settings = await platform.getSettingsMap();
 	return {
-		siteName: settings['site.name'] || 'Marches',
-		siteLogo: settings['site.logo'] || '',
+		siteName:   settings['site.name']   || '',
+		siteLogo:   settings['site.logo']   || '',
+		siteFooter: settings['site.footer'] || '',
 	};
 };

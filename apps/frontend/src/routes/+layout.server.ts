@@ -6,16 +6,18 @@ import { dms, platform } from '@core/database';
 // Passes user to layout so NavBar can show login/profile links.
 export const load: LayoutServerLoad = async ({ locals }) => {
 	const settings = await platform.getSettingsMap();
-	const siteName = settings['site.name'] || 'Marches';
+	const siteName = settings['site.name'] || '';
 	const siteLogo = settings['site.logo'] || '';
+	const siteFooter = settings['site.footer'] || '';
 
-	if (!locals.user) return { user: null, siteName, siteLogo };
+	if (!locals.user) return { user: null, siteName, siteLogo, siteFooter };
 
 	const dmProfile = await dms.profiles.getByUserId(locals.user.id);
 
 	return {
 		siteName,
 		siteLogo,
+		siteFooter,
 		user: {
 			id:           locals.user.id,
 			name:         locals.user.name,

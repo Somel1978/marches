@@ -8,7 +8,7 @@
 <div class="landing">
 	<div class="landing__hero">
 		<span class="landing__icon">⚔</span>
-		<h1 class="landing__title">Marches</h1>
+		<h1 class="landing__title"> The Binder & Brew</h1>
 		<p class="landing__tagline">A world of adventure awaits.</p>
 		{#if !data.user}
 			<div class="landing__actions">

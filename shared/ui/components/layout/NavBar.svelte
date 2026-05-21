@@ -28,7 +28,7 @@
 		<!-- Brand -->
 		<a href="/" class="navbar__brand">
 			<span class="navbar__brand-icon">⚔</span>
-			<span class="navbar__brand-text">Marches</span>
+			<span class="navbar__brand-text"> The Binder & Brew</span>
 		</a>
 
 		<!-- Nav links slot -->

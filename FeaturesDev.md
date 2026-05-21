@@ -137,6 +137,9 @@ explicitly via `invalidateUserPermissions(userId)` after role changes.
 Remove hardcoded `width`/`height` attributes — use only `viewBox`. The CSS constrains height
 to 28px and preserves aspect ratio.
 
+`site.footer` — raw HTML string for the frontend footer. Supports links and markup.
+When empty, falls back to `© {year} {site.name}`. Admin app has no page footer (sidebar only).
+
 **Current implementation:** Option A — one logo field, same SVG everywhere.
 **Known limitation:** collapsed sidebar ignores `site.logo` and shows the fallback icon.
 **Future:** Option B — add `site.logoIcon` for the compact collapsed state.
@@ -144,6 +147,16 @@ to 28px and preserves aspect ratio.
 **Recommended viewBox sizes:**
 - Icon only: `viewBox="0 0 28 28"`
 - Logo + wordmark: `viewBox="0 0 120 28"` to `viewBox="0 0 160 28"`
+
+**Frontend layout server pattern:** all three site settings are loaded unconditionally
+(before auth check) so they are available on the login page and all public routes:
+```typescript
+const settings    = await platform.getSettingsMap();
+const siteName    = settings['site.name']   || '';
+const siteLogo    = settings['site.logo']   || '';
+const siteFooter  = settings['site.footer'] || '';
+if (!locals.user) return { user: null, siteName, siteLogo, siteFooter };
+```
 
 ---
 
@@ -495,6 +508,41 @@ Never delete revisions.
 with GFM + line breaks. All wiki displays use `{@html renderMarkdown(content)}` with
 `.markdown-body` CSS class.
 
+### Admin auth guard placement
+The auth redirect guard lives **only** in `(app)/+layout.server.ts`, not the root layout.
+The root `+layout.server.ts` loads only site settings (no redirects) so login and
+unauthorized pages render without triggering infinite redirect loops.
+
+`encodeURIComponent` is used on the `redirectTo` param to handle special characters in paths.
+
+### Site branding component chain
+`site.name`, `site.logo`, `site.footer` are loaded in root `+layout.server.ts` and flow
+down via SvelteKit's parent layout merge:
+
+```
+Root layout → (app) layout → AppShell → Sidebar (title + logo in sidebar brand area)
+                                      → Header  (logo in top bar)
+```
+
+`AppShell` accepts `title` and `siteLogo` props. It passes them to both `Sidebar` and
+`Header`. Logo rendering priority: SVG markup (`{@html}`) → image URL (`<img>`) → text fallback.
+SVG logos must use `currentColor` and no hardcoded `width`/`height` attributes — CSS
+constrains to 28px height.
+
+### Character image sizing
+Character images use two separate fields:
+- `portraitUrl` — full portrait (120×160px, `object-fit: cover`, `object-position: top center`)
+- `avatarUrl` — circular thumbnail (64×64px, `border-radius: 50%`, clipped by `overflow: hidden` on the button wrapper)
+
+Avatar is only rendered if its URL **differs** from the portrait URL, preventing duplicate images.
+
+Lightbox (`.lightbox`, `.lightbox__image`) uses:
+```css
+max-width: min(90vw, 800px);
+max-height: 90vh;
+object-fit: contain;  /* never crops, always fits viewport */
+```
+
 ### File path comment convention
 Every file must have its repo path as the first line:
 ```
@@ -595,10 +643,23 @@ Feature settings always go in the feature seed file, never in 01-platform.
 ```
 shared/ui/styles/index.css          — imports all components
 shared/ui/styles/components/
-  character.css                     — character cards, signup cards, class allocation
-  nav-mobile.css                    — hamburger nav for mobile (≤640px)
+  character.css                     — character cards, portrait, avatar, lightbox,
+                                       signup cards, class allocation
+  nav-mobile.css                    — hamburger nav (≤640px) + SVG logo size constraints
   world-map.css                     — .world-map-marker, .world-map-label
   markdown.css                      — .markdown-body (headings, lists, code, tables)
+```
+
+### Shared UI Components
+```
+shared/ui/components/layout/
+  AppShell.svelte   — shell with sidebar + header. Props: title, siteLogo, nav, footer,
+                      actions, user. Computes displayTitle (empty when logo set).
+  Sidebar.svelte    — collapsible nav sidebar. Props: siteName, siteLogo, nav, footer.
+                      Collapsed state shows fallback icon only.
+  Header.svelte     — top bar. Props: title, logoHtml, logoUrl, logoAlt, actions, user.
+  NavBar.svelte     — used in frontend layout (not admin)
+  Footer.svelte     — not used; frontend footer is inline in +layout.svelte
 ```
 
 ---
@@ -614,6 +675,7 @@ shared/ui/styles/components/
 - [x] Marketplace (catalogue, import, buy/sell/reward flows, level restrictions, filters, sort)
 - [x] Character Inventory (snapshots, pending purchases, sell requests, admin removal with refund)
 - [x] World System (multi-world, regions with map markers, locations, wiki with markdown + revision history, DM wiki edit)
+- [x] Site branding (site.name, site.logo, site.footer — platform settings, live in nav/sidebar/footer)
 
 ### ⬜ Pending
 - [ ] Rewards Engine (titles, badges, token grants, random item from marketplace)
@@ -621,6 +683,7 @@ shared/ui/styles/components/
 - [ ] Quest region/location assignment UI
 - [ ] Discord integration
 - [ ] Remove debug console.log from marketplace/transactions.ts
+- [ ] site.logoIcon setting for collapsed sidebar (Option B)
 
 ---
 

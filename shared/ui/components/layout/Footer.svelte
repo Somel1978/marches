@@ -5,7 +5,7 @@
 
 <footer class="footer">
 	<div class="footer__inner">
-		<span class="footer__copy">© {year} Marches — Build. Share. Adventure.</span>
+		<span class="footer__copy">© {year} The Binder & Brew — Build. Share. Adventure.</span>
 	</div>
 </footer>
 
