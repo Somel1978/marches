@@ -42,6 +42,10 @@ import { createSubclass, updateSubclass, deleteSubclass } from './dbapi/write/ga
 import { createProgressionThreshold, updateProgressionThreshold, deleteProgressionThreshold } from './dbapi/write/gamesystem/progression.ts';
 import { createSpecies, updateSpecies, deleteSpecies } from './dbapi/write/gamesystem/species.ts';
 
+// ── Achievements ─────────────────────────────────────────────────────────────────
+import { createAchievement, updateAchievement, grantAchievement, revokeAchievement } from './dbapi/write/rewards/achievements.ts';
+import { getAllAchievements, getCharacterAchievements } from './dbapi/read/rewards/get-achievements.ts';
+
 // ── Notifications ────────────────────────────────────────────────────────────────
 import { getUnreadNotifications, getNotifications  } from './dbapi/read/notifications/get-notifications.ts';
 import { createNotification, createNotificationsForAdmins,
@@ -71,7 +75,7 @@ import { importMarketplaceItems                           } from './dbapi/write/
 
 // ── Quests ───────────────────────────────────────────────────────────────────────
 import { getAllQuests                                     } from './dbapi/read/quests/get-all.ts';
-import { getQuestById, getQuestsByDM                     } from './dbapi/read/quests/get-by-id.ts';
+import { getQuestById, getQuestsByDM, getQuestResultWithCharacters } from './dbapi/read/quests/get-by-id.ts';
 import { createQuest                                     } from './dbapi/write/quests/create.ts';
 import { updateQuest, updateQuestRewards, addCoDM,
          removeCoDM                                      } from './dbapi/write/quests/update.ts';
@@ -81,12 +85,14 @@ import { signupForQuest, cancelSignup,
 import { submitQuestResult, approveQuestResult,
          rejectQuestResult                               } from './dbapi/write/quests/submit-result.ts';
 import { deleteQuest                                     } from './dbapi/write/quests/delete.ts';
+import { submitItemUsages, approveItemUsage, rejectItemUsage, getItemUsagesForQuest } from './dbapi/write/quests/item-usage.ts';
 
 // ── DMs ──────────────────────────────────────────────────────────────────────────
 import { getAllDMProfiles, getAllRoleRequests   } from './dbapi/read/dms/get-all.ts';
 import { getDMProfileById, getDMProfileByUserId,
          getPendingRoleRequestByUser,
          getLatestRoleRequestByUser              } from './dbapi/read/dms/get-by-id.ts';
+import { submitDMRating, getDMRatingForQuest } from './dbapi/write/dms/rating.ts';
 import { createRoleRequest, approveRoleRequest,
          rejectRoleRequest, deleteRoleRequest    } from './dbapi/write/dms/role-request.ts';
 import { updateDMProfile, revokeDMRole          } from './dbapi/write/dms/dm-profile.ts';
@@ -155,6 +161,10 @@ export const gameSystems = {
 };
 
 export const dms = {
+    ratings: {
+        submit:          submitDMRating,
+        getForQuest:     getDMRatingForQuest,
+    },
     profiles: {
         getAll:       getAllDMProfiles,
         getById:      getDMProfileById,
@@ -196,8 +206,15 @@ export const characters = {
 };
 
 export const quests = {
+    itemUsage: {
+        submit:   submitItemUsages,
+        approve:  approveItemUsage,
+        reject:   rejectItemUsage,
+        getForQuest: getItemUsagesForQuest,
+    },
     getAll:                getAllQuests,
     getById:               getQuestById,
+    getResult:             getQuestResultWithCharacters,
     getByDM:               getQuestsByDM,
     create:                createQuest,
     update:                updateQuest,
@@ -267,4 +284,13 @@ export const notifications = {
     createForAdmins: createNotificationsForAdmins,
     markRead:       markNotificationRead,
     markAllRead:    markAllNotificationsRead,
+};
+
+export const achievements = {
+    getAll:   getAllAchievements,
+    getForCharacter: getCharacterAchievements,
+    create:   createAchievement,
+    update:   updateAchievement,
+    grant:    grantAchievement,
+    revoke:   revokeAchievement,
 };

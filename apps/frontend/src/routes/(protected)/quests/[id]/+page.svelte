@@ -5,7 +5,8 @@
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-	let saving = $state(false);
+	let saving         = $state(false);
+	let selectedRating = $state(0);
 
 	const confirmedCount = $derived(data.quest.signups.filter((s: any) => s.status === 'CONFIRMED').length);
 	const isFull         = $derived(confirmedCount >= data.quest.maxCapacity);
@@ -67,8 +68,29 @@
 			{/if}
 		</div>
 
-		<!-- Rewards per player -->
+		<!-- Rewards per player / actual grants when completed -->
 		<div class="card">
+			{#if data.quest.status === 'COMPLETED'}
+				<h3 class="section-title">Rewards granted</h3>
+				{#if (data as any).resultCharacters?.length}
+					<table class="table">
+						<thead><tr><th>Character</th><th>XP</th><th>Gold</th><th>Tokens</th><th>Item</th></tr></thead>
+						<tbody>
+							{#each (data as any).resultCharacters as rc}
+								<tr>
+									<td style="font-weight:600;">{rc.characterName}</td>
+									<td>{rc.xpAwarded?.toLocaleString() ?? '0'}</td>
+									<td>{rc.goldAwarded?.toLocaleString() ?? '0'}</td>
+									<td>{rc.tokensAwarded?.toLocaleString() ?? '0'}</td>
+									<td>{rc.itemGrantedName ?? '—'}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{:else}
+					<p class="table__empty">No reward records for this quest.</p>
+				{/if}
+			{:else}
 			<h3 class="section-title">Rewards per player</h3>
 
 			<!-- Mission XP always shown -->
@@ -109,9 +131,10 @@
 			{#each data.quest.rewards.filter((r: any) => r.type === 'ITEM') as r}
 				<div class="character-class-tag">
 					<span class="badge badge-muted">ITEM</span>
-					<span>{r.itemName ?? 'Item'} × 1 per player</span>
+					<span>Random item × 1 per player ({r.itemRarity ?? 'any'}{r.itemCategory ? ' · ' + r.itemCategory : ''})</span>
 				</div>
 			{/each}
+			{/if}
 		</div>
 	</div>
 
@@ -124,11 +147,13 @@
 					<div>
 						<span class="badge {s.status === 'CONFIRMED' ? 'badge-success' : s.status === 'WAITLIST' ? 'badge-warning' : 'badge-muted'}">{s.status}</span>
 					</div>
+					{#if !['COMPLETED','IN_PROGRESS','PENDING_RESULT','PENDING_RESULT_APPROVAL'].includes(data.quest.status)}
 					<form method="post" action="?/cancel"
 						use:enhance={({ cancel }) => { if (!confirm('Cancel your signup?')) { cancel(); return; } return async ({ update }) => { await update(); await invalidateAll(); }; }}>
 						<input type="hidden" name="signupId" value={s.id} />
 						<button type="submit" class="btn btn-ghost btn-sm">Cancel signup</button>
 					</form>
+					{/if}
 				</div>
 			{/each}
 		</div>
@@ -192,6 +217,49 @@
 					</div>
 				{/each}
 			</div>
+		</div>
+	{/if}
+	{#if data.quest.status === 'COMPLETED' && (data as any).ratingsEnabled && data.quest.signups?.some((s: any) => s.status === 'CONFIRMED')}
+		<div class="card" id="rate">
+			<h3 class="section-title">Rate the DM</h3>
+			{#if (data as any).existingRating}
+				<div style="display:flex; align-items:center; gap:0.5rem;">
+					<span style="font-size:1.5rem;">{'★'.repeat((data as any).existingRating.rating)}{'☆'.repeat(5 - (data as any).existingRating.rating)}</span>
+					<span style="font-size:0.875rem; color:var(--text-muted);">You rated this DM {(data as any).existingRating.rating}/5</span>
+				</div>
+				{#if (data as any).existingRating.comment}
+					<p style="font-size:0.875rem; color:var(--text-secondary); margin-top:0.5rem;">{(data as any).existingRating.comment}</p>
+				{/if}
+			{:else if (form as any)?.rateSuccess}
+				<p class="form-success">Thanks for rating!</p>
+			{:else}
+				<form method="post" action="?/rate" use:enhance>
+					<div class="fields">
+						<div class="field">
+							<p class="label" style="margin-bottom:0.375rem;">Rating</p>
+							<div style="display:flex; gap:0.25rem;" role="radiogroup" aria-label="Star rating">
+								{#each [1,2,3,4,5] as n}
+									<button
+										type="button"
+										style="background:none; border:none; cursor:pointer; font-size:1.75rem; padding:0 0.125rem; line-height:1; color:{n <= selectedRating ? '#f59e0b' : 'var(--text-muted)'};"
+										aria-label="{n} star{n > 1 ? 's' : ''}"
+										onclick={() => selectedRating = n}>
+										{n <= selectedRating ? '★' : '☆'}
+									</button>
+								{/each}
+							</div>
+							<input type="hidden" name="rating" value={selectedRating} />
+						</div>
+						<div class="field">
+							<label class="label" for="r-comment">Comment <span class="optional">(optional)</span></label>
+							<textarea id="r-comment" name="comment" class="input" rows="2" placeholder="Anything you'd like to share about the session…"></textarea>
+						</div>
+					</div>
+					<div class="form-actions">
+						<button type="submit" class="btn btn-primary btn-sm">Submit rating</button>
+					</div>
+				</form>
+			{/if}
 		</div>
 	{/if}
 </div>

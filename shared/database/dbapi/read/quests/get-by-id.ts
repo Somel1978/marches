@@ -106,7 +106,7 @@ export async function getQuestById(id: string) {
 }
 
 export async function getQuestsByDM(dmProfileId: string) {
-    return db.quest.findMany({
+    const items = await db.quest.findMany({
         where:   {
             OR: [
                 { dmProfileId },
@@ -119,4 +119,40 @@ export async function getQuestsByDM(dmProfileId: string) {
             signups: { where: { status: { in: ['CONFIRMED', 'PENDING_CONFIRMATION'] as any } } },
         },
     });
+
+    const regionIds   = [...new Set(items.map(q => q.regionId).filter(Boolean))] as string[];
+    const locationIds = [...new Set(items.map(q => q.locationId).filter(Boolean))] as string[];
+    const [regions, locations] = await Promise.all([
+        regionIds.length   ? db.region.findMany({ where: { id: { in: regionIds } }, select: { id: true, name: true, world: { select: { name: true } } } }) : [],
+        locationIds.length ? db.location.findMany({ where: { id: { in: locationIds } }, select: { id: true, name: true } }) : [],
+    ]);
+    const regionMap   = Object.fromEntries((regions as any[]).map(r => [r.id, { name: r.name, worldName: r.world?.name ?? null }]));
+    const locationMap = Object.fromEntries((locations as any[]).map(l => [l.id, l.name]));
+
+    return items.map(q => ({
+        ...q,
+        regionName:   q.regionId   ? (regionMap[q.regionId]?.name      ?? null) : null,
+        worldName:    q.regionId   ? (regionMap[q.regionId]?.worldName  ?? null) : null,
+        locationName: q.locationId ? (locationMap[q.locationId]         ?? null) : null,
+    }));
+}
+
+export async function getQuestResultWithCharacters(questId: string) {
+    const result = await db.questResult.findUnique({
+        where:   { questId },
+        include: { characters: true },
+    });
+    if (!result?.characters?.length) return null;
+
+    const charIds = result.characters.map(c => c.characterId);
+    const chars   = await db.character.findMany({ where: { id: { in: charIds } }, select: { id: true, name: true } });
+    const charMap = Object.fromEntries(chars.map(c => [c.id, c.name]));
+
+    return {
+        ...result,
+        characters: result.characters.map(c => ({
+            ...c,
+            characterName: charMap[c.characterId] ?? c.characterId,
+        })),
+    };
 }

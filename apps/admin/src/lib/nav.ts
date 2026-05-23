@@ -91,6 +91,18 @@ export const NAV_ITEMS: NavItemDef[] = [
         ],
     },
     {
+        resourceKey: null,
+        label:       'Rewards',
+        href:        '/rewards',
+        icon:        `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>`,
+        activeMatch: (pathname: string) => pathname.startsWith('/rewards'),
+        children: [
+            { label: 'Overview',      href: '/rewards' },
+            { label: 'Achievements',  href: '/rewards/achievements' },
+            { label: 'Grant reward',  href: '/rewards/grant' },
+        ],
+    },
+    {
         resourceKey: 'Quest',
         label:       'Quests',
         href:        '/quests',

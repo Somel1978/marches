@@ -8,7 +8,8 @@
 		PENDING_APPROVAL: 'badge-warning',
 		PUBLISHED:        'badge-success',
 		IN_PROGRESS:      'badge-accent',
-		PENDING_RESULT:   'badge-warning',
+		PENDING_RESULT:            'badge-warning',
+		PENDING_RESULT_APPROVAL:   'badge-accent',
 		COMPLETED:        'badge-success',
 		CANCELLED:        'badge-danger',
 	};

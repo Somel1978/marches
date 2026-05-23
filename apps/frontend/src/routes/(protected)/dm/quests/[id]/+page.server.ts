@@ -1,9 +1,11 @@
 // apps/frontend/src/routes/(protected)/dm/quests/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { dms, quests, worlds } from '@core/database';
-import { checkPermission } from '@core/rbac';
+import { dms, quests, worlds, db, platform } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
+
+const ITEM_RARITIES   = ['Mundane','Common','Uncommon','Rare','Very_Rare','Legendary','Artifact','Unknown'];
+const ITEM_CATEGORIES = ['Combat','Consumable','Utility','Destroyable'];
 
 async function checkDMAccess(questId: string, userId: string) {
 	const quest = await quests.getById(questId);
@@ -26,7 +28,60 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		worlds.getAll(),
 	]);
 
-	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds };
+	const questRatings = access.quest.status === 'COMPLETED'
+		? await db.dMRating.findMany({
+			where:   { questId: params.id },
+			orderBy: { createdAt: 'desc' },
+		})
+		: [];
+
+	const settings            = await platform.getSettingsMap();
+	const destroyableCategories = (settings['quest.destroyableCategories'] ?? '').split(',').map((s: string) => s.trim()).filter(Boolean);
+
+	// Load destroyable inventory for confirmed characters (IN_PROGRESS only)
+	let destroyableInventory: any[] = [];
+	if (access.quest.status === 'IN_PROGRESS' && destroyableCategories.length) {
+		const confirmedCharIds = access.quest.signups
+			.filter((s: any) => s.status === 'CONFIRMED')
+			.map((s: any) => s.characterId);
+		if (confirmedCharIds.length) {
+			// CharacterInventory has no FK relation — filter by matching marketplace items
+			const matchingItems = await db.marketplaceItem.findMany({
+				where:  { category: { in: destroyableCategories as any[] } },
+				select: { id: true, name: true, category: true },
+			});
+			const matchingItemIds = matchingItems.map(i => i.id);
+			const itemMap = Object.fromEntries(matchingItems.map(i => [i.id, i]));
+			if (matchingItemIds.length) {
+				const inv = await db.characterInventory.findMany({
+					where: {
+						characterId: { in: confirmedCharIds },
+						itemId:      { in: matchingItemIds },
+					},
+				});
+
+				// Load existing PENDING usages and subtract from available
+				const pendingUsages = await db.questItemUsage.findMany({
+					where: { questId: params.id, status: 'PENDING' },
+				});
+				const pendingMap: Record<string, number> = {};
+				for (const u of pendingUsages) {
+					pendingMap[u.inventoryId] = (pendingMap[u.inventoryId] ?? 0) + u.quantityUsed;
+				}
+
+				destroyableInventory = inv.map(i => ({
+					...i,
+					item:              itemMap[i.itemId ?? ''] ?? null,
+					availableQuantity: Math.max(0, i.quantity - (pendingMap[i.id] ?? 0)),
+					pendingUsed:       pendingMap[i.id] ?? 0,
+				}));
+			}
+		}
+	}
+
+	const itemUsages = await quests.itemUsage.getForQuest(params.id);
+
+	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds, questRatings, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES, destroyableInventory, itemUsages };
 };
 
 export const actions: Actions = {
@@ -71,6 +126,7 @@ export const actions: Actions = {
 		if (!access) return fail(403, { message: 'Forbidden' });
 		try {
 			await quests.submitResult(params.id, access.profile.id, locals.user!.id);
+			await quests.updateStatus(params.id, 'PENDING_RESULT_APPROVAL', undefined, locals.user!.id);
 			return { success: true, action: 'result_submitted' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -116,14 +172,18 @@ export const actions: Actions = {
 	updateRewards: async ({ params, request, locals }) => {
 		const access = await checkDMAccess(params.id, locals.user!.id);
 		if (!access) return fail(403, { message: 'Forbidden' });
-		if (!['DRAFT', 'PENDING_APPROVAL'].includes(access.quest.status))
-			return fail(400, { message: 'Rewards can only be edited in DRAFT or PENDING_APPROVAL status.' });
+		if (!['DRAFT', 'PENDING_APPROVAL', 'IN_PROGRESS', 'PENDING_RESULT', 'PENDING_RESULT_APPROVAL'].includes(access.quest.status))
+			return fail(400, { message: 'Rewards can only be edited in DRAFT, PENDING_APPROVAL, IN_PROGRESS or PENDING_RESULT status.' });
 
 		const data          = await request.formData();
 		const rewardTypes   = data.getAll('rewardType').map(v => v.toString());
 		const rewardAmounts = data.getAll('rewardAmount').map(v => Number(v));
 		const rewards       = rewardTypes.map((type, i) => ({
-			type, amount: rewardAmounts[i] ?? 0,
+			type,
+			amount:       type === 'ITEM' ? 0 : (rewardAmounts[i] ?? 0),
+			itemRarity:   data.get(`itemRarity_${i}`)?.toString()  || undefined,
+			itemCategory: data.get(`itemCategory_${i}`)?.toString() || undefined,
+			itemMaxValue: Number(data.get(`itemMaxValue_${i}`) ?? 0) || undefined,
 		})).filter(r => r.type);
 
 		try {
@@ -131,6 +191,42 @@ export const actions: Actions = {
 			return { success: true, action: 'rewards_updated' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveItemUsages: async ({ params, request, locals }) => {
+		const access = await checkDMAccess(params.id, locals.user!.id);
+		if (!access) return fail(403, { message: 'Forbidden' });
+		if (access.quest.status !== 'IN_PROGRESS') return fail(400, { message: 'Quest must be in progress.' });
+		const data        = await request.formData();
+		const charIds     = data.getAll('characterId').map(v => v.toString());
+		const inventoryIds = data.getAll('inventoryId').map(v => v.toString());
+		const quantities  = data.getAll('quantityUsed').map(v => Number(v));
+		try {
+			// Delete existing PENDING usages for this quest then re-create
+			await db.questItemUsage.deleteMany({ where: { questId: params.id, status: 'PENDING' } });
+			const usages = [];
+			for (let i = 0; i < charIds.length; i++) {
+				if (quantities[i] > 0) {
+					const inv = await db.characterInventory.findUnique({ where: { id: inventoryIds[i] }, select: { itemName: true } });
+					usages.push({ questId: params.id, characterId: charIds[i], inventoryId: inventoryIds[i],
+						itemName: inv?.itemName ?? inventoryIds[i], quantityUsed: quantities[i],
+						submittedBy: locals.user!.id, status: 'PENDING' as any });
+				}
+			}
+			// Validate quantities against actual inventory
+			for (const u of usages) {
+				const inv = await db.characterInventory.findUnique({ where: { id: u.inventoryId } });
+				if (!inv || inv.quantity < u.quantityUsed) {
+					const name = inv?.itemName ?? u.inventoryId;
+					return fail(400, { message: `Insufficient quantity for "${name}". Available: ${inv?.quantity ?? 0}.` });
+				}
+			}
+			if (usages.length) await db.questItemUsage.createMany({ data: usages });
+			return { usageSaved: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail((e as any).statusCode ?? 500, { message: (e as any).message });
 			throw e;
 		}
 	},

@@ -18,7 +18,11 @@ export async function updateSettings(
 ) {
     return db.$transaction(
         entries.map(({ key, value }) =>
-            db.setting.update({ where: { key }, data: { value, updatedBy: actorId } })
+            db.setting.upsert({
+                where:  { key },
+                update: { value, updatedBy: actorId },
+                create: { key, value: value ?? '', updatedBy: actorId },
+            })
         )
     );
 }

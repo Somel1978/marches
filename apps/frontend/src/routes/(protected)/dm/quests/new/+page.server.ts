@@ -5,6 +5,9 @@ import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
+const ITEM_RARITIES   = ['Mundane','Common','Uncommon','Rare','Very_Rare','Legendary','Artifact','Unknown'];
+const ITEM_CATEGORIES = ['Combat','Consumable','Utility','Destroyable'];
+
 export const load: PageServerLoad = async ({ locals }) => {
 	const can = checkPermission(locals.permissions, { resourceKey: 'Quest', action: 'create' });
 	if (!can.allowed) throw error(403, 'Forbidden');
@@ -20,6 +23,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		profile,
 		allWorlds,
+		itemRarities: ITEM_RARITIES,
+		itemCategories: ITEM_CATEGORIES,
 		globalMinCap: Number(settings['quest.minCapacity'] ?? 2),
 		globalMaxCap: Number(settings['quest.maxCapacity'] ?? 6),
 		dmRules:      profile.rules ?? '',
@@ -49,7 +54,13 @@ export const actions: Actions = {
 		// Parse rewards
 		const rewardTypes   = data.getAll('rewardType').map(v => v.toString());
 		const rewardAmounts = data.getAll('rewardAmount').map(v => Number(v));
-		const rewards       = rewardTypes.map((type, i) => ({ type, amount: rewardAmounts[i] ?? 0 })).filter(r => r.type);
+		const rewards = rewardTypes.map((type, i) => ({
+			type,
+			amount:       type === 'ITEM' ? 0 : (rewardAmounts[i] ?? 0),
+			itemRarity:   data.get(`itemRarity_${i}`)?.toString()  || undefined,
+			itemCategory: data.get(`itemCategory_${i}`)?.toString() || undefined,
+			itemMaxValue: Number(data.get(`itemMaxValue_${i}`) ?? 0) || undefined,
+		})).filter(r => r.type);
 
 		try {
 			const quest = await quests.create({

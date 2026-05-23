@@ -11,7 +11,8 @@
 		PENDING_APPROVAL: 'badge-warning',
 		PUBLISHED:        'badge-success',
 		IN_PROGRESS:      'badge-accent',
-		PENDING_RESULT:   'badge-warning',
+		PENDING_RESULT:            'badge-warning',
+		PENDING_RESULT_APPROVAL:   'badge-accent',
 		COMPLETED:        'badge-success',
 		CANCELLED:        'badge-danger',
 	};
@@ -20,11 +21,17 @@
 		return async ({ update }: any) => { await update(); await invalidateAll(); };
 	}
 
-	type RewardRow = { type: string; amount: number };
+	type RewardRow = { id?: string; type: string; amount: number; itemRarity?: string; itemCategory?: string; itemMaxValue?: number };
 	let rewardRows = $state<RewardRow[]>([]);
 	$effect.pre(() => {
 		rewardRows = data.quest.rewards.length
-			? data.quest.rewards.map(r => ({ type: r.type, amount: r.amount }))
+			? data.quest.rewards.map((r: any) => ({
+				type:         r.type,
+				amount:       r.amount,
+				itemRarity:   r.itemRarity   ?? undefined,
+				itemCategory: r.itemCategory ?? undefined,
+				itemMaxValue: r.itemMaxValue  ?? undefined,
+			}))
 			: [{ type: 'GOLD', amount: 0 }];
 	});
 
@@ -51,6 +58,12 @@
 
 	const selectedWorld   = $derived(_allWorlds.find((w: any) => w.id === selectedWorldId));
 	const regionOptions   = $derived((selectedWorld?.regions ?? []) as any[]);
+	const questRatings  = $derived(((data as any).questRatings ?? []) as any[]);
+	const ratingsAvg    = $derived(
+		questRatings.length
+			? (questRatings.reduce((s: number, r: any) => s + r.rating, 0) / questRatings.length).toFixed(1)
+			: null
+	);
 	const locationOptions = $derived(
 		regionOptions.find((r: any) => r.id === selectedRegionId)?.locations ?? [] as any[]
 	);
@@ -108,9 +121,24 @@
 				<button type="submit" class="btn btn-danger btn-sm">End quest</button>
 			</form>
 		{/if}
-		{#if data.quest.status === 'PENDING_RESULT' && !data.quest.result}
+		{#if data.quest.status === 'PENDING_RESULT'}
+			{#if (data.quest.result as any)?.status === 'REJECTED'}
+				<div style="font-size:0.875rem; color:var(--color-danger); padding:0.375rem 0.75rem; background:color-mix(in srgb, var(--color-danger) 10%, transparent); border-radius:var(--radius-sm);">
+					Result rejected: {(data.quest.result as any).reviewNote ?? 'No reason given'}
+				</div>
+			{/if}
+			{#if (data as any).itemUsages?.filter((u: any) => u.status === 'PENDING').length > 0}
+				<div style="font-size:0.875rem; color:var(--text-muted);">
+					📦 {(data as any).itemUsages.filter((u: any) => u.status === 'PENDING').length} item usage(s) will be processed on approval.
+				</div>
+			{/if}
+			{#if (form as any)?.action === 'result_submitted'}
+				<div class="form-success" style="font-size:0.875rem;">Results submitted — awaiting admin approval.</div>
+			{/if}
 			<form method="post" action="?/submitResult" use:enhance={e_reload}>
-				<button type="submit" class="btn btn-primary btn-sm">Submit results</button>
+				<button type="submit" class="btn btn-primary btn-sm">
+					{(data.quest.result as any)?.status === 'REJECTED' ? 'Resubmit results' : 'Submit results'}
+				</button>
 			</form>
 		{/if}
 	</div>
@@ -215,8 +243,8 @@
 		{/if}
 	</div>
 
-	<!-- Edit rewards (DRAFT / PENDING_APPROVAL only) -->
-	{#if ['DRAFT', 'PENDING_APPROVAL'].includes(data.quest.status)}
+	<!-- Edit rewards (DRAFT / PENDING_APPROVAL / IN_PROGRESS / PENDING_RESULT) -->
+	{#if ['DRAFT', 'PENDING_APPROVAL', 'IN_PROGRESS', 'PENDING_RESULT', 'PENDING_RESULT_APPROVAL'].includes(data.quest.status)}
 		<div class="card">
 			<h3 class="section-title">Edit rewards</h3>
 			<form method="post" action="?/updateRewards" use:enhance={e_reload}>
@@ -229,13 +257,43 @@
 									<option value="XP">XP</option>
 									<option value="GOLD">Gold</option>
 									<option value="TOKEN">Tokens</option>
-									<option value="ITEM">Item (placeholder)</option>
+									<option value="ITEM">Random item</option>
 								</select>
 							</div>
 							<div class="field" style="flex:2; min-width:100px;">
 								<label class="label" for="ra-{i}">Amount</label>
 								<input id="ra-{i}" name="rewardAmount" type="number" class="input" min="0" bind:value={r.amount} />
 							</div>
+							{#if r.type === 'ITEM'}
+								<div style="display:flex; gap:0.5rem; flex-wrap:wrap; padding:0.5rem 0; width:100%;">
+									<div class="field" style="flex:1 1 120px;">
+										<label class="label" for="rrar-{i}">Rarity filter</label>
+										<select id="rrar-{i}" name="itemRarity_{i}" class="input input--select"
+											bind:value={rewardRows[i].itemRarity}>
+											<option value={undefined}>Any rarity</option>
+											{#each (data as any).itemRarities ?? [] as rar}
+												<option value={rar}>{rar.replace('_',' ')}</option>
+											{/each}
+										</select>
+									</div>
+									<div class="field" style="flex:1 1 120px;">
+										<label class="label" for="rcat-{i}">Category filter</label>
+										<select id="rcat-{i}" name="itemCategory_{i}" class="input input--select"
+											bind:value={rewardRows[i].itemCategory}>
+											<option value={undefined}>Any category</option>
+											{#each (data as any).itemCategories ?? [] as cat}
+												<option value={cat}>{cat}</option>
+											{/each}
+										</select>
+									</div>
+									<div class="field" style="flex:1 1 100px;">
+										<label class="label" for="rmv-{i}">Max value (gp)</label>
+										<input id="rmv-{i}" name="itemMaxValue_{i}" type="number" class="input" min="0"
+											bind:value={rewardRows[i].itemMaxValue}
+											placeholder="No limit" />
+									</div>
+								</div>
+							{/if}
 							<button type="button" class="btn btn-ghost btn-sm btn-icon class-alloc-remove"
 								onclick={() => rewardRows = rewardRows.filter((_, idx) => idx !== i)} aria-label="Remove">
 								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -367,6 +425,99 @@
 						<button type="submit" class="btn btn-primary btn-sm">Add</button>
 					</div>
 				</form>
+			{/if}
+		</div>
+	{/if}
+
+
+	<!-- Destroyable inventory (IN_PROGRESS only) -->
+	{#if data.quest.status === 'IN_PROGRESS' && (data as any).destroyableInventory?.length}
+		<div class="card">
+			<h3 class="section-title">Item usage</h3>
+			<p class="field-hint" style="margin-bottom:0.75rem;">Mark items used during this quest. Quantities will be sent for admin approval.</p>
+			{#if (form as any)?.usageSaved}
+				<div class="form-success">Item usage saved.</div>
+			{/if}
+			<form method="post" action="?/saveItemUsages" use:enhance={e_reload}>
+				<table class="table">
+					<thead><tr><th>Character</th><th>Random item</th><th>Category</th><th>Available</th><th>Qty used</th></tr></thead>
+					<tbody>
+						{#each (data as any).destroyableInventory as inv}
+							<tr>
+								<td>{data.quest.signups.find((s: any) => s.characterId === inv.characterId)?.character?.name ?? inv.characterId}</td>
+								<td>{inv.item?.name ?? inv.itemName}</td>
+								<td class="table__muted">{inv.item?.category ?? '—'}</td>
+								<td>
+									{inv.availableQuantity ?? inv.quantity}
+									{#if inv.pendingUsed > 0}
+										<span style="font-size:0.75rem; color:var(--color-warning);">({inv.pendingUsed} saved)</span>
+									{/if}
+								</td>
+								<td style="width:100px;">
+									<input type="hidden" name="characterId" value={inv.characterId} />
+									<input type="hidden" name="inventoryId" value={inv.id} />
+									<input type="number" name="quantityUsed" class="input" min="0"
+										max={inv.availableQuantity ?? inv.quantity}
+										value={inv.pendingUsed ?? 0}
+										style="width:80px;" />
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+				<div class="form-actions" style="margin-top:0.75rem;">
+					<button type="submit" class="btn btn-primary btn-sm">Save item usage</button>
+				</div>
+			</form>
+		</div>
+	{/if}
+
+	<!-- Submitted item usages -->
+	{#if (data as any).itemUsages?.length}
+		<div class="card">
+			<h3 class="section-title">Item usage submissions</h3>
+			<table class="table">
+				<thead><tr><th>Random item</th><th>Qty</th><th>Status</th><th>Note</th></tr></thead>
+				<tbody>
+					{#each (data as any).itemUsages as u}
+						<tr>
+							<td>{u.itemName}</td>
+							<td>{u.quantityUsed}</td>
+							<td><span class="badge badge-{u.status === 'APPROVED' ? 'success' : u.status === 'REJECTED' ? 'danger' : 'warning'}">{u.status}</span></td>
+							<td class="table__muted">{u.reviewNote ?? '—'}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{/if}
+
+	<!-- Player ratings for this quest -->
+	{#if data.quest.status === 'COMPLETED'}
+		<div class="card">
+			<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.75rem;">
+				<h3 class="section-title" style="margin:0;">Player ratings</h3>
+				{#if ratingsAvg}
+					<span style="font-size:1.25rem; font-weight:700; color:var(--color-accent);">{ratingsAvg}</span>
+					<span style="font-size:0.875rem; color:var(--text-muted);">({questRatings.length} rating{questRatings.length !== 1 ? 's' : ''})</span>
+				{/if}
+			</div>
+			{#if questRatings.length}
+				<div style="display:flex; flex-direction:column; gap:0.625rem;">
+					{#each questRatings as r}
+						<div style="padding:0.625rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-sm);">
+							<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.125rem;">
+								<span style="color:#f59e0b;">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+								<span style="font-size:0.75rem; color:var(--text-muted);">{new Date(r.createdAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}</span>
+							</div>
+							{#if r.comment}
+								<p style="font-size:0.875rem; color:var(--text-secondary); margin:0;">"{r.comment}"</p>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="table__empty">No ratings yet.</p>
 			{/if}
 		</div>
 	{/if}

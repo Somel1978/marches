@@ -1,0 +1,31 @@
+/* shared/database/prisma/rewards.prisma */
+
+model Achievement {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  icon        String?  // emoji or short icon code
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   String   @map("created_by")
+
+  characterAchievements CharacterAchievement[]
+
+  @@map("achievements")
+  @@schema("rewards")
+}
+
+model CharacterAchievement {
+  id            String      @id @default(uuid())
+  characterId   String      @map("character_id")
+  achievementId String      @map("achievement_id")
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  grantedBy     String      @map("granted_by")
+  note          String?
+  grantedAt     DateTime    @default(now()) @map("granted_at")
+
+  @@unique([characterId, achievementId])
+  @@map("character_achievements")
+  @@schema("rewards")
+}

@@ -16,7 +16,7 @@ export type CreateQuestInput = {
     maxLevel:     number;
     regionId?:    string;
     locationId?:  string;
-    rewards:      { type: string; amount: number; itemId?: string; itemName?: string }[];
+    rewards:      { type: string; amount: number; itemId?: string; itemName?: string; itemRarity?: string; itemCategory?: string; itemMaxValue?: number }[];
 };
 
 export async function createQuest(input: CreateQuestInput, actorId: string) {
@@ -54,11 +54,14 @@ export async function createQuest(input: CreateQuestInput, actorId: string) {
         if (input.rewards.length > 0) {
             await tx.questReward.createMany({
                 data: input.rewards.map(r => ({
-                    questId:  quest.id,
-                    type:     r.type as any,
-                    amount:   r.amount,
-                    itemId:   r.itemId   ?? null,
-                    itemName: r.itemName ?? null,
+                    questId:      quest.id,
+                    type:         r.type as any,
+                    amount:       r.amount,
+                    itemId:       r.itemId       ?? null,
+                    itemName:     r.itemName     ?? null,
+                    itemRarity:   r.itemRarity   ?? null,
+                    itemCategory: r.itemCategory ?? null,
+                    itemMaxValue: r.itemMaxValue  ?? null,
                 })),
             });
         }

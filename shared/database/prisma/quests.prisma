@@ -8,6 +8,7 @@ enum QuestStatus {
   PUBLISHED           // approved, visible to players
   IN_PROGRESS         // DM triggered start
   PENDING_RESULT      // quest ended, DM must submit results
+  PENDING_RESULT_APPROVAL  // DM submitted results, awaiting admin approval
   COMPLETED           // results approved
   CANCELLED           // cancelled by DM or admin
 
@@ -87,8 +88,11 @@ model QuestReward {
   quest          Quest      @relation(fields: [questId], references: [id], onDelete: Cascade)
   type           RewardType
   amount         Int        @default(0)
-  itemId         String?    @map("item_id")   // FK to marketplace.Item (zero-cost)
-  itemName       String?    @map("item_name") // display name snapshot
+  itemId         String?    @map("item_id")       // FK to marketplace.Item (zero-cost)
+  itemName       String?    @map("item_name")     // display name snapshot
+  itemRarity     String?    @map("item_rarity")   // filter for random item reward
+  itemCategory   String?    @map("item_category") // filter for random item reward
+  itemMaxValue   Int?       @map("item_max_value") // filter for random item reward
   rewardAdjusted Boolean    @default(false)   @map("reward_adjusted")
   createdAt      DateTime   @default(now())   @map("created_at")
   updatedAt      DateTime   @updatedAt        @map("updated_at")
@@ -136,9 +140,37 @@ model QuestResultCharacter {
   characterId   String      @map("character_id")
   xpAwarded     Int         @default(0) @map("xp_awarded")
   goldAwarded   Int         @default(0) @map("gold_awarded")
-  tokensAwarded Int         @default(0) @map("tokens_awarded")
+  tokensAwarded   Int         @default(0) @map("tokens_awarded")
+  itemGrantedId   String?     @map("item_granted_id")
+  itemGrantedName String?     @map("item_granted_name")
 
   @@unique([resultId, characterId])
   @@map("quest_result_characters")
+  @@schema("quests")
+}
+
+model QuestItemUsage {
+  id            String   @id @default(uuid())
+  questId       String   @map("quest_id")
+  characterId   String   @map("character_id")
+  inventoryId   String   @map("inventory_id")
+  itemName      String   @map("item_name")
+  quantityUsed  Int      @map("quantity_used")
+  status        QuestItemUsageStatus @default(PENDING)
+  submittedBy   String   @map("submitted_by")
+  reviewedBy    String?  @map("reviewed_by")
+  reviewNote    String?  @map("review_note")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("quest_item_usages")
+  @@schema("quests")
+}
+
+enum QuestItemUsageStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
   @@schema("quests")
 }

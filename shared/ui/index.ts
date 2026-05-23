@@ -18,3 +18,4 @@ export { default as PermissionCell } from './components/ui/PermissionCell.svelte
 // Markdown
 export { renderMarkdown } from './src/markdown.ts';
 export { default as NotificationBell } from './components/ui/NotificationBell.svelte';
+export { default as ConfirmModal } from './components/ui/ConfirmModal.svelte';

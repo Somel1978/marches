@@ -45,7 +45,7 @@ export async function updateQuest(
 
 export async function updateQuestRewards(
     questId: string,
-    rewards: { type: string; amount: number; itemId?: string; itemName?: string }[],
+    rewards: { type: string; amount: number; itemId?: string; itemName?: string; itemRarity?: string; itemCategory?: string; itemMaxValue?: number }[],
     actorId: string,
 ) {
     const quest = await db.quest.findUnique({ where: { id: questId } });
@@ -60,8 +60,11 @@ export async function updateQuestRewards(
                 questId,
                 type:          r.type as any,
                 amount:        r.amount,
-                itemId:        r.itemId   ?? null,
-                itemName:      r.itemName ?? null,
+                itemId:        r.itemId      ?? null,
+                itemName:      r.itemName    ?? null,
+                itemRarity:    r.itemRarity  ?? null,
+                itemCategory:  r.itemCategory ?? null,
+                itemMaxValue:  r.itemMaxValue ?? null,
                 rewardAdjusted: wasApproved,
             })),
         });

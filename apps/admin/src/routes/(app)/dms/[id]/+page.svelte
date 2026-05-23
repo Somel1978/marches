@@ -113,4 +113,30 @@
 			</form>
 		</div>
 	{/if}
+
+	<!-- Ratings -->
+	{#if (data as any).ratings?.length}
+		<div class="card">
+			<div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+				<h3 class="section-title" style="margin:0;">Player ratings</h3>
+				<span style="font-size:1.25rem; font-weight:700; color:var(--color-accent);">{(data as any).avgRating} / 5</span>
+				<span style="color:var(--text-muted); font-size:0.875rem;">({(data as any).ratings.length} rating{(data as any).ratings.length !== 1 ? 's' : ''})</span>
+			</div>
+			<table class="table">
+				<thead><tr><th>Rating</th><th>Quest</th><th>Comment</th><th>Date</th></tr></thead>
+				<tbody>
+					{#each (data as any).ratings as r}
+						<tr>
+							<td style="color:#f59e0b;">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</td>
+							<td><a href="/quests/{r.questId}" class="table__name">{r.questTitle ?? r.questId}</a></td>
+							<td class="table__muted">{r.comment ?? '—'}</td>
+							<td class="table__muted">{new Date(r.createdAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{:else}
+		<div class="card"><p class="table__empty">No ratings yet.</p></div>
+	{/if}
 </div>

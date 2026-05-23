@@ -1,5 +1,6 @@
 // apps/admin/src/routes/(app)/dms/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
+import { db } from '@core/database';
 import { dms, gameSystems } from '@core/database';
 import { checkPermission, invalidateUserPermissions } from '@core/rbac';
 import { isMarchesError } from '@core/errors';

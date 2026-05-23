@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/characters/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { characters, gameSystems, marketplace, platform } from '@core/database';
+import { characters, achievements, gameSystems, marketplace, platform } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -27,7 +27,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const pendingBuys  = pendingTx.items.filter((t: any) => t.type === 'BUY');
 	const pendingSells = pendingTx.items.filter((t: any) => t.type === 'SELL');
 	const sellPct = Number(settings['marketplace.sellPricePercent'] ?? 50);
-	return { character, transactions, gameSystem, inventory, pendingBuys, pendingSells, sellPct };
+	const charAchievements = await achievements.getForCharacter(params.id);
+	return { character, charAchievements, transactions, gameSystem, inventory, pendingBuys, pendingSells, sellPct };
 };
 
 export const actions: Actions = {

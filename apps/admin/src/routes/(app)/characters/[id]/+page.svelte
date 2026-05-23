@@ -399,7 +399,7 @@
 							<td><span class="badge badge-muted">{inv.sourceType}</span></td>
 							<td class="table__action">
 								<form method="post" action="?/removeInventory"
-									use:enhance={({ cancel }) => { if (!confirm('Remove from inventory?')) { cancel(); return; } return async ({ update }) => { await update(); await invalidateAll(); }; }}>
+									use:enhance={({ cancel }) => { if (!window.confirm('Remove from inventory?')) { cancel(); return; } return async ({ update }) => { await update(); await invalidateAll(); }; }}>
 									<input type="hidden" name="inventoryId" value={inv.id} />
 									<input type="hidden" name="quantity"    value={inv.quantity} />
 									<button type="submit" class="btn btn-ghost btn-sm btn-icon" aria-label="Remove">
@@ -424,10 +424,27 @@
 		<p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1rem;">
 			Permanently deletes this character and all associated data. This cannot be undone.
 		</p>
-		<form method="post" action="?/deleteCharacter" use:enhance={({ cancel }) => { if (!confirm(`Permanently delete "${data.character.name}"? This cannot be undone.`)) { cancel(); return; } return async ({ update }) => { await update(); }; }}>
+		<form method="post" action="?/deleteCharacter" use:enhance={({ cancel }) => { if (!window.confirm(`Permanently delete "${data.character.name}"? This cannot be undone.`)) { cancel(); return; } return async ({ update }) => { await update(); }; }}>
 			<button type="submit" class="btn btn-danger btn-sm">
 				Delete character permanently
 			</button>
 		</form>
 	</div>
+	<!-- Achievements -->
+	{#if (data as any).charAchievements?.length}
+		<div class="card">
+			<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+				<h3 class="section-title" style="margin:0;">Achievements</h3>
+				<a href="/rewards/grant?tab=achievement&charId={data.character.id}" class="btn btn-ghost btn-sm">+ Grant</a>
+			</div>
+			<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+				{#each (data as any).charAchievements as g}
+					<div style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-sm); border:1px solid var(--border-muted);" title={g.note ?? ''}>
+						<span style="font-size:1.125rem;">{g.achievement?.icon ?? '🏆'}</span>
+						<span style="font-size:0.875rem; font-weight:600;">{g.achievement?.name ?? g.achievementId}</span>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
 </div>

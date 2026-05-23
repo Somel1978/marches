@@ -75,4 +75,28 @@
 			</div>
 		</form>
 	</div>
+
+	<!-- Ratings received -->
+	{#if (data as any).ratings?.length}
+		<div class="card">
+			<div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+				<h3 class="section-title" style="margin:0;">Ratings received</h3>
+				<span style="font-size:1.5rem; font-weight:700; color:var(--color-accent);">{(data as any).avgRating}</span>
+				<span style="color:var(--text-muted); font-size:0.875rem;">({(data as any).ratings.length} rating{(data as any).ratings.length !== 1 ? 's' : ''})</span>
+			</div>
+			<div style="display:flex; flex-direction:column; gap:0.75rem;">
+				{#each (data as any).ratings as r}
+					<div style="padding:0.75rem; background:var(--bg-overlay); border-radius:var(--radius-sm);">
+						<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+							<span style="color:#f59e0b; font-size:1rem;">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+							<span style="font-size:0.75rem; color:var(--text-muted);">{new Date(r.createdAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}</span>
+						</div>
+						{#if r.comment}
+							<p style="font-size:0.875rem; color:var(--text-secondary); margin:0;">"{r.comment}"</p>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
 </div>

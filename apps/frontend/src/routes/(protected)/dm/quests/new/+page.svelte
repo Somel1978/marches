@@ -6,7 +6,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let saving = $state(false);
 
-	type Reward = { type: string; amount: number };
+	type Reward = { type: string; amount: number; itemRarity?: string; itemCategory?: string; itemMaxValue?: number };
 	let rewards = $state<Reward[]>([{ type: 'XP', amount: 0 }, { type: 'GOLD', amount: 0 }]);
 
 	function addReward() { rewards = [...rewards, { type: 'GOLD', amount: 0 }]; }
@@ -97,13 +97,44 @@
 									<option value="XP">XP</option>
 									<option value="GOLD">Gold</option>
 									<option value="TOKEN">Tokens</option>
-									<option value="ITEM">Item</option>
+									<option value="ITEM">Random item</option>
 								</select>
 							</div>
-							<div class="field" style="flex:2; min-width:100px;">
-								<label class="label" for="ramt-{i}">Amount</label>
-								<input id="ramt-{i}" name="rewardAmount" type="number" class="input" min="0" bind:value={r.amount} />
-							</div>
+							{#if r.type !== 'ITEM'}
+								<div class="field" style="flex:2; min-width:100px;">
+									<label class="label" for="ramt-{i}">Amount</label>
+									<input id="ramt-{i}" name="rewardAmount" type="number" class="input" min="0" bind:value={r.amount} />
+								</div>
+							{:else}
+								<input type="hidden" name="rewardAmount" value="0" />
+							{/if}
+
+							{#if r.type === 'ITEM'}
+								<div style="display:flex; gap:0.5rem; flex-wrap:wrap; padding:0.5rem 0; width:100%;">
+									<div class="field" style="flex:1 1 120px;">
+										<label class="label" for="rrar-{i}">Rarity filter</label>
+										<select id="rrar-{i}" name="itemRarity_{i}" class="input input--select" bind:value={rewards[i].itemRarity}>
+											<option value="">Any rarity</option>
+											{#each (data as any).itemRarities ?? [] as rar}
+												<option value={rar}>{rar.replace('_',' ')}</option>
+											{/each}
+										</select>
+									</div>
+									<div class="field" style="flex:1 1 120px;">
+										<label class="label" for="rcat-{i}">Category filter</label>
+										<select id="rcat-{i}" name="itemCategory_{i}" class="input input--select" bind:value={rewards[i].itemCategory}>
+											<option value="">Any category</option>
+											{#each (data as any).itemCategories ?? [] as cat}
+												<option value={cat}>{cat}</option>
+											{/each}
+										</select>
+									</div>
+									<div class="field" style="flex:1 1 100px;">
+										<label class="label" for="rmv-{i}">Max value (gp)</label>
+										<input id="rmv-{i}" name="itemMaxValue_{i}" type="number" class="input" min="0" bind:value={rewards[i].itemMaxValue} placeholder="No limit" />
+									</div>
+								</div>
+							{/if}
 							<button type="button" class="btn btn-ghost btn-sm btn-icon class-alloc-remove"
 								onclick={() => removeReward(i)} aria-label="Remove">
 								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

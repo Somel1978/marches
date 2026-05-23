@@ -109,6 +109,7 @@ export async function createSellTransaction(
 ) {
     const inv = await db.characterInventory.findUnique({ where: { id: inventoryId } });
     if (!inv) throw new NotFoundError('CharacterInventory', inventoryId);
+    if (inv.canSell === false) throw new ValidationError('This item cannot be sold — it was granted as a reward.');
     if (!inv.itemId) throw new ValidationError('This item cannot be sold on the marketplace.');
     if (inv.quantity < quantity) throw new ValidationError(`Only ${inv.quantity} available to sell.`);
 

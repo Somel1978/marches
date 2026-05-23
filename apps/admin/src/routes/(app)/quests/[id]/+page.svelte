@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/quests/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -11,20 +12,31 @@
 		PENDING_APPROVAL: 'badge-warning',
 		PUBLISHED:        'badge-success',
 		IN_PROGRESS:      'badge-accent',
-		PENDING_RESULT:   'badge-warning',
+		PENDING_RESULT:            'badge-warning',
+		PENDING_RESULT_APPROVAL:   'badge-accent',
 		COMPLETED:        'badge-success',
 		CANCELLED:        'badge-danger',
 	};
+
+	let showDeleteModal  = $state(false);
+	let revertRewards    = $state(false);
+	let deleteFormEl     = $state<HTMLFormElement | null>(null);
 
 	function e_reload() {
 		return async ({ update }: any) => { await update(); await invalidateAll(); };
 	}
 
-	type RewardRow = { type: string; amount: number };
+	type RewardRow = { type: string; amount: number; itemRarity?: string; itemCategory?: string; itemMaxValue?: number };
 	let rewardRows = $state<RewardRow[]>([]);
 	$effect.pre(() => {
 		rewardRows = data.quest.rewards.length
-			? data.quest.rewards.map(r => ({ type: r.type, amount: r.amount }))
+			? data.quest.rewards.map((r: any) => ({
+				type:         r.type,
+				amount:       r.amount,
+				itemRarity:   r.itemRarity   ?? undefined,
+				itemCategory: r.itemCategory ?? undefined,
+				itemMaxValue: r.itemMaxValue  ?? undefined,
+			}))
 			: [{ type: 'XP', amount: 0 }];
 	});
 
@@ -98,7 +110,7 @@
 	</div>{/if}
 
 	<!-- Approval banner -->
-	{#if data.quest.status === 'PENDING_APPROVAL'}
+	{#if data.quest.status === 'PENDING_APPROVAL' && !(data.quest.result)}
 		<div class="pending-banner">
 			<p>{data.quest.rewardAdjusted ? 'Quest rewards were adjusted — re-approval required.' : 'Quest is awaiting approval.'}</p>
 			<div style="display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap:wrap;">
@@ -121,7 +133,7 @@
 			<p>Quest result submitted — awaiting approval. XP per player: <strong>{Math.floor(data.quest.result.missionXp / (data.quest.result.characters.length || 1))}</strong></p>
 			<div style="display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap:wrap;">
 				<form method="post" action="?/approveResult" use:enhance={e_reload}>
-					<button type="submit" class="btn btn-primary btn-sm">Approve & Distribute XP</button>
+					<button type="submit" class="btn btn-primary btn-sm">Approve & Distribute Rewards</button>
 				</form>
 				<form method="post" action="?/rejectResult" use:enhance={e_reload}>
 					<div style="display:flex; gap:0.375rem; align-items:center;">
@@ -233,13 +245,43 @@
 									<option value="XP">XP</option>
 									<option value="GOLD">Gold</option>
 									<option value="TOKEN">Tokens</option>
-									<option value="ITEM">Item (placeholder)</option>
+									<option value="ITEM">Random item</option>
 								</select>
 							</div>
 							<div class="field" style="flex:2; min-width:100px;">
 								<label class="label" for="ra-{i}">Amount</label>
 								<input id="ra-{i}" name="rewardAmount" type="number" class="input" min="0" bind:value={r.amount} />
 							</div>
+							{#if r.type === 'ITEM'}
+								<div style="display:flex; gap:0.5rem; flex-wrap:wrap; padding:0.5rem 0; width:100%;">
+									<div class="field" style="flex:1 1 120px;">
+										<label class="label" for="rrar-{i}">Rarity filter</label>
+										<select id="rrar-{i}" name="itemRarity_{i}" class="input input--select"
+											bind:value={rewardRows[i].itemRarity}>
+											<option value={undefined}>Any rarity</option>
+											{#each (data as any).itemRarities ?? [] as rar}
+												<option value={rar}>{rar.replace('_',' ')}</option>
+											{/each}
+										</select>
+									</div>
+									<div class="field" style="flex:1 1 120px;">
+										<label class="label" for="rcat-{i}">Category filter</label>
+										<select id="rcat-{i}" name="itemCategory_{i}" class="input input--select"
+											bind:value={rewardRows[i].itemCategory}>
+											<option value={undefined}>Any category</option>
+											{#each (data as any).itemCategories ?? [] as cat}
+												<option value={cat}>{cat}</option>
+											{/each}
+										</select>
+									</div>
+									<div class="field" style="flex:1 1 100px;">
+										<label class="label" for="rmv-{i}">Max value (gp)</label>
+										<input id="rmv-{i}" name="itemMaxValue_{i}" type="number" class="input" min="0"
+											bind:value={rewardRows[i].itemMaxValue}
+											placeholder="No limit" />
+									</div>
+								</div>
+							{/if}
 							<button type="button" class="btn btn-ghost btn-sm btn-icon class-alloc-remove"
 								onclick={() => rewardRows = rewardRows.filter((_, idx) => idx !== i)} aria-label="Remove">
 								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -327,7 +369,7 @@
 						<span class="badge {s.status === 'CONFIRMED' ? 'badge-success' : s.status === 'WAITLIST' ? 'badge-muted' : 'badge-warning'}">{s.status.replace('_', ' ')}</span>
 					</div>
 				</div>
-				{/each}}
+				{/each}
 			</div>
 		{:else}
 			<p class="table__empty">No signups yet.</p>
@@ -345,14 +387,15 @@
 			</div>
 			{#if data.quest.result.characters.length}
 				<table class="table">
-					<thead><tr><th>Character</th><th>XP</th><th>Gold</th><th>Tokens</th></tr></thead>
+					<thead><tr><th>Character</th><th>XP</th><th>Gold</th><th>Tokens</th><th>Item</th></tr></thead>
 					<tbody>
 						{#each data.quest.result.characters as rc}
 							<tr>
-								<td>{rc.characterId}</td>
+								<td>{data.quest.signups.find((s: any) => s.characterId === rc.characterId)?.character?.name ?? rc.characterId}</td>
 								<td>{rc.xpAwarded.toLocaleString()}</td>
 								<td>{rc.goldAwarded.toLocaleString()}</td>
 								<td>{rc.tokensAwarded.toLocaleString()}</td>
+								<td>{(rc as any).itemGrantedName ?? '—'}</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -361,14 +404,67 @@
 		</div>
 	{/if}
 	<!-- Danger zone -->
+
+	<!-- Item usage approvals -->
+	{#if (data as any).itemUsages?.length}
+		<div class="card">
+			<h3 class="section-title">Item usage submissions</h3>
+			<table class="table">
+				<thead><tr><th>Character</th><th>Random item</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
+				<tbody>
+					{#each (data as any).itemUsages as u}
+						<tr>
+							<td>{u.characterName}</td>
+							<td>{u.itemName}</td>
+							<td>{u.quantityUsed}</td>
+							<td><span class="badge badge-{u.status === 'APPROVED' ? 'success' : u.status === 'REJECTED' ? 'danger' : 'warning'}">{u.status}</span></td>
+							<td>
+								<span class="table__muted">Processed on result approval</span>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{/if}
+
 	<div class="card" style="border-color:var(--color-danger); margin-top:1.5rem;">
 		<h3 class="section-title" style="color:var(--color-danger);">Danger zone</h3>
 		<p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1rem;">
 			Permanently deletes this quest and all signups, rewards and results. Cannot be undone.
 		</p>
-		<form method="post" action="?/deleteQuest"
-			use:enhance={({ cancel }) => { if (!confirm('Permanently delete this quest?')) { cancel(); return; } return async ({ update }) => { await update(); }; }}>
-			<button type="submit" class="btn btn-danger btn-sm">Delete quest permanently</button>
+		<button type="button" class="btn btn-danger btn-sm" onclick={() => showDeleteModal = true}>
+			Delete quest permanently
+		</button>
+
+		<form bind:this={deleteFormEl} method="post" action="?/deleteQuest" style="display:none;"
+			use:enhance={() => { return async ({ update }) => { await update(); }; }}>
+			<input type="hidden" name="revertRewards" value={revertRewards} />
 		</form>
 	</div>
+
+	<ConfirmModal
+		open={showDeleteModal}
+		title="Delete quest permanently"
+		message={"This will permanently delete \"" + data.quest.title + "\" and all signups, rewards and results. This cannot be undone."}
+		confirmLabel="Delete permanently"
+		confirmClass="btn-danger"
+		onconfirm={() => {
+			showDeleteModal = false;
+			const input = deleteFormEl?.querySelector('input[name="revertRewards"]') as HTMLInputElement | null;
+			if (input) input.value = String(revertRewards);
+			deleteFormEl?.requestSubmit();
+		}}
+		oncancel={() => { showDeleteModal = false; revertRewards = false; }}>
+		{#snippet extra()}
+			{#if data.quest.status === 'COMPLETED'}
+				<label style="display:flex; align-items:flex-start; gap:0.625rem; margin-bottom:1rem; cursor:pointer; font-size:0.875rem; color:var(--text-secondary);">
+					<input type="checkbox" style="margin-top:2px; flex-shrink:0;"
+						checked={revertRewards}
+						onchange={(e) => revertRewards = (e.currentTarget as HTMLInputElement).checked} />
+					Also revert XP, gold and tokens granted to characters (gold may go negative)
+				</label>
+			{/if}
+		{/snippet}
+	</ConfirmModal>
 </div>

@@ -39,8 +39,24 @@ export async function getAllQuests({
     const userMap    = Object.fromEntries(dmUsers.map(u => [u.id, u.name]));
     const profileMap = Object.fromEntries(dmProfiles.map(p => [p.id, userMap[p.userId] ?? p.userId]));
 
+    // Enrich with region/location names
+    const regionIds   = [...new Set(items.map(q => q.regionId).filter(Boolean))] as string[];
+    const locationIds = [...new Set(items.map(q => q.locationId).filter(Boolean))] as string[];
+    const [regions, locations] = await Promise.all([
+        regionIds.length   ? db.region.findMany({ where: { id: { in: regionIds } }, select: { id: true, name: true, world: { select: { name: true } } } }) : [],
+        locationIds.length ? db.location.findMany({ where: { id: { in: locationIds } }, select: { id: true, name: true } }) : [],
+    ]);
+    const regionMap   = Object.fromEntries((regions as any[]).map(r => [r.id, { name: r.name, worldName: r.world?.name ?? null }]));
+    const locationMap = Object.fromEntries((locations as any[]).map(l => [l.id, l.name]));
+
     return {
-        items: items.map(q => ({ ...q, dmName: profileMap[q.dmProfileId] ?? q.dmProfileId })),
+        items: items.map(q => ({
+            ...q,
+            dmName:       profileMap[q.dmProfileId] ?? q.dmProfileId,
+            regionName:   q.regionId   ? (regionMap[q.regionId]?.name   ?? null) : null,
+            worldName:    q.regionId   ? (regionMap[q.regionId]?.worldName ?? null) : null,
+            locationName: q.locationId ? (locationMap[q.locationId]      ?? null) : null,
+        })),
         total, page, perPage, totalPages: Math.ceil(total / perPage),
     };
 }

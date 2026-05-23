@@ -1,12 +1,15 @@
 // apps/frontend/src/routes/(protected)/quests/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { quests, characters } from '@core/database';
+import { quests, dms, characters, platform } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const quest = await quests.getById(params.id);
-	if (!quest || quest.status !== 'PUBLISHED') throw error(404, 'Quest not found');
+	if (!quest) throw error(404, 'Quest not found');
+
+	const allowedStatuses = ['PUBLISHED', 'IN_PROGRESS', 'PENDING_RESULT', 'PENDING_RESULT_APPROVAL', 'COMPLETED'];
+	if (!allowedStatuses.includes(quest.status)) throw error(404, 'Quest not found');
 
 	// Load player's eligible characters
 	const myChars  = await characters.getByUserId(locals.user!.id);
@@ -21,10 +24,36 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		myChars.some(c => c.id === s.characterId) && s.status !== 'CANCELLED'
 	);
 
-	return { quest, eligible, mySignups };
+	// Load existing DM rating for completed quests
+	const settings       = await platform.getSettingsMap();
+	const ratingsEnabled = settings['dm.ratingsEnabled'] !== 'false';
+	// Load result characters for completed quests
+	let resultCharacters: any[] = [];
+	if (quest.status === 'COMPLETED') {
+		const result = await quests.getResult(params.id);
+		resultCharacters = result?.characters ?? [];
+	}
+
+	const existingRating = (quest.status === 'COMPLETED' && ratingsEnabled)
+		? await dms.ratings.getForQuest(params.id, locals.user!.id).catch(() => null)
+		: null;
+
+	return { quest, eligible, mySignups, existingRating, ratingsEnabled, resultCharacters };
 };
 
 export const actions: Actions = {
+	rate: async ({ params, request, locals }) => {
+		const data    = await request.formData();
+		const rating  = Number(data.get('rating') ?? 0);
+		const comment = data.get('comment')?.toString().trim() || undefined;
+		try {
+			await dms.ratings.submit(params.id, locals.user!.id, rating, comment);
+			return { rateSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
 	signup: async ({ params, request, locals }) => {
 		const data        = await request.formData();
 		const characterId = data.get('characterId')?.toString() ?? '';

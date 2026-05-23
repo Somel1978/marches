@@ -6,10 +6,11 @@ import type { QuestStatus } from '@prisma/client';
 
 const VALID_TRANSITIONS: Partial<Record<QuestStatus, QuestStatus[]>> = {
     DRAFT:            ['PENDING_APPROVAL', 'CANCELLED'],
-    PENDING_APPROVAL: ['PUBLISHED', 'CANCELLED'],
-    PUBLISHED:        ['IN_PROGRESS', 'CANCELLED'],
-    IN_PROGRESS:      ['PENDING_RESULT', 'CANCELLED'],
-    PENDING_RESULT:   ['COMPLETED', 'CANCELLED'],
+    PENDING_APPROVAL:        ['PUBLISHED', 'CANCELLED'],
+    PUBLISHED:               ['IN_PROGRESS', 'CANCELLED'],
+    IN_PROGRESS:             ['PENDING_RESULT', 'CANCELLED'],
+    PENDING_RESULT:          ['PENDING_RESULT_APPROVAL', 'CANCELLED'],
+    PENDING_RESULT_APPROVAL: ['COMPLETED', 'PENDING_RESULT', 'CANCELLED'],
 };
 
 export async function updateQuestStatus(

@@ -10,8 +10,6 @@
 		logoAlt?:       string;
 		notifCount?:    number;
 		notifications?: any[];
-		notifReadUrl?:  string;
-		notifAllUrl?:   string;
 		actions?:     Snippet;
 		onMenuClick?: () => void;
 		user?: {
@@ -21,7 +19,7 @@
 		};
 	}
 
-	let { title, logoHtml, logoUrl, logoAlt, notifCount = 0, notifications = [], notifReadUrl = '/notifications?/read', notifAllUrl = '/notifications?/readAll', actions, user, onMenuClick }: Props = $props();
+	let { title, logoHtml, logoUrl, logoAlt, notifCount = 0, notifications = [], actions, user, onMenuClick }: Props = $props();
 
 	const initials = $derived(
 		user?.name
@@ -57,7 +55,7 @@
 	{/if}
 
 	{#if user}
-		<NotificationBell count={notifCount} {notifications} markReadUrl={notifReadUrl} markAllUrl={notifAllUrl} />
+		<NotificationBell count={notifCount} {notifications} />
 		<div class="header__user">
 			<span class="header__user-name">{user.name}</span>
 			{#if user.image}

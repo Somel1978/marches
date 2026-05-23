@@ -7,6 +7,15 @@
 	let { data, children }: { data: LayoutData; children: any } = $props();
 	let menuOpen = $state(false);
 
+	// Notification data comes from layout server but is not in generated LayoutData types
+	// Use local vars typed explicitly to satisfy NotificationBell props
+	let notifCount: number    = $state(0);
+	let notifList:  any[]     = $state([]);
+	$effect.pre(() => {
+		notifCount = (data as any).notifCount   ?? 0;
+		notifList  = (data as any).notifications ?? [];
+	});
+
 	function closeMenu() { menuOpen = false; }
 </script>
 
@@ -63,11 +72,8 @@
 			<!-- Desktop actions -->
 			<div class="nav-bar__actions nav-bar__actions--desktop">
 				{#if data.user}
-					<NotificationBell
-						count={(data as any).notifCount ?? 0}
-						notifications={(data as any).notifications ?? []}
-						markReadUrl="/notifications?/read"
-						markAllUrl="/notifications?/readAll" />
+					{@const Bell = NotificationBell as any}
+					<Bell count={notifCount} notifications={notifList} />
 					<a href="/profile" class="btn btn-ghost btn-sm">Profile</a>
 					<form method="post" action="/signout" style="display:contents">
 						<button type="submit" class="btn btn-ghost btn-sm">Sign out</button>

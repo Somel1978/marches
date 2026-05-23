@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/dm/profile/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { dms, gameSystems } from '@core/database';
+import { dms, db, gameSystems } from '@core/database';
 import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -16,7 +16,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	if (!profile) throw error(403, 'DM profile not found. Contact an admin.');
 
-	return { profile, systems };
+	const ratings = await db.dMRating.findMany({
+		where:   { dmProfileId: profile.id },
+		orderBy: { createdAt: 'desc' },
+		take:    20,
+	});
+	const avgRating = ratings.length
+		? (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1)
+		: null;
+	return { profile, ratings, avgRating, systems };
 };
 
 export const actions: Actions = {

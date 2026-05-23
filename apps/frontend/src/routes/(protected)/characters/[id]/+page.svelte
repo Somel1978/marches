@@ -348,9 +348,13 @@
 								}}>
 								<input type="hidden" name="inventoryId" value={inv.id} />
 								<input type="hidden" name="quantity"    value="1" />
-								<button type="submit" class="btn btn-ghost btn-sm">
-									Sell ({inv.livePrice !== null ? Math.floor(inv.livePrice * 0.5).toLocaleString() : '?'} GP)
-								</button>
+								{#if inv.canSell === false}
+									<span class="badge badge-muted" title="Granted as reward — cannot be sold">Not sellable</span>
+								{:else}
+									<button type="submit" class="btn btn-ghost btn-sm">
+										Sell ({inv.livePrice !== null ? Math.floor(inv.livePrice * 0.5).toLocaleString() : '?'} GP)
+									</button>
+								{/if}
 							</form>
 						{:else if ((data as any).pendingSells ?? []).some((t: any) => t.itemId === inv.itemId)}
 							<span class="badge badge-warning">Sell pending</span>
@@ -362,6 +366,20 @@
 			<p class="table__empty">No items in inventory.</p>
 		{/if}
 	</div>
+	<!-- Achievements -->
+	{#if (data as any).charAchievements?.length}
+		<div class="card">
+			<h3 class="section-title">Achievements</h3>
+			<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+				{#each (data as any).charAchievements as g}
+					<div style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-sm); border:1px solid var(--border-muted);" title={g.note ?? g.achievement?.description ?? ''}>
+						<span style="font-size:1.125rem;">{g.achievement?.icon ?? '🏆'}</span>
+						<span style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">{g.achievement?.name ?? g.achievementId}</span>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
 </div>
 
 <!-- Lightbox -->

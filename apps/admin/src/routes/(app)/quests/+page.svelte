@@ -10,7 +10,8 @@
 		PENDING_APPROVAL: 'badge-warning',
 		PUBLISHED:        'badge-success',
 		IN_PROGRESS:      'badge-accent',
-		PENDING_RESULT:   'badge-warning',
+		PENDING_RESULT:            'badge-warning',
+		PENDING_RESULT_APPROVAL:   'badge-accent',
 		COMPLETED:        'badge-success',
 		CANCELLED:        'badge-danger',
 	};
@@ -52,6 +53,11 @@
 					<tr>
 						<td>
 							<strong>{quest.title}</strong>
+							{#if (quest as any).regionName}
+								<span style="display:block; font-size:0.75rem; color:var(--text-muted); margin-top:0.125rem;">
+									📍 {(quest as any).worldName ? `${(quest as any).worldName} › ` : ''}{(quest as any).regionName}{(quest as any).locationName ? ` · ${(quest as any).locationName}` : ''}
+								</span>
+							{/if}
 							{#if quest.rewardAdjusted}
 								<span class="badge badge-warning" style="margin-left:0.375rem;">Rewards changed</span>
 							{/if}

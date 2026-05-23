@@ -5,7 +5,7 @@ import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
-const QUEST_SETTINGS = ['quest.minCapacity', 'quest.maxCapacity'];
+const QUEST_SETTINGS = ['quest.minCapacity', 'quest.maxCapacity', 'quest.destroyableCategories'];
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const can = checkPermission(locals.permissions, { resourceKey: 'Quest', action: 'read' });
@@ -21,7 +21,10 @@ export const actions: Actions = {
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
 
 		const data    = await request.formData();
-		const entries = QUEST_SETTINGS.map(key => ({ key, value: data.get(key)?.toString().trim() ?? null }));
+		// Convert checkbox array to comma-delimited string
+		const destroyableCats = data.getAll('quest.destroyableCategories[]').map(v => v.toString());
+		data.set('quest.destroyableCategories', destroyableCats.join(','));
+		const entries = QUEST_SETTINGS.map(key => ({ key, value: data.get(key)?.toString().trim() ?? '' }));
 
 		try {
 			await platform.updateSettings(entries, locals.user!.id);

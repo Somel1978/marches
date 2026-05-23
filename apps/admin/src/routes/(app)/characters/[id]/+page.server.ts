@@ -1,6 +1,6 @@
 // apps/admin/src/routes/(app)/characters/[id]/+page.server.ts
 import { fail, error, redirect } from '@sveltejs/kit';
-import { characters, users, gameSystems } from '@core/database';
+import { characters, achievements, users, gameSystems } from '@core/database';
 import { assertRecordPermission, checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -25,7 +25,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	]);
 
 	const inventory = await characters.getInventory(params.id);
-	return { character, owner, transactions, gameSystem, inventory };
+	const charAchievements = await achievements.getForCharacter(params.id);
+	return { character, charAchievements, owner, transactions, gameSystem, inventory };
 };
 
 export const actions: Actions = {

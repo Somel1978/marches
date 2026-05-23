@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-21
+> Last updated: 2026-05-23
 
 ---
 
@@ -51,11 +51,12 @@ marches/
 06 characters  — Character, CharacterClass, CharacterSlotGrant,
                  CharacterTransaction, CharacterInventory
 07 dms         — DMProfile, DMGameSystem, RoleRequest, DMRating
-08 quests      — Quest, QuestDM, QuestReward, QuestSignup,
-                 QuestResult, QuestResultCharacter
+08 quests      — Quest, QuestDM, QuestReward (itemRarity/Category/MaxValue),
+                 QuestSignup, QuestResult, QuestResultCharacter (itemGrantedId/Name),
+                 QuestItemUsage
 09 marketplace — MarketplaceItem, MarketplaceTransaction
-10 world       — World, Region, RegionDM, Location,
-                 WikiPage, WikiRevision
+10 world       — World, Region, RegionDM, Location, WikiPage, WikiRevision
+11 rewards     — Achievement, CharacterAchievement
 ```
 
 ---
@@ -67,12 +68,14 @@ marches/
 ✅ 1. GameSystem
 ✅ 2. Character Hub
 ✅ 3. DM Hub
-✅ 4. Quest System (core — item rewards pending Rewards Engine)
+✅ 4. Quest System (full — lifecycle, rewards, item rewards, destroyable inventory)
 ✅ 5. Marketplace + Character Inventory
 ✅ 6. World System
 ✅ 7. Notification System
-⬜ 8. Rewards Engine
-⬜ 9. Discord
+✅ 8. Quest Completion Workflow + Rewards Engine
+⬜ 9. News / Blog / Journal
+⬜ 10. Statistics
+⬜ 11. Discord
 ```
 
 ---
@@ -191,7 +194,8 @@ CharacterClass         — classRef, subclassRef (named cross-schema relations)
 CharacterSlotGrant     — delta grants per user
 CharacterTransaction   — audit trail (XP|GOLD|TOKEN|STATUS|ITEM|REWARD)
 CharacterInventory     — itemId, itemName, itemCategory, itemRarity,
-                         itemSource, purchasePrice, sourceType, transactionId
+                         itemSource, purchasePrice, canSell, sourceType,
+                         sourceId, transactionId
 ```
 
 **Status flow:**
@@ -486,7 +490,36 @@ Notification — userId, type, title, message, actionUrl, isRead, createdAt
 
 ---
 
-### 8. Rewards Engine ⬜
+### 8. Quest Completion Workflow ✅
+
+**Triggered by:** Admin approving a quest result (`approveQuestResult`)
+
+**Per participating character:**
+1. XP awarded → `CharacterTransaction(XP)` + `character.totalXp` incremented
+2. Gold awarded → `CharacterTransaction(GOLD)` + `character.totalGold` incremented
+3. Tokens awarded → `CharacterTransaction(TOKEN)` + `character.totalTokens` incremented
+4. `character.restUntil` set to `now + character.restDays` days
+5. Level-up detection: compare new XP against `ProgressionThreshold` for character's game system
+   - Crossed threshold → status `LEVEL_UP_PENDING` + `LEVEL_UP` notification to player
+   - Not crossed → status `RESTING` + `QUEST_COMPLETE` notification to player
+6. `CharacterTransaction(STATUS)` written with rest end date
+
+**DM Rating:**
+- Players can rate DM 1-5 stars + optional comment on completed quests they participated in
+- Gated by `dm.ratingsEnabled` setting — hidden everywhere when disabled
+- DMs cannot rate their own quests
+- DM sees all ratings on their quest detail page (anonymous — no player name shown)
+- DM sees aggregate ratings on their profile page
+- Admin sees full ratings table on DM admin page with quest title + average
+- Stored in `dms.dm_ratings` — supports future stats: filter by dmProfileId + quest main DM
+
+**Sign-up enforcement:**
+- Character level (sum of `allocatedLevel` across classes) must be within quest min/max
+- Enforced in `quests.signup()` dbapi before creating the signup record
+
+---
+
+### 9. Rewards Engine ⬜
 
 **Schema:** `rewards`
 
@@ -497,7 +530,7 @@ Random item rewards use the Marketplace at cost 0.
 
 ---
 
-### 9. Discord Integration ⬜
+### 10. Discord Integration ⬜
 
 **Purpose:** Notification and bot interaction layer. Platform is primary.
 
@@ -554,6 +587,15 @@ Never delete revisions.
 `renderMarkdown(content: string): string` exported from `@core/ui`. Uses `marked`
 with GFM + line breaks. All wiki displays use `{@html renderMarkdown(content)}` with
 `.markdown-body` CSS class.
+
+### DM rating visibility
+Ratings are anonymous to the DM — no player name is stored or shown. The `userId` on
+`DMRating` is for uniqueness enforcement (one per user per quest) and future admin review,
+not for display. The DM sees star + comment only.
+
+For stats: `dms.dm_ratings` stores `dmProfileId + questId + userId`. Future queries can
+join with `quests.quests WHERE dm_profile_id = dmProfileId` to filter ratings only for
+quests where the DM was the main DM (not co-DM).
 
 ### Notification action URL format
 SvelteKit named actions with query params must place params **before** the action name:
@@ -640,9 +682,11 @@ characters.{getAll, getById, getByUserId, getSlotInfo, getAllSlotInfo,
             delete, adjustCurrency, grantSlot, checkRest}
 dms.profiles.{getAll, getById, getByUserId, create, update, revoke}
 dms.roleRequests.{getAll, getPending, getLatestByUser, create, approve, reject, delete}
-quests.{getAll, getById, getByDM, create, update, updateRewards, updateStatus,
-        addCoDM, removeCoDM, signup, cancelSignup, confirmWaitlistPromotion,
-        submitResult, approveResult, rejectResult, delete}
+quests.{getAll, getById, getByDM, getResult, create, update, updateRewards,
+        updateStatus, addCoDM, removeCoDM, signup, cancelSignup,
+        confirmWaitlistPromotion, submitResult, approveResult, rejectResult,
+        delete, itemUsage.{submit, approve, reject, getForQuest}}
+achievements.{getAll, getForCharacter, create, update, grant, revoke}
 marketplace.items.{getAll, getById, getByName, upsert, update, delete, import}
 marketplace.transactions.{getAll, buy, sell, approve, reject, cancel, reward}
 worlds.{getAll, getBySlug, getById, create, update}
@@ -689,6 +733,9 @@ Feature settings always go in the feature seed file, never in 01-platform.
 /world/[id]/regions/[regionId]
 /world/[id]/regions/[regionId]/locations/[locationId]
 /world/settings
+/rewards
+/rewards/achievements
+/rewards/grant
 ```
 
 ## Frontend Routes Summary
@@ -746,15 +793,28 @@ shared/ui/components/layout/
 - [x] Site branding (site.name, site.logo, site.footer — platform settings, live in nav/sidebar/footer)
 - [x] Quest region/location assignment UI (new + edit forms, DM + admin, world › region › location display)
 - [x] Notification System (bell icon, unread count, panel, mark read, mark all read, all approval triggers)
+- [x] Quest completion workflow (XP/gold/token CharacterTransactions, rest status, level-up detection, player notifications)
+- [x] DM rating system (1-5 stars + comment, per quest, gated by dm.ratingsEnabled, DM self-rating blocked)
+- [x] Sign-up level enforcement (character level checked against quest min/max on signup)
+- [x] Completed quest list (frontend /quests?tab=completed with Rate DM button)
+- [x] Quest region/location on all list pages (admin, frontend, DM dashboard)
+- [x] Rewards Engine (Achievements, item grants, destroyable inventory, Admin Rewards Hub)
+- [x] Quest item rewards (random item per player per ITEM reward, filter by rarity/category/maxValue)
+- [x] Quest completion workflow full (PENDING_RESULT_APPROVAL status, result resubmission)
+- [x] Item usage tracking (DM records during IN_PROGRESS, approved atomically with quest result)
+- [x] canSell enforcement (QUEST/ADMIN granted items not sellable, UI + server-side)
+- [x] Sell by unit quantity (when quantity > 1, number input shown)
+- [x] Admin Rewards Hub (/rewards, /rewards/achievements, /rewards/grant with search + randomize)
+- [x] Character achievements display (frontend + admin character pages)
+- [x] Completed quest rewards display (per-character actual grants: XP/gold/tokens/item)
+- [x] Cancel signup blocked on active/completed quests
 
 ### ⬜ Pending
-- [ ] Rewards Engine (titles, badges, token grants, random item from marketplace)
-- [ ] Quest item reward distribution (marketplace zero-cost transactions)
-- [ ] Quest region/location assignment UI
+- [ ] News / Blog / Journal
+- [ ] Statistics
 - [ ] Discord integration
-- [ ] Remove debug console.log from marketplace/transactions.ts and get-by-id.ts
 - [ ] site.logoIcon setting for collapsed sidebar (Option B)
-- [ ] Quest region/location also shown on quest list pages (admin + frontend)
+- [ ] DM dashboard quest filters (by status, date)
 
 ---
 
