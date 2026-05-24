@@ -11,6 +11,9 @@ export async function updateCharacter(
         avatarUrl?:   string;
         portraitUrl?: string;
         gameSystemId?: string;
+        description?: string | null;
+        worldId?:     string | null;
+        isGlobal?:    boolean;
     },
     actorId?: string,
 ) {

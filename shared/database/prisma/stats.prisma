@@ -1,0 +1,12 @@
+/* shared/database/prisma/stats.prisma */
+
+model QuestStat {
+  id             String   @id @default(uuid())
+  questId        String   @unique @map("quest_id")
+  avgPartyLevel  Float    @map("avg_party_level")
+  playerCount    Int      @map("player_count")
+  completedAt    DateTime @map("completed_at")
+
+  @@map("quest_stats")
+  @@schema("stats")
+}

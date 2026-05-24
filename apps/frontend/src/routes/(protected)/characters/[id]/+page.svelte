@@ -327,7 +327,14 @@
 							<img src={inv.imageUrl} alt="" style="width:40px; height:40px; object-fit:contain; border-radius:var(--radius-sm); flex-shrink:0;" />
 						{/if}
 						<div style="flex:1; min-width:0;">
-							<p style="font-weight:600; font-size:0.9375rem; margin:0;">{inv.itemName}</p>
+							<p style="font-weight:600; font-size:0.9375rem; margin:0;">
+								{#if (inv as any).itemLink}
+									<a href={(inv as any).itemLink} target="_blank" rel="noopener noreferrer"
+										style="color:inherit; text-decoration:underline; text-underline-offset:2px;">{inv.itemName}</a>
+								{:else}
+									{inv.itemName}
+								{/if}
+							</p>
 							<div style="display:flex; gap:0.375rem; flex-wrap:wrap; margin-top:0.25rem;">
 								{#if inv.liveRarity ?? inv.itemRarity}
 									<span class="badge {(rarityColors as any)[inv.liveRarity ?? inv.itemRarity ?? ''] ?? 'badge-muted'}">
@@ -347,13 +354,21 @@
 									return async ({ update }) => { await update(); await invalidateAll(); };
 								}}>
 								<input type="hidden" name="inventoryId" value={inv.id} />
-								<input type="hidden" name="quantity"    value="1" />
 								{#if inv.canSell === false}
+									<input type="hidden" name="quantity" value="1" />
 									<span class="badge badge-muted" title="Granted as reward — cannot be sold">Not sellable</span>
 								{:else}
-									<button type="submit" class="btn btn-ghost btn-sm">
-										Sell ({inv.livePrice !== null ? Math.floor(inv.livePrice * 0.5).toLocaleString() : '?'} GP)
-									</button>
+									<div style="display:flex; align-items:center; gap:0.5rem;">
+										{#if inv.quantity > 1}
+											<input type="number" name="quantity" class="input" min="1" max={inv.quantity}
+												value="1" style="width:60px; padding:0.25rem 0.5rem; font-size:0.8rem;" />
+										{:else}
+											<input type="hidden" name="quantity" value="1" />
+										{/if}
+										<button type="submit" class="btn btn-ghost btn-sm">
+											Sell ({inv.livePrice !== null ? Math.floor(inv.livePrice * 0.5).toLocaleString() : '?'} GP ea)
+										</button>
+									</div>
 								{/if}
 							</form>
 						{:else if ((data as any).pendingSells ?? []).some((t: any) => t.itemId === inv.itemId)}
@@ -366,6 +381,22 @@
 			<p class="table__empty">No items in inventory.</p>
 		{/if}
 	</div>
+	<!-- Description / Backstory -->
+	<div class="card">
+		<h3 class="section-title">Backstory</h3>
+		<form method="post" action="?/update" use:enhance={() => {
+			return async ({ update }) => { await update(); await invalidateAll(); };
+		}}>
+			<div class="field">
+				<textarea name="description" class="input" rows="5"
+					placeholder="Write your character's backstory here…">{(data.character as any).description ?? ''}</textarea>
+			</div>
+			<div class="form-actions">
+				<button type="submit" class="btn btn-primary btn-sm">Save backstory</button>
+			</div>
+		</form>
+	</div>
+
 	<!-- Achievements -->
 	{#if (data as any).charAchievements?.length}
 		<div class="card">

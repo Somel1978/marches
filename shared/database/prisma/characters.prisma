@@ -68,6 +68,9 @@ model Character {
   totalGold    Int                     @default(0)  @map("total_gold")
   totalTokens  Int                     @default(0)  @map("total_tokens")
   restUntil    DateTime?               @map("rest_until")
+  description  String?                 // backstory / character description
+  worldId      String?                 @map("world_id")   // null = unassigned
+  isGlobal     Boolean                 @default(true)  @map("is_global") // can join any world quests
   createdAt    DateTime                @default(now()) @map("created_at")
   updatedAt    DateTime                @updatedAt      @map("updated_at")
 

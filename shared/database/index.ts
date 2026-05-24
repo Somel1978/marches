@@ -42,6 +42,8 @@ import { createSubclass, updateSubclass, deleteSubclass } from './dbapi/write/ga
 import { createProgressionThreshold, updateProgressionThreshold, deleteProgressionThreshold } from './dbapi/write/gamesystem/progression.ts';
 import { createSpecies, updateSpecies, deleteSpecies } from './dbapi/write/gamesystem/species.ts';
 
+import { getPlatformStats, getPublicStats, getUserStats } from './dbapi/read/stats/get-stats.ts';
+
 // ── Achievements ─────────────────────────────────────────────────────────────────
 import { createAchievement, updateAchievement, grantAchievement, revokeAchievement } from './dbapi/write/rewards/achievements.ts';
 import { getAllAchievements, getCharacterAchievements } from './dbapi/read/rewards/get-achievements.ts';
@@ -293,4 +295,10 @@ export const achievements = {
     update:   updateAchievement,
     grant:    grantAchievement,
     revoke:   revokeAchievement,
+};
+
+export const stats = {
+    getPlatform: getPlatformStats,
+    getPublic:   getPublicStats,
+    getUser:     getUserStats,
 };

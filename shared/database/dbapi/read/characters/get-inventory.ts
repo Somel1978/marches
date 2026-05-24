@@ -12,7 +12,7 @@ export async function getCharacterInventory(characterId: string) {
     const liveItems = itemIds.length
         ? await db.marketplaceItem.findMany({
             where:  { id: { in: itemIds } },
-            select: { id: true, buyPrice: true, isAvailable: true, rarity: true, imageUrl: true },
+            select: { id: true, buyPrice: true, isAvailable: true, rarity: true, imageUrl: true, link: true },
           })
         : [];
 
@@ -20,9 +20,10 @@ export async function getCharacterInventory(characterId: string) {
 
     return items.map(i => ({
         ...i,
-        livePrice:   i.itemId ? (liveMap[i.itemId]?.buyPrice ?? null)       : null,
-        liveRarity:  i.itemId ? (liveMap[i.itemId]?.rarity   ?? null)       : null,
-        imageUrl:    i.itemId ? (liveMap[i.itemId]?.imageUrl  ?? null)       : null,
-        isAvailable: i.itemId ? (liveMap[i.itemId]?.isAvailable ?? null)    : null,
+        livePrice:   i.itemId ? (liveMap[i.itemId]?.buyPrice    ?? null) : null,
+        liveRarity:  i.itemId ? (liveMap[i.itemId]?.rarity      ?? null) : null,
+        imageUrl:    i.itemId ? (liveMap[i.itemId]?.imageUrl    ?? null) : null,
+        isAvailable: i.itemId ? (liveMap[i.itemId]?.isAvailable ?? null) : null,
+        itemLink:    i.itemId ? (liveMap[i.itemId]?.link        ?? null) : null,
     }));
 }

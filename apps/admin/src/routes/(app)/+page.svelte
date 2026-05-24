@@ -2,45 +2,55 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
+	const s = $derived((data as any).platformStats);
 </script>
 
-<div class="dashboard">
-	<h2 class="dashboard__heading">Dashboard</h2>
-
-	<div class="dashboard__stats">
-		<div class="stat-card">
-			<span class="stat-value">{data.metrics.totalUsers}</span>
-			<span class="stat-label">Users</span>
-		</div>
-		<div class="stat-card">
-			<span class="stat-value">{data.metrics.totalRoles}</span>
-			<span class="stat-label">Roles</span>
-		</div>
-		<div class="stat-card">
-			<span class="stat-value">{data.metrics.totalResources}</span>
-			<span class="stat-label">Resources</span>
-		</div>
-		<div class="stat-card">
-			<span class="stat-value">{data.metrics.activeSessions}</span>
-			<span class="stat-label">Active Sessions</span>
-		</div>
+<div class="page">
+	<div class="page__header">
+		<h2 class="page__title">Dashboard</h2>
 	</div>
 
-	<div class="dashboard__links">
-		<a href="/users" class="quick-link">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-				<circle cx="9" cy="7" r="4"/>
-				<path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-				<path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-			</svg>
-			Manage Users
-		</a>
-		<a href="/roles" class="quick-link">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-			</svg>
-			Manage Roles
-		</a>
-	</div>
+	{#if s}
+		<!-- Totals -->
+		<div class="dashboard__stats" style="margin-bottom:1.5rem;">
+			<div class="stat-card"><span class="stat-value">{s.totalUsers}</span><span class="stat-label">Users</span></div>
+			<div class="stat-card"><span class="stat-value">{s.totalCharacters}</span><span class="stat-label">Characters</span></div>
+			<div class="stat-card"><span class="stat-value">{s.totalWorlds}</span><span class="stat-label">Worlds</span></div>
+			<div class="stat-card"><span class="stat-value">{s.questsByStatus?.COMPLETED ?? 0}</span><span class="stat-label">Quests completed</span></div>
+			<div class="stat-card"><span class="stat-value">{s.questsByStatus?.PUBLISHED ?? 0}</span><span class="stat-label">Quests active</span></div>
+			<div class="stat-card"><span class="stat-value">{s.questsByStatus?.PENDING_APPROVAL ?? 0}</span><span class="stat-label">Pending approval</span></div>
+		</div>
+
+		<div class="sections">
+			<!-- Quests completed per month -->
+			<div class="card">
+				<h3 class="section-title">Quests completed — last 6 months</h3>
+				{#if s.completedPerMonth?.length}
+					<table class="table">
+						<thead><tr><th>Month</th><th>Completed</th></tr></thead>
+						<tbody>
+							{#each s.completedPerMonth as row}
+								<tr><td>{row.month}</td><td>{row.count}</td></tr>
+							{/each}
+						</tbody>
+					</table>
+				{:else}
+					<p class="table__empty">No completed quests yet.</p>
+				{/if}
+			</div>
+
+			<!-- Marketplace -->
+			<div class="card">
+				<h3 class="section-title">Marketplace</h3>
+				<div class="dashboard__stats">
+					<div class="stat-card"><span class="stat-value">{s.purchases.count}</span><span class="stat-label">Total purchases</span></div>
+					<div class="stat-card"><span class="stat-value">{Math.round(s.purchases.total).toLocaleString()} GP</span><span class="stat-label">Total purchased</span></div>
+					<div class="stat-card"><span class="stat-value">{Math.round(s.purchases.average).toLocaleString()} GP</span><span class="stat-label">Avg purchase</span></div>
+					<div class="stat-card"><span class="stat-value">{s.sales.count}</span><span class="stat-label">Total sales</span></div>
+					<div class="stat-card"><span class="stat-value">{Math.round(s.sales.total).toLocaleString()} GP</span><span class="stat-label">Total sold</span></div>
+					<div class="stat-card"><span class="stat-value">{Math.round(s.sales.average).toLocaleString()} GP</span><span class="stat-label">Avg sale</span></div>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>

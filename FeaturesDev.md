@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-23
+> Last updated: 2026-05-24
 
 ---
 
@@ -57,6 +57,7 @@ marches/
 09 marketplace — MarketplaceItem, MarketplaceTransaction
 10 world       — World, Region, RegionDM, Location, WikiPage, WikiRevision
 11 rewards     — Achievement, CharacterAchievement
+12 stats       — QuestStat (avgPartyLevel, playerCount, completedAt)
 ```
 
 ---
@@ -73,9 +74,10 @@ marches/
 ✅ 6. World System
 ✅ 7. Notification System
 ✅ 8. Quest Completion Workflow + Rewards Engine
-⬜ 9. News / Blog / Journal
-⬜ 10. Statistics
-⬜ 11. Discord
+✅ 9. Character additions (backstory, world lock, inventory links)
+✅ 10. Statistics (platform + user + per-character, live queries)
+⬜ 11. News / Blog / Journal
+⬜ 12. Discord
 ```
 
 ---
@@ -185,11 +187,23 @@ if (!locals.user) return { user: null, siteName, siteLogo, siteFooter };
 
 ### 2. Character Hub ✅
 
+**World lock matrix:**
+| Character | World `acceptsGlobalCharacters` | Result |
+|---|---|---|
+| `isGlobal=true` | `true` | ✅ allowed |
+| `isGlobal=true` | `false` | ❌ blocked |
+| `isGlobal=false`, `worldId=X` | quest in world X | ✅ allowed |
+| `isGlobal=false`, `worldId=X` | quest in world Y | ❌ blocked |
+| `isGlobal=false`, `worldId=null` | any world | ✅ allowed |
+
+
+
 **Schema:** `characters`
 
 **Models:**
 ```
-Character              — status, xp, gold, tokens, restUntil
+Character              — status, xp, gold, tokens, restUntil,
+                         description, worldId, isGlobal
 CharacterClass         — classRef, subclassRef (named cross-schema relations)
 CharacterSlotGrant     — delta grants per user
 CharacterTransaction   — audit trail (XP|GOLD|TOKEN|STATUS|ITEM|REWARD)
@@ -665,7 +679,7 @@ All CSS lives in `shared/ui/styles/components/*.css`, imported via `index.css`.
 ### All DB access through named API
 Never use `db.*` directly in route files. Always use `@core/database` namespaced exports:
 `platform`, `users`, `roles`, `gameSystems`, `characters`, `dms`, `quests`,
-`marketplace`, `worlds`.
+`marketplace`, `worlds`, `stats`, `achievements`.
 
 ---
 
@@ -689,6 +703,7 @@ quests.{getAll, getById, getByDM, getResult, create, update, updateRewards,
 achievements.{getAll, getForCharacter, create, update, grant, revoke}
 marketplace.items.{getAll, getById, getByName, upsert, update, delete, import}
 marketplace.transactions.{getAll, buy, sell, approve, reject, cancel, reward}
+stats.{getPlatform, getPublic, getUser}
 worlds.{getAll, getBySlug, getById, create, update}
 worlds.regions.{getBySlug, getById, create, update, assignDM, removeDM}
 worlds.locations.{getBySlug, create, update}
@@ -736,6 +751,7 @@ Feature settings always go in the feature seed file, never in 01-platform.
 /rewards
 /rewards/achievements
 /rewards/grant
+(dashboard enhanced with platform stats)
 ```
 
 ## Frontend Routes Summary
@@ -746,6 +762,7 @@ Feature settings always go in the feature seed file, never in 01-platform.
 /dm, /dm/profile, /dm/quests/new, /dm/quests/[id]
 /dm-request
 /marketplace, /marketplace/[id]
+/stats
 /world
 /world/[worldSlug]/[regionSlug]
 /world/[worldSlug]/[regionSlug]/[locationSlug]
@@ -810,11 +827,13 @@ shared/ui/components/layout/
 - [x] Cancel signup blocked on active/completed quests
 
 ### ⬜ Pending
+- [x] Character additions (backstory field, world lock with isGlobal flag, inventory item links)
+- [x] Statistics (admin dashboard platform stats; frontend /stats with platform, user, per-character)
 - [ ] News / Blog / Journal
-- [ ] Statistics
 - [ ] Discord integration
 - [ ] site.logoIcon setting for collapsed sidebar (Option B)
 - [ ] DM dashboard quest filters (by status, date)
+- [ ] Roles & permissions review — differentiated admin roles (currently all admins are SUPERADMIN; need tiered access: e.g. Content Admin, Quest Admin, Player Admin, etc.) with scoped backend permissions
 
 ---
 

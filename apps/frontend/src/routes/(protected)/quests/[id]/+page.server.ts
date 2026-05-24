@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/quests/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { quests, dms, characters, platform } from '@core/database';
+import { quests, dms, characters, platform, worlds } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -59,6 +59,23 @@ export const actions: Actions = {
 		const characterId = data.get('characterId')?.toString() ?? '';
 		if (!characterId) return fail(400, { message: 'Select a character.' });
 		try {
+			// World lock check
+			const char = await characters.getById(characterId);
+			const questForCheck = await quests.getById(params.id);
+			if (char && questForCheck) {
+				const questWorld = (questForCheck as any).worldId ?? null;
+				if (questWorld) {
+					if (!char.isGlobal && char.worldId && char.worldId !== questWorld) {
+						return fail(400, { message: 'This character is locked to a different world.' });
+					}
+					if (char.isGlobal) {
+						const world = await worlds.getById(questWorld);
+						if (world && !(world as any).acceptsGlobalCharacters) {
+							return fail(400, { message: 'This world does not accept global characters.' });
+						}
+					}
+				}
+			}
 			await quests.signup(params.id, characterId, locals.user!.id);
 			return { success: true };
 		} catch (e) {

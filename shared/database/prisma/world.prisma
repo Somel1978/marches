@@ -38,7 +38,8 @@ model World {
   slug         String   @unique
   description  String?
   mapImageUrl  String?  @map("map_image_url")
-  isActive     Boolean  @default(true) @map("is_active")
+  isActive              Boolean  @default(true)  @map("is_active")
+  acceptsGlobalCharacters Boolean  @default(true)  @map("accepts_global_characters")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt      @map("updated_at")
 

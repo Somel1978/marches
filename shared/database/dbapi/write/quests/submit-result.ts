@@ -316,6 +316,25 @@ export async function approveQuestResult(resultId: string, actorId: string) {
             }});
         }
 
+        // Write QuestStat
+        const confirmedSignups = await tx.questSignup.findMany({
+            where: { questId: result.questId, status: 'CONFIRMED' },
+            select: { characterId: true },
+        });
+        const charIds = confirmedSignups.map(s => s.characterId);
+        const charLevels = charIds.length ? await tx.characterClass.groupBy({
+            by: ['characterId'],
+            where: { characterId: { in: charIds } },
+            _sum: { allocatedLevel: true },
+        }) : [];
+        const totalLevel = charLevels.reduce((s, c) => s + (c._sum.allocatedLevel ?? 0), 0);
+        const avgPartyLevel = charIds.length ? totalLevel / charIds.length : 0;
+        await tx.questStat.upsert({
+            where:  { questId: result.questId },
+            update: { avgPartyLevel, playerCount: charIds.length, completedAt: new Date() },
+            create: { questId: result.questId, avgPartyLevel, playerCount: charIds.length, completedAt: new Date() },
+        });
+
         await tx.questResult.update({ where: { id: resultId }, data: { status: 'APPROVED' } });
         await tx.quest.update({ where: { id: result.questId }, data: { status: 'COMPLETED' } });
         await logAudit(tx, {

@@ -23,7 +23,7 @@ export async function createWorld(
 
 export async function updateWorld(
     id: string,
-    input: { name?: string; description?: string | null; mapImageUrl?: string | null; isActive?: boolean },
+    input: { name?: string; description?: string | null; mapImageUrl?: string | null; isActive?: boolean; acceptsGlobalCharacters?: boolean },
     actorId: string,
 ) {
     const world = await db.world.findUnique({ where: { id } });

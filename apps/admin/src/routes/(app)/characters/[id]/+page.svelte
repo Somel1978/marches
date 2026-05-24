@@ -180,6 +180,28 @@
 						<input id="portraitUrl" name="portraitUrl" type="url" class="input" value={data.character.portraitUrl ?? ''} placeholder="https://..." />
 					</div>
 				</div>
+				<div class="field">
+					<label class="label" for="c-desc">Backstory / Description <span class="optional">(optional)</span></label>
+					<textarea id="c-desc" name="description" class="input" rows="4">{(data.character as any).description ?? ''}</textarea>
+				</div>
+				<div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+					<div class="field" style="flex:2 1 200px;">
+						<label class="label" for="c-world">World assignment <span class="optional">(optional)</span></label>
+						<select id="c-world" name="worldId" class="input input--select">
+							<option value="">Unassigned (no restriction)</option>
+							{#each (data as any).allWorlds ?? [] as w}
+								<option value={w.id} selected={(data.character as any).worldId === w.id}>{w.name}</option>
+							{/each}
+						</select>
+					</div>
+					<div class="field" style="flex:1 1 140px;">
+						<label class="label" for="c-global">Character type</label>
+						<select id="c-global" name="isGlobal" class="input input--select">
+							<option value="true" selected={(data.character as any).isGlobal !== false}>Global</option>
+							<option value="false" selected={(data.character as any).isGlobal === false}>World-specific</option>
+						</select>
+					</div>
+				</div>
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">Save details</button>
 				</div>

@@ -68,6 +68,14 @@
 						</select>
 					</div>
 				</div>
+				<div class="field">
+					<label class="label" for="w-global">Global characters</label>
+					<select id="w-global" name="acceptsGlobalCharacters" class="input input--select">
+						<option value="true" selected={(data.world as any).acceptsGlobalCharacters !== false}>Accept global characters</option>
+						<option value="false" selected={(data.world as any).acceptsGlobalCharacters === false}>World-specific characters only</option>
+					</select>
+					<p class="field-hint">When set to world-specific only, global characters cannot sign up for quests in this world.</p>
+				</div>
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">Save</button>
 				</div>
