@@ -91,6 +91,20 @@ export const NAV_ITEMS: NavItemDef[] = [
         ],
     },
     {
+        resourceKey: 'Announcement',
+        label:       'News',
+        href:        '/news',
+        icon:        `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a4 4 0 0 1-4-4V6"/><path d="M2 13.5A2.5 2.5 0 0 0 4.5 16H6"/><path d="M8 6h8"/><path d="M8 10h8"/><path d="M8 14h4"/></svg>`,
+        activeMatch: (pathname: string) => pathname.startsWith('/news'),
+    },
+    {
+        resourceKey: 'Journal',
+        label:       'Journals',
+        href:        '/journal',
+        icon:        `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
+        activeMatch: (pathname: string) => pathname.startsWith('/journal'),
+    },
+    {
         resourceKey: 'Availability',
         label:       'Availability',
         href:        '/availability',

@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-24 (session 2)
+> Last updated: 2026-05-24 (session 3)
 
 ---
 
@@ -59,6 +59,8 @@ marches/
 11 rewards     — Achievement, CharacterAchievement
 12 stats        — QuestStat (avgPartyLevel, playerCount, completedAt)
 13 availability — AvailabilitySlot (userId, date, slot 0-47, scope GLOBAL|WORLD, worldIds[])
+14 news         — Announcement (type NEWS|EVENT|WARNING|STATUS, tags[], scheduledAt, expiresAt),
+                  Journal, JournalSection, JournalPage
 ```
 
 ---
@@ -78,7 +80,7 @@ marches/
 ✅ 9. Character additions (backstory, world lock, inventory links)
 ✅ 10. Statistics (platform + user + per-character, live queries)
 ✅ 11. Availability + Quest v2
-⬜ 12. News / Blog / Journal
+✅ 12. News / Blog / Journal
 ⬜ 13. Discord
 ```
 
@@ -707,6 +709,11 @@ marketplace.items.{getAll, getById, getByName, upsert, update, delete, import}
 marketplace.transactions.{getAll, buy, sell, approve, reject, cancel, reward}
 stats.{getPlatform, getPublic, getUser}
 availability.{setSlots, clearDay, clearSlot, adminDelete, getForUser, getForQuest, getAll}
+news.announcements.{getAll, getPublic, getById, create, update, delete}
+news.journals.{getAll, getForUser, getPage, create, update, delete,
+               createSection, updateSection, deleteSection,
+               createPage, updatePage, deletePage}
+news.enrichers.{resolve, search}
 worlds.{getAll, getBySlug, getById, create, update}
 worlds.regions.{getBySlug, getById, create, update, assignDM, removeDM}
 worlds.locations.{getBySlug, create, update}
@@ -756,6 +763,10 @@ Feature settings always go in the feature seed file, never in 01-platform.
 /rewards/grant
 (dashboard enhanced with platform stats)
 /availability  — daily view, player+character detail per slot, admin delete
+/news          — list + create announcements
+/news/[id]     — edit with markdown editor + enricher help panel
+/journal       — list journals
+/journal/[id]  — manage structure (sections/pages) + markdown editor with [[type:id]] enricher popup
 ```
 
 ## Frontend Routes Summary
@@ -836,9 +847,12 @@ shared/ui/components/layout/
 - [x] Availability (per-slot GLOBAL/WORLD scope, weekly calendar UI, admin daily view, DM hub player overview)
 - [x] Quest v2 (scheduledAt, signupDeadline on quest forms; isTrusted DM flag; auto-approve setting)
 - [x] DM invite flow (available players panel on published quest; notification sent to player)
-- [ ] News / Blog / Journal
+- [x] News / Announcements (public, type/tag/schedule/expiry, markdown + enrichers)
+- [x] Journals (admin-managed, section/page hierarchy, world+role restrictions, markdown + enrichers)
+- [x] Enricher system ([[type:id]] syntax, live search popup in admin, server-side resolution, clickable badges)
 - [ ] Discord integration
 - [ ] Availability feature — further testing needed
+- [ ] News/Journal — further testing needed
 - [ ] site.logoIcon setting for collapsed sidebar (Option B)
 - [ ] DM dashboard quest filters (by status, date)
 - [ ] Roles & permissions review — differentiated admin roles (currently all admins are SUPERADMIN; need tiered access: e.g. Content Admin, Quest Admin, Player Admin, etc.) with scoped backend permissions

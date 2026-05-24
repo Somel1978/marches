@@ -47,6 +47,11 @@ import { getPlatformStats, getPublicStats, getUserStats } from './dbapi/read/sta
 import { setSlots, clearDay, clearSlot, adminDeleteSlot } from './dbapi/write/availability/slots.ts';
 import { getUserAvailability, getAvailableUsersForQuest, getAllAvailability } from './dbapi/read/availability/get-availability.ts';
 
+import { createAnnouncement, updateAnnouncement, deleteAnnouncement } from './dbapi/write/news/announcements.ts';
+import { createJournal, updateJournal, deleteJournal, createSection, updateSection, deleteSection, createPage, updatePage, deletePage } from './dbapi/write/news/journals.ts';
+import { getAnnouncements, getAllAnnouncements, getAnnouncementById, getJournalsForUser, getJournalPage, getAllJournals } from './dbapi/read/news/get-news.ts';
+import { resolveEnrichers, searchEnrichablesbyName } from './dbapi/read/news/resolve-enrichers.ts';
+
 // ── Achievements ─────────────────────────────────────────────────────────────────
 import { createAchievement, updateAchievement, grantAchievement, revokeAchievement } from './dbapi/write/rewards/achievements.ts';
 import { getAllAchievements, getCharacterAchievements } from './dbapi/read/rewards/get-achievements.ts';
@@ -314,4 +319,29 @@ export const availability = {
     getForUser:     getUserAvailability,
     getForQuest:    getAvailableUsersForQuest,
     getAll:         getAllAvailability,
+};
+
+export const news = {
+    announcements: {
+        getAll:    getAllAnnouncements,
+        getPublic: getAnnouncements,
+        getById:   getAnnouncementById,
+        create:    createAnnouncement,
+        update:    updateAnnouncement,
+        delete:    deleteAnnouncement,
+    },
+    journals: {
+        getAll:        getAllJournals,
+        getForUser:    getJournalsForUser,
+        getPage:       getJournalPage,
+        create:        createJournal,
+        update:        updateJournal,
+        delete:        deleteJournal,
+        createSection, updateSection, deleteSection,
+        createPage,    updatePage,    deletePage,
+    },
+    enrichers: {
+        resolve: resolveEnrichers,
+        search:  searchEnrichablesbyName,
+    },
 };

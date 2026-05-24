@@ -58,9 +58,11 @@
 			<div class="nav-bar__links nav-bar__links--desktop">
 				{#if data.user}
 					<a href="/characters"  class="nav-link">Characters</a>
+					<a href="/news"        class="nav-link">News</a>
 					<a href="/quests"      class="nav-link">Quests</a>
 					<a href="/marketplace" class="nav-link">Marketplace</a>
 					<a href="/stats"       class="nav-link">Statistics</a>
+					<a href="/journal"     class="nav-link">Journal</a>
 					<a href="/availability" class="nav-link">Availability</a>
 					<a href="/world" class="nav-link">World</a>
 					{#if data.user.hasDMProfile}
@@ -92,9 +94,11 @@
 			<div class="nav-mobile" role="menu">
 				{#if data.user}
 					<a href="/characters"  class="nav-mobile__link" onclick={closeMenu}>Characters</a>
+					<a href="/news"        class="nav-mobile__link" onclick={closeMenu}>News</a>
 					<a href="/quests"      class="nav-mobile__link" onclick={closeMenu}>Quests</a>
 					<a href="/marketplace" class="nav-mobile__link" onclick={closeMenu}>Marketplace</a>
 					<a href="/stats"       class="nav-mobile__link" onclick={closeMenu}>Statistics</a>
+					<a href="/journal"     class="nav-mobile__link" onclick={closeMenu}>Journal</a>
 					<a href="/availability" class="nav-mobile__link" onclick={closeMenu}>Availability</a>
 					<a href="/world" class="nav-mobile__link" onclick={closeMenu}>World</a>
 					{#if data.user.hasDMProfile}
