@@ -56,6 +56,8 @@ model Quest {
   maxLevel    Int         @default(20) @map("max_level")
   status      QuestStatus @default(DRAFT)
   reviewNote  String?     @map("review_note")
+  scheduledAt    DateTime? @map("scheduled_at")    // when the quest runs
+  signupDeadline DateTime? @map("signup_deadline")   // last moment to sign up
   rewardAdjusted Boolean  @default(false) @map("reward_adjusted")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt      @map("updated_at")

@@ -5,18 +5,20 @@ import { ValidationError } from '@core/errors';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
 
 export type CreateQuestInput = {
-    dmProfileId:  string;
-    title:        string;
-    description?: string;
-    rules?:       string;
-    missionXp:    number;
-    minCapacity:  number;
-    maxCapacity:  number;
-    minLevel:     number;
-    maxLevel:     number;
-    regionId?:    string;
-    locationId?:  string;
-    rewards:      { type: string; amount: number; itemId?: string; itemName?: string; itemRarity?: string; itemCategory?: string; itemMaxValue?: number }[];
+    dmProfileId:     string;
+    title:           string;
+    description?:    string;
+    rules?:          string;
+    missionXp:       number;
+    minCapacity:     number;
+    maxCapacity:     number;
+    minLevel:        number;
+    maxLevel:        number;
+    regionId?:       string;
+    locationId?:     string;
+    scheduledAt?:    Date | null;
+    signupDeadline?: Date | null;
+    rewards:         { type: string; amount: number; itemId?: string; itemName?: string; itemRarity?: string; itemCategory?: string; itemMaxValue?: number }[];
 };
 
 export async function createQuest(input: CreateQuestInput, actorId: string) {
@@ -45,8 +47,10 @@ export async function createQuest(input: CreateQuestInput, actorId: string) {
                 maxCapacity:  input.maxCapacity,
                 minLevel:     input.minLevel,
                 maxLevel:     input.maxLevel,
-                regionId:     input.regionId    ?? null,
-                locationId:   input.locationId  ?? null,
+                regionId:      input.regionId      ?? null,
+                locationId:    input.locationId    ?? null,
+                scheduledAt:   input.scheduledAt   ?? null,
+                signupDeadline: input.signupDeadline ?? null,
                 status:       'DRAFT',
             },
         });

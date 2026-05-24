@@ -71,6 +71,11 @@
 			<div class="page__title-row">
 				<span class="badge {statusColors[data.character.status] ?? 'badge-muted'}">{data.character.status}</span>
 				<span class="table__muted">Level {totalLevel}</span>
+				{#if (data.character as any).isGlobal === false && (data.character as any).worldId}
+					<span class="badge badge-accent" title="This character is locked to a specific world">🌍 {(data as any).worldName ?? 'World-specific'}</span>
+				{:else}
+					<span class="badge badge-muted" title="This character can join quests in any world">🌐 Global</span>
+				{/if}
 			</div>
 		</div>
 	</div>

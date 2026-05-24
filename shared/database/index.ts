@@ -44,6 +44,9 @@ import { createSpecies, updateSpecies, deleteSpecies } from './dbapi/write/games
 
 import { getPlatformStats, getPublicStats, getUserStats } from './dbapi/read/stats/get-stats.ts';
 
+import { setSlots, clearDay, clearSlot, adminDeleteSlot } from './dbapi/write/availability/slots.ts';
+import { getUserAvailability, getAvailableUsersForQuest, getAllAvailability } from './dbapi/read/availability/get-availability.ts';
+
 // ── Achievements ─────────────────────────────────────────────────────────────────
 import { createAchievement, updateAchievement, grantAchievement, revokeAchievement } from './dbapi/write/rewards/achievements.ts';
 import { getAllAchievements, getCharacterAchievements } from './dbapi/read/rewards/get-achievements.ts';
@@ -301,4 +304,14 @@ export const stats = {
     getPlatform: getPlatformStats,
     getPublic:   getPublicStats,
     getUser:     getUserStats,
+};
+
+export const availability = {
+    setSlots,
+    clearDay,
+    clearSlot,
+    adminDelete:    adminDeleteSlot,
+    getForUser:     getUserAvailability,
+    getForQuest:    getAvailableUsersForQuest,
+    getAll:         getAllAvailability,
 };

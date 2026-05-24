@@ -22,7 +22,8 @@ export async function seedQuests(db: PrismaClient) {
 
     // Quest settings
     const settings = [
-        { key: 'quest.minCapacity', value: '2', description: 'Global minimum players per quest', isSecret: false },
+        { key: 'quest.autoApproveForTrustedDMs', value: 'false', description: 'Auto-approve quest creation for trusted DMs (skips PENDING_APPROVAL)' },
+		{ key: 'quest.minCapacity', value: '2', description: 'Global minimum players per quest', isSecret: false },
         { key: 'quest.destroyableCategories', value: '', description: 'Comma-separated inventory categories DMs can see and mark as used during IN_PROGRESS quests', isSecret: false },
         { key: 'quest.maxCapacity', value: '6', description: 'Global maximum players per quest', isSecret: false },
     ];

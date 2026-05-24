@@ -335,6 +335,31 @@
 		</div>
 	{/if}
 
+	<!-- Available players for invite (PUBLISHED quests with scheduledAt only) -->
+	{#if data.quest.status === 'PUBLISHED' && (data as any).availablePlayers?.length}
+		<div class="card">
+			<h3 class="section-title">Available players ({(data as any).availablePlayers.length})</h3>
+			<p class="field-hint" style="margin-bottom:0.75rem;">These players are available at the quest time and not yet signed up.</p>
+			{#if (form as any)?.inviteSuccess}<div class="form-success" style="margin-bottom:0.75rem;">Invite sent!</div>{/if}
+			<div style="display:flex; flex-direction:column; gap:0.5rem;">
+				{#each (data as any).availablePlayers as char}
+					<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:0.625rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
+						<div>
+							<p style="font-weight:600; font-size:0.9rem; margin:0;">{char.name}</p>
+							<p style="font-size:0.8125rem; color:var(--text-muted); margin:0;">Level {char.totalLevel ?? '?'} · {char.status}</p>
+						</div>
+						<form method="post" action="?/invite" use:enhance={() => {
+							return async ({ update }) => { await update(); await invalidateAll(); };
+						}}>
+							<input type="hidden" name="characterId" value={char.id} />
+							<button type="submit" class="btn btn-primary btn-sm">Send invite</button>
+						</form>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
+
 	<!-- Signups -->
 	<div class="card">
 		<h3 class="section-title">Players ({confirmed.length}/{data.quest.maxCapacity})</h3>

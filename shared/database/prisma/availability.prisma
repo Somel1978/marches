@@ -1,0 +1,24 @@
+/* shared/database/prisma/availability.prisma */
+
+model AvailabilitySlot {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  date      DateTime @db.Date @map("date")        // UTC date only
+  slot      Int                                    // 0-47 (half-hour blocks)
+  scope     AvailabilityScope @default(GLOBAL)
+  worldIds  String[] @map("world_ids")             // empty = GLOBAL
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, date, slot, scope])
+  @@index([userId, date])
+  @@index([date, slot])
+  @@map("availability_slots")
+  @@schema("availability")
+}
+
+enum AvailabilityScope {
+  GLOBAL
+  WORLD
+
+  @@schema("availability")
+}

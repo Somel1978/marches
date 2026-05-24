@@ -21,6 +21,7 @@ model User {
   image         String?
 
   discordHandle String?  @map("discord_handle")
+  timezone      String   @default("UTC") @map("timezone")
   mobile        String?
 
   sessions      Session[]

@@ -60,6 +60,19 @@
 				</div>
 
 				<hr class="divider" />
+				<h4 style="font-size:0.875rem; font-weight:600; margin:0;">Schedule</h4>
+				<div style="display:flex; gap:1rem; flex-wrap:wrap;">
+					<div class="field" style="flex:1; min-width:200px;">
+						<label class="label" for="scheduledAt">Quest date &amp; time <span class="optional">(optional)</span></label>
+						<input id="scheduledAt" name="scheduledAt" type="datetime-local" class="input" />
+					</div>
+					<div class="field" style="flex:1; min-width:200px;">
+						<label class="label" for="signupDeadline">Signup deadline <span class="optional">(optional)</span></label>
+						<input id="signupDeadline" name="signupDeadline" type="datetime-local" class="input" />
+					</div>
+				</div>
+
+				<hr class="divider" />
 				<h4 style="font-size:0.875rem; font-weight:600; margin:0;">Capacity</h4>
 				<div style="display:flex; gap:1rem; flex-wrap:wrap;">
 					<div class="field" style="flex:1; min-width:120px;">

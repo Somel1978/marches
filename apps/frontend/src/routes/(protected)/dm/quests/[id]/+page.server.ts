@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/dm/quests/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { dms, quests, worlds, db, platform } from '@core/database';
+import { availability, characters, dms, quests, worlds, notifications, db, platform } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -81,7 +81,25 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const itemUsages = await quests.itemUsage.getForQuest(params.id);
 
-	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds, questRatings, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES, destroyableInventory, itemUsages };
+	// Available players based on quest scheduledAt
+	let availablePlayers: any[] = [];
+	const q = access.quest as any;
+	if (q.scheduledAt && q.status === 'PUBLISHED') {
+		const d       = new Date(q.scheduledAt);
+		const mins    = d.getUTCHours() * 60 + d.getUTCMinutes();
+		const slot    = Math.floor(mins / 30);
+		const date    = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+		const worldId = q.worldId ?? null;
+		const userSlots   = await availability.getForQuest(date, slot, worldId);
+		const userIds     = [...new Set(userSlots.map((s: any) => s.userId))];
+		if (userIds.length) {
+			const signedUpCharIds = new Set(access.quest.signups.map((s: any) => s.characterId));
+			const allChars = (await Promise.all(userIds.map((uid: unknown) => characters.getByUserId(uid as string)))).flat();
+			availablePlayers = allChars.filter((c: any) => !signedUpCharIds.has(c.id) && c.status === 'ACTIVE');
+		}
+	}
+
+	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds, questRatings, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES, destroyableInventory, itemUsages, availablePlayers };
 };
 
 export const actions: Actions = {
@@ -119,6 +137,28 @@ export const actions: Actions = {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;
 		}
+	},
+
+	invite: async ({ params, request, locals }) => {
+		const data        = await request.formData();
+		const characterId = data.get('characterId')?.toString() ?? '';
+		if (!characterId) return fail(400, { message: 'Character required.' });
+		// Verify DM owns this quest
+		const quest = await quests.getById(params.id);
+		if (!quest) return fail(404, { message: 'Quest not found.' });
+		const dm = await dms.profiles.getByUserId(locals.user!.id);
+		if (!dm || (quest as any).dmProfileId !== dm.id) return fail(403, { message: 'Forbidden.' });
+		// Send notification to character owner
+		const char = await characters.getById(characterId);
+		if (!char) return fail(404, { message: 'Character not found.' });
+		await notifications.create(
+			char.userId,
+			'QUEST_INVITE',
+			`Quest invite: ${quest.title}`,
+			`You have been invited to join "${quest.title}". Check the quest page to sign up.`,
+			`/quests/${quest.id}`,
+		);
+		return { inviteSuccess: true };
 	},
 
 	submitResult: async ({ params, locals }) => {

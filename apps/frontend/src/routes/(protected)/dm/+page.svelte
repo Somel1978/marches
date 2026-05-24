@@ -3,6 +3,10 @@
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
 
+	const HOURS = Array.from({ length: 48 }, (_, i) => `${Math.floor(i/2).toString().padStart(2,'0')}:${i%2===0?'00':'30'}`);
+	const pa    = $derived((data as any).playerAvailability ?? {});
+	const dates = $derived(Object.keys(pa).sort());
+
 	const statusColors: Record<string, string> = {
 		DRAFT:            'badge-muted',
 		PENDING_APPROVAL: 'badge-warning',
@@ -25,6 +29,42 @@
 			<a href="/dm/profile" class="btn btn-ghost btn-sm">{data.profile ? 'Edit profile' : 'Create profile'}</a>
 		</div>
 	</div>
+
+	<!-- Player availability next 7 days -->
+	{#if dates.length}
+	<div class="card" style="margin-bottom:1rem;">
+		<h3 class="section-title">Player availability — next 7 days</h3>
+		<div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem;">
+			{#each dates as dk}
+				{@const daySlots = pa[dk]}
+				{@const slotNums = Object.keys(daySlots).map(Number).sort((a,b)=>a-b)}
+				<div>
+					<p style="font-weight:600; font-size:0.875rem; margin:0 0 0.375rem;">
+						{new Date(dk).toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short' })}
+					</p>
+					<div style="display:flex; flex-direction:column; gap:0.25rem;">
+						{#each slotNums as slot}
+							{@const players = daySlots[slot]}
+							<div style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.375rem 0.625rem; background:var(--bg-overlay); border-radius:var(--radius-sm);">
+								<span style="font-size:0.8125rem; font-weight:600; width:40px; flex-shrink:0; color:var(--text-secondary);">{HOURS[slot]}</span>
+								<div style="display:flex; flex-wrap:wrap; gap:0.375rem;">
+									{#each players as p}
+										{#each p.chars as c}
+											<span class="character-class-tag" title="{p.scope === 'WORLD' ? 'World-specific' : 'Global'}">
+												<span>{c.name}</span>
+												<span class="badge badge-muted">Lv {c.totalLevel}</span>
+											</span>
+										{/each}
+									{/each}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/each}
+		</div>
+	</div>
+	{/if}
 
 	{#if data.quests.length === 0}
 		<div class="card" style="text-align:center; padding:2rem;">

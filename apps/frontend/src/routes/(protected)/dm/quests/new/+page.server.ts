@@ -39,7 +39,11 @@ export const actions: Actions = {
 		const data        = await request.formData();
 		const title       = data.get('title')?.toString().trim()       ?? '';
 		const description = data.get('description')?.toString().trim() ?? '';
-		const rules       = data.get('rules')?.toString().trim()       ?? '';
+		const rules          = data.get('rules')?.toString().trim()       ?? '';
+		const scheduledRaw   = data.get('scheduledAt')?.toString()    || null;
+		const deadlineRaw    = data.get('signupDeadline')?.toString()  || null;
+		const scheduledAt    = scheduledRaw  ? new Date(scheduledRaw)  : null;
+		const signupDeadline = deadlineRaw   ? new Date(deadlineRaw)   : null;
 		const missionXp   = Number(data.get('missionXp')   ?? 0);
 		const minCapacity = Number(data.get('minCapacity') ?? 2);
 		const maxCapacity = Number(data.get('maxCapacity') ?? 6);
@@ -66,6 +70,7 @@ export const actions: Actions = {
 			const quest = await quests.create({
 				dmProfileId: profile.id,
 				title, description: description || undefined, rules: rules || undefined,
+				scheduledAt, signupDeadline,
 				missionXp, minCapacity, maxCapacity, minLevel, maxLevel, rewards,
 				regionId, locationId,
 			}, locals.user!.id);

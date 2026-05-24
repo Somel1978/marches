@@ -61,6 +61,7 @@
 					<a href="/quests"      class="nav-link">Quests</a>
 					<a href="/marketplace" class="nav-link">Marketplace</a>
 					<a href="/stats"       class="nav-link">Statistics</a>
+					<a href="/availability" class="nav-link">Availability</a>
 					<a href="/world" class="nav-link">World</a>
 					{#if data.user.hasDMProfile}
 						<a href="/dm" class="nav-link">DM Hub</a>
@@ -94,6 +95,7 @@
 					<a href="/quests"      class="nav-mobile__link" onclick={closeMenu}>Quests</a>
 					<a href="/marketplace" class="nav-mobile__link" onclick={closeMenu}>Marketplace</a>
 					<a href="/stats"       class="nav-mobile__link" onclick={closeMenu}>Statistics</a>
+					<a href="/availability" class="nav-mobile__link" onclick={closeMenu}>Availability</a>
 					<a href="/world" class="nav-mobile__link" onclick={closeMenu}>World</a>
 					{#if data.user.hasDMProfile}
 						<a href="/dm"         class="nav-mobile__link" onclick={closeMenu}>DM Hub</a>

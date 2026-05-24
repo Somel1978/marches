@@ -106,7 +106,7 @@
 			</p>
 			<form method="post" action="?/revoke"
 				use:enhance={({ cancel }) => {
-					if (!confirm('Revoke DM role? This deactivates the profile and removes the DM role.')) { cancel(); return; }
+					if (!window.confirm('Revoke DM role? This deactivates the profile and removes the DM role.')) { cancel(); return; }
 					return async ({ update }) => { await update(); await invalidateAll(); };
 				}}>
 				<button type="submit" class="btn btn-danger btn-sm">Revoke DM role</button>

@@ -69,6 +69,9 @@ export const actions: Actions = {
 		const speciesId   = data.get('speciesId')?.toString()          ?? '';
 		const avatarUrl   = data.get('avatarUrl')?.toString().trim()   ?? '';
 		const portraitUrl = data.get('portraitUrl')?.toString().trim() ?? '';
+		const description = data.get('description')?.toString().trim() || null;
+		const worldId     = data.get('worldId')?.toString()            || null;
+		const isGlobal    = data.get('isGlobal') === 'true';
 
 		if (!name) return fail(400, { message: 'Name is required.' });
 
@@ -78,6 +81,9 @@ export const actions: Actions = {
 				speciesId:   speciesId   || null,
 				avatarUrl:   avatarUrl   || undefined,
 				portraitUrl: portraitUrl || undefined,
+				description,
+				worldId,
+				isGlobal,
 			}, locals.user!.id);
 			return { updateSuccess: true };
 		} catch (e) {
