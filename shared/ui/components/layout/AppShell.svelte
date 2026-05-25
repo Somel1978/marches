@@ -5,9 +5,10 @@
 	import Header  from './Header.svelte';
 
 	interface Props {
-		title?:      string;
-		siteLogo?:   string;
-		notifCount?: number;
+		title?:        string;
+		siteLogo?:     string;
+		siteLogoIcon?: string;
+		notifCount?:   number;
 		notifications?: any[];
 		nav:      Snippet<[{ collapsed: boolean }]>;
 		actions?: Snippet;
@@ -20,7 +21,7 @@
 		children: Snippet;
 	}
 
-	let { title, siteLogo, nav, actions, footer, user, children, notifCount = 0, notifications = [] }: Props = $props();
+	let { title, siteLogo, siteLogoIcon, nav, actions, footer, user, children, notifCount = 0, notifications = [] }: Props = $props();
 
 	const displayTitle = $derived(siteLogo ? '' : (title ?? ''));
 
@@ -49,6 +50,7 @@
 		{footer}
 		siteName={title ?? 'Marches'}
 		siteLogo={siteLogo ?? ''}
+		siteLogoIcon={siteLogoIcon ?? ''}
 	/>
 
 	<div class="shell__body">

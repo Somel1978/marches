@@ -31,8 +31,14 @@
 					<span style="display:inline-flex; align-items:center; height:28px; width:auto;">{@html (data as any).siteLogo}</span>
 				{:else if (data as any).siteLogo}
 					<img src={(data as any).siteLogo} alt={(data as any).siteName} style="height:28px; width:auto;" />
+				{:else if (data as any).siteLogoIcon && (data as any).siteLogoIcon.startsWith('<')}
+					<span style="display:inline-flex; align-items:center; height:28px; width:auto;">{@html (data as any).siteLogoIcon}</span>
+					<span class="nav-bar__name">{(data as any).siteName}</span>
+				{:else if (data as any).siteLogoIcon && ((data as any).siteLogoIcon.startsWith('http') || (data as any).siteLogoIcon.startsWith('/'))}
+					<img src={(data as any).siteLogoIcon} alt={(data as any).siteName} style="height:28px; width:auto;" />
+					<span class="nav-bar__name">{(data as any).siteName}</span>
 				{:else}
-					<span class="nav-bar__logo">⚔</span>
+					<span class="nav-bar__logo">{(data as any).siteLogoIcon || '⚔'}</span>
 					<span class="nav-bar__name">{(data as any).siteName}</span>
 				{/if}
 			</a>

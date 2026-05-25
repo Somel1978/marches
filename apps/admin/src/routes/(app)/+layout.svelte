@@ -6,7 +6,7 @@
 	let { data, children }: { data: LayoutData; children: any } = $props();
 </script>
 
-<AppShell title={data.siteName ?? 'Admin'} siteLogo={data.siteLogo ?? ''} user={data.user} notifCount={(data as any).notifCount ?? 0} notifications={(data as any).notifications ?? []}>
+<AppShell title={data.siteName ?? 'Admin'} siteLogo={data.siteLogo ?? ''} siteLogoIcon={data.siteLogoIcon ?? '⚔'} user={data.user} notifCount={(data as any).notifCount ?? 0} notifications={(data as any).notifications ?? []}>
 	{#snippet nav({ collapsed }: { collapsed: boolean })}
 		{#each data.nav as item}
 			<NavItem

@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-25 (session 5)
+> Last updated: 2026-05-25 (session 6)
 
 ---
 
@@ -29,7 +29,7 @@ marches/
 ├── apps/
 │   ├── admin/      @apps/admin     (port 5174)
 │   ├── frontend/   @apps/frontend  (port 5173)
-│   └── discord/    @apps/discord   (persistent process — future)
+│   └── discord/    @apps/discord   (persistent process — tsx bot)
 └── shared/
     ├── database/   @core/database
     ├── rbac/       @core/rbac
@@ -153,9 +153,9 @@ to 28px and preserves aspect ratio.
 `site.footer` — raw HTML string for the frontend footer. Supports links and markup.
 When empty, falls back to `© {year} {site.name}`. Admin app has no page footer (sidebar only).
 
-**Current implementation:** Option A — one logo field, same SVG everywhere.
-**Known limitation:** collapsed sidebar ignores `site.logo` and shows the fallback icon.
-**Future:** Option B — add `site.logoIcon` for the compact collapsed state.
+**Current implementation:** Option B — two logo fields.
+- `site.logo` — full logo for expanded sidebar and frontend nav
+- `site.logoIcon` — compact icon for collapsed admin sidebar and frontend nav fallback. Accepts SVG markup, image URL, or emoji. Defaults to `⚔`.
 
 **Recommended viewBox sizes:**
 - Icon only: `viewBox="0 0 28 28"`
@@ -540,22 +540,21 @@ Notification — userId, type, title, message, actionUrl, isRead, createdAt
 
 ---
 
-### 9. Rewards Engine ⬜
+### 9. Rewards Engine ✅
 
 **Schema:** `rewards`
 
-**Purpose:** Admin-defined reward pool. Connects Quest completion → Character records.
-Random item rewards use the Marketplace at cost 0.
+**Models:** Achievement, CharacterAchievement
 
-**Pending implementation.**
+**See:** Progress Tracker — Rewards Engine section.
 
 ---
 
-### 10. Discord Integration ⬜
+### 10. Discord Integration ✅
 
-**Purpose:** Notification and bot interaction layer. Platform is primary.
+**Schema:** `discord`
 
-**Pending implementation.**
+**See:** Discord Setup Guide section.
 
 ---
 
@@ -851,22 +850,12 @@ shared/ui/components/layout/
 - [x] Cancel signup blocked on active/completed quests
 
 ### ⬜ Pending
-- [x] Character additions (backstory field, world lock with isGlobal flag, inventory item links)
-- [x] Statistics (admin dashboard platform stats; frontend /stats with platform, user, per-character)
-- [x] Availability (per-slot GLOBAL/WORLD scope, weekly calendar UI, admin daily view, DM hub player overview)
-- [x] Quest v2 (scheduledAt, signupDeadline on quest forms; isTrusted DM flag; auto-approve setting)
-- [x] DM invite flow (available players panel on published quest; notification sent to player)
-- [x] News / Announcements (public, type/tag/schedule/expiry, markdown + enrichers)
-- [x] Journals (admin-managed, section/page hierarchy, world+role restrictions, markdown + enrichers)
-- [x] Enricher system ([[type:id]] syntax, live search popup in admin, server-side resolution, clickable badges)
-- [x] Discord integration (multi-server, per-world scope, slash commands, notifications, user OAuth linking, quest published/started/result/invite/market/character events)
-- [ ] Discord integration
-- [ ] Availability feature — further testing needed
+- [ ] Availability — further testing needed
 - [ ] News/Journal — further testing needed
 - [ ] Discord — further testing needed
-- [ ] site.logoIcon setting for collapsed sidebar (Option B)
+- [x] site.logoIcon setting for collapsed sidebar — SVG/URL/emoji, works in both admin sidebar (collapsed) and frontend nav bar
 - [ ] DM dashboard quest filters (by status, date)
-- [ ] Roles & permissions review — differentiated admin roles (currently all admins are SUPERADMIN; need tiered access: e.g. Content Admin, Quest Admin, Player Admin, etc.) with scoped backend permissions
+- [ ] Roles & permissions review — differentiated admin roles (tiered: Content Admin, Quest Admin, Player Admin)
 
 ---
 

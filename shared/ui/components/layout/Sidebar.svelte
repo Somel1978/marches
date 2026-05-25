@@ -3,23 +3,25 @@
 	import type { Snippet } from 'svelte';
 
 	interface Props {
-		collapsed?:  boolean;
-		drawerOpen?: boolean;
-		oncollapse?: (collapsed: boolean) => void;
-		nav:         Snippet<[{ collapsed: boolean }]>;
-		footer?:     Snippet<[{ collapsed: boolean }]>;
-		siteName?:   string;
-		siteLogo?:   string;
+		collapsed?:    boolean;
+		drawerOpen?:   boolean;
+		oncollapse?:   (collapsed: boolean) => void;
+		nav:           Snippet<[{ collapsed: boolean }]>;
+		footer?:       Snippet<[{ collapsed: boolean }]>;
+		siteName?:     string;
+		siteLogo?:     string;
+		siteLogoIcon?: string;  // compact icon for collapsed state (SVG markup or URL or emoji)
 	}
 
 	let {
-		collapsed   = $bindable(false),
-		drawerOpen  = $bindable(false),
+		collapsed    = $bindable(false),
+		drawerOpen   = $bindable(false),
 		oncollapse,
 		nav,
 		footer,
-		siteName    = 'Marches',
-		siteLogo    = '',
+		siteName     = 'Marches',
+		siteLogo     = '',
+		siteLogoIcon = '',
 	}: Props = $props();
 
 	function toggle() {
@@ -44,7 +46,17 @@
 				<span class="sidebar__brand-text">⚔ {siteName}</span>
 			{/if}
 		{:else}
-			<span class="sidebar__brand-icon">⚔</span>
+			<span class="sidebar__brand-icon">
+			{#if siteLogoIcon && siteLogoIcon.startsWith('<')}
+				<span style="display:inline-flex; align-items:center; height:24px; width:auto;">{@html siteLogoIcon}</span>
+			{:else if siteLogoIcon && (siteLogoIcon.startsWith('http') || siteLogoIcon.startsWith('/'))}
+				<img src={siteLogoIcon} alt={siteName} style="height:24px; width:auto;" />
+			{:else if siteLogoIcon}
+				{siteLogoIcon}
+			{:else}
+				⚔
+			{/if}
+		</span>
 		{/if}
 		<!-- Mobile close button -->
 		<button class="sidebar__close" onclick={() => drawerOpen = false} aria-label="Close menu">

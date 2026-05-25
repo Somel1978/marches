@@ -7,10 +7,11 @@ import { dms, platform, notifications } from '@core/database';
 export const load: LayoutServerLoad = async ({ locals }) => {
 	const settings = await platform.getSettingsMap();
 	const siteName   = settings['site.name']   || '';
-	const siteLogo   = settings['site.logo']   || '';
+	const siteLogo     = settings['site.logo']     || '';
+	const siteLogoIcon = settings['site.logoIcon'] || '⚔';
 	const siteFooter = settings['site.footer'] || '';
 
-	if (!locals.user) return { user: null, siteName, siteLogo, siteFooter, notifications: [], notifCount: 0 };
+	if (!locals.user) return { user: null, siteName, siteLogo, siteLogoIcon, siteFooter, notifications: [], notifCount: 0 };
 
 	const [dmProfile, unread] = await Promise.all([
 		dms.profiles.getByUserId(locals.user.id),
@@ -20,6 +21,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	return {
 		siteName,
 		siteLogo,
+		siteLogoIcon,
 		siteFooter,
 		notifications: unread,
 		notifCount:    unread.length,
