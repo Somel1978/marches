@@ -345,6 +345,22 @@ export async function approveQuestResult(resultId: string, actorId: string) {
 
     // Notify DM after transaction
     const dmP = await db.dMProfile.findUnique({ where: { id: result.quest?.dmProfileId ?? '' }, select: { userId: true } }).catch(() => null);
+    // Queue Discord notification for bot
+    try {
+        const { queueDiscordNotification } = await import('../discord/dispatcher');
+        await queueDiscordNotification('QUEST_RESULT', {
+            questId:   result.questId,
+            questTitle: result.quest?.title ?? '',
+            worldId:   (result.quest as any)?.worldId ?? null,
+            chars:     result.characters.map((rc: any) => ({
+                characterName: rc.characterName,
+                xpAwarded:     rc.xpAwarded,
+                goldAwarded:   rc.goldAwarded,
+                itemGrantedName: rc.itemGrantedName,
+            })),
+        });
+    } catch {}
+
     if (dmP) await createNotification(dmP.userId, 'QUEST_RESULT_APPROVED', 'Quest result approved',
         'Your quest result has been approved and XP distributed.', `/dm/quests/${result.questId}`);
 }

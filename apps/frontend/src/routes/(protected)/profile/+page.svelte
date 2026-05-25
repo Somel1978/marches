@@ -188,6 +188,28 @@
 			</p>
 		</div>
 	</div>
+
+	<!-- Discord -->
+	{#if (data as any).discordSuccess === 'discord_linked'}
+		<div class="form-success" style="margin-bottom:1rem;">Discord account linked successfully!</div>
+	{:else if (data as any).discordSuccess === 'discord_unlinked'}
+		<div class="form-success" style="margin-bottom:1rem;">Discord account unlinked.</div>
+	{/if}
+	<div class="card">
+		<h3 class="section-title">Discord</h3>
+		{#if (data as any).user?.discordHandle}
+			<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+				<div>
+					<p style="font-weight:600; margin:0;">Connected as <span style="color:var(--color-accent);">@{(data as any).user.discordHandle}</span></p>
+					<p class="table__muted" style="font-size:0.8125rem; margin:0.125rem 0 0;">Linked — you can receive quest invites via DM and use bot commands.</p>
+				</div>
+				<a href="/auth/discord/unlink" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Unlink</a>
+			</div>
+		{:else}
+			<p class="table__muted" style="margin-bottom:0.75rem;">Link your Discord account to receive quest invites via DM and use slash commands.</p>
+			<a href="/auth/discord" class="btn btn-primary btn-sm">Connect Discord</a>
+		{/if}
+	</div>
 </div>
 
 {#if lightboxOpen}

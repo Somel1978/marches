@@ -5,9 +5,9 @@ import { PrismaClient } from '@prisma/client';
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 import { getAll    as getAllUsers  } from './dbapi/read/users/get-all.ts';
-import { getById   as getUserById  } from './dbapi/read/users/get-by-id.ts';
+import { getById as getUserById, getUserByDiscordId } from './dbapi/read/users/get-by-id.ts';
 import { createUser                } from './dbapi/write/users/create.ts';
-import { updateUser                } from './dbapi/write/users/update.ts';
+import { updateUser, updateUserDiscord } from './dbapi/write/users/update.ts';
 import { deleteUser                } from './dbapi/write/users/delete.ts';
 import { setPassword               } from './dbapi/write/users/set-password.ts';
 
@@ -51,6 +51,9 @@ import { createAnnouncement, updateAnnouncement, deleteAnnouncement } from './db
 import { createJournal, updateJournal, deleteJournal, createSection, updateSection, deleteSection, createPage, updatePage, deletePage } from './dbapi/write/news/journals.ts';
 import { getAnnouncements, getAllAnnouncements, getAnnouncementById, getJournalsForUser, getJournalPage, getAllJournals } from './dbapi/read/news/get-news.ts';
 import { resolveEnrichers, searchEnrichablesbyName } from './dbapi/read/news/resolve-enrichers.ts';
+
+import { upsertDiscordServer, deleteDiscordServer, upsertDiscordChannel, deleteDiscordChannel } from './dbapi/write/discord/servers.ts';
+import { getAllDiscordServers, getDiscordServerByScope, getChannelForType, getPendingNotifications, markNotificationProcessed } from './dbapi/read/discord/get-servers.ts';
 
 // ── Achievements ─────────────────────────────────────────────────────────────────
 import { createAchievement, updateAchievement, grantAchievement, revokeAchievement } from './dbapi/write/rewards/achievements.ts';
@@ -140,7 +143,8 @@ export * from '@prisma/client';
 // ── Namespaced API ────────────────────────────────────────────────────────────
 export const users = {
     getAll: getAllUsers, getById: getUserById,
-    create: createUser, update: updateUser, delete: deleteUser, setPassword,
+    create: createUser, update: updateUser, updateDiscord: updateUserDiscord, delete: deleteUser, setPassword,
+    getByDiscordId: getUserByDiscordId,
 };
 
 export const roles = {
@@ -343,5 +347,23 @@ export const news = {
     enrichers: {
         resolve: resolveEnrichers,
         search:  searchEnrichablesbyName,
+    },
+};
+
+export const discord = {
+    servers: {
+        getAll:    getAllDiscordServers,
+        getByScope: getDiscordServerByScope,
+        upsert:    upsertDiscordServer,
+        delete:    deleteDiscordServer,
+    },
+    notifications: {
+        getPending: getPendingNotifications,
+        markProcessed: markNotificationProcessed,
+    },
+    channels: {
+        getForType: getChannelForType,
+        upsert:     upsertDiscordChannel,
+        delete:     deleteDiscordChannel,
     },
 };

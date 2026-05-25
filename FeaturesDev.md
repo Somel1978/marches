@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-24 (session 3)
+> Last updated: 2026-05-25 (session 4)
 
 ---
 
@@ -61,6 +61,9 @@ marches/
 13 availability — AvailabilitySlot (userId, date, slot 0-47, scope GLOBAL|WORLD, worldIds[])
 14 news         — Announcement (type NEWS|EVENT|WARNING|STATUS, tags[], scheduledAt, expiresAt),
                   Journal, JournalSection, JournalPage
+15 discord      — DiscordServer (guildId, name, scope global|worldId),
+                  DiscordChannel (channelId, channelName, type ANNOUNCEMENTS|QUESTS|MARKET|CHARACTERS),
+                  DiscordNotificationQueue (type, payload JSON, processed)
 ```
 
 ---
@@ -81,7 +84,7 @@ marches/
 ✅ 10. Statistics (platform + user + per-character, live queries)
 ✅ 11. Availability + Quest v2
 ✅ 12. News / Blog / Journal
-⬜ 13. Discord
+✅ 13. Discord
 ```
 
 ---
@@ -714,6 +717,10 @@ news.journals.{getAll, getForUser, getPage, create, update, delete,
                createSection, updateSection, deleteSection,
                createPage, updatePage, deletePage}
 news.enrichers.{resolve, search}
+discord.servers.{getAll, getByScope, upsert, delete}
+discord.channels.{getForType, upsert, delete}
+discord.notifications.{getPending, markProcessed}
+users.getByDiscordId, users.updateDiscord
 worlds.{getAll, getBySlug, getById, create, update}
 worlds.regions.{getBySlug, getById, create, update, assignDM, removeDM}
 worlds.locations.{getBySlug, create, update}
@@ -767,6 +774,8 @@ Feature settings always go in the feature seed file, never in 01-platform.
 /news/[id]     — edit with markdown editor + enricher help panel
 /journal       — list journals
 /journal/[id]  — manage structure (sections/pages) + markdown editor with [[type:id]] enricher popup
+/discord       — server management (auto-fetch from bot + manual fallback), channel mapping per type
+/api/discord   — bot guild list + channel list endpoints
 ```
 
 ## Frontend Routes Summary
@@ -850,9 +859,11 @@ shared/ui/components/layout/
 - [x] News / Announcements (public, type/tag/schedule/expiry, markdown + enrichers)
 - [x] Journals (admin-managed, section/page hierarchy, world+role restrictions, markdown + enrichers)
 - [x] Enricher system ([[type:id]] syntax, live search popup in admin, server-side resolution, clickable badges)
+- [x] Discord integration (multi-server, per-world scope, slash commands, notifications, user OAuth linking)
 - [ ] Discord integration
 - [ ] Availability feature — further testing needed
 - [ ] News/Journal — further testing needed
+- [ ] Discord — further testing needed
 - [ ] site.logoIcon setting for collapsed sidebar (Option B)
 - [ ] DM dashboard quest filters (by status, date)
 - [ ] Roles & permissions review — differentiated admin roles (currently all admins are SUPERADMIN; need tiered access: e.g. Content Admin, Quest Admin, Player Admin, etc.) with scoped backend permissions
@@ -862,3 +873,73 @@ shared/ui/components/layout/
 ## Open Questions
 
 None currently. Add new questions here as they arise.
+
+---
+
+## Discord Setup Guide
+
+### 1. Create Discord Application
+1. Go to https://discord.com/developers/applications
+2. Click **New Application** → name it (e.g. "Marches")
+3. Copy **Application ID** → this is `discord.clientId`
+
+### 2. Create the Bot
+1. Go to **Bot** tab → **Add Bot** → confirm
+2. Click **Reset Token** → copy → this is `discord.botToken`
+3. Enable **Server Members Intent** under Privileged Gateway Intents
+
+### 3. Set OAuth2 Redirect
+1. Go to **OAuth2** tab → **Redirects**
+2. Add: `https://yourdomain.com/auth/discord/callback`
+3. Copy **Client Secret** → this is `discord.clientSecret`
+
+### 4. Configure Platform Settings (Admin → Settings)
+| Key | Value |
+|---|---|
+| `discord.botToken` | Bot token from step 2 |
+| `discord.clientId` | Application ID from step 1 |
+| `discord.clientSecret` | Client secret from step 3 |
+| `discord.callbackUrl` | `https://yourdomain.com/auth/discord/callback` |
+| `discord.responseMode` | `ephemeral` (only visible to user) or `public` |
+
+### 5. Add Bot to Discord Servers
+1. Admin → **Discord** page → click **Invite bot to a server**
+2. Authorise for each server
+
+### 6. Configure Servers & Channels (Admin → Discord)
+1. Click **↻ Fetch servers from bot** — all servers the bot is in appear
+2. Click **Add** next to each server (set scope: Global or World-specific)
+3. Click **↻ Fetch channels** per server
+4. Map channels to types: ANNOUNCEMENTS, QUESTS, MARKET, CHARACTERS
+
+### 7. Start Discord Bot
+```bash
+pnpm --filter @apps/discord dev
+```
+
+### Slash Commands (auto-registered on startup per guild)
+| Command | Channel | Description |
+|---|---|---|
+| `/quests` | QUESTS | List published quests with detail buttons |
+| `/quest [name]` | QUESTS | Show quest details |
+| `/signup [quest] [character]` | QUESTS | Sign up character for quest |
+| `/cancelsignup [quest] [character]` | QUESTS | Cancel signup |
+| `/characters` | CHARACTERS | List your characters |
+| `/charactersinv [character]` | CHARACTERS | List character inventory |
+| `/item [name]` | MARKET | Show item details and price |
+| `/buyitem [character] [item] [quantity?]` | MARKET | Buy item (pending approval) |
+| `/sellitem [character] [item] [quantity?]` | MARKET | Sell item (pending approval) |
+
+### Notification Events
+| Event | Channel |
+|---|---|
+| Quest published | QUESTS |
+| Quest result approved | QUESTS |
+| Announcement published | ANNOUNCEMENTS |
+| Item purchase approved | MARKET |
+| Item sale approved | MARKET |
+| Character approved | CHARACTERS |
+| Quest invite | DM to player |
+
+### User Linking
+Players connect Discord via **Profile → Connect Discord** → OAuth flow stores `discordId` on their account. Required for buy/sell/signup commands.

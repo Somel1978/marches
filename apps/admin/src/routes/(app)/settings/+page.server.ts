@@ -6,7 +6,7 @@ import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
 // Core platform settings only — feature settings live under their own routes
-const CORE_PREFIXES = ['smtp.', 'email.', 'site.'];
+const CORE_PREFIXES = ['smtp.', 'email.', 'site.', 'discord.'];
 
 function isCoreSettings(key: string) {
 	return CORE_PREFIXES.some(prefix => key.startsWith(prefix));
@@ -35,8 +35,11 @@ export const actions: Actions = {
 		const entries: { key: string; value: string | null }[] = [];
 		for (const setting of all.filter(s => isCoreSettings(s.key))) {
 			const raw = data.get(setting.key)?.toString() ?? null;
-			if (setting.isSecret && raw === '••••••••') continue;
-			entries.push({ key: setting.key, value: raw?.trim() || null });
+			if (setting.isSecret && (!raw || raw === '')) continue;
+			const trimmed = raw?.trim() || null;
+			// Don't wipe an existing value with null unless intentional
+			if (trimmed === null && setting.value !== null) continue;
+			entries.push({ key: setting.key, value: trimmed });
 		}
 
 		try {

@@ -1,0 +1,50 @@
+/* shared/database/prisma/discord.prisma */
+
+enum DiscordChannelType {
+  ANNOUNCEMENTS
+  QUESTS
+  MARKET
+  CHARACTERS
+
+  @@schema("discord")
+}
+
+model DiscordServer {
+  id        String   @id @default(uuid())
+  guildId   String   @unique @map("guild_id")
+  name      String
+  scope     String   @default("global") // "global" or worldId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt       @map("updated_at")
+
+  channels  DiscordChannel[]
+
+  @@map("discord_servers")
+  @@schema("discord")
+}
+
+model DiscordChannel {
+  id          String             @id @default(uuid())
+  serverId    String             @map("server_id")
+  server      DiscordServer      @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  channelId   String             @map("channel_id")
+  channelName String             @map("channel_name")
+  type        DiscordChannelType
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt       @map("updated_at")
+
+  @@unique([serverId, type])
+  @@map("discord_channels")
+  @@schema("discord")
+}
+
+model DiscordNotificationQueue {
+  id        String   @id @default(uuid())
+  type      String
+  payload   Json
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("discord_notification_queue")
+  @@schema("discord")
+}

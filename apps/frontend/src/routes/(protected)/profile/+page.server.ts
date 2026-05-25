@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Always fetch fresh from DB — session may have stale email after email change
 	const user         = await users.getById(locals.user!.id);
 	const emailChanged = url.searchParams.get('emailChanged') === '1';
-	return { user: user!, emailChanged };
+	return { user: user!, emailChanged, discordSuccess: url.searchParams.get('success') ?? null };
 };
 
 export const actions: Actions = {

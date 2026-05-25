@@ -10,9 +10,11 @@ export default defineConfig(({ mode }) => {
 
 	return {
 		plugins: [tailwindcss(), sveltekit()],
-		server: {
-			port: 5174,
-			strictPort: true,
+server: {
+			host:         '0.0.0.0',
+			port:         5174,
+			strictPort:   true,
+			allowedHosts: true,
 		},
 		test: {
 			expect: { requireAssertions: true },

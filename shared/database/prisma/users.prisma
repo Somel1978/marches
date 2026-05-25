@@ -20,7 +20,8 @@ model User {
   emailVerified Boolean  @default(false) @map("email_verified")
   image         String?
 
-  discordHandle String?  @map("discord_handle")
+  discordHandle String?  @map("discord_handle")  // display handle e.g. username#1234
+  discordId     String?  @unique @map("discord_id")  // Discord user snowflake ID for linking
   timezone      String   @default("UTC") @map("timezone")
   mobile        String?
 

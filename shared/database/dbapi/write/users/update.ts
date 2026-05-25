@@ -43,3 +43,7 @@ export async function updateUser(id: string, input: UpdateUserInput) {
         return after;
     });
 }
+
+export async function updateUserDiscord(id: string, discordId: string | null, discordHandle: string | null) {
+    return db.user.update({ where: { id }, data: { discordId, discordHandle } });
+}

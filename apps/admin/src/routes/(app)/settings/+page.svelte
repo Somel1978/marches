@@ -18,7 +18,8 @@
 	});
 
 	const GROUP_LABELS: Record<string, string> = {
-		smtp:  'SMTP (Outgoing Mail)',
+		smtp:    'SMTP (Outgoing Mail)',
+		discord: 'Discord Integration',
 		email: 'Email Defaults',
 		site:  'Site Configuration',
 	};

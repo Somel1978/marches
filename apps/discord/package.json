@@ -1,0 +1,20 @@
+{
+  "name": "@apps/discord",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev":      "dotenv -e ../../.env -- tsx watch src/index.ts",
+    "start":    "dotenv -e ../../.env -- tsx src/index.ts",
+    "register": "dotenv -e ../../.env -- tsx src/register-commands.ts"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.0",
+    "@core/database": "workspace:*",
+    "@core/errors": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

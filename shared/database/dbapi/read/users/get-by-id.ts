@@ -23,3 +23,7 @@ export async function getById(id: string) {
         },
     });
 }
+
+export async function getUserByDiscordId(discordId: string) {
+    return db.user.findFirst({ where: { discordId } });
+}

@@ -268,6 +268,24 @@ export async function approveTransaction(id: string, actorId: string) {
             before:      { status: 'PENDING' },
             after:       { status: 'APPROVED' },
         });
+
+        // Queue Discord notification
+        try {
+            const { queueDiscordNotification } = await import('../discord/dispatcher');
+            const char = await db.character.findUnique({ where: { id: tx.characterId }, select: { id: true, name: true } });
+            if (tx.type === 'BUY') {
+                await queueDiscordNotification('ITEM_PURCHASED', {
+                    char: { name: char?.name ?? '' },
+                    item: { name: tx.item?.name ?? '', buyPrice: tx.item?.buyPrice },
+                });
+            } else {
+                await queueDiscordNotification('ITEM_SOLD', {
+                    char:  { name: char?.name ?? '' },
+                    item:  { name: tx.item?.name ?? '' },
+                    price: tx.totalPrice ?? 0,
+                });
+            }
+        } catch { /* discord not running */ }
     });
 }
 
