@@ -3,6 +3,7 @@ import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import type { QuestStatus } from '@prisma/client';
+import { queueDiscordNotification } from '../discord/dispatcher';
 
 const VALID_TRANSITIONS: Partial<Record<QuestStatus, QuestStatus[]>> = {
     DRAFT:            ['PENDING_APPROVAL', 'CANCELLED'],
@@ -26,7 +27,7 @@ export async function updateQuestStatus(
     if (!allowed.includes(status))
         throw new ValidationError(`Cannot transition from ${quest.status} to ${status}.`);
 
-    return db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx) => {
         const updated = await tx.quest.update({
             where: { id },
             data:  {
@@ -48,4 +49,30 @@ export async function updateQuestStatus(
 
         return updated;
     });
+
+    // Queue Discord notifications outside transaction
+    try {
+        if (status === 'PUBLISHED') {
+            await queueDiscordNotification('QUEST_PUBLISHED', {
+                questId:     id,
+                title:       quest.title,
+                description: quest.description ?? '',
+                minLevel:    quest.minLevel,
+                maxLevel:    quest.maxLevel,
+                missionXp:   quest.missionXp,
+                maxCapacity: quest.maxCapacity,
+                worldId:     (quest as any).worldId ?? null,
+                scheduledAt: quest.scheduledAt?.toISOString() ?? null,
+                signupDeadline: (quest as any).signupDeadline?.toISOString() ?? null,
+            });
+        } else if (status === 'IN_PROGRESS') {
+            await queueDiscordNotification('QUEST_STARTED', {
+                questId: id,
+                title:   quest.title,
+                worldId: (quest as any).worldId ?? null,
+            });
+        }
+    } catch { /* discord not running */ }
+
+    return result;
 }

@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-25 (session 4)
+> Last updated: 2026-05-25 (session 5)
 
 ---
 
@@ -859,7 +859,7 @@ shared/ui/components/layout/
 - [x] News / Announcements (public, type/tag/schedule/expiry, markdown + enrichers)
 - [x] Journals (admin-managed, section/page hierarchy, world+role restrictions, markdown + enrichers)
 - [x] Enricher system ([[type:id]] syntax, live search popup in admin, server-side resolution, clickable badges)
-- [x] Discord integration (multi-server, per-world scope, slash commands, notifications, user OAuth linking)
+- [x] Discord integration (multi-server, per-world scope, slash commands, notifications, user OAuth linking, quest published/started/result/invite/market/character events)
 - [ ] Discord integration
 - [ ] Availability feature — further testing needed
 - [ ] News/Journal — further testing needed
@@ -934,6 +934,7 @@ pnpm --filter @apps/discord dev
 | Event | Channel |
 |---|---|
 | Quest published | QUESTS |
+| Quest started (IN_PROGRESS) | QUESTS |
 | Quest result approved | QUESTS |
 | Announcement published | ANNOUNCEMENTS |
 | Item purchase approved | MARKET |
@@ -943,3 +944,15 @@ pnpm --filter @apps/discord dev
 
 ### User Linking
 Players connect Discord via **Profile → Connect Discord** → OAuth flow stores `discordId` on their account. Required for buy/sell/signup commands.
+
+---
+
+## Bug Fixes & Patches
+
+### Session 5 (2026-05-25)
+- Quest result item reward query — enum string comparison fixed using `{ equals: value }` filter
+- Discord notification queue — `markProcessed` now always called (even on failure) to prevent infinite retry
+- `notifyQuestResult` — `characterName` was undefined (stale pre-transaction data); fixed by reloading `QuestResultCharacter` after transaction
+- `notifyQuestResult` — now includes tokens and item grants in embed
+- Quest status transitions `PUBLISHED` and `IN_PROGRESS` now queue Discord notifications (`QUEST_PUBLISHED`, `QUEST_STARTED`)
+- `notifyQuestStarted` added to dispatcher and process-queue

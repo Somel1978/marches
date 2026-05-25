@@ -4,6 +4,7 @@ import { logAudit } from '../audit/log.ts';
 import { createNotificationsForAdmins, createNotification } from '../notifications/notifications.ts';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
+import { queueDiscordNotification } from '../discord/dispatcher';
 
 export async function submitQuestResult(
     questId: string,
@@ -117,7 +118,7 @@ export async function approveQuestResult(resultId: string, actorId: string) {
     const charIds    = result.characters.map(rc => rc.characterId);
     const characters = await db.character.findMany({
         where:  { id: { in: charIds } },
-        select: { id: true, userId: true, totalXp: true, gameSystemId: true },
+        select: { id: true, name: true, userId: true, totalXp: true, gameSystemId: true },
     });
     const gameSystemIds = [...new Set(characters.map(c => c.gameSystemId))];
     const thresholds    = await db.progressionThreshold.findMany({
@@ -132,8 +133,8 @@ export async function approveQuestResult(resultId: string, actorId: string) {
     const itemGrantMap: Record<string, { id: string; name: string }[]> = {};
     for (const itemReward of itemRewards) {
         const itemWhere: any = { isAvailable: true };
-        if (itemReward.itemRarity)   itemWhere.rarity   = itemReward.itemRarity as any;
-        if (itemReward.itemCategory) itemWhere.category = itemReward.itemCategory as any;
+        if (itemReward.itemRarity)   itemWhere.rarity   = { equals: itemReward.itemRarity };
+        if (itemReward.itemCategory) itemWhere.category = { equals: itemReward.itemCategory };
         if (itemReward.itemMaxValue) itemWhere.buyPrice = { lte: itemReward.itemMaxValue };
 
         const eligibleItems = await db.marketplaceItem.findMany({ where: itemWhere, select: { id: true, name: true } });
@@ -345,18 +346,19 @@ export async function approveQuestResult(resultId: string, actorId: string) {
 
     // Notify DM after transaction
     const dmP = await db.dMProfile.findUnique({ where: { id: result.quest?.dmProfileId ?? '' }, select: { userId: true } }).catch(() => null);
-    // Queue Discord notification for bot
+    // Queue Discord notification for bot — reload characters to get itemGrantedName set during transaction
     try {
-        const { queueDiscordNotification } = await import('../discord/dispatcher');
+        const freshChars = await db.questResultCharacter.findMany({ where: { resultId: result.id } });
         await queueDiscordNotification('QUEST_RESULT', {
-            questId:   result.questId,
+            questId:    result.questId,
             questTitle: result.quest?.title ?? '',
-            worldId:   (result.quest as any)?.worldId ?? null,
-            chars:     result.characters.map((rc: any) => ({
-                characterName: rc.characterName,
-                xpAwarded:     rc.xpAwarded,
-                goldAwarded:   rc.goldAwarded,
-                itemGrantedName: rc.itemGrantedName,
+            worldId:    (result.quest as any)?.worldId ?? null,
+            chars:      freshChars.map((rc: any) => ({
+                characterName:   charMap[rc.characterId]?.name ?? rc.characterId,
+                xpAwarded:       rc.xpAwarded,
+                goldAwarded:     rc.goldAwarded,
+                tokensAwarded:   rc.tokensAwarded,
+                itemGrantedName: rc.itemGrantedName ?? null,
             })),
         });
     } catch {}

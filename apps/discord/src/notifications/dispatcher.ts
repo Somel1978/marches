@@ -23,6 +23,16 @@ async function send(scope: string, type: string, embed: EmbedBuilder) {
 
 // ── Notification dispatchers ──────────────────────────────────────────────────
 
+export async function notifyQuestStarted(quest: any) {
+    const embed = new EmbedBuilder()
+        .setTitle(`⚔ Quest Started: ${quest.title}`)
+        .setColor(0x6366f1)
+        .setDescription('This quest is now in progress. Good luck adventurers!')
+        .setTimestamp();
+    await send('global', 'QUESTS', embed);
+    if (quest.worldId) await send(quest.worldId, 'QUESTS', embed);
+}
+
 export async function notifyQuestPublished(quest: any) {
     const settings = await platform.getSettingsMap();
     const siteUrl  = settings['site.url'] ?? '';
@@ -47,17 +57,18 @@ export async function notifyQuestResult(quest: any, resultChars: any[]) {
     const settings = await platform.getSettingsMap();
     const siteUrl  = settings['site.url'] ?? '';
     const embed = new EmbedBuilder()
-        .setTitle(`✅ Quest Completed: ${quest.title}`)
+        .setTitle(`✅ Quest Completed: ${quest.title ?? 'Unknown Quest'}`)
         .setColor(0x22c55e)
         .setDescription('Rewards have been distributed!')
         .addFields(
-            resultChars.map(rc => ({
-                name:   rc.characterName,
-                value:  `XP: ${rc.xpAwarded?.toLocaleString() ?? 0} · Gold: ${rc.goldAwarded?.toLocaleString() ?? 0}${rc.itemGrantedName ? ` · Item: ${rc.itemGrantedName}` : ''}`,
-                inline: false,
-            }))
+            resultChars
+                .filter(rc => rc.characterName)
+                .map(rc => ({
+                    name:   String(rc.characterName),
+                    value:  `XP: ${rc.xpAwarded?.toLocaleString() ?? 0} · Gold: ${rc.goldAwarded?.toLocaleString() ?? 0}${rc.tokensAwarded ? ` · Tokens: ${rc.tokensAwarded}` : ''}${rc.itemGrantedName ? ` · 🎒 ${rc.itemGrantedName}` : ''}`,
+                    inline: false,
+                }))
         )
-        .setURL(`${siteUrl}/quests/${quest.id}`)
         .setTimestamp();
 
     await send('global', 'QUESTS', embed);

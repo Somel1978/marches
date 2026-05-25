@@ -4,6 +4,7 @@ import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import { createNotification, createNotificationsForAdmins } from '../notifications/notifications.ts';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
+import { queueDiscordNotification } from '../discord/dispatcher';
 
 const RARITY_ORDER = ['Mundane', 'Common', 'Uncommon', 'Rare', 'Very_Rare', 'Legendary', 'Artifact', 'Unknown'];
 
@@ -271,7 +272,6 @@ export async function approveTransaction(id: string, actorId: string) {
 
         // Queue Discord notification
         try {
-            const { queueDiscordNotification } = await import('../discord/dispatcher');
             const char = await db.character.findUnique({ where: { id: tx.characterId }, select: { id: true, name: true } });
             if (tx.type === 'BUY') {
                 await queueDiscordNotification('ITEM_PURCHASED', {
