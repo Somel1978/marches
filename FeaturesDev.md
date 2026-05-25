@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-25 (session 6)
+> Last updated: 2026-05-25 (session 7)
 
 ---
 
@@ -855,7 +855,7 @@ shared/ui/components/layout/
 - [ ] Discord — further testing needed
 - [x] site.logoIcon setting for collapsed sidebar — SVG/URL/emoji, works in both admin sidebar (collapsed) and frontend nav bar
 - [ ] DM dashboard quest filters (by status, date)
-- [ ] Roles & permissions review — differentiated admin roles (tiered: Content Admin, Quest Admin, Player Admin)
+- [x] Admin nav now driven by can_read permission check — roles with read access see the nav item automatically
 
 ---
 
@@ -937,6 +937,13 @@ Players connect Discord via **Profile → Connect Discord** → OAuth flow store
 ---
 
 ## Bug Fixes & Patches
+
+### Session 7 (2026-05-25)
+- Admin settings page — per-field save (each setting has its own Save button, no more bulk wipe)
+- Admin settings page — secret fields never pre-fill value (prevents placeholder dots being saved as token)
+- Discord bot — comprehensive startup logging (token set, length, clientId match, per-guild registration)
+- Admin nav — `canNavigate` + `navVis` replaced with `checkPermission(..., read).allowed` — nav items shown based on role permissions
+- Discord index.ts — token/clientId trimmed, uncaughtException/unhandledRejection handlers added
 
 ### Session 5 (2026-05-25)
 - Quest result item reward query — enum string comparison fixed using `{ equals: value }` filter

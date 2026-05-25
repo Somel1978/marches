@@ -1,11 +1,10 @@
 // apps/admin/src/routes/(app)/settings/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
 import { platform } from '@core/database';
-import { assertWritePermission, checkPermission } from '@core/rbac';
+import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
-// Core platform settings only — feature settings live under their own routes
 const CORE_PREFIXES = ['smtp.', 'email.', 'site.', 'discord.'];
 
 function isCoreSettings(key: string) {
@@ -15,36 +14,30 @@ function isCoreSettings(key: string) {
 export const load: PageServerLoad = async ({ locals }) => {
 	const canRead = checkPermission(locals.permissions, { resourceKey: 'System', action: 'read' });
 	if (!canRead.allowed) throw error(403, 'Forbidden');
-
 	const all = await platform.getSettings(true);
 	return { settings: all.filter(s => isCoreSettings(s.key)) };
 };
 
 export const actions: Actions = {
-	default: async ({ request, locals }) => {
-		try {
-			assertWritePermission(locals.permissions, 'System', 'update');
-		} catch (e) {
-			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
-			throw e;
-		}
+	saveSetting: async ({ request, locals }) => {
+		const canUpdate = checkPermission(locals.permissions, { resourceKey: 'System', action: 'update' });
+		if (!canUpdate.allowed) return fail(403, { message: 'Forbidden' });
 
-		const data = await request.formData();
-		const all  = await platform.getSettings(false);
+		const data     = await request.formData();
+		const key      = data.get('key')?.toString()   ?? '';
+		const raw      = data.get('value')?.toString() ?? '';
+		const isSecret = data.get('isSecret') === 'true';
 
-		const entries: { key: string; value: string | null }[] = [];
-		for (const setting of all.filter(s => isCoreSettings(s.key))) {
-			const raw = data.get(setting.key)?.toString() ?? null;
-			if (setting.isSecret && (!raw || raw === '')) continue;
-			const trimmed = raw?.trim() || null;
-			// Don't wipe an existing value with null unless intentional
-			if (trimmed === null && setting.value !== null) continue;
-			entries.push({ key: setting.key, value: trimmed });
-		}
+		if (!key || !isCoreSettings(key)) return fail(400, { message: 'Invalid setting key.' });
+
+		// For secrets: empty value = keep current, don't wipe
+		if (isSecret && raw === '') return { success: true, key };
+
+		const value = raw.trim() || null;
 
 		try {
-			await platform.updateSettings(entries, locals.user!.id);
-			return { success: true };
+			await platform.updateSettings([{ key, value }], locals.user!.id);
+			return { success: true, key };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

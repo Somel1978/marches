@@ -1,6 +1,6 @@
 // apps/admin/src/routes/(app)/+layout.server.ts
 import { redirect } from '@sveltejs/kit';
-import { checkPermission, canNavigate } from '@core/rbac';
+import { checkPermission } from '@core/rbac';
 import { platform, notifications } from '@core/database';
 import { NAV_ITEMS, FOOTER_ITEMS } from '$lib/nav';
 import type { NavItemDef, NavContext, ResolvedNavItem } from '$lib/nav';
@@ -9,14 +9,13 @@ import type { LayoutServerLoad } from './$types';
 function resolveNavItems(
     items:       NavItemDef[],
     permissions: App.Locals['permissions'],
-    navVis:      Record<string, 'NONE' | 'ANY' | 'ALL'>,
     userId:      string,
     pathname:    string,
 ): ResolvedNavItem[] {
     return items
         .filter(item => {
             if (item.resourceKey === null) return true;
-            return canNavigate(permissions, item.resourceKey, navVis[item.resourceKey] ?? 'NONE');
+            return checkPermission(permissions, { resourceKey: item.resourceKey, action: 'read' }).allowed;
         })
         .map(item => {
             // Build context with resolved permission level for this resource
@@ -56,8 +55,6 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 	});
 	if (!canAccessAdmin.allowed) redirect(302, '/unauthorized');
 
-	const navVis = await platform.getResourceNavVisibility();
-
 	const unread = await notifications.getUnread(locals.user.id);
 
 	return {
@@ -69,7 +66,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		},
 		notifications: unread,
 		notifCount:    unread.length,
-		nav:    resolveNavItems(NAV_ITEMS,    locals.permissions, navVis, locals.user.id, url.pathname),
-		footer: resolveNavItems(FOOTER_ITEMS, locals.permissions, navVis, locals.user.id, url.pathname),
+		nav:    resolveNavItems(NAV_ITEMS,    locals.permissions, locals.user.id, url.pathname),
+		footer: resolveNavItems(FOOTER_ITEMS, locals.permissions, locals.user.id, url.pathname),
 	};
 };

@@ -1,28 +1,37 @@
 <!-- apps/admin/src/routes/(app)/settings/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { PageData, ActionData } from './$types';
+	import type { PageData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
-	let saving = $state(false);
+	let { data }: { data: PageData } = $props();
 
-	// Group settings by prefix
-	const groups = $derived(() => {
-		const map: Record<string, typeof data.settings> = {};
-		for (const s of data.settings) {
+	const groups = $derived(
+		data.settings.reduce((map: Record<string, typeof data.settings>, s) => {
 			const group = s.key.split('.')[0];
 			map[group] ??= [];
 			map[group].push(s);
-		}
-		return map;
-	});
+			return map;
+		}, {} as Record<string, typeof data.settings>)
+	);
 
 	const GROUP_LABELS: Record<string, string> = {
 		smtp:    'SMTP (Outgoing Mail)',
 		discord: 'Discord Integration',
-		email: 'Email Defaults',
-		site:  'Site Configuration',
+		email:   'Email Defaults',
+		site:    'Site Configuration',
 	};
+
+	// Track saved/saving state per key
+	let savedKeys  = $state<Set<string>>(new Set());
+	let savingKeys = $state<Set<string>>(new Set());
+
+	function onSaved(key: string) {
+		savedKeys  = new Set([...savedKeys, key]);
+		savingKeys = new Set([...savingKeys].filter(k => k !== key));
+		setTimeout(() => {
+			savedKeys = new Set([...savedKeys].filter(k => k !== key));
+		}, 2000);
+	}
 </script>
 
 <div class="page">
@@ -30,54 +39,57 @@
 		<h2 class="page__title">Settings</h2>
 	</div>
 
-	{#if form?.message}
-		<div class="form-error">{form.message}</div>
-	{/if}
-	{#if form?.success}
-		<div class="form-success">Settings saved.</div>
-	{/if}
-
-	<form
-		method="post"
-		use:enhance={() => {
-			saving = true;
-			return async ({ update }) => { saving = false; await update(); };
-		}}
-	>
-		{#each Object.entries(groups()) as [group, settings]}
-			<div class="card settings-group">
-				<h3 class="group-title">{GROUP_LABELS[group] ?? group}</h3>
-				<div class="fields">
-					{#each settings as setting}
-						<div class="field">
-							<label class="label" for={setting.key}>
+	{#each Object.entries(groups) as [group, settings]}
+		<div class="card settings-group" style="margin-bottom:1rem;">
+			<h3 class="group-title">{GROUP_LABELS[group] ?? group}</h3>
+			<div class="fields">
+				{#each settings as setting}
+					<div class="field">
+						<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.25rem;">
+							<label class="label" for={setting.key} style="margin:0;">
 								{setting.key}
-								{#if setting.isSecret}
-									<span class="badge badge-muted">secret</span>
-								{/if}
+								{#if setting.isSecret}<span class="badge badge-muted">secret</span>{/if}
 							</label>
-							{#if setting.description}
-								<p class="field-hint">{setting.description}</p>
+							{#if savedKeys.has(setting.key)}
+								<span style="font-size:0.75rem; color:var(--color-success);">✓ Saved</span>
+							{:else if savingKeys.has(setting.key)}
+								<span style="font-size:0.75rem; color:var(--text-muted);">Saving…</span>
 							{/if}
-							<input
-								id={setting.key}
-								name={setting.key}
-								type={setting.isSecret ? 'password' : 'text'}
-								class="input"
-								value={setting.value ?? ''}
-								placeholder={setting.isSecret ? 'Leave blank to keep current' : ''}
-								autocomplete="off"
-							/>
 						</div>
-					{/each}
-				</div>
+						{#if setting.description}
+							<p class="field-hint">{setting.description}</p>
+						{/if}
+						<form method="post" action="?/saveSetting"
+							use:enhance={() => {
+								savingKeys = new Set([...savingKeys, setting.key]);
+								return async ({ result, update }) => {
+									await update({ reset: false });
+									if (result.type === 'success') onSaved(setting.key);
+									else savingKeys = new Set([...savingKeys].filter(k => k !== setting.key));
+								};
+							}}>
+							<input type="hidden" name="key"      value={setting.key} />
+							<input type="hidden" name="isSecret" value={String(setting.isSecret)} />
+							<div style="display:flex; gap:0.5rem; align-items:center;">
+								<input
+									id={setting.key}
+									name="value"
+									type={setting.isSecret ? 'password' : 'text'}
+									class="input"
+									style="flex:1;"
+									value={setting.isSecret ? '' : (setting.value ?? '')}
+									placeholder={setting.isSecret ? (setting.value ? 'Set — enter new value to change' : 'Enter value') : ''}
+									autocomplete="off"
+								/>
+								<button type="submit" class="btn btn-ghost btn-sm"
+									disabled={savingKeys.has(setting.key)}>
+									Save
+								</button>
+							</div>
+						</form>
+					</div>
+				{/each}
 			</div>
-		{/each}
-
-		<div class="save-bar">
-			<button type="submit" class="btn btn-primary" disabled={saving}>
-				{saving ? 'Saving…' : 'Save settings'}
-			</button>
 		</div>
-	</form>
+	{/each}
 </div>

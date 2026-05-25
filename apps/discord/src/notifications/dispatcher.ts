@@ -13,7 +13,10 @@ async function getChannel(scope: string, type: string): Promise<TextChannel | nu
     try {
         const channel = await _client.channels.fetch(ch.channelId);
         return channel instanceof TextChannel ? channel : null;
-    } catch { return null; }
+    } catch (e: any) {
+        console.error(`[Discord] Failed to fetch channel ${ch.channelId}:`, e?.message ?? e);
+        return null;
+    }
 }
 
 async function send(scope: string, type: string, embed: EmbedBuilder) {
