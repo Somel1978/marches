@@ -9,13 +9,13 @@
     "./styles/*": "./styles/*"
   },
   "dependencies": {
-    "marked": "^18.0.4",
-    "svelte": "^5.0.0"
-  },
-  "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^7.1.2"
+    "marked": "^18.0.4"
   },
   "peerDependencies": {
     "svelte": "^5.0.0"
+  },
+  "devDependencies": {
+    "svelte": "^5.0.0",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2"
   }
 }
