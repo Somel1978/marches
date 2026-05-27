@@ -120,7 +120,7 @@ import { getCharacterTransactions                } from './dbapi/read/characters
 import { getCharacterInventory                   } from './dbapi/read/characters/get-inventory.ts';
 import { removeFromInventory, addToInventory      } from './dbapi/write/characters/inventory.ts';
 import { createCharacter                         } from './dbapi/write/characters/create.ts';
-import { updateCharacter                         } from './dbapi/write/characters/update.ts';
+import { updateCharacter, updateCharacterFreeFields, submitStructuralChanges } from './dbapi/write/characters/update.ts';
 import { updateCharacterStatus                   } from './dbapi/write/characters/update-status.ts';
 import { updateCharacterClasses                  } from './dbapi/write/characters/update-classes.ts';
 import { approveCharacter, rejectCharacter       } from './dbapi/write/characters/approve.ts';
@@ -206,16 +206,18 @@ export const characters = {
     getInventory:     getCharacterInventory,
     addInventory:     addToInventory,
     removeInventory:  removeFromInventory,
-    create:        createCharacter,
-    update:        updateCharacter,
-    updateStatus:  updateCharacterStatus,
-    updateClasses: updateCharacterClasses,
-    approve:       approveCharacter,
-    reject:        rejectCharacter,
-    delete:        deleteCharacter,
+    create:           createCharacter,
+    update:           updateCharacter,
+    updateFreeFields: updateCharacterFreeFields,
+    submitChanges:    submitStructuralChanges,
+    updateStatus:     updateCharacterStatus,
+    updateClasses:    updateCharacterClasses,
+    approve:          approveCharacter,
+    reject:           rejectCharacter,
+    delete:           deleteCharacter,
     adjustCurrency,
-    grantSlot:     grantCharacterSlot,
-    checkRest:     checkAndClearRest,
+    grantSlot:        grantCharacterSlot,
+    checkRest:        checkAndClearRest,
 };
 
 export const quests = {

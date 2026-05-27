@@ -33,7 +33,11 @@
 
 	let allocations = $state<ClassAlloc[]>([]);
 
+	let editClasses = $state<{classId:string;subclassId:string;allocatedLevel:number}[]>([]);
+
 	$effect.pre(() => {
+		const cls = ((data.character as any).classes ?? []).map((c: any) => ({ classId: c.classId, subclassId: c.subclassId ?? '', allocatedLevel: c.allocatedLevel }));
+		editClasses = cls.length ? cls : [{classId:'',subclassId:'',allocatedLevel:1}];
 		allocations = ((data.character as any).classes ?? []).map((c: any) => ({
 			classId:        c.classId,
 			subclassId:     c.subclassId ?? null,
@@ -155,6 +159,10 @@
 						<label class="label" for="portraitUrl">Portrait URL <span class="optional">(optional)</span></label>
 						<input id="portraitUrl" name="portraitUrl" type="url" class="input" value={data.character.portraitUrl ?? ''} placeholder="https://..." />
 					</div>
+					<div class="field">
+						<label class="label" for="description">Backstory <span class="optional">(optional)</span></label>
+						<textarea id="description" name="description" class="input" rows="5">{(data.character as any).description ?? ''}</textarea>
+					</div>
 				</div>
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary" disabled={saving}>
@@ -174,6 +182,179 @@
 			{/if}
 		</div>
 	</div>
+
+
+	<!-- Pending changes notice -->
+	{#if data.character.status === 'PENDING' && (data.character as any).statusReason === 'EDIT_PENDING'}
+		<div class="card" style="border-left:3px solid var(--color-warning);">
+			<p style="margin:0; font-size:0.875rem;">⏳ Your character edits are pending admin approval.</p>
+		</div>
+	{/if}
+
+	<!-- Structural edit form -->
+	{#if ['ACTIVE','RESTING'].includes(data.character.status)}
+		<div class="card">
+			<h3 class="section-title">Species, Background & Classes</h3>
+			<p class="field-hint" style="margin-bottom:0.75rem;">Changes to these fields require admin approval.</p>
+			{#if (form as any)?.changesSubmitted}
+				<div class="form-success" style="margin-bottom:0.75rem;">Changes submitted for approval.</div>
+			{/if}
+			<form method="post" action="?/submitChanges" use:enhance>
+				<div class="fields">
+					<div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+						<div class="field" style="flex:1 1 200px;">
+							<label class="label" for="speciesId">Species</label>
+							<select id="speciesId" name="speciesId" class="input input--select">
+								<option value="">Select species…</option>
+								{#each ((data as any).systemData?.species ?? []).filter((s:any) => s.isAvailable) as s}
+									<option value={s.id} selected={(data.character as any).speciesId === s.id}>{s.name}</option>
+								{/each}
+							</select>
+						</div>
+						<div class="field" style="flex:1 1 200px;">
+							<label class="label" for="backgroundId">Background</label>
+							<select id="backgroundId" name="backgroundId" class="input input--select">
+								<option value="">Select background…</option>
+								{#each ((data as any).systemData?.backgrounds ?? []).filter((b:any) => b.isAvailable) as b}
+									<option value={b.id} selected={(data.character as any).backgroundId === b.id}>{b.name}</option>
+								{/each}
+							</select>
+						</div>
+					</div>
+
+					<!-- Class rows -->
+					{#each editClasses as ec, i}
+						<div style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap; padding:0.5rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
+							<div class="field" style="flex:2 1 160px; margin:0;">
+								<label class="label" for="ec-class-{i}">Class</label>
+								<select id="ec-class-{i}" name="classId" class="input input--select" bind:value={ec.classId}
+									onchange={() => ec.subclassId = ''}>
+									<option value="">Select…</option>
+									{#each ((data as any).systemData?.classes ?? []).filter((c:any) => c.isAvailable) as cls}
+										<option value={cls.id}>{cls.name}</option>
+									{/each}
+								</select>
+							</div>
+							<div class="field" style="flex:0 0 60px; margin:0;">
+								<label class="label" for="ec-level-{i}">Level</label>
+								<input id="ec-level-{i}" name="allocatedLevel" type="number" class="input" min="1" max="20" bind:value={ec.allocatedLevel} />
+							</div>
+							<div class="field" style="flex:2 1 160px; margin:0;">
+								<label class="label" for="ec-sub-{i}">Subclass</label>
+								{#if ec.classId}
+									{@const editCls = (data as any).systemData?.classes?.find((c:any) => c.id === ec.classId)}
+									{@const editSubclasses = editCls?.subclasses?.filter((s:any) => s.isAvailable && ec.allocatedLevel >= (editCls.subclassAvailableAtLevel ?? 3)) ?? []}
+									{#if editSubclasses.length}
+										<select name="subclassId" class="input input--select" bind:value={ec.subclassId}>
+											<option value="">None</option>
+											{#each editSubclasses as sub}
+												<option value={sub.id}>{sub.name}</option>
+											{/each}
+										</select>
+									{:else}
+										<input type="hidden" name="subclassId" value="" />
+										<p class="field-hint" style="margin:0; padding:0.5rem 0; font-size:0.75rem;">
+											{editCls ? `Available at level ${editCls.subclassAvailableAtLevel ?? 3}` : '—'}
+										</p>
+									{/if}
+								{:else}
+									<input type="hidden" name="subclassId" value="" />
+								{/if}
+							</div>
+							{#if editClasses.length > 1}
+								<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"
+									onclick={() => editClasses = editClasses.filter((_,idx) => idx !== i)}>✕</button>
+							{/if}
+						</div>
+					{/each}
+					<button type="button" class="btn btn-ghost btn-sm" onclick={() => editClasses = [...editClasses, {classId:'',subclassId:'',allocatedLevel:1}]}>
+						+ Add class
+					</button>
+				</div>
+				<div class="form-actions">
+					<button type="submit" class="btn btn-primary">Submit for approval</button>
+				</div>
+			</form>
+		</div>
+	{/if}
+
+	<!-- Character sheet — Species, Background & Features -->
+	{#if (data.character as any).speciesRef || (data.character as any).backgroundRef}
+		<div class="card">
+			<h3 class="section-title">Character sheet</h3>
+
+			<!-- Species + Background side by side -->
+			<div class="sheet-panels">
+
+				{#if (data.character as any).speciesRef}
+					{@const sp = (data.character as any).speciesRef}
+					<div style="background:var(--bg-overlay); border-radius:var(--radius-md); padding:0.75rem;">
+						<div class="sheet-panel__title">
+							<span>{sp.name}</span>
+							{#if sp.isSubrace}<span class="badge badge-muted">Subrace</span>{/if}
+							{#if sp.isLegacy}<span class="badge badge-warning">Legacy</span>{/if}
+						</div>
+						{#if sp.description}<p class="sheet-panel__desc">{sp.description}</p>{/if}
+						{#if sp.traits?.length}
+							<div class="sheet-traits">
+								{#each sp.traits as trait}
+									<div class="sheet-trait">
+										<div class="sheet-trait__name">
+											<span>{trait.name}</span>
+											{#if trait.requiredLevel}<span class="badge badge-muted">Lv {trait.requiredLevel}</span>{/if}
+										</div>
+										{#if trait.description}<p class="sheet-trait__desc">{trait.description}</p>{/if}
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				{/if}
+
+				{#if (data.character as any).backgroundRef}
+					{@const bg = (data.character as any).backgroundRef}
+					<div style="background:var(--bg-overlay); border-radius:var(--radius-md); padding:0.75rem;">
+						<div class="sheet-panel__title">
+							<span>{bg.name}</span>
+							{#if bg.featureName}<span class="badge badge-accent">{bg.featureName}</span>{/if}
+						</div>
+						{#if bg.shortDescription}<p class="sheet-panel__desc">{bg.shortDescription}</p>{/if}
+						<div class="sheet-panel__meta">
+							{#if bg.skillProficiencies}<div><span>Skills:</span> {bg.skillProficiencies}</div>{/if}
+							{#if bg.toolProficiencies}<div><span>Tools:</span> {bg.toolProficiencies}</div>{/if}
+							{#if bg.languages}<div><span>Languages:</span> {bg.languages}</div>{/if}
+						</div>
+					</div>
+				{/if}
+
+			</div>
+
+			<!-- Class features — each class in its own collapsible block -->
+			{#each (data.character as any).classes ?? [] as cc}
+				{#if cc.classRef && (cc.classFeatures?.length || cc.subclassFeatures?.length)}
+					<details class="sheet-class">
+						<summary>
+							<span>{cc.classRef.name}</span>
+							<span class="badge badge-muted">Lv {cc.allocatedLevel}</span>
+							{#if cc.subclassRef}<span class="badge badge-accent">{cc.subclassRef.name}</span>{/if}
+							<span class="sheet-class__count">{(cc.classFeatures?.length ?? 0) + (cc.subclassFeatures?.length ?? 0)} features</span>
+						</summary>
+						<div class="sheet-features">
+							{#each [...(cc.classFeatures ?? []), ...(cc.subclassFeatures ?? [])].sort((a,b) => a.requiredLevel - b.requiredLevel) as feat}
+								<div class="sheet-feature">
+									<div class="sheet-feature__name">
+										<span class="badge badge-muted">Lv {feat.requiredLevel}</span>
+										<span>{feat.name}</span>
+									</div>
+									{#if feat.description}<p class="sheet-feature__desc">{feat.description}</p>{/if}
+								</div>
+							{/each}
+						</div>
+					</details>
+				{/if}
+			{/each}
+		</div>
+	{/if}
 
 	<!-- Class allocation -->
 	{#if data.character.status !== 'DECEASED' && data.character.status !== 'RETIRED' && data.gameSystem}
@@ -264,59 +445,21 @@
 
 	<!-- Recent transactions -->
 	{#if data.transactions.length}
-		<div class="card">
-			<h3 class="section-title">Recent activity</h3>
-			<table class="table">
-				<thead>
-					<tr>
-						<th>Type</th>
-						<th>Change</th>
-						<th class="col-hide-mobile">Note</th>
-						<th>Date</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each data.transactions as tx}
-						<tr>
-							<td><span class="badge badge-muted">{tx.type}</span></td>
-							<td>
-								{#if tx.delta !== null}
-									<span style="font-weight:600; color:{tx.delta > 0 ? 'var(--color-success)' : 'var(--color-danger)'}">{tx.delta > 0 ? '+' : ''}{tx.delta}</span>
-								{:else if tx.fromValue && tx.toValue}
-									<span class="table__muted">{tx.fromValue} → {tx.toValue}</span>
-								{/if}
-							</td>
-							<td class="table__muted col-hide-mobile">{tx.note ?? '—'}</td>
-							<td class="table__muted">{formatDate(tx.createdAt)}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-	{/if}
-	<!-- Pending purchases -->
-	{#if ((data as any).pendingBuys ?? []).length}
-		<div class="card">
-			<h3 class="section-title">Pending purchases ({((data as any).pendingBuys ?? []).length})</h3>
-			<p class="field-hint" style="margin-bottom:0.75rem;">Gold is reserved. Admin approval required to receive items.</p>
-			<div style="display:flex; flex-direction:column; gap:0.5rem;">
-				{#each ((data as any).pendingBuys ?? []) as tx}
-					<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:0.625rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
-						<div>
-							<p style="font-weight:600; font-size:0.9rem; margin:0;">{tx.item.name} ×{tx.quantity}</p>
-							<p style="font-size:0.8125rem; color:var(--text-muted); margin:0;">{tx.totalPrice.toLocaleString()} GP reserved</p>
-						</div>
-						<form method="post" action="?/cancel" use:enhance={() => {
-								return async ({ update }) => { await update(); await invalidateAll(); };
-							}}>
-							<input type="hidden" name="txId" value={tx.id} />
-							<button type="submit" class="btn btn-ghost btn-sm">Cancel &amp; refund</button>
-						</form>
-					</div>
-				{/each}
+		<!-- Description / Backstory -->
+	<div class="card">
+		<h3 class="section-title">Backstory</h3>
+		<form method="post" action="?/update" use:enhance={() => {
+			return async ({ update }) => { await update(); await invalidateAll(); };
+		}}>
+			<div class="field">
+				<textarea name="description" class="input" rows="5"
+					placeholder="Write your character's backstory here…">{(data.character as any).description ?? ''}</textarea>
 			</div>
-		</div>
-	{/if}
+			<div class="form-actions">
+				<button type="submit" class="btn btn-primary btn-sm">Save backstory</button>
+			</div>
+		</form>
+	</div>
 
 	<!-- Inventory -->
 	<div class="card">
@@ -386,21 +529,61 @@
 			<p class="table__empty">No items in inventory.</p>
 		{/if}
 	</div>
-	<!-- Description / Backstory -->
 	<div class="card">
-		<h3 class="section-title">Backstory</h3>
-		<form method="post" action="?/update" use:enhance={() => {
-			return async ({ update }) => { await update(); await invalidateAll(); };
-		}}>
-			<div class="field">
-				<textarea name="description" class="input" rows="5"
-					placeholder="Write your character's backstory here…">{(data.character as any).description ?? ''}</textarea>
+			<h3 class="section-title">Recent activity</h3>
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Type</th>
+						<th>Change</th>
+						<th class="col-hide-mobile">Note</th>
+						<th>Date</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each data.transactions as tx}
+						<tr>
+							<td><span class="badge badge-muted">{tx.type}</span></td>
+							<td>
+								{#if tx.delta !== null}
+									<span style="font-weight:600; color:{tx.delta > 0 ? 'var(--color-success)' : 'var(--color-danger)'}">{tx.delta > 0 ? '+' : ''}{tx.delta}</span>
+								{:else if tx.fromValue && tx.toValue}
+									<span class="table__muted">{tx.fromValue} → {tx.toValue}</span>
+								{/if}
+							</td>
+							<td class="table__muted col-hide-mobile">{tx.note ?? '—'}</td>
+							<td class="table__muted">{formatDate(tx.createdAt)}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{/if}
+	<!-- Pending purchases -->
+	{#if ((data as any).pendingBuys ?? []).length}
+		<div class="card">
+			<h3 class="section-title">Pending purchases ({((data as any).pendingBuys ?? []).length})</h3>
+			<p class="field-hint" style="margin-bottom:0.75rem;">Gold is reserved. Admin approval required to receive items.</p>
+			<div style="display:flex; flex-direction:column; gap:0.5rem;">
+				{#each ((data as any).pendingBuys ?? []) as tx}
+					<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:0.625rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
+						<div>
+							<p style="font-weight:600; font-size:0.9rem; margin:0;">{tx.item.name} ×{tx.quantity}</p>
+							<p style="font-size:0.8125rem; color:var(--text-muted); margin:0;">{tx.totalPrice.toLocaleString()} GP reserved</p>
+						</div>
+						<form method="post" action="?/cancel" use:enhance={() => {
+								return async ({ update }) => { await update(); await invalidateAll(); };
+							}}>
+							<input type="hidden" name="txId" value={tx.id} />
+							<button type="submit" class="btn btn-ghost btn-sm">Cancel &amp; refund</button>
+						</form>
+					</div>
+				{/each}
 			</div>
-			<div class="form-actions">
-				<button type="submit" class="btn btn-primary btn-sm">Save backstory</button>
-			</div>
-		</form>
-	</div>
+		</div>
+	{/if}
+
+
 
 	<!-- Achievements -->
 	{#if (data as any).charAchievements?.length}

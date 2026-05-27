@@ -44,6 +44,10 @@
 								<option value="true"  selected={cls.canCastSpells}>Yes</option>
 							</select>
 						</div>
+						<div class="field" style="flex:1 1 100px;">
+							<label class="label" for="subclassAvailableAtLevel">Subclass at level</label>
+							<input id="subclassAvailableAtLevel" name="subclassAvailableAtLevel" type="number" class="input" min="1" max="20" value={cls.subclassAvailableAtLevel ?? 3} />
+						</div>
 						<div class="field" style="flex:1 1 80px;">
 							<label class="label" for="sortOrder">Sort order</label>
 							<input id="sortOrder" name="sortOrder" type="number" class="input" value={cls.sortOrder} />

@@ -15,6 +15,8 @@ enum CharacterStatus {
 }
 
 enum CharacterStatusReason {
+  NEW_CHARACTER    // new character awaiting first approval
+  EDIT_PENDING     // player submitted structural changes, awaiting approval
   LEVEL_UP_PENDING // unallocated levels, player must submit allocation
   QUEST_REST       // recovering after quest, clears after restDays
   ADMIN            // manually set by admin
@@ -59,6 +61,7 @@ model Character {
   gameSystemId String                  @map("game_system_id")
   name         String                  @unique
   speciesId    String?                 @map("species_id")
+  backgroundId String?                 @map("background_id")
   avatarUrl    String?                 @map("avatar_url")
   portraitUrl  String?                 @map("portrait_url")
   status       CharacterStatus         @default(PENDING)
@@ -71,6 +74,7 @@ model Character {
   description  String?                 // backstory / character description
   worldId      String?                 @map("world_id")   // null = unassigned
   isGlobal     Boolean                 @default(true)  @map("is_global") // can join any world quests
+  pendingChanges Json?                 @map("pending_changes") // snapshot of proposed structural changes
   createdAt    DateTime                @default(now()) @map("created_at")
   updatedAt    DateTime                @updatedAt      @map("updated_at")
 

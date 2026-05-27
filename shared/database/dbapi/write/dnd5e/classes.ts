@@ -7,7 +7,7 @@ import { NotFoundError } from '@core/errors';
 export async function createDnd5eClass(input: {
     gameSystemId: string; name: string; description?: string; source?: string;
     link?: string; hitDice?: number; canCastSpells?: boolean;
-    primaryAbilities?: string; equipmentDescription?: string; sortOrder?: number;
+    primaryAbilities?: string; equipmentDescription?: string; sortOrder?: number; subclassAvailableAtLevel?: number;
 }, actorId: string) {
     const c = await db.dnd5eClass.create({ data: {
         gameSystemId:        input.gameSystemId,
@@ -18,8 +18,9 @@ export async function createDnd5eClass(input: {
         hitDice:             input.hitDice             ?? null,
         canCastSpells:       input.canCastSpells        ?? false,
         primaryAbilities:    input.primaryAbilities     ?? null,
-        equipmentDescription: input.equipmentDescription ?? null,
-        sortOrder:           input.sortOrder            ?? 0,
+        equipmentDescription:      input.equipmentDescription      ?? null,
+        sortOrder:                 input.sortOrder                 ?? 0,
+        subclassAvailableAtLevel:  input.subclassAvailableAtLevel  ?? 3,
     }});
     await logAudit(db, { actorId, action: 'CREATE', resourceKey: 'GameSystem', resourceId: c.id, after: c });
     return c;
@@ -29,7 +30,7 @@ export async function updateDnd5eClass(id: string, input: Partial<{
     name: string; description: string | null; source: string | null;
     link: string | null; hitDice: number | null; canCastSpells: boolean;
     primaryAbilities: string | null; equipmentDescription: string | null;
-    isAvailable: boolean; sortOrder: number;
+    isAvailable: boolean; sortOrder: number; subclassAvailableAtLevel: number;
 }>, actorId: string) {
     const before = await db.dnd5eClass.findUnique({ where: { id } });
     if (!before) throw new NotFoundError('Dnd5eClass', id);

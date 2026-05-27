@@ -10,27 +10,7 @@ export async function getCharacterById(id: string) {
         },
     });
     if (!character) return null;
-
-    // Enrich classes with class/subclass names (cross-schema — Prisma can't join directly)
-    const classIds    = character.classes.map(c => c.classId);
-    const subclassIds = character.classes.map(c => c.subclassId).filter(Boolean) as string[];
-
-    const [classRecords, subclassRecords] = await Promise.all([
-        classIds.length    ? db.dnd5eClass.findMany({ where: { id: { in: classIds } } })    : [],
-        subclassIds.length ? db.dnd5eSubclass.findMany({ where: { id: { in: subclassIds } } }) : [],
-    ]);
-
-    const classMap    = Object.fromEntries(classRecords.map(c => [c.id, c]));
-    const subclassMap = Object.fromEntries(subclassRecords.map(s => [s.id, s]));
-
-    return {
-        ...character,
-        classes: character.classes.map(cc => ({
-            ...cc,
-            classRef:    classMap[cc.classId]    ?? null,
-            subclassRef: cc.subclassId ? (subclassMap[cc.subclassId] ?? null) : null,
-        })),
-    };
+    return enrichCharacter(character);
 }
 
 export async function getCharactersByUserId(userId: string) {
@@ -39,25 +19,44 @@ export async function getCharactersByUserId(userId: string) {
         orderBy: { createdAt: 'asc' },
         include: { classes: { orderBy: { allocatedLevel: 'desc' } } },
     });
+    return Promise.all(characters.map(enrichCharacter));
+}
 
-    // Enrich all characters' classes with names
-    const allClassIds    = [...new Set(characters.flatMap(c => c.classes.map(cc => cc.classId)))];
-    const allSubclassIds = [...new Set(characters.flatMap(c => c.classes.map(cc => cc.subclassId).filter(Boolean) as string[]))];
+async function enrichCharacter(character: any) {
+    const classIds    = character.classes.map((c: any) => c.classId);
+    const subclassIds = character.classes.map((c: any) => c.subclassId).filter(Boolean) as string[];
 
-    const [classRecords, subclassRecords] = await Promise.all([
-        allClassIds.length    ? db.dnd5eClass.findMany({ where: { id: { in: allClassIds } } })    : [],
-        allSubclassIds.length ? db.dnd5eSubclass.findMany({ where: { id: { in: allSubclassIds } } }) : [],
+    const [classRecords, subclassRecords, speciesRecord, backgroundRecord] = await Promise.all([
+        classIds.length    ? db.dnd5eClass.findMany({
+            where:   { id: { in: classIds } },
+            include: { features: { orderBy: { requiredLevel: 'asc' } } },
+        }) : [],
+        subclassIds.length ? db.dnd5eSubclass.findMany({
+            where:   { id: { in: subclassIds } },
+            include: { features: { orderBy: { requiredLevel: 'asc' } } },
+        }) : [],
+        character.speciesId    ? db.dnd5eSpecies.findUnique({ where: { id: character.speciesId }, include: { traits: true } }) : null,
+        (character as any).backgroundId ? db.dnd5eBackground.findUnique({ where: { id: (character as any).backgroundId } }) : null,
     ]);
 
-    const classMap    = Object.fromEntries(classRecords.map(c => [c.id, c]));
-    const subclassMap = Object.fromEntries(subclassRecords.map(s => [s.id, s]));
+    const classMap    = Object.fromEntries((classRecords as any[]).map((c: any) => [c.id, c]));
+    const subclassMap = Object.fromEntries((subclassRecords as any[]).map((s: any) => [s.id, s]));
 
-    return characters.map(char => ({
-        ...char,
-        classes: char.classes.map(cc => ({
-            ...cc,
-            classRef:    classMap[cc.classId]    ?? null,
-            subclassRef: cc.subclassId ? (subclassMap[cc.subclassId] ?? null) : null,
-        })),
-    }));
+    const enrichedClasses = character.classes.map((cc: any) => {
+        const classRef    = classMap[cc.classId]    ?? null;
+        const subclassRef = cc.subclassId ? (subclassMap[cc.subclassId] ?? null) : null;
+
+        // Features up to allocatedLevel
+        const classFeatures    = classRef?.features?.filter((f: any) => f.requiredLevel <= cc.allocatedLevel)    ?? [];
+        const subclassFeatures = subclassRef?.features?.filter((f: any) => f.requiredLevel <= cc.allocatedLevel) ?? [];
+
+        return { ...cc, classRef, subclassRef, classFeatures, subclassFeatures };
+    });
+
+    return {
+        ...character,
+        classes:    enrichedClasses,
+        speciesRef: speciesRecord,
+        backgroundRef: backgroundRecord,
+    };
 }

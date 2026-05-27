@@ -36,16 +36,16 @@
 										<input type="hidden" name="id" value={t.id} />
 										<div style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap;">
 											<div class="field" style="flex:1 1 120px; margin:0;">
-												<label class="label">Label</label>
-												<input name="label" type="text" class="input" value={t.label} required />
+												<label class="label" for="edit-label-{t.id}">Label</label>
+												<input id="edit-label-{t.id}" name="label" type="text" class="input" value={t.label} required />
 											</div>
 											<div class="field" style="flex:0 0 120px; margin:0;">
-												<label class="label">XP Required</label>
-												<input name="xpRequired" type="number" class="input" value={t.xpRequired} required />
+												<label class="label" for="edit-xp-{t.id}">XP Required</label>
+												<input id="edit-xp-{t.id}" name="xpRequired" type="number" class="input" value={t.xpRequired} required />
 											</div>
 											<div class="field" style="flex:2 1 200px; margin:0;">
-												<label class="label">Description</label>
-												<input name="description" type="text" class="input" value={t.description ?? ''} />
+												<label class="label" for="edit-desc-{t.id}">Description</label>
+												<input id="edit-desc-{t.id}" name="description" type="text" class="input" value={t.description ?? ''} />
 											</div>
 											<button type="submit" class="btn btn-primary btn-sm">Save</button>
 											<button type="button" class="btn btn-ghost btn-sm" onclick={() => editing = null}>Cancel</button>

@@ -89,7 +89,29 @@
 	<!-- Pending approval banner -->
 	{#if data.character.status === 'PENDING'}
 		<div class="pending-banner">
-			<p>{data.character.statusReason === 'LEVEL_UP_PENDING' ? 'Level-up allocation awaiting approval.' : 'This character is awaiting approval.'}</p>
+			{#if data.character.statusReason === 'LEVEL_UP_PENDING'}
+				<p>⚔ Level-up allocation awaiting approval.</p>
+			{:else if data.character.statusReason === 'EDIT_PENDING'}
+				<p>✏ Character edits awaiting approval.</p>
+				{#if (data.character as any).pendingChanges}
+					{@const pc = (data.character as any).pendingChanges}
+					<div style="margin-top:0.5rem; font-size:0.8125rem; display:flex; flex-direction:column; gap:0.25rem;">
+						{#if pc.speciesId}<div><strong>Species:</strong> {((data as any).systemData?.species ?? []).find((s:any) => s.id === pc.speciesId)?.name ?? pc.speciesId}</div>{/if}
+						{#if pc.backgroundId}<div><strong>Background:</strong> {((data as any).systemData?.backgrounds ?? []).find((b:any) => b.id === pc.backgroundId)?.name ?? pc.backgroundId}</div>{/if}
+						{#if pc.classes}
+							<div><strong>Classes:</strong>
+								{pc.classes.map((c:any) => {
+									const cls = ((data as any).systemData?.classes ?? []).find((x:any) => x.id === c.classId);
+									const sub = c.subclassId ? cls?.subclasses?.find((s:any) => s.id === c.subclassId) : null;
+									return `${cls?.name ?? c.classId} Lv${c.allocatedLevel}${sub ? ` (${sub.name})` : ''}`;
+								}).join(', ')}
+							</div>
+						{/if}
+					</div>
+				{/if}
+			{:else}
+				<p>🆕 New character awaiting approval.</p>
+			{/if}
 			<div style="display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap:wrap;">
 				<form method="post" action="?/approve" use:enhance={enhance_reload}>
 					<button type="submit" class="btn btn-primary btn-sm">Approve</button>
@@ -98,13 +120,13 @@
 					<div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
 						<input name="note" type="text" class="input" placeholder="Reason" required style="width:220px;" />
 						<button type="submit" class="btn btn-danger btn-sm">
-							{data.character.statusReason === 'LEVEL_UP_PENDING' ? 'Reject level-up' : 'Reject'}
+							{data.character.statusReason === 'LEVEL_UP_PENDING' ? 'Reject level-up' : data.character.statusReason === 'EDIT_PENDING' ? 'Reject edits' : 'Reject'}
 						</button>
 					</div>
 				</form>
 			</div>
 			<p style="font-size:0.8125rem; color:var(--text-muted); margin-top:0.5rem;">
-				{data.character.statusReason === 'LEVEL_UP_PENDING'
+				{data.character.statusReason === 'LEVEL_UP_PENDING' || data.character.statusReason === 'EDIT_PENDING'
 					? 'Rejecting will revert the character to Active.'
 					: 'Rejecting sets status to Rejected. Use Delete to permanently remove.'}
 			</p>
@@ -157,6 +179,17 @@
 						<label class="label" for="name">Name</label>
 						<input id="name" name="name" type="text" class="input" value={data.character.name} required />
 					</div>
+					{#if (data as any).systemData?.backgrounds?.length}
+						<div class="field">
+							<label class="label" for="backgroundId">Background <span class="optional">(optional)</span></label>
+							<select id="backgroundId" name="backgroundId" class="input input--select">
+								<option value="">None</option>
+								{#each (data as any).systemData?.backgrounds.filter((b:any) => b.isAvailable) as bg}
+									<option value={bg.id} selected={(data.character as any).backgroundId === bg.id}>{bg.name}</option>
+								{/each}
+							</select>
+						</div>
+					{/if}
 					{#if data.systemData?.species?.length}
 						<div class="field">
 							<label class="label" for="speciesId">Species <span class="optional">(optional)</span></label>

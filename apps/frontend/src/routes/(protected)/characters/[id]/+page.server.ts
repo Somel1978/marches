@@ -39,26 +39,51 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 };
 
 export const actions: Actions = {
+	// Free fields — saves immediately
 	update: async ({ params, request, locals }) => {
-		const data        = await request.formData();
-		const name        = data.get('name')?.toString().trim()        ?? '';
-		const avatarUrl   = data.get('avatarUrl')?.toString().trim()   ?? '';
-		const portraitUrl = data.get('portraitUrl')?.toString().trim() ?? '';
-
-		if (!name) return fail(400, { message: 'Name is required.' });
-
-		// Verify ownership
 		const character = await characters.getById(params.id);
 		if (!character) return fail(404, { message: 'Character not found.' });
 		if (character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
 
+		const data        = await request.formData();
+		const name        = data.get('name')?.toString().trim()        ?? '';
+		const avatarUrl   = data.get('avatarUrl')?.toString().trim()   || null;
+		const portraitUrl = data.get('portraitUrl')?.toString().trim() || null;
+		const description = data.get('description')?.toString().trim() || null;
+
+		if (!name) return fail(400, { message: 'Name is required.' });
 		try {
-			await characters.update(params.id, {
-				name,
-				avatarUrl:   avatarUrl   || undefined,
-				portraitUrl: portraitUrl || undefined,
-			}, locals.user!.id);
+			await characters.updateFreeFields(params.id, { name, avatarUrl, portraitUrl, description }, locals.user!.id);
 			return { updateSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	// Structural changes — triggers PENDING_APPROVAL
+	submitChanges: async ({ params, request, locals }) => {
+		const character = await characters.getById(params.id);
+		if (!character) return fail(404, { message: 'Character not found.' });
+		if (character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		if (!['ACTIVE', 'RESTING'].includes(character.status)) return fail(400, { message: 'Cannot edit a character that is pending approval or rejected.' });
+
+		const data = await request.formData();
+		const speciesId    = data.get('speciesId')?.toString()    || undefined;
+		const backgroundId = data.get('backgroundId')?.toString() || undefined;
+
+		const classIds    = data.getAll('classId').map(v => v.toString()).filter(Boolean);
+		const subclassIds = data.getAll('subclassId').map(v => v.toString());
+		const levels      = data.getAll('allocatedLevel').map(v => Number(v));
+		const classes     = classIds.map((classId, i) => ({
+			classId,
+			subclassId:     subclassIds[i] || null,
+			allocatedLevel: levels[i] ?? 1,
+		}));
+
+		try {
+			await characters.submitChanges(params.id, { speciesId, backgroundId, classes }, locals.user!.id);
+			return { changesSubmitted: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

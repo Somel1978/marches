@@ -38,7 +38,7 @@ export const actions: Actions = {
 		const xpRequired  = parseInt(data.get('xpRequired')?.toString() ?? '', 10);
 		const description = data.get('description')?.toString().trim() || null;
 		try {
-			await gameSystems.progression.update(id, { label, xpRequired, description }, locals.user!.id);
+			await gameSystems.progression.update(id, { label, xpRequired, description: description ?? undefined }, locals.user!.id);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

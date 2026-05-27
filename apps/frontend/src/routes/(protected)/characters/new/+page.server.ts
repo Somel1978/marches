@@ -20,44 +20,45 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, locals }) => {
+	create: async ({ request, locals }) => {
 		const data         = await request.formData();
-		const name         = data.get('name')?.toString().trim()         ?? '';
-		const gameSystemId = data.get('gameSystemId')?.toString()         ?? '';
-		const speciesId    = data.get('speciesId')?.toString()            ?? '';
-		const avatarUrl    = data.get('avatarUrl')?.toString().trim()     ?? '';
-		const portraitUrl  = data.get('portraitUrl')?.toString().trim()   ?? '';
-		const classesRaw   = data.get('classes')?.toString()              ?? '[]';
+		const gameSystemId = data.get('gameSystemId')?.toString() ?? '';
+		const name         = data.get('name')?.toString().trim()  ?? '';
+		const speciesId    = data.get('speciesId')?.toString()    || undefined;
+		const backgroundId = data.get('backgroundId')?.toString() || undefined;
+		const description  = data.get('description')?.toString().trim() || undefined;
+		const avatarUrl    = data.get('avatarUrl')?.toString().trim()   || undefined;
 
-		if (!name)         return fail(400, { message: 'Name is required.', name, gameSystemId });
-		if (!gameSystemId) return fail(400, { message: 'Game system is required.', name, gameSystemId });
+		// Parse classes
+		const classIds     = data.getAll('classId').map(v => v.toString()).filter(Boolean);
+		const subclassIds  = data.getAll('subclassId').map(v => v.toString());
+		const levels       = data.getAll('allocatedLevel').map(v => Number(v));
 
-		let classAllocations: { classId: string; subclassId: string | null; allocatedLevel: number }[] = [];
+		const classes = classIds.map((classId, i) => ({
+			classId,
+			subclassId:     subclassIds[i] || null,
+			allocatedLevel: levels[i] ?? 1,
+		}));
+
+		if (!name)         return fail(400, { message: 'Name is required.' });
+		if (!speciesId)    return fail(400, { message: 'Species is required.' });
+		if (!backgroundId) return fail(400, { message: 'Background is required.' });
+		if (!classes.length) return fail(400, { message: 'At least one class is required.' });
+
 		try {
-			classAllocations = JSON.parse(classesRaw);
-		} catch {
-			return fail(400, { message: 'Invalid class data.', name, gameSystemId });
-		}
-
-		const validClasses = classAllocations.filter(c => c.classId);
-
-		try {
-			const character = await characters.create({
+			await characters.create({
 				userId:       locals.user!.id,
 				gameSystemId,
 				name,
-				speciesId:   speciesId   || undefined,
-				avatarUrl:   avatarUrl   || undefined,
-				portraitUrl: portraitUrl || undefined,
-			}, locals.user!.id);
-
-			if (validClasses.length > 0) {
-				await characters.updateClasses(character.id, validClasses, locals.user!.id);
-			}
-
-			redirect(302, `/characters/${character.id}`);
+				speciesId,
+				backgroundId,
+				description,
+				avatarUrl,
+				classes,
+			});
+			redirect(302, '/characters');
 		} catch (e) {
-			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message, name, gameSystemId });
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;
 		}
 	},

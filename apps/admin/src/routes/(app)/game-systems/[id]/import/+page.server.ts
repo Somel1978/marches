@@ -33,32 +33,35 @@ export const actions: Actions = {
 			let created = 0; let updated = 0; let skipped = 0;
 			const all = await dnd5e.classes.getAll(params.id);
 			for (const row of rows) {
+				const sal = toInt(row.subclassAvailableAtLevel, 3);
 				const existing = all.find(c => normalize(c.name).toLowerCase() === normalize(row.name).toLowerCase());
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.classes.update(existing.id, {
-						description:          row.description          || null,
-						source:               row.source               || null,
-						link:                 row.link                 || null,
-						hitDice:              Number(row.hitDice)      || null,
-						canCastSpells:        boolVal(row.canCastSpells),
-						primaryAbilities:     row.primaryAbilities     || null,
-						equipmentDescription: row.equipmentDescription || null,
-						sortOrder:            Number(row.sortOrder)    || 0,
+						description:              row.description              || null,
+						source:                   row.source                   || null,
+						link:                     row.link                     || null,
+						hitDice:                  toInt(row.hitDice, 0)        || null,
+						canCastSpells:            boolVal(row.canCastSpells),
+						primaryAbilities:         row.primaryAbilities         || null,
+						equipmentDescription:     row.equipmentDescription     || null,
+						subclassAvailableAtLevel: sal,
+						sortOrder:                toInt(row.sortOrder, 0),
 					}, locals.user!.id);
 					updated++;
 				} else {
 					await dnd5e.classes.create({
-						gameSystemId:         params.id,
-						name:                 row.name,
-						description:          row.description          || undefined,
-						source:               row.source               || undefined,
-						link:                 row.link                 || undefined,
-						hitDice:              Number(row.hitDice)      || undefined,
-						canCastSpells:        boolVal(row.canCastSpells),
-						primaryAbilities:     row.primaryAbilities     || undefined,
-						equipmentDescription: row.equipmentDescription || undefined,
-						sortOrder:            Number(row.sortOrder)    || 0,
+						gameSystemId:             params.id,
+						name:                     row.name,
+						description:              row.description              || undefined,
+						source:                   row.source                   || undefined,
+						link:                     row.link                     || undefined,
+						hitDice:                  toInt(row.hitDice, 0)        || undefined,
+						canCastSpells:            boolVal(row.canCastSpells),
+						primaryAbilities:         row.primaryAbilities         || undefined,
+						equipmentDescription:     row.equipmentDescription     || undefined,
+						subclassAvailableAtLevel: sal,
+						sortOrder:                toInt(row.sortOrder, 0),
 					}, locals.user!.id);
 					created++;
 				}
@@ -66,12 +69,10 @@ export const actions: Actions = {
 			return { success: true, created, updated, skipped, type: 'classes' };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
-			const msg = isUnique
-				? `A record with that name already exists. Tick "Update existing records" to overwrite, or clear the existing data first.`
-				: `Import failed: ${e.message}`;
-			return fail(400, { message: msg });
+			return fail(400, { message: isUnique ? 'A record with that name already exists. Tick "Update existing records" to overwrite.' : `Import failed: ${e.message}` });
 		}
 	},
+
 
 	// ── Class Features ────────────────────────────────────────────────────────
 	// Columns: className, name, requiredLevel, description, url

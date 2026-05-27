@@ -67,7 +67,8 @@ export const actions: Actions = {
 
 		const data        = await request.formData();
 		const name        = data.get('name')?.toString().trim()        ?? '';
-		const speciesId   = data.get('speciesId')?.toString()          ?? '';
+		const speciesId    = data.get('speciesId')?.toString()           ?? '';
+		const backgroundId = data.get('backgroundId')?.toString()        || null;
 		const avatarUrl   = data.get('avatarUrl')?.toString().trim()   ?? '';
 		const portraitUrl = data.get('portraitUrl')?.toString().trim() ?? '';
 		const description = data.get('description')?.toString().trim() || null;
@@ -79,9 +80,10 @@ export const actions: Actions = {
 		try {
 			await characters.update(params.id, {
 				name,
-				speciesId:   speciesId   || null,
-				avatarUrl:   avatarUrl   || undefined,
-				portraitUrl: portraitUrl || undefined,
+				speciesId:    speciesId    || null,
+				backgroundId: backgroundId || null,
+				avatarUrl:    avatarUrl    || null,
+				portraitUrl:  portraitUrl  || null,
 				description,
 				worldId,
 				isGlobal,

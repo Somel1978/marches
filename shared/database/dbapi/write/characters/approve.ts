@@ -1,32 +1,61 @@
 // shared/database/dbapi/write/characters/approve.ts
-import { db } from '../../../index.ts';
+import { db, Prisma } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { createNotification } from '../notifications/notifications.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 
 export async function approveCharacter(id: string, actorId: string) {
-    const character = await db.character.findUnique({ where: { id } });
+    const character = await db.character.findUnique({ where: { id }, include: { classes: true } });
     if (!character) throw new NotFoundError('Character', id);
-    if (character.status !== 'PENDING') {
+    if (character.status !== 'PENDING')
         throw new ValidationError('Character is not in PENDING status.');
-    }
 
-    await createNotification(
-        character.userId, 'CHARACTER_APPROVED', 'Character approved',
-        `Your character has been approved!`,
-        `/characters/${id}`,
-    );
+    const pending = (character as any).pendingChanges as any;
+    const isEdit  = character.statusReason === 'EDIT_PENDING';
+    const isNew   = character.statusReason === 'NEW_CHARACTER';
+    const isLevelUp = character.statusReason === 'LEVEL_UP_PENDING';
 
-    return db.$transaction(async (tx) => {
-        const updated = await tx.character.update({
-            where: { id },
-            data: {
-                status:          'ACTIVE',
-                statusReason:    null,
-                statusChangedAt: new Date(),
-                restUntil:       null,
-            },
-        });
+    await db.$transaction(async (tx) => {
+        // Apply pending structural changes if present
+        if (pending && (isEdit || isLevelUp)) {
+            if (pending.classes) {
+                await tx.characterClass.deleteMany({ where: { characterId: id } });
+                await tx.characterClass.createMany({
+                    data: pending.classes.map((c: any) => ({
+                        characterId:    id,
+                        classId:        c.classId,
+                        subclassId:     c.subclassId ?? null,
+                        allocatedLevel: c.allocatedLevel,
+                    })),
+                });
+            }
+
+            await tx.character.update({
+                where: { id },
+                data: {
+                    ...(pending.speciesId    !== undefined && { speciesId:    pending.speciesId    }),
+                    ...(pending.backgroundId !== undefined && { backgroundId: pending.backgroundId }),
+                    ...(pending.worldId      !== undefined && { worldId:      pending.worldId      }),
+                    ...(pending.isGlobal     !== undefined && { isGlobal:     pending.isGlobal     }),
+                    status:          'ACTIVE',
+                    statusReason:    null,
+                    statusChangedAt: new Date(),
+                    pendingChanges:  Prisma.JsonNull,
+                    restUntil:       null,
+                },
+            });
+        } else {
+            await tx.character.update({
+                where: { id },
+                data: {
+                    status:          'ACTIVE',
+                    statusReason:    null,
+                    statusChangedAt: new Date(),
+                    pendingChanges:  Prisma.JsonNull,
+                    restUntil:       null,
+                },
+            });
+        }
 
         await tx.characterTransaction.create({
             data: {
@@ -35,9 +64,7 @@ export async function approveCharacter(id: string, actorId: string) {
                 fromValue:   'PENDING',
                 toValue:     'ACTIVE',
                 sourceType:  'ADMIN',
-                note:        character.statusReason === 'LEVEL_UP_PENDING'
-                    ? 'Level-up approved'
-                    : 'Character approved',
+                note:        isLevelUp ? 'Level-up approved' : isEdit ? 'Character edit approved' : 'Character approved',
                 createdBy:   actorId,
             },
         });
@@ -50,32 +77,36 @@ export async function approveCharacter(id: string, actorId: string) {
             before:      { status: 'PENDING', statusReason: character.statusReason },
             after:       { status: 'ACTIVE' },
         });
-
-        return updated;
     });
+
+    await createNotification(
+        character.userId, 'CHARACTER_APPROVED', 'Character approved',
+        isLevelUp ? 'Your level-up has been approved!'
+        : isEdit  ? 'Your character changes have been approved!'
+        : 'Your character has been approved!',
+        `/characters/${id}`,
+    );
+
+    return db.character.findUnique({ where: { id } });
 }
 
 export async function rejectCharacter(id: string, note: string, actorId: string) {
     const character = await db.character.findUnique({ where: { id } });
     if (!character) throw new NotFoundError('Character', id);
-    if (character.status !== 'PENDING') {
+    if (character.status !== 'PENDING')
         throw new ValidationError('Character is not in PENDING status.');
-    }
 
     const isLevelUp = character.statusReason === 'LEVEL_UP_PENDING';
+    const newStatus = isLevelUp ? 'ACTIVE' : 'REJECTED';
 
-    return db.$transaction(async (tx) => {
-        // Characters are NEVER deleted by workflow — always soft rejected
-        // Level-up rejection: revert to ACTIVE
-        // New character rejection: set REJECTED status (admin can manually delete if needed)
-        const newStatus = isLevelUp ? 'ACTIVE' : 'REJECTED';
-
-        const updated = await tx.character.update({
+    await db.$transaction(async (tx) => {
+        await tx.character.update({
             where: { id },
             data: {
                 status:          newStatus as any,
                 statusReason:    'ADMIN',
                 statusChangedAt: new Date(),
+                pendingChanges:  Prisma.JsonNull,
             },
         });
 
@@ -86,9 +117,7 @@ export async function rejectCharacter(id: string, note: string, actorId: string)
                 fromValue:   'PENDING',
                 toValue:     newStatus,
                 sourceType:  'ADMIN',
-                note:        isLevelUp
-                    ? `Level-up rejected: ${note}`
-                    : `Character rejected: ${note}`,
+                note:        isLevelUp ? `Level-up rejected: ${note}` : `Character rejected: ${note}`,
                 createdBy:   actorId,
             },
         });
@@ -98,10 +127,17 @@ export async function rejectCharacter(id: string, note: string, actorId: string)
             action:      'UPDATE',
             resourceKey: 'Character',
             resourceId:  id,
-            before:      { status: 'PENDING', statusReason: character.statusReason },
+            before:      { status: 'PENDING' },
             after:       { status: newStatus, note },
         });
-
-        return updated;
     });
+
+    await createNotification(
+        character.userId, 'CHARACTER_REJECTED',
+        isLevelUp ? 'Level-up rejected' : 'Character rejected',
+        note,
+        `/characters/${id}`,
+    );
+
+    return db.character.findUnique({ where: { id } });
 }

@@ -13,6 +13,7 @@ model Dnd5eClass {
   canCastSpells        Boolean  @default(false)  @map("can_cast_spells")
   primaryAbilities     String?                   @map("primary_abilities")  // e.g. "Strength, Constitution"
   equipmentDescription String?                   @map("equipment_description")
+  subclassAvailableAtLevel Int  @default(3)      @map("subclass_available_at_level")
   createdAt            DateTime @default(now())  @map("created_at")
   updatedAt            DateTime @updatedAt       @map("updated_at")
 
