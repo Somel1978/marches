@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const [profile, systems] = await Promise.all([
 		dms.profiles.getByUserId(locals.user!.id),
-		gameSystems.getAvailable(),
+		gameSystems.getActive(),
 	]);
 
 	if (!profile) throw error(403, 'DM profile not found. Contact an admin.');

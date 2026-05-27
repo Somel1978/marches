@@ -21,11 +21,11 @@
 	);
 
 	const availableClasses = $derived(
-		(systemDetails?.classes ?? []).filter((c: any) => c.isAvailable)
+		((data as any).systemData?.classes ?? []).filter((c: any) => c.isAvailable)
 	);
 
 	const availableSpecies = $derived(
-		((systemDetails as any)?.species ?? []).filter((s: any) => s.isAvailable)
+		((data as any).systemData?.species ?? []).filter((s: any) => s.isAvailable)
 	);
 
 	function getSubclasses(classId: string) {

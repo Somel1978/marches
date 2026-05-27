@@ -6,7 +6,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const [myCharacters, slotInfo, systems] = await Promise.all([
 		characters.getByUserId(locals.user!.id),
 		characters.getSlotInfo(locals.user!.id),
-		gameSystems.getAvailable(),
+		gameSystems.getActive(),
 	]);
 
 	return { characters: myCharacters, slotInfo, systems };

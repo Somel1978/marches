@@ -46,7 +46,7 @@
 		allocations = allocations.filter((_, idx) => idx !== i);
 	}
 	function getSubclasses(classId: string) {
-		return data.gameSystem?.classes.find((c: any) => c.id === classId)?.subclasses?.filter((s: any) => s.isAvailable) ?? [];
+		return data.systemData?.classes.find((c: any) => c.id === classId)?.subclasses?.filter((s: any) => s.isAvailable) ?? [];
 	}
 
 	function enhance_reload() {
@@ -157,12 +157,12 @@
 						<label class="label" for="name">Name</label>
 						<input id="name" name="name" type="text" class="input" value={data.character.name} required />
 					</div>
-					{#if data.gameSystem?.species?.length}
+					{#if data.systemData?.species?.length}
 						<div class="field">
 							<label class="label" for="speciesId">Species <span class="optional">(optional)</span></label>
 							<select id="speciesId" name="speciesId" class="input input--select">
 								<option value="">None</option>
-								{#each data.gameSystem.species.filter(s => s.isAvailable) as sp}
+								{#each data.systemData?.species.filter(s => s.isAvailable) as sp}
 									<option value={sp.id} selected={(data.character as any).speciesId === sp.id}>{sp.name}</option>
 								{/each}
 							</select>
@@ -271,7 +271,7 @@
 									<select id="acls-{i}" class="input" bind:value={alloc.classId}
 										onchange={() => { alloc.subclassId = null; }}>
 										<option value="">Select…</option>
-										{#each (data.gameSystem?.classes ?? []).filter((c: any) => c.isAvailable) as cls}
+										{#each (data.systemData?.classes ?? []).filter((c: any) => c.isAvailable) as cls}
 											<option value={cls.id}>{cls.name}</option>
 										{/each}
 									</select>

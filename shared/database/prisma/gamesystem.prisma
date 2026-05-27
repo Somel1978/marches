@@ -1,87 +1,17 @@
 /* shared/database/prisma/gamesystem.prisma */
 
-// ── Game System Registry (schema: gamesystem, order: 05) ─────────────────────
-// Plugin system for game-specific content (D&D 5e, Vampire, Daggerheart, etc.)
-// Admin manages classes, subclasses and progression thresholds per system.
-// ─────────────────────────────────────────────────────────────────────────────
-
 model GameSystem {
   id          String   @id @default(uuid())
   name        String   @unique
+  slug        String   @unique
   description String?
-  isAvailable Boolean  @default(true) @map("is_available")
-  sortOrder   Int      @default(0)    @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt      @map("updated_at")
 
-  classes               Class[]
-  species               Species[]
   progressionThresholds ProgressionThreshold[]
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
-
   @@map("game_systems")
-  @@schema("gamesystem")
-}
-
-model Class {
-  id           String     @id @default(uuid())
-  gameSystemId String     @map("game_system_id")
-  gameSystem   GameSystem @relation(fields: [gameSystemId], references: [id], onDelete: Cascade)
-  name         String
-  description  String?
-  source       String?    // e.g. "Player's Handbook", "Xanathar's Guide"
-  link         String?    // URL to source reference
-  isAvailable  Boolean    @default(true) @map("is_available")
-  sortOrder    Int        @default(0)    @map("sort_order")
-
-  subclasses        Subclass[]
-  characterClasses  CharacterClass[] @relation("ClassRef")
-
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt      @map("updated_at")
-
-  @@unique([gameSystemId, name])
-  @@map("classes")
-  @@schema("gamesystem")
-}
-
-model Subclass {
-  id          String   @id @default(uuid())
-  classId     String   @map("class_id")
-  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  source      String?  // e.g. "Player's Handbook"
-  link        String?  // URL to source reference
-  isAvailable Boolean  @default(true) @map("is_available")
-  sortOrder   Int      @default(0)    @map("sort_order")
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
-
-  characterClasses  CharacterClass[] @relation("SubclassRef")
-
-  @@unique([classId, name])
-  @@map("subclasses")
-  @@schema("gamesystem")
-}
-
-model Species {
-  id           String     @id @default(uuid())
-  gameSystemId String     @map("game_system_id")
-  gameSystem   GameSystem @relation(fields: [gameSystemId], references: [id], onDelete: Cascade)
-  name         String
-  description  String?
-  source       String?
-  link         String?
-  isAvailable  Boolean    @default(true) @map("is_available")
-  sortOrder    Int        @default(0)    @map("sort_order")
-
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt      @map("updated_at")
-
-  @@unique([gameSystemId, name])
-  @@map("species")
   @@schema("gamesystem")
 }
 
@@ -89,15 +19,13 @@ model ProgressionThreshold {
   id           String     @id @default(uuid())
   gameSystemId String     @map("game_system_id")
   gameSystem   GameSystem @relation(fields: [gameSystemId], references: [id], onDelete: Cascade)
-  label        String     // e.g. "Level 1", "Tier 2", "Neonate"
+  label        String
   xpRequired   Int        @map("xp_required")
   description  String?
   sortOrder    Int        @default(0) @map("sort_order")
-
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt      @map("updated_at")
 
-  @@unique([gameSystemId, label])
   @@map("progression_thresholds")
   @@schema("gamesystem")
 }

@@ -12,8 +12,8 @@
 		DECEASED:  'badge-muted',
 	};
 
-	function totalLevel(char: typeof data.characters[0]) {
-		return char.classes.reduce((s, c) => s + c.allocatedLevel, 0);
+	function totalLevel(char: any) {
+		return char.classes?.reduce((s: number, c: any) => s + c.allocatedLevel, 0) ?? 0;
 	}
 </script>
 
@@ -60,9 +60,9 @@
 							<span class="badge {statusColors[char.status] ?? 'badge-muted'}">{char.status}</span>
 						</div>
 						<p class="character-card__level">Level {totalLevel(char)}</p>
-						{#if char.classes.length}
+						{#if (char as any).classes?.length}
 							<p class="character-card__classes">
-								{char.classes.map(c => c.classRef?.name).join(' · ')}
+								{(char as any).classes?.map((c: any) => c.classRef?.name).join(' · ')}
 							</p>
 						{/if}
 						<div class="character-card__stats">

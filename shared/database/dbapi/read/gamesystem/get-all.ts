@@ -3,13 +3,15 @@ import { db } from '../../../index.ts';
 
 export async function getAllGameSystems() {
     return db.gameSystem.findMany({
-        orderBy: { sortOrder: 'asc' },
+        include: { progressionThresholds: { orderBy: { xpRequired: 'asc' } } },
+        orderBy: { name: 'asc' },
     });
 }
 
-export async function getAvailableGameSystems() {
+export async function getActiveGameSystems() {
     return db.gameSystem.findMany({
-        where:   { isAvailable: true },
-        orderBy: { sortOrder: 'asc' },
+        where:   { isActive: true },
+        include: { progressionThresholds: { orderBy: { xpRequired: 'asc' } } },
+        orderBy: { name: 'asc' },
     });
 }

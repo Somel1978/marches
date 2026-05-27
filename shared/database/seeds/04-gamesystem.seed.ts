@@ -8,21 +8,9 @@
 import type { PrismaClient } from '@prisma/client';
 
 const GAME_SYSTEMS = [
-    {
-        name:        'D&D 5e',
-        description: 'Dungeons & Dragons 5th Edition',
-        sortOrder:   0,
-    },
-    {
-        name:        'Daggerheart',
-        description: 'Daggerheart by Darrington Press',
-        sortOrder:   1,
-    },
-    {
-        name:        'Vampire: The Masquerade',
-        description: 'Vampire: The Masquerade 5th Edition',
-        sortOrder:   2,
-    },
+    { name: 'D&D 5e',                  slug: 'dnd5e',       description: 'Dungeons & Dragons 5th Edition'      },
+    { name: 'Daggerheart',             slug: 'daggerheart', description: 'Daggerheart by Darrington Press'      },
+    { name: 'Vampire: The Masquerade', slug: 'vtm5e',       description: 'Vampire: The Masquerade 5th Edition' },
 ];
 
 export async function seedGameSystems(db: PrismaClient) {
@@ -30,7 +18,7 @@ export async function seedGameSystems(db: PrismaClient) {
     for (const gs of GAME_SYSTEMS) {
         await db.gameSystem.upsert({
             where:  { name: gs.name },
-            update: {},
+            update: { slug: gs.slug },
             create: gs,
         });
     }

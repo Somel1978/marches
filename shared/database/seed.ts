@@ -4,6 +4,7 @@ import { seedPlatform  } from './seeds/01-platform.seed.ts';
 import { seedRoles     } from './seeds/02-roles.seed.ts';
 import { seedUsers     } from './seeds/03-users.seed.ts';
 import { seedGameSystems } from './seeds/04-gamesystem.seed.ts';
+import { seedDnd5e       } from './seeds/04b-dnd5e.seed.ts';
 import { seedDMs          } from './seeds/05-dms.seed.ts';
 import { seedQuests      } from './seeds/06-quests.seed.ts';
 import { seedMarketplace } from './seeds/07-marketplace.seed.ts';
@@ -15,6 +16,7 @@ async function main() {
     await seedRoles(db);
     await seedUsers(db);
     await seedGameSystems(db);
+    await seedDnd5e(db);
     await seedDMs(db);
     await seedQuests(db);
     await seedMarketplace(db);

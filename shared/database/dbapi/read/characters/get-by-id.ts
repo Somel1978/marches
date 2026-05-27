@@ -16,8 +16,8 @@ export async function getCharacterById(id: string) {
     const subclassIds = character.classes.map(c => c.subclassId).filter(Boolean) as string[];
 
     const [classRecords, subclassRecords] = await Promise.all([
-        classIds.length    ? db.class.findMany({ where: { id: { in: classIds } } })    : [],
-        subclassIds.length ? db.subclass.findMany({ where: { id: { in: subclassIds } } }) : [],
+        classIds.length    ? db.dnd5eClass.findMany({ where: { id: { in: classIds } } })    : [],
+        subclassIds.length ? db.dnd5eSubclass.findMany({ where: { id: { in: subclassIds } } }) : [],
     ]);
 
     const classMap    = Object.fromEntries(classRecords.map(c => [c.id, c]));
@@ -45,8 +45,8 @@ export async function getCharactersByUserId(userId: string) {
     const allSubclassIds = [...new Set(characters.flatMap(c => c.classes.map(cc => cc.subclassId).filter(Boolean) as string[]))];
 
     const [classRecords, subclassRecords] = await Promise.all([
-        allClassIds.length    ? db.class.findMany({ where: { id: { in: allClassIds } } })    : [],
-        allSubclassIds.length ? db.subclass.findMany({ where: { id: { in: allSubclassIds } } }) : [],
+        allClassIds.length    ? db.dnd5eClass.findMany({ where: { id: { in: allClassIds } } })    : [],
+        allSubclassIds.length ? db.dnd5eSubclass.findMany({ where: { id: { in: allSubclassIds } } }) : [],
     ]);
 
     const classMap    = Object.fromEntries(classRecords.map(c => [c.id, c]));

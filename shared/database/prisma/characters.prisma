@@ -86,10 +86,8 @@ model CharacterClass {
   id             String    @id @default(uuid())
   characterId    String    @map("character_id")
   character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  classId        String    @map("class_id")
-  classRef       Class     @relation("ClassRef", fields: [classId], references: [id])
-  subclassId     String?   @map("subclass_id")
-  subclassRef    Subclass? @relation("SubclassRef", fields: [subclassId], references: [id])
+  classId        String    @map("class_id")       // references dnd5e.classes.id — resolved at app level
+  subclassId     String?   @map("subclass_id")    // references dnd5e.subclasses.id — resolved at app level
   allocatedLevel Int       @default(1) @map("allocated_level")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt      @map("updated_at")

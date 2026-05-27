@@ -10,8 +10,8 @@ export async function createProgressionThreshold(
     const gs = await db.gameSystem.findUnique({ where: { id: input.gameSystemId } });
     if (!gs) throw new NotFoundError('GameSystem', input.gameSystemId);
 
-    const existing = await db.progressionThreshold.findUnique({
-        where: { gameSystemId_label: { gameSystemId: input.gameSystemId, label: input.label } },
+    const existing = await db.progressionThreshold.findFirst({
+        where: { gameSystemId: input.gameSystemId, label: input.label },
     });
     if (existing) throw new ConflictError(`Threshold '${input.label}' already exists in this game system.`);
 

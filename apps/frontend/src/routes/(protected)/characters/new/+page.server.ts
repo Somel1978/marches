@@ -1,23 +1,22 @@
 // apps/frontend/src/routes/(protected)/characters/new/+page.server.ts
 import { fail, redirect } from '@sveltejs/kit';
-import { characters, gameSystems } from '@core/database';
+import { dnd5e, characters, gameSystems } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const [slotInfo, systems] = await Promise.all([
 		characters.getSlotInfo(locals.user!.id),
-		gameSystems.getAvailable(),
+		gameSystems.getActive(),
 	]);
 
 	if (slotInfo.available <= 0) redirect(302, '/characters');
 
-	// Pre-load first system's classes/species for the form
-	const systemDetails = systems.length
-		? await gameSystems.getById(systems[0].id)
-		: null;
+	const firstSystem   = systems[0] ?? null;
+	const systemDetails = firstSystem ? await gameSystems.getById(firstSystem.id) : null;
+	const systemData    = firstSystem ? await dnd5e.getSystemData(firstSystem.id)  : null;
 
-	return { slotInfo, systems, systemDetails };
+	return { slotInfo, systems, systemDetails, systemData };
 };
 
 export const actions: Actions = {
@@ -40,7 +39,6 @@ export const actions: Actions = {
 			return fail(400, { message: 'Invalid class data.', name, gameSystemId });
 		}
 
-		// Filter out empty class selections
 		const validClasses = classAllocations.filter(c => c.classId);
 
 		try {
@@ -53,7 +51,6 @@ export const actions: Actions = {
 				portraitUrl: portraitUrl || undefined,
 			}, locals.user!.id);
 
-			// Set initial class allocations if provided
 			if (validClasses.length > 0) {
 				await characters.updateClasses(character.id, validClasses, locals.user!.id);
 			}

@@ -52,7 +52,7 @@
 	}
 
 	function getSubclasses(classId: string) {
-		return data.gameSystem?.classes.find((c: any) => c.id === classId)?.subclasses ?? [];
+		return data.systemData?.classes.find((c: any) => c.id === classId)?.subclasses ?? [];
 	}
 
 	const rarityColors: Record<string, string> = {
@@ -216,7 +216,7 @@
 									<select id="class-{i}" class="input" bind:value={alloc.classId}
 										onchange={() => { alloc.subclassId = null; }}>
 										<option value="">Select class…</option>
-										{#each (data.gameSystem?.classes ?? []).filter((c: any) => c.isAvailable) as cls}
+										{#each (data.systemData?.classes ?? []).filter((c: any) => c.isAvailable) as cls}
 											<option value={cls.id}>{cls.name}</option>
 										{/each}
 									</select>

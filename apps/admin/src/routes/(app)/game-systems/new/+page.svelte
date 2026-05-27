@@ -31,6 +31,11 @@
 						value={form?.name ?? ''} placeholder="e.g. D&D 5e" required />
 				</div>
 				<div class="field">
+					<label class="label" for="slug">Slug <span class="optional">(auto-generated if empty)</span></label>
+					<input id="slug" name="slug" type="text" class="input"
+						value={form?.slug ?? ''} placeholder="e.g. dnd5e" />
+				</div>
+				<div class="field">
 					<label class="label" for="description">
 						Description <span class="optional">(optional)</span>
 					</label>

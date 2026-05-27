@@ -1,6 +1,6 @@
 // apps/admin/src/routes/(app)/characters/[id]/+page.server.ts
 import { fail, error, redirect } from '@sveltejs/kit';
-import { characters, worlds, achievements, users, gameSystems } from '@core/database';
+import { characters, worlds, achievements, users, gameSystems, dnd5e } from '@core/database';
 import { assertRecordPermission, checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -18,16 +18,17 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	await characters.checkRest(params.id);
 
-	const [owner, transactions, gameSystem] = await Promise.all([
+	const [owner, transactions, gameSystem, systemData] = await Promise.all([
 		users.getById(character.userId),
 		characters.getTransactions(params.id, 20),
 		gameSystems.getById(character.gameSystemId),
+		dnd5e.getSystemData(character.gameSystemId),
 	]);
 
 	const inventory = await characters.getInventory(params.id);
 	const charAchievements = await achievements.getForCharacter(params.id);
 	const allWorlds = await worlds.getAll();
-	return { character, charAchievements, allWorlds, owner, transactions, gameSystem, inventory };
+	return { character, charAchievements, allWorlds, owner, transactions, gameSystem, systemData, inventory };
 };
 
 export const actions: Actions = {

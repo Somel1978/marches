@@ -1,0 +1,92 @@
+// apps/admin/src/routes/(app)/game-systems/[id]/classes/[classId]/+page.server.ts
+import { fail, error } from '@sveltejs/kit';
+import { gameSystems, dnd5e } from '@core/database';
+import { checkPermission } from '@core/rbac';
+import { isMarchesError } from '@core/errors';
+import type { PageServerLoad, Actions } from './$types';
+
+export const load: PageServerLoad = async ({ params }) => {
+	const system     = await gameSystems.getById(params.id);
+	if (!system) throw error(404, 'Game system not found');
+	const classData  = await dnd5e.classes.getById(params.classId);
+	if (!classData) throw error(404, 'Class not found');
+	return { system, classData };
+};
+
+export const actions: Actions = {
+	updateClass: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		try {
+			await dnd5e.classes.update(params.classId, {
+				name:                data.get('name')?.toString().trim()                   ?? '',
+				description:         data.get('description')?.toString().trim()            || null,
+				source:              data.get('source')?.toString().trim()                 || null,
+				link:                data.get('link')?.toString().trim()                   || null,
+				hitDice:             Number(data.get('hitDice') ?? 0)                      || null,
+				canCastSpells:       data.get('canCastSpells') === 'true',
+				primaryAbilities:    data.get('primaryAbilities')?.toString().trim()       || null,
+				equipmentDescription: data.get('equipmentDescription')?.toString().trim()  || null,
+				isAvailable:         data.get('isAvailable') === 'true',
+				sortOrder:           Number(data.get('sortOrder') ?? 0),
+			}, locals.user!.id);
+			return { success: true, action: 'class' };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	addFeature: async ({ params, request, locals }) => {
+		const data = await request.formData();
+		const name = data.get('name')?.toString().trim() ?? '';
+		const level = Number(data.get('requiredLevel') ?? 1);
+		if (!name) return fail(400, { message: 'Name required.' });
+		await dnd5e.classFeatures.create({ classId: params.classId, name, description: data.get('description')?.toString().trim() || undefined, requiredLevel: level, url: data.get('url')?.toString().trim() || undefined }, locals.user!.id);
+		return { success: true, action: 'feature' };
+	},
+
+	deleteFeature: async ({ request, locals }) => {
+		const data = await request.formData();
+		await dnd5e.classFeatures.delete(data.get('id')?.toString() ?? '');
+		return { success: true };
+	},
+
+	addSubclass: async ({ params, request, locals }) => {
+		const data = await request.formData();
+		const name = data.get('name')?.toString().trim() ?? '';
+		if (!name) return fail(400, { message: 'Name required.' });
+		await dnd5e.subclasses.create({ classId: params.classId, name, description: data.get('description')?.toString().trim() || undefined }, locals.user!.id);
+		return { success: true, action: 'subclass' };
+	},
+
+	deleteSubclass: async ({ request, locals }) => {
+		const data = await request.formData();
+		await dnd5e.subclasses.delete(data.get('id')?.toString() ?? '');
+		return { success: true };
+	},
+
+	addSubclassFeature: async ({ request, locals }) => {
+		const data       = await request.formData();
+		const subclassId = data.get('subclassId')?.toString() ?? '';
+		const name       = data.get('name')?.toString().trim() ?? '';
+		const level      = Number(data.get('requiredLevel') ?? 1);
+		if (!name) return fail(400, { message: 'Name required.' });
+		await dnd5e.subclassFeatures.create({ subclassId, name, description: data.get('description')?.toString().trim() || undefined, requiredLevel: level, url: data.get('url')?.toString().trim() || undefined });
+		return { success: true, action: 'subclassFeature' };
+	},
+
+	deleteSubclassFeature: async ({ request, locals }) => {
+		const data = await request.formData();
+		await dnd5e.subclassFeatures.delete(data.get('id')?.toString() ?? '');
+		return { success: true };
+	},
+
+	deleteClass: async ({ params, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		await dnd5e.classes.delete(params.classId, locals.user!.id);
+		return { deleted: true };
+	},
+};

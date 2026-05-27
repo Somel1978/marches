@@ -14,8 +14,8 @@ async function enrichSignups(signups: { characterId: string; id: string; status:
     const allClassIds    = [...new Set(characters.flatMap(c => c.classes.map(cc => cc.classId)))];
     const allSubclassIds = [...new Set(characters.flatMap(c => c.classes.map(cc => cc.subclassId).filter(Boolean) as string[]))];
     const [classRecords, subclassRecords] = await Promise.all([
-        allClassIds.length    ? db.class.findMany({ where: { id: { in: allClassIds } } })    : [],
-        allSubclassIds.length ? db.subclass.findMany({ where: { id: { in: allSubclassIds } } }) : [],
+        allClassIds.length    ? db.dnd5eClass.findMany({ where: { id: { in: allClassIds } } })    : [],
+        allSubclassIds.length ? db.dnd5eSubclass.findMany({ where: { id: { in: allSubclassIds } } }) : [],
     ]);
     const classMap    = Object.fromEntries(classRecords.map(c => [c.id, c]));
     const subclassMap = Object.fromEntries(subclassRecords.map(s => [s.id, s]));
@@ -23,7 +23,7 @@ async function enrichSignups(signups: { characterId: string; id: string; status:
     // Get species
     const speciesIds = characters.map(c => (c as any).speciesId).filter(Boolean) as string[];
     const speciesRecords = speciesIds.length
-        ? await db.species.findMany({ where: { id: { in: speciesIds } } })
+        ? await db.dnd5eSpecies.findMany({ where: { id: { in: speciesIds } } })
         : [];
     const speciesMap = Object.fromEntries(speciesRecords.map(s => [s.id, s.name]));
 

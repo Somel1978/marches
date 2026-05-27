@@ -10,7 +10,7 @@
 <div class="login">
 	<div class="login__header">
 		<span class="login__icon">⚔</span>
-		<h1 class="login__title">Marches Admin</h1>
+		<h1 class="login__title">The Binder & Brew Admin</h1>
 		<p class="login__subtitle">Sign in to continue</p>
 	</div>
 

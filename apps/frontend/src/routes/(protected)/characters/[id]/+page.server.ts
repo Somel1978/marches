@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/characters/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { characters, achievements, gameSystems, marketplace, platform, worlds } from '@core/database';
+import { dnd5e, characters, achievements, gameSystems, marketplace, platform, worlds } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -17,7 +17,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	]);
 
 	// Load game system with classes and subclasses for class allocation UI
-	const gameSystem = await gameSystems.getById(character.gameSystemId);
+	const [gameSystem, systemData] = await Promise.all([
+		gameSystems.getById(character.gameSystemId),
+		dnd5e.getSystemData(character.gameSystemId),
+	]);
 
 	const [inventory, pendingTx, settings] = await Promise.all([
 		characters.getInventory(params.id),
@@ -32,7 +35,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const worldId = (character as any).worldId ?? null;
 	const worldName = worldId ? await worlds.getById(worldId).then((w: any) => w?.name ?? null) : null;
 
-	return { character, charAchievements, transactions, gameSystem, inventory, pendingBuys, pendingSells, sellPct, worldName };
+	return { character, charAchievements, transactions, gameSystem, systemData, inventory, pendingBuys, pendingSells, sellPct, worldName };
 };
 
 export const actions: Actions = {

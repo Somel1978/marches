@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const [profile, systems] = await Promise.all([
 		dms.profiles.getById(params.id),
-		gameSystems.getAvailable(),
+		gameSystems.getActive(),
 	]);
 
 	if (!profile) throw error(404, 'DM profile not found');

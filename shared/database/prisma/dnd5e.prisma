@@ -1,0 +1,133 @@
+/* shared/database/prisma/dnd5e.prisma */
+
+model Dnd5eClass {
+  id                   String   @id @default(uuid())
+  gameSystemId         String   @map("game_system_id")
+  name                 String
+  description          String?
+  source               String?
+  link                 String?
+  isAvailable          Boolean  @default(true)  @map("is_available")
+  sortOrder            Int      @default(0)      @map("sort_order")
+  hitDice              Int?                      @map("hit_dice")           // e.g. 8 for d8
+  canCastSpells        Boolean  @default(false)  @map("can_cast_spells")
+  primaryAbilities     String?                   @map("primary_abilities")  // e.g. "Strength, Constitution"
+  equipmentDescription String?                   @map("equipment_description")
+  createdAt            DateTime @default(now())  @map("created_at")
+  updatedAt            DateTime @updatedAt       @map("updated_at")
+
+  features   Dnd5eClassFeature[]
+  subclasses Dnd5eSubclass[]
+
+  @@unique([gameSystemId, name])
+  @@map("classes")
+  @@schema("dnd5e")
+}
+
+model Dnd5eClassFeature {
+  id             String     @id @default(uuid())
+  classId        String     @map("class_id")
+  class          Dnd5eClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  requiredLevel  Int        @map("required_level")
+  url            String?
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt      @map("updated_at")
+
+  @@unique([classId, name, requiredLevel])
+  @@map("class_features")
+  @@schema("dnd5e")
+}
+
+model Dnd5eSubclass {
+  id           String     @id @default(uuid())
+  classId      String     @map("class_id")
+  class        Dnd5eClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  source       String?
+  link         String?
+  isAvailable  Boolean    @default(true) @map("is_available")
+  sortOrder    Int        @default(0)    @map("sort_order")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt      @map("updated_at")
+
+  features Dnd5eSubclassFeature[]
+
+  @@unique([classId, name])
+  @@map("subclasses")
+  @@schema("dnd5e")
+}
+
+model Dnd5eSubclassFeature {
+  id            String        @id @default(uuid())
+  subclassId    String        @map("subclass_id")
+  subclass      Dnd5eSubclass @relation(fields: [subclassId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  requiredLevel Int           @map("required_level")
+  url           String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt      @map("updated_at")
+
+  @@unique([subclassId, name, requiredLevel])
+  @@map("subclass_features")
+  @@schema("dnd5e")
+}
+
+model Dnd5eSpecies {
+  id          String   @id @default(uuid())
+  gameSystemId String  @map("game_system_id")
+  name        String
+  description String?
+  source      String?
+  link        String?
+  isAvailable Boolean  @default(true)  @map("is_available")
+  isSubrace   Boolean  @default(false) @map("is_subrace")
+  isLegacy    Boolean  @default(false) @map("is_legacy")
+  sortOrder   Int      @default(0)     @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt      @map("updated_at")
+
+  traits Dnd5eSpeciesTrait[]
+
+  @@unique([gameSystemId, name])
+  @@map("species")
+  @@schema("dnd5e")
+}
+
+model Dnd5eSpeciesTrait {
+  id            String       @id @default(uuid())
+  speciesId     String       @map("species_id")
+  species       Dnd5eSpecies @relation(fields: [speciesId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  requiredLevel Int?         @map("required_level")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt      @map("updated_at")
+
+  @@unique([speciesId, name])
+  @@map("species_traits")
+  @@schema("dnd5e")
+}
+
+model Dnd5eBackground {
+  id                  String   @id @default(uuid())
+  gameSystemId        String   @map("game_system_id")
+  name                String
+  shortDescription    String?  @map("short_description")
+  featureName         String?  @map("feature_name")
+  skillProficiencies  String?  @map("skill_proficiencies")
+  toolProficiencies   String?  @map("tool_proficiencies")
+  languages           String?
+  url                 String?
+  isAvailable         Boolean  @default(true) @map("is_available")
+  sortOrder           Int      @default(0)    @map("sort_order")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt      @map("updated_at")
+
+  @@unique([gameSystemId, name])
+  @@map("backgrounds")
+  @@schema("dnd5e")
+}

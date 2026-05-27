@@ -4,11 +4,11 @@ import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ConflictError } from '@core/errors';
 
 export async function createGameSystem(
-    input: { name: string; description?: string; sortOrder?: number },
+    input: { name: string; slug: string; description?: string },
     actorId?: string,
 ) {
-    const existing = await db.gameSystem.findUnique({ where: { name: input.name } });
-    if (existing) throw new ConflictError(`GameSystem with name '${input.name}' already exists.`);
+    const existing = await db.gameSystem.findFirst({ where: { OR: [{ name: input.name }, { slug: input.slug }] } });
+    if (existing) throw new ConflictError(`GameSystem '${input.name}' already exists.`);
 
     return db.$transaction(async (tx) => {
         const gs = await tx.gameSystem.create({ data: input });
@@ -19,7 +19,7 @@ export async function createGameSystem(
 
 export async function updateGameSystem(
     id: string,
-    input: { name?: string; description?: string; isAvailable?: boolean; sortOrder?: number },
+    input: { name?: string; slug?: string; description?: string; isActive?: boolean },
     actorId?: string,
 ) {
     const gs = await db.gameSystem.findUnique({ where: { id } });

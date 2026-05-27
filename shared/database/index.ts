@@ -34,13 +34,10 @@ import { getAuditLogs } from './dbapi/read/audit/get-logs.ts';
 import { registerUser } from './dbapi/transactions/register-user.ts';
 
 // ── GameSystem ────────────────────────────────────────────────────────────────
-import { getAllGameSystems, getAvailableGameSystems } from './dbapi/read/gamesystem/get-all.ts';
+import { getAllGameSystems, getActiveGameSystems } from './dbapi/read/gamesystem/get-all.ts';
 import { getGameSystemById                          } from './dbapi/read/gamesystem/get-by-id.ts';
 import { createGameSystem, updateGameSystem, deleteGameSystem } from './dbapi/write/gamesystem/game-system.ts';
-import { createClass, updateClass, deleteClass       } from './dbapi/write/gamesystem/class.ts';
-import { createSubclass, updateSubclass, deleteSubclass } from './dbapi/write/gamesystem/subclass.ts';
 import { createProgressionThreshold, updateProgressionThreshold, deleteProgressionThreshold } from './dbapi/write/gamesystem/progression.ts';
-import { createSpecies, updateSpecies, deleteSpecies } from './dbapi/write/gamesystem/species.ts';
 
 import { getPlatformStats, getPublicStats, getUserStats } from './dbapi/read/stats/get-stats.ts';
 
@@ -54,6 +51,11 @@ import { resolveEnrichers, searchEnrichablesbyName } from './dbapi/read/news/res
 
 import { upsertDiscordServer, deleteDiscordServer, upsertDiscordChannel, deleteDiscordChannel } from './dbapi/write/discord/servers.ts';
 import { getAllDiscordServers, getDiscordServerByScope, getChannelForType, getPendingNotifications, markNotificationProcessed } from './dbapi/read/discord/get-servers.ts';
+
+
+import { getDnd5eClasses, getAllDnd5eClasses, getDnd5eClassById, getDnd5eSpecies, getAllDnd5eSpecies, getDnd5eBackgrounds, getAllDnd5eBackgrounds, getDnd5eSystemData } from './dbapi/read/dnd5e/get-classes.ts';
+import { createDnd5eClass, updateDnd5eClass, deleteDnd5eClass, createClassFeature, updateClassFeature, deleteClassFeature, createDnd5eSubclass, updateDnd5eSubclass, deleteDnd5eSubclass, createSubclassFeature, updateSubclassFeature, deleteSubclassFeature } from './dbapi/write/dnd5e/classes.ts';
+import { createDnd5eSpecies, updateDnd5eSpecies, deleteDnd5eSpecies, createSpeciesTrait, updateSpeciesTrait, deleteSpeciesTrait, createDnd5eBackground, updateDnd5eBackground, deleteDnd5eBackground } from './dbapi/write/dnd5e/species.ts';
 
 // ── Achievements ─────────────────────────────────────────────────────────────────
 import { createAchievement, updateAchievement, grantAchievement, revokeAchievement } from './dbapi/write/rewards/achievements.ts';
@@ -162,16 +164,13 @@ export const audit      = { getLogs: getAuditLogs };
 export const transactions = { registerUser };
 
 export const gameSystems = {
-    getAll:       getAllGameSystems,
-    getAvailable: getAvailableGameSystems,
-    getById:      getGameSystemById,
-    create:       createGameSystem,
-    update:       updateGameSystem,
-    delete:       deleteGameSystem,
-    classes:    { create: createClass,    update: updateClass,    delete: deleteClass    },
-    subclasses: { create: createSubclass, update: updateSubclass, delete: deleteSubclass },
-    progression:{ create: createProgressionThreshold, update: updateProgressionThreshold, delete: deleteProgressionThreshold },
-    species:    { create: createSpecies,  update: updateSpecies,  delete: deleteSpecies  },
+    getAll:    getAllGameSystems,
+    getActive: getActiveGameSystems,
+    getById:   getGameSystemById,
+    create:    createGameSystem,
+    update:    updateGameSystem,
+    delete:    deleteGameSystem,
+    progression: { create: createProgressionThreshold, update: updateProgressionThreshold, delete: deleteProgressionThreshold },
 };
 
 export const dms = {
@@ -366,4 +365,50 @@ export const discord = {
         upsert:     upsertDiscordChannel,
         delete:     deleteDiscordChannel,
     },
+};
+
+export const dnd5e = {
+    classes: {
+        getAll:    getAllDnd5eClasses,
+        getActive: getDnd5eClasses,
+        getById:   getDnd5eClassById,
+        create:    createDnd5eClass,
+        update:    updateDnd5eClass,
+        delete:    deleteDnd5eClass,
+    },
+    classFeatures: {
+        create: createClassFeature,
+        update: updateClassFeature,
+        delete: deleteClassFeature,
+    },
+    subclasses: {
+        create: createDnd5eSubclass,
+        update: updateDnd5eSubclass,
+        delete: deleteDnd5eSubclass,
+    },
+    subclassFeatures: {
+        create: createSubclassFeature,
+        update: updateSubclassFeature,
+        delete: deleteSubclassFeature,
+    },
+    species: {
+        getAll:    getAllDnd5eSpecies,
+        getActive: getDnd5eSpecies,
+        create:    createDnd5eSpecies,
+        update:    updateDnd5eSpecies,
+        delete:    deleteDnd5eSpecies,
+    },
+    speciesTraits: {
+        create: createSpeciesTrait,
+        update: updateSpeciesTrait,
+        delete: deleteSpeciesTrait,
+    },
+    backgrounds: {
+        getAll:    getAllDnd5eBackgrounds,
+        getActive: getDnd5eBackgrounds,
+        create:    createDnd5eBackground,
+        update:    updateDnd5eBackground,
+        delete:    deleteDnd5eBackground,
+    },
+    getSystemData: getDnd5eSystemData,
 };
