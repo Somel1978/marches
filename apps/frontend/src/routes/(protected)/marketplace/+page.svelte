@@ -70,6 +70,15 @@
 				<input id="f-search" name="search" type="text" class="input" placeholder="Search…" value={param('search')} />
 			</div>
 			<div class="field" style="margin:0;">
+				<label class="label" for="f-world">World</label>
+				<select id="f-world" name="worldId" class="input input--select">
+					<option value="">All worlds</option>
+					{#each ((data as any).activeWorlds ?? []) as w}
+						<option value={(w as any).id} selected={param('worldId') === (w as any).id}>{(w as any).name}</option>
+					{/each}
+				</select>
+			</div>
+			<div class="field" style="margin:0;">
 				<label class="label" for="f-source">Source</label>
 				<input id="f-source" name="source" type="text" class="input" placeholder="e.g. PHB" value={param('source')} />
 			</div>

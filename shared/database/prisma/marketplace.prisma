@@ -62,6 +62,7 @@ model MarketplaceItem {
   updatedAt          DateTime     @updatedAt      @map("updated_at")
 
   transactions       MarketplaceTransaction[]
+  worldOverrides     WorldMarketplaceItem[]
 
   @@map("marketplace_items")
   @@schema("marketplace")
@@ -80,9 +81,39 @@ model MarketplaceTransaction {
   requestedBy          String            @map("requested_by")          // userId
   reviewedBy           String?           @map("reviewed_by")
   reviewNote           String?           @map("review_note")
+  worldId              String?           @map("world_id")  // null = global
   createdAt            DateTime          @default(now()) @map("created_at")
   updatedAt            DateTime          @updatedAt      @map("updated_at")
 
   @@map("marketplace_transactions")
+  @@schema("marketplace")
+}
+
+model WorldMarketplaceItem {
+  id            String          @id @default(uuid())
+  worldId       String          @map("world_id")
+  itemId        String          @map("item_id")
+  item          MarketplaceItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  stock         Int?            // null = inherit global stock behaviour
+  isAvailable   Boolean?        @map("is_available")   // null = inherit global
+  priceOverride Float?          @map("price_override") // null = use global buyPrice
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt      @map("updated_at")
+
+  @@unique([worldId, itemId])
+  @@map("world_marketplace_items")
+  @@schema("marketplace")
+}
+
+model WorldMarketplaceSetting {
+  id                  String   @id @default(uuid())
+  worldId             String   @unique @map("world_id")
+  sellPricePercent    Int?     @map("sell_price_percent") // null = use global
+  stockEnabled        Boolean? @map("stock_enabled")      // null = use global
+  levelRestrictions   Json?    @map("level_restrictions") // null = use global
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt      @map("updated_at")
+
+  @@map("world_marketplace_settings")
   @@schema("marketplace")
 }

@@ -18,6 +18,7 @@ enum CharacterStatusReason {
   NEW_CHARACTER    // new character awaiting first approval
   EDIT_PENDING     // player submitted structural changes, awaiting approval
   LEVEL_UP_PENDING // unallocated levels, player must submit allocation
+  LEVEL_DOWN_PENDING // XP reduced, player must reduce class levels
   QUEST_REST       // recovering after quest, clears after restDays
   ADMIN            // manually set by admin
   SYSTEM           // set by platform (e.g. quest death)
@@ -146,6 +147,7 @@ model CharacterInventory {
   sourceType         InventorySourceType @map("source_type")
   sourceId           String?             @map("source_id")           // quest id, admin id, etc.
   transactionId      String?             @map("transaction_id")     // marketplace transaction ref
+  worldId            String?             @map("world_id")            // world economy origin (null = global)
   acquiredAt         DateTime            @default(now()) @map("acquired_at")
   notes              String?
 

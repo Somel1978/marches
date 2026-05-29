@@ -20,7 +20,11 @@
 	};
 
 	const totalLevel     = $derived((data.character as any).classes?.reduce((s: number, c: any) => s + c.allocatedLevel, 0) ?? 0);
-	const availableLevel = $derived(totalLevel);
+	const availableLevel = $derived(
+		((data as any).progressionThresholds?.length)
+			? (data as any).progressionThresholds.filter((t: any) => data.character.totalXp >= t.xpRequired).length
+			: totalLevel
+	);
 
 	function openLightbox(src: string) { lightboxSrc = src; lightboxOpen = true; }
 
@@ -81,6 +85,7 @@
 
 	{#if form?.message}<div class="form-error">{form.message}</div>{/if}
 	{#if form?.updateSuccess}<div class="form-success">Character updated.</div>{/if}
+	{#if (form as any)?.resubmitSuccess}<div class="form-success">Character resubmitted for approval.</div>{/if}
 	{#if form?.levelUpSuccess}<div class="form-success">Class allocation submitted — awaiting admin approval.</div>{/if}
 	{#if form?.retireSuccess}<div class="form-success">Character retired.</div>{/if}
 
@@ -89,10 +94,20 @@
 			This character is awaiting admin approval.
 		</div>
 	{/if}
+	{#if data.character.status === 'REJECTED'}
+		<div class="pending-banner" style="border-color:var(--color-danger);">
+			❌ Your character was rejected. Update the details below and resubmit for approval.
+		</div>
+	{/if}
 
 	{#if data.character.statusReason === 'LEVEL_UP_PENDING'}
 		<div class="pending-banner">
 			Level-up available — allocate your new levels below and submit for approval.
+		</div>
+	{/if}
+	{#if data.character.statusReason === 'LEVEL_DOWN_PENDING'}
+		<div class="pending-banner" style="border-color:var(--color-danger);">
+			⬇ Level adjustment required — your XP decreased. Reduce your class levels to {availableLevel} and submit for approval.
 		</div>
 	{/if}
 
@@ -166,6 +181,14 @@
 				</div>
 			</form>
 
+			{#if data.character.status === 'REJECTED'}
+				<hr class="divider" />
+				<form method="post" action="?/resubmit" use:enhance={() => {
+					return async ({ update }) => { await update(); await invalidateAll(); };
+				}}>
+					<button type="submit" class="btn btn-primary btn-sm">↺ Resubmit for approval</button>
+				</form>
+			{/if}
 			{#if data.character.status === 'ACTIVE' || data.character.status === 'RESTING'}
 				<hr class="divider" />
 				<form method="post" action="?/retire"
@@ -178,6 +201,37 @@
 		</div>
 	</div>
 
+	<!-- XP Progression indicator -->
+	{#if data.gameSystem && (data as any).progressionThresholds?.length}
+		{@const thresholds = (data as any).progressionThresholds}
+		{@const currentThreshold = thresholds.filter((t: any) => data.character.totalXp >= t.xpRequired).at(-1)}
+		{@const nextThreshold = thresholds.find((t: any) => t.xpRequired > data.character.totalXp)}
+		<div class="card" style="margin-bottom:1rem;">
+			<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem;">
+				<span style="font-size:0.875rem; font-weight:600;">
+					Progression: Level {totalLevel}
+					{#if data.character.statusReason === 'LEVEL_UP_PENDING'}
+						<span class="badge badge-warning" style="margin-left:0.5rem;">Level up available!</span>
+					{/if}
+				</span>
+				<span style="font-size:0.8125rem; color:var(--text-muted);">
+					{data.character.totalXp.toLocaleString()} XP
+					{#if nextThreshold} · Next level at {nextThreshold.xpRequired.toLocaleString()} XP{/if}
+				</span>
+			</div>
+			{#if nextThreshold}
+				{@const prevXp = currentThreshold?.xpRequired ?? 0}
+				{@const progress = Math.min(100, Math.round(((data.character.totalXp - prevXp) / (nextThreshold.xpRequired - prevXp)) * 100))}
+				<div style="height:6px; background:var(--bg-overlay); border-radius:99px; overflow:hidden;">
+					<div style="height:100%; width:{progress}%; background:var(--accent-light); border-radius:99px; transition:width 0.3s ease;"></div>
+				</div>
+				<p style="font-size:0.75rem; color:var(--text-muted); margin:0.375rem 0 0; text-align:right;">{progress}%</p>
+			{:else}
+				<p style="font-size:0.8125rem; color:var(--text-muted); margin:0;">Max level reached.</p>
+			{/if}
+		</div>
+	{/if}
+
 	<!-- Pending changes notice -->
 	{#if data.character.status === 'PENDING' && (data.character as any).statusReason === 'EDIT_PENDING'}
 		<div class="card" style="border-left:3px solid var(--color-warning);">
@@ -186,9 +240,65 @@
 	{/if}
 
 	<!-- Species, Background & Classes — structural edit OR level-up allocation -->
-	{#if ['ACTIVE','RESTING'].includes(data.character.status)}
+	{#if ['ACTIVE','RESTING','REJECTED'].includes(data.character.status) || data.character.statusReason === 'LEVEL_UP_PENDING' || data.character.statusReason === 'LEVEL_DOWN_PENDING'}
 		<div class="card">
-			{#if data.character.statusReason === 'LEVEL_UP_PENDING'}
+			{#if data.character.statusReason === 'LEVEL_DOWN_PENDING'}
+				<!-- Level-down: reduce class levels -->
+				<div class="page__header" style="margin-bottom:1rem;">
+					<h3 class="section-title" style="margin:0">Adjust classes</h3>
+					<span class="badge badge-danger">Remove {(data.character as any).classes?.reduce((s:number,c:any)=>s+c.allocatedLevel,0) - availableLevel} level{(data.character as any).classes?.reduce((s:number,c:any)=>s+c.allocatedLevel,0) - availableLevel !== 1 ? 's' : ''}</span>
+				</div>
+				<p class="field-hint" style="margin-bottom:0.75rem; color:var(--color-danger);">
+					Reduce total levels to {availableLevel}. Changes require admin approval.
+				</p>
+				<form method="post" action="?/submitLevelUp"
+					use:enhance={() => {
+						return async ({ update }) => { showClasses = false; await update(); await invalidateAll(); };
+					}}>
+					<div class="class-alloc-list">
+						{#each allocations as alloc, i}
+							<div class="class-alloc-row">
+								<div class="field" style="flex:2; min-width:140px;">
+									<label class="label" for="dn-class-{i}">Class</label>
+									<select id="dn-class-{i}" name="classId" class="input" bind:value={alloc.classId}
+										onchange={() => { alloc.subclassId = null; }}>
+										<option value="">Select class…</option>
+										{#each (data.systemData?.classes ?? []).filter((c: any) => c.isAvailable) as cls}
+											<option value={cls.id}>{cls.name}</option>
+										{/each}
+									</select>
+								</div>
+								<div class="field" style="flex:1; min-width:80px;">
+									<label class="label" for="dn-level-{i}">Levels</label>
+									<input id="dn-level-{i}" name="allocatedLevel" type="number" class="input"
+										bind:value={alloc.allocatedLevel} min="0" max="20" />
+								</div>
+								<input type="hidden" name="subclassId" value={alloc.subclassId ?? ''} />
+								{#if allocations.length > 1}
+									<button type="button" class="btn btn-ghost btn-sm btn-icon class-alloc-remove"
+										onclick={() => removeClass(i)} aria-label="Remove class">
+										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+										</svg>
+									</button>
+								{/if}
+							</div>
+						{/each}
+					</div>
+					<div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+						<span class="table__muted" style="font-size:0.8125rem;">
+							Total: <strong class="{allocTotal > availableLevel ? 'form-error' : allocTotal === availableLevel ? '' : 'form-error'}">{allocTotal}</strong> / {availableLevel} allowed
+						</span>
+						<div class="form-actions" style="margin:0;">
+							<button type="submit" class="btn btn-primary btn-sm"
+								disabled={allocTotal !== availableLevel || allocations.some(a => !a.classId)}>
+								Submit for approval
+							</button>
+						</div>
+					</div>
+				</form>
+
+			{:else if data.character.statusReason === 'LEVEL_UP_PENDING'}
 				<!-- Level-up: allocate class levels -->
 				<div class="page__header" style="margin-bottom:1rem;">
 					<h3 class="section-title" style="margin:0">Classes</h3>
@@ -255,7 +365,14 @@
 						<div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.75rem; flex-wrap:wrap; gap:0.5rem;">
 							<div style="display:flex; align-items:center; gap:0.75rem;">
 								<button type="button" class="btn btn-ghost btn-sm" onclick={addClass}>+ Add class</button>
-								<span class="table__muted" style="font-size:0.8125rem;">Total allocated: <strong>{allocTotal}</strong></span>
+								<span class="table__muted" style="font-size:0.8125rem;">
+									Allocated: <strong>{allocTotal}</strong>
+									{#if availableLevel > allocTotal}
+										<span style="color:var(--accent-light);">/ {availableLevel} available</span>
+									{:else}
+										/ {availableLevel} available
+									{/if}
+								</span>
 							</div>
 							<div class="form-actions" style="margin:0;">
 								<button type="button" class="btn btn-ghost btn-sm" onclick={() => showClasses = false}>Cancel</button>
@@ -268,7 +385,7 @@
 				{/if}
 
 			{:else}
-				<!-- ACTIVE/RESTING: structural edit with read-only default -->
+				<!-- ACTIVE/RESTING/REJECTED: structural edit with read-only default -->
 				<div class="page__header" style="margin-bottom:1rem;">
 					<h3 class="section-title" style="margin:0">Species, Background & Classes</h3>
 					<button type="button" class="btn btn-ghost btn-sm" onclick={() => showClasses = !showClasses}>
@@ -499,7 +616,7 @@
 							</div>
 							<p style="font-size:0.8125rem; color:var(--text-muted); margin:0.25rem 0 0;">
 								Paid: {inv.purchasePrice?.toLocaleString() ?? '—'} GP
-								{#if inv.livePrice !== null} · Live: {inv.livePrice.toLocaleString()} GP{/if}
+								{#if inv.livePrice !== null && inv.sourceType === 'PURCHASE' && inv.livePrice !== inv.purchasePrice} · Live: {inv.livePrice.toLocaleString()} GP{/if}
 							</p>
 						</div>
 						{#if inv.itemId && !((data as any).pendingSells ?? []).some((t: any) => t.itemId === inv.itemId)}

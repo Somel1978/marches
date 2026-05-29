@@ -13,15 +13,23 @@ export async function approveCharacter(id: string, actorId: string) {
     const pending = (character as any).pendingChanges as any;
     const isEdit  = character.statusReason === 'EDIT_PENDING';
     const isNew   = character.statusReason === 'NEW_CHARACTER';
-    const isLevelUp = character.statusReason === 'LEVEL_UP_PENDING';
+    const isLevelUp   = character.statusReason === 'LEVEL_UP_PENDING';
+    const isLevelDown = character.statusReason === 'LEVEL_DOWN_PENDING';
 
     await db.$transaction(async (tx) => {
         // Apply pending structural changes if present
-        if (pending && (isEdit || isLevelUp)) {
+        if (pending && (isEdit || isLevelUp || isLevelDown)) {
             if (pending.classes) {
+                // Deduplicate: if same classId appears multiple times, keep the last entry
+                const classMap = new Map<string, any>();
+                for (const c of pending.classes) {
+                    classMap.set(c.classId, c);
+                }
+                const deduped = Array.from(classMap.values());
+
                 await tx.characterClass.deleteMany({ where: { characterId: id } });
                 await tx.characterClass.createMany({
-                    data: pending.classes.map((c: any) => ({
+                    data: deduped.map((c: any) => ({
                         characterId:    id,
                         classId:        c.classId,
                         subclassId:     c.subclassId ?? null,
@@ -81,8 +89,9 @@ export async function approveCharacter(id: string, actorId: string) {
 
     await createNotification(
         character.userId, 'CHARACTER_APPROVED', 'Character approved',
-        isLevelUp ? 'Your level-up has been approved!'
-        : isEdit  ? 'Your character changes have been approved!'
+        isLevelDown ? 'Your level adjustment has been approved!'
+        : isLevelUp ? 'Your level-up has been approved!'
+        : isEdit    ? 'Your character changes have been approved!'
         : 'Your character has been approved!',
         `/characters/${id}`,
     );
@@ -96,8 +105,9 @@ export async function rejectCharacter(id: string, note: string, actorId: string)
     if (character.status !== 'PENDING')
         throw new ValidationError('Character is not in PENDING status.');
 
-    const isLevelUp = character.statusReason === 'LEVEL_UP_PENDING';
-    const newStatus = isLevelUp ? 'ACTIVE' : 'REJECTED';
+    const isLevelUp   = character.statusReason === 'LEVEL_UP_PENDING';
+    const isLevelDown = character.statusReason === 'LEVEL_DOWN_PENDING';
+    const newStatus = (isLevelUp || isLevelDown) ? 'ACTIVE' : 'REJECTED';
 
     await db.$transaction(async (tx) => {
         await tx.character.update({

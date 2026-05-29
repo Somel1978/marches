@@ -7,8 +7,7 @@ export async function handleSellItemCommand(interaction: ChatInputCommandInterac
     if (!linkedUser) {
         const settings = await platform.getSettingsMap();
         const siteUrl  = settings['site.url'] ?? 'https://marches.local';
-        await interaction.editReply(`❌ Your Discord account is not linked to Marches. Visit ${siteUrl}/profile to connect your account.`);
-        return;
+        return interaction.editReply(`❌ Your Discord account is not linked. Visit ${siteUrl}/profile to connect.`);
     }
 
     const charName = interaction.options.getString('character', true);
@@ -16,21 +15,29 @@ export async function handleSellItemCommand(interaction: ChatInputCommandInterac
     const quantity = interaction.options.getInteger('quantity') ?? 1;
 
     const chars = await characters.getByUserId(linkedUser.id);
-    const char  = chars.find((c: any) => c.name.toLowerCase().includes(charName.toLowerCase()) && c.status === 'ACTIVE' || c.status === 'RESTING');
+    // Fix: operator precedence
+    const char  = chars.find((c: any) =>
+        c.name.toLowerCase().includes(charName.toLowerCase()) &&
+        (c.status === 'ACTIVE' || c.status === 'RESTING')
+    );
     if (!char) return interaction.editReply(`❌ No active character found matching "${charName}".`);
 
     const inv  = await characters.getInventory(char.id);
-    const slot = inv.find((i: any) => i.itemName.toLowerCase().includes(itemName.toLowerCase()) && i.canSell !== false);
+    const slot = inv.find((i: any) =>
+        i.itemName.toLowerCase().includes(itemName.toLowerCase()) && i.canSell !== false
+    );
     if (!slot) return interaction.editReply(`❌ No sellable item matching "${itemName}" in ${char.name}'s inventory.`);
+    if (slot.quantity < quantity) return interaction.editReply(`❌ **${char.name}** only has ${slot.quantity}×${slot.itemName}.`);
 
-    if (slot.quantity < quantity) {
-        return interaction.editReply(`❌ **${char.name}** only has ${slot.quantity}×${slot.itemName}, cannot sell ${quantity}.`);
-    }
+    // Resolve sell price from origin world context
+    const worldId = (slot as any).worldId ?? null;
+    const ctx = slot.itemId
+        ? await marketplace.resolveContext(slot.itemId, worldId)
+        : null;
 
-    const settings  = await platform.getSettingsMap();
-    const sellPct   = parseFloat(settings['marketplace.sellPricePercent'] ?? '50') / 100;
-    const unitPrice = slot.livePrice ?? 0;
-    const expected  = Math.floor(unitPrice * sellPct * quantity);
+    const sellPct   = ctx ? ctx.sellPricePercent / 100 : 0.5;
+    const basePrice = ctx ? ctx.price : ((slot as any).livePrice ?? (slot as any).purchasePrice ?? 0);
+    const expected  = Math.floor(basePrice * sellPct * quantity);
 
     try {
         await marketplace.transactions.sell(char.id, slot.id, quantity, linkedUser.id);
@@ -39,9 +46,9 @@ export async function handleSellItemCommand(interaction: ChatInputCommandInterac
             .setColor(0x22c55e)
             .setDescription(`**${char.name}** submitted a sell request for **${slot.itemName}**.`)
             .addFields(
-                { name: 'Quantity', value: `${quantity}`,                                                   inline: true },
-                { name: 'Expected', value: expected > 0 ? `${expected.toLocaleString()} GP` : 'TBD',        inline: true },
-                { name: 'Status',   value: 'Pending admin approval',                                         inline: true },
+                { name: 'Quantity', value: `${quantity}`,                                            inline: true },
+                { name: 'Expected', value: expected > 0 ? `${expected.toLocaleString()} GP` : 'TBD', inline: true },
+                { name: 'Status',   value: 'Pending admin approval',                                  inline: true },
             );
         return interaction.editReply({ embeds: [embed] });
     } catch (e: any) {

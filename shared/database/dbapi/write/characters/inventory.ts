@@ -3,6 +3,39 @@ import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 
+async function restoreStockToOrigin(
+    tx: any,
+    itemId: string,
+    worldId: string | null | undefined,
+    quantity: number,
+) {
+    if (!worldId) {
+        // Global restore
+        const item = await tx.marketplaceItem.findUnique({ where: { id: itemId }, select: { stock: true } });
+        if (item?.stock !== null) {
+            await tx.marketplaceItem.update({ where: { id: itemId }, data: { stock: { increment: quantity } } });
+        }
+        return;
+    }
+    // World restore — check world row first
+    const worldRow = await tx.worldMarketplaceItem.findUnique({
+        where: { worldId_itemId: { worldId, itemId } },
+        select: { stock: true },
+    });
+    if (worldRow && worldRow.stock !== null) {
+        await tx.worldMarketplaceItem.update({
+            where: { worldId_itemId: { worldId, itemId } },
+            data:  { stock: { increment: quantity } },
+        });
+    } else {
+        // Fall back to global
+        const item = await tx.marketplaceItem.findUnique({ where: { id: itemId }, select: { stock: true } });
+        if (item?.stock !== null) {
+            await tx.marketplaceItem.update({ where: { id: itemId }, data: { stock: { increment: quantity } } });
+        }
+    }
+}
+
 export async function removeFromInventory(
     inventoryId: string,
     quantity: number,
@@ -13,19 +46,18 @@ export async function removeFromInventory(
     if (!entry) throw new NotFoundError('CharacterInventory', inventoryId);
     if (quantity > entry.quantity) throw new ValidationError(`Only ${entry.quantity} in inventory.`);
 
+    const worldId = (entry as any).worldId as string | null | undefined;
+
     return db.$transaction(async (tx) => {
         const newQty = entry.quantity - quantity;
 
         if (newQty <= 0) {
             await tx.characterInventory.delete({ where: { id: inventoryId } });
         } else {
-            await tx.characterInventory.update({
-                where: { id: inventoryId },
-                data:  { quantity: newQty },
-            });
+            await tx.characterInventory.update({ where: { id: inventoryId }, data: { quantity: newQty } });
         }
 
-        // Refund purchase price if set
+        // Refund purchase price
         const refund = entry.purchasePrice ? entry.purchasePrice * quantity : 0;
         if (refund > 0) {
             await tx.character.update({
@@ -44,47 +76,42 @@ export async function removeFromInventory(
             });
         }
 
-        // Restore stock on marketplace item if it exists and stock is tracked
+        // Restore stock to origin (world or global)
         if (entry.itemId) {
-            const mItem = await tx.marketplaceItem.findUnique({ where: { id: entry.itemId }, select: { id: true, stock: true } });
-            if (mItem && mItem.stock !== null) {
-                await tx.marketplaceItem.update({
-                    where: { id: entry.itemId },
-                    data:  { stock: { increment: quantity } },
-                });
-            }
+            await restoreStockToOrigin(tx, entry.itemId, worldId, quantity);
         }
 
-        // Record marketplace transaction for audit trail (ADMIN_REMOVAL type reuses SELL flow)
+        // Record marketplace transaction
         if (entry.itemId) {
-            const character = await tx.character.findUnique({ where: { id: entry.characterId }, select: { userId: true } });
+            const character = await tx.character.findUnique({
+                where: { id: entry.characterId }, select: { userId: true },
+            });
             await tx.marketplaceTransaction.create({
                 data: {
-                    itemId:            entry.itemId,
-                    characterId:       entry.characterId,
-                    type:              'SELL',
-                    status:            'APPROVED',
+                    itemId:             entry.itemId,
+                    characterId:        entry.characterId,
+                    type:               'SELL',
+                    status:             'APPROVED',
                     quantity,
                     priceAtTransaction: entry.purchasePrice ?? 0,
-                    totalPrice:        entry.purchasePrice ? entry.purchasePrice * quantity : 0,
-                    reviewNote:        `Admin removal: ${note ?? 'Item removed by admin'}`,
-                    requestedBy:       character?.userId ?? actorId,
-                    reviewedBy:        actorId,
+                    totalPrice:         entry.purchasePrice ? entry.purchasePrice * quantity : 0,
+                    reviewNote:         `Admin removal: ${note ?? 'Item removed by admin'}`,
+                    requestedBy:        character?.userId ?? actorId,
+                    reviewedBy:         actorId,
+                    worldId:            worldId ?? null,
                 },
             });
         }
 
-        // Log removal on CharacterInventory (audit trail)
         await logAudit(tx, {
             actorId,
             action:      newQty <= 0 ? 'DELETE' : 'UPDATE',
             resourceKey: 'CharacterInventory',
             resourceId:  inventoryId,
             before:      { itemName: entry.itemName, quantity: entry.quantity, purchasePrice: entry.purchasePrice },
-            after:       { quantity: newQty, refund, note },
+            after:       { quantity: newQty, refund, note, worldId },
         });
 
-        // Log removal in character activity feed
         await tx.characterTransaction.create({
             data: {
                 characterId: entry.characterId,
@@ -101,20 +128,20 @@ export async function removeFromInventory(
 export async function addToInventory(
     characterId: string,
     data: {
-        itemId?:       string;
-        itemName:      string;
-        itemCategory?: string;
-        itemRarity?:   string;
-        itemSource?:   string;
-        quantity:      number;
+        itemId?:        string;
+        itemName:       string;
+        itemCategory?:  string;
+        itemRarity?:    string;
+        itemSource?:    string;
+        quantity:       number;
         purchasePrice?: number;
-        sourceType:    'PURCHASE' | 'REWARD';
-        notes?:        string;
+        sourceType:     'PURCHASE' | 'REWARD';
+        notes?:         string;
+        worldId?:       string | null;
     },
     actorId: string,
 ) {
     return db.$transaction(async (tx) => {
-        // Upsert by itemId if present, else always create
         const existing = data.itemId
             ? await tx.characterInventory.findFirst({ where: { characterId, itemId: data.itemId } })
             : null;
@@ -129,15 +156,16 @@ export async function addToInventory(
             entry = await tx.characterInventory.create({
                 data: {
                     characterId,
-                    itemId:        data.itemId        ?? null,
+                    itemId:        data.itemId       ?? null,
                     itemName:      data.itemName,
-                    itemCategory:  data.itemCategory  ?? null,
-                    itemRarity:    data.itemRarity    ?? null,
-                    itemSource:    data.itemSource    ?? null,
+                    itemCategory:  data.itemCategory ?? null,
+                    itemRarity:    data.itemRarity   ?? null,
+                    itemSource:    data.itemSource   ?? null,
                     quantity:      data.quantity,
                     purchasePrice: data.purchasePrice ?? null,
                     sourceType:    data.sourceType,
-                    notes:         data.notes         ?? null,
+                    notes:         data.notes        ?? null,
+                    worldId:       data.worldId      ?? null,
                 },
             });
         }

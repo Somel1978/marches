@@ -4,7 +4,9 @@
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-	let saving = $state(false);
+	let saving        = $state(false);
+	let selectedCharId = $state('');
+	const selectedChar = $derived((data as any).activeChars?.find((c:any) => c.id === selectedCharId));
 
 	const rarityColors: Record<string, string> = {
 		Mundane:   'badge-muted',  Common:    'badge-muted',
@@ -61,13 +63,14 @@
 					<div class="fields">
 						<div class="field">
 							<label class="label" for="characterId">Character</label>
-							<select id="characterId" name="characterId" class="input" required>
+							<select id="characterId" name="characterId" class="input" bind:value={selectedCharId} required>
 								<option value="">Select…</option>
 								{#each data.activeChars as char}
 									<option value={char.id}>{char.name} ({char.totalGold.toLocaleString()} GP)</option>
 								{/each}
 							</select>
 						</div>
+						<input type="hidden" name="worldId" value={selectedChar?.worldId ?? ''} />
 						<div class="field">
 							<label class="label" for="quantity">Quantity</label>
 							<input id="quantity" name="quantity" type="number" class="input" min="1" value="1" required />

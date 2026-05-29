@@ -63,6 +63,10 @@
 				<form method="post" action="?/approve" use:enhance={()=>{return async({update})=>{await update();await invalidateAll();};}}>
 					<button type="submit" class="btn btn-primary btn-sm">✓ Approve</button>
 				</form>
+				<form method="post" action="?/reject" use:enhance={()=>{return async({update})=>{await update();await invalidateAll();};}}>
+					<input type="hidden" name="note" value="Rejected by admin." />
+					<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕ Reject</button>
+				</form>
 			{/if}
 			<form method="post" action="?/deleteCharacter" use:enhance={({cancel})=>{
 				if(!confirm('Delete this character? This cannot be undone.')) cancel();
@@ -83,12 +87,17 @@
 	{#if (form as any)?.inventorySuccess}<div class="form-success">Inventory updated.</div>{/if}
 
 	<!-- ── Pending banner ────────────────────────────────────────── -->
-	{#if character.status === 'PENDING' && pendingChanges}
+	{#if character.status === 'PENDING' && (pendingChanges || character.statusReason === 'LEVEL_DOWN_PENDING')}
 		<div class="card" style="border-left:3px solid var(--color-warning); margin-bottom:1rem;">
 			<div class="page__header" style="margin-bottom:0.75rem;">
 				<div>
 					<p style="font-weight:700; margin:0;">⏳ Pending changes</p>
 					<p style="font-size:0.8125rem; color:var(--text-muted); margin:0.25rem 0 0;">{character.statusReason}</p>
+				{#if character.statusReason === 'LEVEL_DOWN_PENDING'}
+					<p style="font-size:0.8125rem; color:var(--color-danger); margin:0.25rem 0 0;">
+						Player needs to reduce class levels to match their current XP.
+					</p>
+				{/if}
 				</div>
 				<div style="display:flex; gap:0.5rem;">
 					<form method="post" action="?/approve" use:enhance={()=>{return async({update})=>{await update();await invalidateAll();};}}>
@@ -102,15 +111,22 @@
 			</div>
 			<div style="display:flex; flex-wrap:wrap; gap:1rem; font-size:0.8125rem;">
 				{#if pendingChanges.speciesId}
-					<div><span class="table__muted">Species →</span> <strong>{pendingChanges.speciesId}</strong></div>
+					{@const sp = (data as any).systemData?.species?.find((s:any) => s.id === pendingChanges.speciesId)}
+					<div><span class="table__muted">Species →</span> <strong>{sp?.name ?? pendingChanges.speciesId}</strong></div>
 				{/if}
 				{#if pendingChanges.backgroundId}
-					<div><span class="table__muted">Background →</span> <strong>{pendingChanges.backgroundId}</strong></div>
+					{@const bg = (data as any).systemData?.backgrounds?.find((b:any) => b.id === pendingChanges.backgroundId)}
+					<div><span class="table__muted">Background →</span> <strong>{bg?.name ?? pendingChanges.backgroundId}</strong></div>
 				{/if}
-				{#if pendingChanges.classes}
-					<div><span class="table__muted">Classes →</span>
+				{#if pendingChanges.classes?.length}
+					<div style="display:flex; flex-wrap:wrap; gap:0.375rem; align-items:center;">
+						<span class="table__muted">Classes →</span>
 						{#each pendingChanges.classes as c}
-							<span class="badge badge-muted">{c.classId} Lv{c.allocatedLevel}</span>
+							{@const cls = (data as any).systemData?.classes?.find((cl:any) => cl.id === c.classId)}
+							{@const sub = cls?.subclasses?.find((s:any) => s.id === c.subclassId)}
+							<span class="badge badge-muted">
+								{cls?.name ?? c.classId} Lv{c.allocatedLevel}{sub ? ` · ${sub.name}` : ''}
+							</span>
 						{/each}
 					</div>
 				{/if}

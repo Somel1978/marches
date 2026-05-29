@@ -93,7 +93,7 @@ marches/
 ✅ 17. Availability heatmap redesign (frontend)
 ✅ 18. Admin character sheet layout (tabbed)
 ✅ 19. World landing page card layout
-⬜ 20. World marketplace (per-world stock, price overrides, level restrictions)
+✅ 20. World marketplace (per-world stock, price overrides, level restrictions) — schema + workflows + admin pages + frontend filter
 ⬜ 21. DM dashboard quest filters (UI cleanup phase)
 ```
 
@@ -1120,8 +1120,8 @@ shared/ui/components/layout/
 - [x] Inventory admin removal — creates MarketplaceTransaction record + restores stock + uses character userId for playerName
 
 ### ⬜ Pending
-- [ ] World marketplace (per-world stock, price overrides, level restrictions)
 - [ ] DM dashboard quest filters (UI cleanup phase)
+- [ ] General UI cleanup / polish pass
 
 ---
 
@@ -1211,6 +1211,129 @@ Players connect Discord via **Profile → Connect Discord** → OAuth flow store
 - Journal — `getForUser` was receiving empty `roleIds` because `locals.permissions` is a Map not role array; added `getUserRoleIds(userId)` to users DB API; world filter was reading URL params instead of user character worldIds
 - Admin character sheet — full tabbed rewrite; `updateClasses` action uses named form fields (classId/subclassId/allocatedLevel) not JSON blob
 - Tabs CSS — `.tabs`, `.tab`, `.tab--active` added to `shared/ui/styles/components/site.css`
+
+### Session 15 (2026-05-29)
+
+**World Marketplace (per-world overrides)**
+- `shared/database/prisma/marketplace.prisma` — added `WorldMarketplaceItem`, `WorldMarketplaceSetting`, `worldId` on `MarketplaceTransaction`
+- `shared/database/prisma/characters.prisma` — added `worldId` on `CharacterInventory`, `LEVEL_DOWN_PENDING` on `CharacterStatusReason`
+- `shared/database/dbapi/read/marketplace/resolve-context.ts` — NEW `resolveMarketplaceContext(itemId, worldId?)` — 3-layer resolution
+- `shared/database/dbapi/read/marketplace/get-world-marketplace.ts` — NEW `getWorldMarketplaceItems`, `getWorldMarketplaceSetting`
+- `shared/database/dbapi/write/marketplace/world-marketplace.ts` — NEW `upsertWorldMarketplaceItem`, `deleteWorldMarketplaceItem`, `upsertWorldMarketplaceSetting`
+- `shared/database/dbapi/write/marketplace/transactions.ts` — full rewrite: world-aware buy/sell/approve/reject/cancel/grant
+- `shared/database/dbapi/write/characters/inventory.ts` — `removeFromInventory` restores stock to world origin; `addToInventory` accepts `worldId`
+- `apps/admin/src/routes/(app)/world/id/marketplace/+page.server.ts` — NEW world marketplace admin page
+- `apps/admin/src/routes/(app)/world/id/marketplace/+page.svelte` — NEW: item search (not dropdown), stock overrides, settings
+- `apps/frontend/src/routes/(protected)/marketplace/+page.server.ts` — world filter, applies overrides
+- `apps/frontend/src/routes/(protected)/marketplace/+page.svelte` — world filter dropdown
+- `apps/frontend/src/routes/(protected)/marketplace/id/+page.svelte` — `worldId` hidden input from selected character
+- `apps/frontend/src/routes/(protected)/marketplace/id/+page.server.ts` — passes `worldId` to buy transaction
+
+**Level-up / Level-down detection**
+- `shared/database/dbapi/write/characters/level-check.ts` — NEW shared helper `checkLevelChange(tx, ...)` used by all XP-changing paths
+- `shared/database/dbapi/write/characters/adjust-currency.ts` — uses `checkLevelChange`; detects both level-up and level-down
+- `shared/database/dbapi/write/quests/delete.ts` — uses `checkLevelChange` on XP reversal when quest deleted
+- `apps/admin/src/routes/(app)/rewards/grant/+page.server.ts` — `grantXp` now uses `characters.adjustCurrency` (not raw DB) so level detection fires
+- `CharacterStatusReason.LEVEL_DOWN_PENDING` — new enum value; player must adjust classes down and resubmit
+
+**Character system fixes**
+- `shared/database/dbapi/write/characters/approve.ts` — deduplicates classes on approval; handles `LEVEL_DOWN_PENDING`; `LEVEL_UP/DOWN` rejections revert to ACTIVE
+- `shared/database/dbapi/read/characters/get-by-id.ts` — `enrichCharacter` returns `totalLevel`
+- `apps/frontend/src/routes/(protected)/characters/id/+page.svelte` — XP progression bar; level-up/down banners; `availableLevel` derived from thresholds; REJECTED characters can edit and resubmit
+- `apps/frontend/src/routes/(protected)/characters/id/+page.server.ts` — `progressionThresholds` loaded from gameSystem; `resubmit` action; `submitChanges` allowed for REJECTED; REJECTED saves directly without pending flow
+- `apps/frontend/src/routes/(protected)/characters/+page.svelte` — REJECTED characters visible and linkable
+
+**Admin character sheet**
+- `apps/admin/src/routes/(app)/characters/id/+page.svelte` — 5 tabs (Overview/Identity/Sheet/Inventory/Activity); pending banner resolves IDs to names; Approve+Reject in header for all PENDING; LEVEL_DOWN_PENDING info shown
+- `apps/admin/src/routes/(app)/characters/id/+page.server.ts` — `updateClasses` uses named fields; `subclassId` empty string → null
+- `apps/admin/src/routes/(app)/characters/+page.server.ts` — `clearRest` action
+- `shared/database/dbapi/write/characters/check-rest.ts` — `clearAllExpiredRest()` exported
+
+**World / Region / Journal**
+- `apps/frontend/src/routes/(protected)/world/+page.svelte` — world cards landing (one per world)
+- `apps/frontend/src/routes/(protected)/world/+page.server.ts` — loads active worlds only
+- `apps/frontend/src/routes/(protected)/world/world-slug/+page.svelte` — world detail (map + region cards)
+- `apps/frontend/src/routes/(protected)/world/world-slug/+page.server.ts` — loads single world by slug
+- `apps/frontend/src/routes/(protected)/world/world-slug/region-slug/+page.svelte` — 🗺 World map + 🏔 Region map (lightbox) buttons
+- `apps/frontend/src/routes/(protected)/journal/+page.svelte` — sidebar nav, mobile toggle
+- `apps/frontend/src/routes/(protected)/journal/+page.server.ts` — uses `users.getRoleIds` for proper role filtering
+- `shared/database/dbapi/read/users/get-by-id.ts` — `getUserRoleIds()` added
+- `shared/database/index.ts` — `users.getRoleIds`, `characters.clearExpiredRest`, world marketplace exports
+
+**CSS**
+- `shared/ui/styles/components/site.css` — `.tabs`, `.tab`, `.tab--active`, journal layout
+- `shared/ui/styles/components/world.css` — world landing, region card grid, premium card design
+- `shared/ui/styles/components/availability.css` — heatmap, multi-select, bulk bar
+
+**Discord commands**
+- `apps/discord/src/commands/buyitem.ts` — operator precedence fix; world-aware price/stock/restrictions
+- `apps/discord/src/commands/sellitem.ts` — operator precedence fix; world-aware sell%
+- `apps/discord/src/commands/characters.ts` — uses `totalLevel` from enrichCharacter; status emojis
+- `apps/discord/src/commands/charactersinv.ts` — removed `livePrice`; shows 🌍 for world-scoped items
+
+**Bug fixes**
+- `submit-result.ts` — `LEVEL_UP_PENDING` is `statusReason` not `status`
+- `inventory.ts` — admin removal creates `MarketplaceTransaction` record + restores stock to world origin
+- `approve.ts` — subclassId empty string → null coercion; class deduplication on approval
+- Live price on inventory — only shown for PURCHASE items where price differs from paid
+
+
+### Session 15 (2026-05-29)
+
+**World marketplace (per-world stock, price overrides, level restrictions)**
+- `shared/database/prisma/marketplace.prisma` — added `WorldMarketplaceItem`, `WorldMarketplaceSetting` models; `worldId` on `MarketplaceTransaction`
+- `shared/database/prisma/characters.prisma` — `worldId` on `CharacterInventory`; `LEVEL_DOWN_PENDING` added to `CharacterStatusReason` enum
+- `shared/database/dbapi/read/marketplace/resolve-context.ts` — NEW: `resolveMarketplaceContext(itemId, worldId?)` resolution helper
+- `shared/database/dbapi/read/marketplace/get-world-marketplace.ts` — NEW: `getWorldMarketplaceItems`, `getWorldMarketplaceSetting`
+- `shared/database/dbapi/write/marketplace/world-marketplace.ts` — NEW: `upsertWorldMarketplaceItem`, `deleteWorldMarketplaceItem`, `upsertWorldMarketplaceSetting`
+- `shared/database/dbapi/write/marketplace/transactions.ts` — full rewrite: world-aware buy/sell/approve/reject/cancel/grant; `decrementStock`/`restoreStock` helpers
+- `shared/database/dbapi/write/characters/inventory.ts` — `removeFromInventory` restores stock to origin world row; `addToInventory` accepts `worldId`
+- `shared/database/index.ts` — exports `marketplace.worldItems`, `marketplace.worldSettings`, `marketplace.resolveContext`
+- `apps/admin/src/routes/(app)/world/id/marketplace/+page.server.ts` — NEW: world marketplace admin page (upsertItem, removeItem, saveSettings)
+- `apps/admin/src/routes/(app)/world/id/marketplace/+page.svelte` — NEW: item search (not dropdown), stock/price/availability overrides table, world settings
+- `apps/admin/src/routes/(app)/world/id/+page.svelte` — 🛒 Marketplace button fixed (was orphaned outside header div)
+- `apps/frontend/src/routes/(protected)/marketplace/+page.server.ts` — world filter; applies world overrides to item listing
+- `apps/frontend/src/routes/(protected)/marketplace/+page.svelte` — world filter dropdown
+- `apps/frontend/src/routes/(protected)/marketplace/id/+page.svelte` — `selectedCharId` bound; `worldId` hidden input passes character world to buy
+- `apps/frontend/src/routes/(protected)/marketplace/id/+page.server.ts` — passes `worldId` to `createBuyTransaction`
+
+**Character level-up/down system**
+- `shared/database/dbapi/write/characters/level-check.ts` — NEW: `checkLevelChange(tx, ...)` shared helper; detects level-up (newEarned > currentAllocated) and level-down (newEarned < currentAllocated); sets PENDING + LEVEL_UP/DOWN_PENDING; fires notifications
+- `shared/database/dbapi/write/characters/adjust-currency.ts` — uses `checkLevelChange` helper for XP changes
+- `shared/database/dbapi/write/quests/delete.ts` — uses `checkLevelChange` on XP reversal when quest deleted
+- `apps/admin/src/routes/(app)/rewards/grant/+page.server.ts` — `grantXp` now calls `characters.adjustCurrency` (was raw DB update) so level detection fires
+- `apps/frontend/src/routes/(protected)/characters/id/+page.svelte` — XP progression bar; `LEVEL_DOWN_PENDING` banner + class reduction form; `availableLevel` derived from thresholds; `REJECTED` characters can edit and resubmit
+- `apps/frontend/src/routes/(protected)/characters/id/+page.server.ts` — `progressionThresholds` loaded from gameSystem; `resubmit` action; `submitChanges` allows REJECTED status (saves directly); `submitLevelUp`/`submitChanges` coerce empty subclassId to null
+
+**Admin character sheet (tabbed)**
+- `apps/admin/src/routes/(app)/characters/id/+page.svelte` — 5 tabs (Overview/Identity/Sheet/Inventory/Activity); Approve+Reject in header for all PENDING statuses; pending changes banner resolves IDs to names using systemData; `LEVEL_DOWN_PENDING` note in banner
+- `apps/admin/src/routes/(app)/characters/id/+page.server.ts` — clean rewrite; `updateClasses` uses named form fields; subclassId empty string → null
+- `apps/admin/src/routes/(app)/characters/+page.server.ts` — `clearRest` action
+- `apps/admin/src/routes/(app)/characters/+page.svelte` — ⏰ Clear rested button
+
+**Character approval fixes**
+- `shared/database/dbapi/write/characters/approve.ts` — deduplicates classes on approval (Map by classId); handles `LEVEL_DOWN_PENDING`; rejection preserves `NEW_CHARACTER` → actually just sets `ADMIN` reason, any REJECTED character can resubmit
+- `shared/database/dbapi/write/quests/submit-result.ts` — `LEVEL_UP_PENDING` uses `status:PENDING` + `statusReason:LEVEL_UP_PENDING` (was invalid CharacterStatus value)
+
+**World route restructure**
+- `/world` — new landing: one card per world with `mapImageUrl` thumbnail, region count badge
+- `/world/[worldSlug]` — new: world detail with map + region cards (moved from old `/world`)
+- `/world/[worldSlug]/[regionSlug]` — 🗺 World map + 🏔 Region map (lightbox) buttons; back-link fixed
+- `shared/ui/styles/components/world.css` — `.region-card` portrait cards, staggered animation, danger/level badges
+- `shared/ui/styles/components/availability.css` — 7×48 heatmap, dot pattern, trend line, multi-select, "Select slots" button
+
+**Journal fixes**
+- `shared/database/dbapi/read/users/get-by-id.ts` — `getUserRoleIds(userId)` added
+- `shared/database/index.ts` — `users.getRoleIds` exported
+- `apps/frontend/src/routes/(protected)/journal/+page.server.ts` — uses `users.getRoleIds` (was reading from locals.permissions which never had role IDs); worldIds from character worldIds not URL params
+- `apps/frontend/src/routes/(protected)/journal/+page.svelte` — full redesign: sidebar nav, mobile toggle, `$effect.pre` for journal auto-open
+
+**Bug fixes**
+- Character totalLevel — `enrichCharacter` now computes and returns `totalLevel`
+- Inventory admin removal — `removeFromInventory` creates MarketplaceTransaction + uses `character.userId` for requestedBy
+- Live price — only shown for PURCHASE items where price differs from purchase price
+- Tabs CSS — `.tabs`, `.tab`, `.tab--active` added to `site.css`
+- Discord commands — operator precedence fix; world-aware price/stock/restrictions; totalLevel from enrichCharacter
 
 ### Session 14 (2026-05-28)
 - Availability heatmap — new `+page.svelte` with 7×48 CSS grid, dot pattern color scale (dark brown→gold),

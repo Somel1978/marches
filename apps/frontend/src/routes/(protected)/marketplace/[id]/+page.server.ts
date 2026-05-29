@@ -23,12 +23,13 @@ export const actions: Actions = {
 	buy: async ({ params, request, locals }) => {
 		const data        = await request.formData();
 		const characterId = data.get('characterId')?.toString() ?? '';
+		const worldId     = data.get('worldId')?.toString() || null;
 		const quantity    = Number(data.get('quantity') ?? 1);
 
 		if (!characterId) return fail(400, { message: 'Select a character.' });
 
 		try {
-			await marketplace.transactions.buy(characterId, params.id, quantity, locals.user!.id);
+			await marketplace.transactions.buy(characterId, params.id, quantity, locals.user!.id, worldId);
 			return { success: true, action: 'buy' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

@@ -1,11 +1,11 @@
 // apps/admin/src/routes/(app)/rewards/grant/+page.server.ts
 import { fail } from '@sveltejs/kit';
-import { achievements, db, notifications } from '@core/database';
+import { achievements, characters, db, notifications } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import { checkPermission } from '@core/rbac';
 import type { PageServerLoad, Actions } from './$types';
 
-const ITEM_RARITIES  = ['Mundane','Common','Uncommon','Rare','Very_Rare','Legendary','Artifact','Unknown'];
+const ITEM_RARITIES   = ['Mundane','Common','Uncommon','Rare','Very_Rare','Legendary','Artifact','Unknown'];
 const ITEM_CATEGORIES = ['Combat','Consumable','Utility','Destroyable'];
 
 export const load: PageServerLoad = async () => {
@@ -23,22 +23,20 @@ export const actions: Actions = {
 		const data        = await request.formData();
 		const characterId = data.get('characterId')?.toString() ?? '';
 		const amount      = Number(data.get('amount') ?? 0);
-		const type        = data.get('type')?.toString() ?? 'XP';
+		const type        = (data.get('type')?.toString() ?? 'XP') as 'XP' | 'GOLD' | 'TOKEN';
 		const note        = data.get('note')?.toString().trim() || 'Admin grant';
 		if (!characterId || amount <= 0) return fail(400, { message: 'Character and positive amount required.' });
-		const char = await db.character.findUnique({ where: { id: characterId } });
-		if (!char) return fail(404, { message: 'Character not found.' });
-		const field = type === 'XP' ? 'totalXp' : type === 'GOLD' ? 'totalGold' : 'totalTokens';
-		await db.$transaction(async (tx) => {
-			await tx.character.update({ where: { id: characterId }, data: { [field]: { increment: amount } } });
-			await tx.characterTransaction.create({ data: {
-				characterId, type: type as any, delta: amount,
-				sourceType: 'ADMIN', note, createdBy: locals.user!.id,
-			}});
-		});
-		await notifications.create(char.userId, 'ADMIN_GRANT', `${type} granted`,
-			`An admin granted you ${amount} ${type}. Note: ${note}`, `/characters/${characterId}`);
-		return { grantSuccess: true, tab: 'xp' };
+		try {
+			// Use adjustCurrency so level-up/down detection fires automatically
+			await characters.adjustCurrency(characterId, type, amount, note, locals.user!.id);
+			const char = await db.character.findUnique({ where: { id: characterId }, select: { userId: true } });
+			if (char) await notifications.create(char.userId, 'ADMIN_GRANT', `${type} granted`,
+				`An admin granted you ${amount} ${type}. Note: ${note}`, `/characters/${characterId}`);
+			return { grantSuccess: true, tab: 'xp' };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
 	},
 
 	grantAchievement: async ({ request, locals }) => {
@@ -53,14 +51,10 @@ export const actions: Actions = {
 			await achievements.grant(characterId, achievementId, note, locals.user!.id);
 			const char = await db.character.findUnique({ where: { id: characterId }, select: { userId: true } });
 			const ach  = await db.achievement.findUnique({ where: { id: achievementId } });
-			// Write to character history
 			await db.characterTransaction.create({ data: {
-				characterId,
-				type:       'REWARD',
-				delta:      0,
-				sourceType: 'ADMIN',
-				note:       `Achievement granted: ${ach?.name ?? achievementId}. ${note ?? ''}`.trim(),
-				createdBy:  locals.user!.id,
+				characterId, type: 'REWARD', delta: 0, sourceType: 'ADMIN',
+				note: `Achievement granted: ${ach?.name ?? achievementId}. ${note ?? ''}`.trim(),
+				createdBy: locals.user!.id,
 			}});
 			if (char && ach) await notifications.create(char.userId, 'ACHIEVEMENT_GRANTED',
 				'Achievement unlocked! 🏆', `You earned the "${ach.name}" achievement!`, `/characters/${characterId}`);
@@ -122,26 +116,16 @@ export const actions: Actions = {
 				await tx.characterInventory.update({ where: { id: existing.id }, data: { quantity: { increment: 1 } } });
 			} else {
 				await tx.characterInventory.create({ data: {
-					characterId,
-					itemId,
-					itemName:      item.name,
-					quantity:      1,
-					purchasePrice: 0,
-					canSell:       false,
-					sourceType:    'ADMIN',
-					sourceId:      locals.user!.id,
-					itemCategory:  item.category as any ?? null,
-					itemRarity:    (item as any).rarity ?? null,
+					characterId, itemId, itemName: item.name, quantity: 1,
+					purchasePrice: 0, canSell: false, sourceType: 'ADMIN',
+					sourceId: locals.user!.id,
+					itemCategory: item.category as any ?? null,
+					itemRarity:   (item as any).rarity ?? null,
 				}});
 			}
-			// Write to character history
 			await tx.characterTransaction.create({ data: {
-				characterId,
-				type:       'REWARD',
-				delta:      1,
-				sourceType: 'ADMIN',
-				note:       `Item granted: ${item.name}. ${note}`,
-				createdBy:  locals.user!.id,
+				characterId, type: 'REWARD', delta: 1, sourceType: 'ADMIN',
+				note: `Item granted: ${item.name}. ${note}`, createdBy: locals.user!.id,
 			}});
 		});
 		await notifications.create(char.userId, 'ITEM_GRANTED', 'Item received! 🎁',

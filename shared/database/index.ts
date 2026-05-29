@@ -80,13 +80,17 @@ import { upsertWikiPage                              } from './dbapi/write/world
 // ── Marketplace ──────────────────────────────────────────────────────────────────
 import { getMarketplaceItems, getMarketplaceItemById,
          getMarketplaceItemByName                         } from './dbapi/read/marketplace/get-items.ts';
+import { resolveMarketplaceContext                        } from './dbapi/read/marketplace/resolve-context.ts';
 import { getMarketplaceTransactions                       } from './dbapi/read/marketplace/get-transactions.ts';
+import { getWorldMarketplaceItems, getWorldMarketplaceSetting } from './dbapi/read/marketplace/get-world-marketplace.ts';
 import { upsertMarketplaceItem, updateMarketplaceItem,
          deleteMarketplaceItem                           } from './dbapi/write/marketplace/items.ts';
 import { createBuyTransaction, createSellTransaction,
          approveTransaction, rejectTransaction,
          cancelTransaction, grantRewardItem               } from './dbapi/write/marketplace/transactions.ts';
 import { importMarketplaceItems                           } from './dbapi/write/marketplace/import.ts';
+import { upsertWorldMarketplaceItem, deleteWorldMarketplaceItem,
+         upsertWorldMarketplaceSetting                     } from './dbapi/write/marketplace/world-marketplace.ts';
 
 // ── Quests ───────────────────────────────────────────────────────────────────────
 import { getAllQuests                                     } from './dbapi/read/quests/get-all.ts';
@@ -258,6 +262,16 @@ export const marketplace = {
         delete:       deleteMarketplaceItem,
         import:       importMarketplaceItems,
     },
+    worldItems: {
+        getAll:   getWorldMarketplaceItems,
+        upsert:   upsertWorldMarketplaceItem,
+        delete:   deleteWorldMarketplaceItem,
+    },
+    worldSettings: {
+        get:    getWorldMarketplaceSetting,
+        upsert: upsertWorldMarketplaceSetting,
+    },
+    resolveContext: resolveMarketplaceContext,
     transactions: {
         getAll:   getMarketplaceTransactions,
         buy:      createBuyTransaction,

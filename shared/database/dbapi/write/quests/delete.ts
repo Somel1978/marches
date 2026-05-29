@@ -1,5 +1,6 @@
 // shared/database/dbapi/write/quests/delete.ts
 import { db } from '../../../index.ts';
+import { checkLevelChange } from '../characters/level-check.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError } from '@core/errors';
 
@@ -67,10 +68,24 @@ export async function deleteQuest(id: string, actorId: string, revertRewards = f
                 if (Object.keys(data).length === 0) continue;
                 await tx.character.update({ where: { id: characterId }, data });
                 // Write reversal transactions for audit trail
-                if (deltas.xp > 0) await tx.characterTransaction.create({
-                    data: { characterId, type: 'XP', delta: -deltas.xp, sourceType: 'ADMIN',
-                            note: `Quest deleted — XP reverted (quest: ${quest.title})`, createdBy: actorId },
-                });
+                if (deltas.xp > 0) {
+                    await tx.characterTransaction.create({
+                        data: { characterId, type: 'XP', delta: -deltas.xp, sourceType: 'ADMIN',
+                                note: `Quest deleted — XP reverted (quest: ${quest.title})`, createdBy: actorId },
+                    });
+                    // Check if XP loss causes level-down
+                    const char = await tx.character.findUnique({
+                        where: { id: characterId },
+                        include: { classes: true },
+                    });
+                    if (char && char.classes.length > 0) {
+                        const prevXp = (char.totalXp ?? 0);
+                        const newXp  = prevXp - deltas.xp;
+                        const currentTotal = char.classes.reduce((s: number, c: any) => s + c.allocatedLevel, 0);
+                        await checkLevelChange(tx, characterId, char.userId, char.gameSystemId,
+                            prevXp, Math.max(0, newXp), currentTotal, actorId);
+                    }
+                }
                 if (deltas.gold > 0) await tx.characterTransaction.create({
                     data: { characterId, type: 'GOLD', delta: -deltas.gold, sourceType: 'ADMIN',
                             note: `Quest deleted — gold reverted (quest: ${quest.title})`, createdBy: actorId },

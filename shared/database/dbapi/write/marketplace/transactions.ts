@@ -3,69 +3,119 @@ import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import { createNotification, createNotificationsForAdmins } from '../notifications/notifications.ts';
-import { getSettingsMap } from '../../read/platform/get-settings.ts';
+import { resolveMarketplaceContext } from '../../read/marketplace/resolve-context.ts';
 import { queueDiscordNotification } from '../discord/dispatcher';
 
-const RARITY_ORDER = ['Mundane', 'Common', 'Uncommon', 'Rare', 'Very_Rare', 'Legendary', 'Artifact', 'Unknown'];
+const RARITY_ORDER = ['Mundane','Common','Uncommon','Rare','Very_Rare','Legendary','Artifact','Unknown'];
 
-async function checkLevelRestrictions(characterId: string, item: any) {
-    const settings = await getSettingsMap();
-    const restrictions = settings['marketplace.levelRestrictions'];
-    if (!restrictions) return;
-
-    const parsed: { minLevel: number; maxLevel: number; maxRarity?: string; maxValue?: number; allowedCategories?: string[] }[]
-        = JSON.parse(restrictions);
+async function checkLevelRestrictions(characterId: string, item: any, restrictions: any[]) {
+    if (!restrictions?.length) return;
 
     const totalLevel = await db.characterClass.aggregate({
         where: { characterId },
         _sum:  { allocatedLevel: true },
     });
     const level = totalLevel._sum.allocatedLevel ?? 0;
-
-    const tier = parsed.find(r => level >= r.minLevel && level <= r.maxLevel);
-    if (!tier) return; // no rule for this level
+    const tier  = restrictions.find((r: any) => level >= r.minLevel && level <= r.maxLevel);
+    if (!tier) return;
 
     if (tier.maxRarity) {
-        const itemIdx   = RARITY_ORDER.indexOf(item.rarity);
-        const maxIdx    = RARITY_ORDER.indexOf(tier.maxRarity);
+        const itemIdx = RARITY_ORDER.indexOf(item.rarity);
+        const maxIdx  = RARITY_ORDER.indexOf(tier.maxRarity);
         if (itemIdx > maxIdx)
             throw new ValidationError(`Your character level (${level}) cannot purchase ${item.rarity} items.`);
     }
-
     if (tier.maxValue !== undefined && item.buyPrice > tier.maxValue)
         throw new ValidationError(`Your character level (${level}) cannot purchase items above ${tier.maxValue} GP.`);
-
     if (tier.allowedCategories?.length && !tier.allowedCategories.includes(item.category))
         throw new ValidationError(`Your character level (${level}) cannot purchase ${item.category} items.`);
 }
+
+// ── Stock helpers ────────────────────────────────────────────────────────────
+
+async function decrementStock(
+    dbTx: any,
+    itemId: string,
+    worldId: string | null | undefined,
+    stockRow: 'world' | 'global',
+    quantity: number,
+    stockEnabled: boolean,
+    stock: number | null,
+) {
+    if (!stockEnabled || stock === null) return;
+    if (stockRow === 'world' && worldId) {
+        await dbTx.worldMarketplaceItem.update({
+            where: { worldId_itemId: { worldId, itemId } },
+            data:  { stock: { decrement: quantity } },
+        });
+    } else {
+        await dbTx.marketplaceItem.update({
+            where: { id: itemId },
+            data:  { stock: { decrement: quantity } },
+        });
+    }
+}
+
+async function restoreStock(
+    dbTx: any,
+    itemId: string,
+    worldId: string | null | undefined,
+    quantity: number,
+) {
+    if (!worldId) {
+        // Global restore
+        const item = await dbTx.marketplaceItem.findUnique({ where: { id: itemId }, select: { stock: true } });
+        if (item?.stock !== null) {
+            await dbTx.marketplaceItem.update({ where: { id: itemId }, data: { stock: { increment: quantity } } });
+        }
+        return;
+    }
+    // World restore — check world row first
+    const worldRow = await dbTx.worldMarketplaceItem.findUnique({
+        where: { worldId_itemId: { worldId, itemId } },
+        select: { stock: true },
+    });
+    if (worldRow && worldRow.stock !== null) {
+        await dbTx.worldMarketplaceItem.update({
+            where: { worldId_itemId: { worldId, itemId } },
+            data:  { stock: { increment: quantity } },
+        });
+    } else {
+        // Fall back to global
+        const item = await dbTx.marketplaceItem.findUnique({ where: { id: itemId }, select: { stock: true } });
+        if (item?.stock !== null) {
+            await dbTx.marketplaceItem.update({ where: { id: itemId }, data: { stock: { increment: quantity } } });
+        }
+    }
+}
+
+// ── Buy ──────────────────────────────────────────────────────────────────────
 
 export async function createBuyTransaction(
     characterId: string,
     itemId: string,
     quantity: number,
     requestedBy: string,
+    worldId?: string | null,
 ) {
     const item = await db.marketplaceItem.findUnique({ where: { id: itemId } });
     if (!item) throw new NotFoundError('MarketplaceItem', itemId);
-    if (!item.isAvailable) throw new ValidationError('Item is not available.');
 
-    const settings = await getSettingsMap();
-    const stockEnabled = settings['marketplace.stockEnabled'] === 'true';
-    if (stockEnabled && item.stock !== null && item.stock < quantity)
-        throw new ValidationError(`Only ${item.stock} in stock.`);
+    const ctx = await resolveMarketplaceContext(itemId, worldId);
 
-    await checkLevelRestrictions(characterId, item);
+    if (!ctx.isAvailable) throw new ValidationError('Item is not available.');
+    if (ctx.stockEnabled && ctx.stock !== null && ctx.stock < quantity)
+        throw new ValidationError(`Only ${ctx.stock} in stock.`);
 
-    const totalPrice = item.buyPrice * quantity;
+    await checkLevelRestrictions(characterId, item, ctx.levelRestrictions);
 
-    // Check character has enough gold at request time
-    const character = await db.character.findUnique({ where: { id: characterId } });
+    const totalPrice = ctx.price * quantity;
+    const character  = await db.character.findUnique({ where: { id: characterId } });
     if (!character) throw new NotFoundError('Character', characterId);
     if (character.totalGold < totalPrice)
         throw new ValidationError(`Insufficient gold — you have ${character.totalGold.toLocaleString()} GP but need ${totalPrice.toLocaleString()} GP.`);
 
     return db.$transaction(async (dbTx) => {
-        // Deduct gold immediately — held in reserve while PENDING
         await dbTx.character.update({
             where: { id: characterId },
             data:  { totalGold: { decrement: totalPrice } },
@@ -89,18 +139,23 @@ export async function createBuyTransaction(
                 type:               'BUY',
                 status:             'PENDING',
                 quantity,
-                priceAtTransaction: item.buyPrice,
+                priceAtTransaction: ctx.price,
                 totalPrice,
                 requestedBy,
+                worldId:            worldId ?? null,
             },
         });
 
-        await createNotificationsForAdmins('MARKETPLACE_PENDING', 'Purchase request pending', `Purchase request for "${item.name}" ×${quantity} needs approval.`, '/marketplace/transactions');
-        await logAudit(dbTx, { actorId: requestedBy, action: 'CREATE', resourceKey: 'MarketplaceTransaction', resourceId: tx.id, after: { type: 'BUY', itemId, characterId, quantity, totalPrice } });
+        await createNotificationsForAdmins('MARKETPLACE_PENDING', 'Purchase request pending',
+            `Purchase request for "${item.name}" ×${quantity} needs approval.`, '/marketplace/transactions');
+        await logAudit(dbTx, { actorId: requestedBy, action: 'CREATE', resourceKey: 'MarketplaceTransaction',
+            resourceId: tx.id, after: { type: 'BUY', itemId, characterId, quantity, totalPrice, worldId } });
 
         return tx;
     });
 }
+
+// ── Sell ─────────────────────────────────────────────────────────────────────
 
 export async function createSellTransaction(
     characterId: string,
@@ -109,17 +164,17 @@ export async function createSellTransaction(
     requestedBy: string,
 ) {
     const inv = await db.characterInventory.findUnique({ where: { id: inventoryId } });
-    if (!inv) throw new NotFoundError('CharacterInventory', inventoryId);
-    if (inv.canSell === false) throw new ValidationError('This item cannot be sold — it was granted as a reward.');
-    if (!inv.itemId) throw new ValidationError('This item cannot be sold on the marketplace.');
+    if (!inv)               throw new NotFoundError('CharacterInventory', inventoryId);
+    if (!inv.canSell)       throw new ValidationError('This item cannot be sold — it was granted as a reward.');
+    if (!inv.itemId)        throw new ValidationError('This item cannot be sold on the marketplace.');
     if (inv.quantity < quantity) throw new ValidationError(`Only ${inv.quantity} available to sell.`);
 
     const item = await db.marketplaceItem.findUnique({ where: { id: inv.itemId } });
     if (!item) throw new NotFoundError('MarketplaceItem', inv.itemId);
 
-    const settings  = await getSettingsMap();
-    const sellPct   = Number(settings['marketplace.sellPricePercent'] ?? 50) / 100;
-    const sellPrice = Math.floor(item.buyPrice * sellPct);
+    // Use origin worldId for sell% resolution
+    const ctx       = await resolveMarketplaceContext(inv.itemId, (inv as any).worldId);
+    const sellPrice = Math.floor(ctx.price * (ctx.sellPricePercent / 100));
     const totalPrice = sellPrice * quantity;
 
     const tx = await db.marketplaceTransaction.create({
@@ -132,115 +187,80 @@ export async function createSellTransaction(
             priceAtTransaction: sellPrice,
             totalPrice,
             requestedBy,
+            worldId:            (inv as any).worldId ?? null,
         },
     });
 
     await db.$transaction(async (dbTx) => {
-        await logAudit(dbTx, {
-            actorId:     requestedBy,
-            action:      'CREATE',
-            resourceKey: 'MarketplaceTransaction',
-            resourceId:  tx.id,
-            after:       { type: 'SELL', itemId: item.id, characterId, quantity, totalPrice },
-        });
+        await logAudit(dbTx, { actorId: requestedBy, action: 'CREATE', resourceKey: 'MarketplaceTransaction',
+            resourceId: tx.id, after: { type: 'SELL', itemId: item.id, characterId, quantity, totalPrice, worldId: (inv as any).worldId } });
     });
 
     return tx;
 }
 
+// ── Approve ──────────────────────────────────────────────────────────────────
+
 export async function approveTransaction(id: string, actorId: string) {
-    const tx = await db.marketplaceTransaction.findUnique({
-        where:   { id },
-        include: { item: true },
-    });
+    const tx = await db.marketplaceTransaction.findUnique({ where: { id }, include: { item: true } });
     if (!tx) throw new NotFoundError('MarketplaceTransaction', id);
     if (tx.status !== 'PENDING') throw new ValidationError('Transaction is not pending.');
 
+    const worldId = (tx as any).worldId as string | null;
+
     return db.$transaction(async (dbTx) => {
         if (tx.type === 'BUY') {
-            // Gold was already deducted on request — just add item to inventory
-
-            // Log the approval
             await dbTx.characterTransaction.create({
                 data: {
-                    characterId: tx.characterId,
-                    type:        'GOLD',
-                    delta:       0,
-                    sourceType:  'MARKETPLACE',
-                    sourceId:    id,
-                    note:        `Purchased ${tx.quantity}x ${tx.item.name}`,
-                    createdBy:   actorId,
+                    characterId: tx.characterId, type: 'GOLD', delta: 0,
+                    sourceType: 'MARKETPLACE', sourceId: id,
+                    note: `Purchased ${tx.quantity}x ${tx.item.name}`, createdBy: actorId,
                 },
             });
 
-            // Add to inventory (upsert by itemId)
-            console.log('[approveTransaction] adding to inventory', {
-                characterId: tx.characterId,
-                itemId: tx.itemId,
-                itemName: tx.item.name,
-                quantity: tx.quantity,
-            });
             const existing = await dbTx.characterInventory.findFirst({
                 where: { characterId: tx.characterId, itemId: tx.itemId },
             });
-            console.log('[approveTransaction] existing inventory entry:', existing);
-            try {
-                if (existing) {
-                    await dbTx.characterInventory.update({
-                        where: { id: existing.id },
-                        data:  { quantity: { increment: tx.quantity } },
-                    });
-                } else {
-                    await dbTx.characterInventory.create({
-                        data: {
-                            characterId:   tx.characterId,
-                            itemId:        tx.itemId,
-                            itemName:      tx.item.name,
-                            itemCategory:  tx.item.category,
-                            itemRarity:    tx.item.rarity,
-                            itemSource:    tx.item.source ?? null,
-                            quantity:      tx.quantity,
-                            purchasePrice: tx.priceAtTransaction,
-                            sourceType:    'PURCHASE',
-                            transactionId: id,
-                        },
-                    });
-                }
-                console.log('[approveTransaction] inventory updated successfully');
-            } catch (inventoryErr) {
-                console.error('[approveTransaction] INVENTORY CREATE FAILED:', inventoryErr);
-                throw inventoryErr;
-            }
-
-            // Decrement stock if stock management enabled
-            const settings = await getSettingsMap();
-            if (settings['marketplace.stockEnabled'] === 'true' && tx.item.stock !== null) {
-                await dbTx.marketplaceItem.update({
-                    where: { id: tx.itemId },
-                    data:  { stock: { decrement: tx.quantity } },
+            if (existing) {
+                await dbTx.characterInventory.update({
+                    where: { id: existing.id },
+                    data:  { quantity: { increment: tx.quantity } },
+                });
+            } else {
+                await dbTx.characterInventory.create({
+                    data: {
+                        characterId:   tx.characterId,
+                        itemId:        tx.itemId,
+                        itemName:      tx.item.name,
+                        itemCategory:  tx.item.category,
+                        itemRarity:    tx.item.rarity,
+                        itemSource:    tx.item.source ?? null,
+                        quantity:      tx.quantity,
+                        purchasePrice: tx.priceAtTransaction,
+                        sourceType:    'PURCHASE',
+                        transactionId: id,
+                        worldId:       worldId,
+                    },
                 });
             }
 
+            // Decrement stock on correct row (world or global)
+            const ctx = await resolveMarketplaceContext(tx.itemId, worldId);
+            await decrementStock(dbTx, tx.itemId, worldId, ctx.stockRow, tx.quantity, ctx.stockEnabled, ctx.stock);
+
         } else if (tx.type === 'SELL') {
-            // Credit gold to character
             await dbTx.character.update({
                 where: { id: tx.characterId },
                 data:  { totalGold: { increment: tx.totalPrice } },
             });
-
             await dbTx.characterTransaction.create({
                 data: {
-                    characterId: tx.characterId,
-                    type:        'GOLD',
-                    delta:       tx.totalPrice,
-                    sourceType:  'MARKETPLACE',
-                    sourceId:    id,
-                    note:        `Sold ${tx.quantity}x ${tx.item.name}`,
-                    createdBy:   actorId,
+                    characterId: tx.characterId, type: 'GOLD', delta: tx.totalPrice,
+                    sourceType: 'MARKETPLACE', sourceId: id,
+                    note: `Sold ${tx.quantity}x ${tx.item.name}`, createdBy: actorId,
                 },
             });
 
-            // Remove from inventory
             const inv = await dbTx.characterInventory.findFirst({
                 where: { characterId: tx.characterId, itemId: tx.itemId },
             });
@@ -248,46 +268,31 @@ export async function approveTransaction(id: string, actorId: string) {
                 if (inv.quantity <= tx.quantity) {
                     await dbTx.characterInventory.delete({ where: { id: inv.id } });
                 } else {
-                    await dbTx.characterInventory.update({
-                        where: { id: inv.id },
-                        data:  { quantity: { decrement: tx.quantity } },
-                    });
+                    await dbTx.characterInventory.update({ where: { id: inv.id }, data: { quantity: { decrement: tx.quantity } } });
                 }
             }
+
+            // Restore stock to origin (inventory.worldId via transaction.worldId)
+            await restoreStock(dbTx, tx.itemId, worldId, tx.quantity);
         }
 
-        await dbTx.marketplaceTransaction.update({
-            where: { id },
-            data:  { status: 'APPROVED', reviewedBy: actorId },
-        });
+        await dbTx.marketplaceTransaction.update({ where: { id }, data: { status: 'APPROVED', reviewedBy: actorId } });
 
-        await logAudit(dbTx, {
-            actorId,
-            action:      'UPDATE',
-            resourceKey: 'MarketplaceTransaction',
-            resourceId:  id,
-            before:      { status: 'PENDING' },
-            after:       { status: 'APPROVED' },
-        });
+        await logAudit(dbTx, { actorId, action: 'UPDATE', resourceKey: 'MarketplaceTransaction',
+            resourceId: id, before: { status: 'PENDING' }, after: { status: 'APPROVED' } });
 
-        // Queue Discord notification
         try {
-            const char = await db.character.findUnique({ where: { id: tx.characterId }, select: { id: true, name: true } });
+            const char = await db.character.findUnique({ where: { id: tx.characterId }, select: { name: true } });
             if (tx.type === 'BUY') {
-                await queueDiscordNotification('ITEM_PURCHASED', {
-                    char: { name: char?.name ?? '' },
-                    item: { name: tx.item?.name ?? '', buyPrice: tx.item?.buyPrice },
-                });
+                await queueDiscordNotification('ITEM_PURCHASED', { char: { name: char?.name ?? '' }, item: { name: tx.item.name, buyPrice: tx.item.buyPrice } });
             } else {
-                await queueDiscordNotification('ITEM_SOLD', {
-                    char:  { name: char?.name ?? '' },
-                    item:  { name: tx.item?.name ?? '' },
-                    price: tx.totalPrice ?? 0,
-                });
+                await queueDiscordNotification('ITEM_SOLD', { char: { name: char?.name ?? '' }, item: { name: tx.item.name }, price: tx.totalPrice });
             }
         } catch { /* discord not running */ }
     });
 }
+
+// ── Reject ───────────────────────────────────────────────────────────────────
 
 export async function rejectTransaction(id: string, reviewNote: string, actorId: string) {
     const tx = await db.marketplaceTransaction.findUnique({ where: { id }, include: { item: true } });
@@ -296,39 +301,57 @@ export async function rejectTransaction(id: string, reviewNote: string, actorId:
     if (!reviewNote?.trim()) throw new ValidationError('Review note is required.');
 
     return db.$transaction(async (dbTx) => {
-        const _cR = await dbTx.character.findUnique({ where: { id: tx.characterId }, select: { userId: true } }).catch(() => null);
-        if (_cR) await createNotification(_cR.userId, 'MARKETPLACE_REJECTED', 'Purchase rejected', `Your purchase of "${tx.item?.name ?? 'item'}" was rejected. ${reviewNote}`, '/characters');
+        const char = await dbTx.character.findUnique({ where: { id: tx.characterId }, select: { userId: true } }).catch(() => null);
+        if (char) await createNotification(char.userId, 'MARKETPLACE_REJECTED', 'Purchase rejected',
+            `Your purchase of "${tx.item?.name ?? 'item'}" was rejected. ${reviewNote}`, '/characters');
+
         await dbTx.marketplaceTransaction.update({ where: { id }, data: { status: 'REJECTED', reviewedBy: actorId, reviewNote } });
 
-        // Refund gold for BUY rejections
         if (tx.type === 'BUY') {
-            await dbTx.character.update({
-                where: { id: tx.characterId },
-                data:  { totalGold: { increment: tx.totalPrice } },
-            });
+            await dbTx.character.update({ where: { id: tx.characterId }, data: { totalGold: { increment: tx.totalPrice } } });
             await dbTx.characterTransaction.create({
                 data: {
-                    characterId: tx.characterId,
-                    type:        'GOLD',
-                    delta:       tx.totalPrice,
-                    sourceType:  'MARKETPLACE',
-                    sourceId:    id,
-                    note:        `Purchase rejected — refund: ${tx.item.name}`,
-                    createdBy:   actorId,
+                    characterId: tx.characterId, type: 'GOLD', delta: tx.totalPrice,
+                    sourceType: 'MARKETPLACE', sourceId: id,
+                    note: `Purchase rejected — refund: ${tx.item.name}`, createdBy: actorId,
                 },
             });
         }
 
-        await logAudit(dbTx, {
-            actorId,
-            action:      'UPDATE',
-            resourceKey: 'MarketplaceTransaction',
-            resourceId:  id,
-            before:      { status: 'PENDING' },
-            after:       { status: 'REJECTED', reviewNote },
-        });
+        await logAudit(dbTx, { actorId, action: 'UPDATE', resourceKey: 'MarketplaceTransaction',
+            resourceId: id, before: { status: 'PENDING' }, after: { status: 'REJECTED', reviewNote } });
     });
 }
+
+// ── Cancel ───────────────────────────────────────────────────────────────────
+
+export async function cancelTransaction(id: string, actorId: string) {
+    const tx = await db.marketplaceTransaction.findUnique({ where: { id }, include: { item: true } });
+    if (!tx) throw new NotFoundError('MarketplaceTransaction', id);
+    if (tx.status !== 'PENDING') throw new ValidationError('Only pending transactions can be cancelled.');
+    if (tx.requestedBy !== actorId) throw new ValidationError('You can only cancel your own requests.');
+
+    return db.$transaction(async (dbTx) => {
+        await dbTx.marketplaceTransaction.update({ where: { id },
+            data: { status: 'REJECTED', reviewedBy: actorId, reviewNote: 'Cancelled by player' } });
+
+        if (tx.type === 'BUY') {
+            await dbTx.character.update({ where: { id: tx.characterId }, data: { totalGold: { increment: tx.totalPrice } } });
+            await dbTx.characterTransaction.create({
+                data: {
+                    characterId: tx.characterId, type: 'GOLD', delta: tx.totalPrice,
+                    sourceType: 'MARKETPLACE', sourceId: id,
+                    note: `Purchase cancelled — refund: ${(tx as any).item?.name ?? tx.itemId}`, createdBy: actorId,
+                },
+            });
+        }
+
+        await logAudit(dbTx, { actorId, action: 'UPDATE', resourceKey: 'MarketplaceTransaction',
+            resourceId: id, before: { status: 'PENDING' }, after: { status: 'REJECTED', reviewNote: 'Cancelled by player' } });
+    });
+}
+
+// ── Grant reward ─────────────────────────────────────────────────────────────
 
 export async function grantRewardItem(
     characterId: string,
@@ -341,98 +364,28 @@ export async function grantRewardItem(
     if (!item) throw new NotFoundError('MarketplaceItem', itemId);
 
     return db.$transaction(async (dbTx) => {
-        // Create approved transaction at zero cost
         const tx = await dbTx.marketplaceTransaction.create({
             data: {
-                itemId,
-                characterId,
-                type:               'REWARD',
-                status:             'APPROVED',
-                quantity,
-                priceAtTransaction: 0,
-                totalPrice:         0,
-                requestedBy:        actorId,
-                reviewedBy:         actorId,
+                itemId, characterId, type: 'REWARD', status: 'APPROVED', quantity,
+                priceAtTransaction: 0, totalPrice: 0, requestedBy: actorId, reviewedBy: actorId,
             },
         });
 
-        // Add to inventory directly
-        const existing = await dbTx.characterInventory.findFirst({
-            where: { characterId, itemId },
-        });
+        const existing = await dbTx.characterInventory.findFirst({ where: { characterId, itemId } });
         if (existing) {
-            await dbTx.characterInventory.update({
-                where: { id: existing.id },
-                data:  { quantity: { increment: quantity } },
-            });
+            await dbTx.characterInventory.update({ where: { id: existing.id }, data: { quantity: { increment: quantity } } });
         } else {
             await dbTx.characterInventory.create({
                 data: {
-                    characterId,
-                    itemId,
-                    itemName:      item.name,
-                    itemCategory:  item.category,
-                    itemRarity:    item.rarity,
-                    itemSource:    item.source ?? null,
-                    quantity,
-                    purchasePrice: 0,
-                    sourceType:    'REWARD',
-                    transactionId: tx.id,
+                    characterId, itemId, itemName: item.name, itemCategory: item.category,
+                    itemRarity: item.rarity, itemSource: item.source ?? null,
+                    quantity, purchasePrice: 0, sourceType: 'REWARD', transactionId: tx.id,
+                    // worldId null — rewards are not world-scoped
                 },
             });
         }
 
-        await logAudit(dbTx, {
-            actorId,
-            action:      'CREATE',
-            resourceKey: 'MarketplaceTransaction',
-            resourceId:  tx.id,
-            after:       { type: 'REWARD', itemId, characterId, quantity, note },
-        });
-    });
-}
-
-export async function cancelTransaction(id: string, actorId: string) {
-    const tx = await db.marketplaceTransaction.findUnique({
-        where:   { id },
-        include: { item: true },
-    });
-    if (!tx) throw new NotFoundError('MarketplaceTransaction', id);
-    if (tx.status !== 'PENDING') throw new ValidationError('Only pending transactions can be cancelled.');
-    if (tx.requestedBy !== actorId) throw new ValidationError('You can only cancel your own requests.');
-
-    return db.$transaction(async (dbTx) => {
-        await dbTx.marketplaceTransaction.update({
-            where: { id },
-            data:  { status: 'REJECTED', reviewedBy: actorId, reviewNote: 'Cancelled by player' },
-        });
-
-        // Refund gold
-        if (tx.type === 'BUY') {
-            await dbTx.character.update({
-                where: { id: tx.characterId },
-                data:  { totalGold: { increment: tx.totalPrice } },
-            });
-            await dbTx.characterTransaction.create({
-                data: {
-                    characterId: tx.characterId,
-                    type:        'GOLD',
-                    delta:       tx.totalPrice,
-                    sourceType:  'MARKETPLACE',
-                    sourceId:    id,
-                    note:        `Purchase cancelled — refund: ${(tx as any).item?.name ?? tx.itemId}`,
-                    createdBy:   actorId,
-                },
-            });
-        }
-
-        await logAudit(dbTx, {
-            actorId,
-            action:      'UPDATE',
-            resourceKey: 'MarketplaceTransaction',
-            resourceId:  id,
-            before:      { status: 'PENDING' },
-            after:       { status: 'REJECTED', reviewNote: 'Cancelled by player' },
-        });
+        await logAudit(dbTx, { actorId, action: 'CREATE', resourceKey: 'MarketplaceTransaction',
+            resourceId: tx.id, after: { type: 'REWARD', itemId, characterId, quantity, note } });
     });
 }

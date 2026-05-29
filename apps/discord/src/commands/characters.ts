@@ -7,17 +7,23 @@ export async function handleCharactersCommand(interaction: ChatInputCommandInter
     if (!linkedUser) {
         const settings = await platform.getSettingsMap();
         const siteUrl  = settings['site.url'] ?? 'https://marches.local';
-        return interaction.editReply( `❌ Your Discord account is not linked to Marches. Visit ${siteUrl}/settings to connect your account.`);
-        return;
+        return interaction.editReply(`❌ Your Discord account is not linked. Visit ${siteUrl}/profile to connect.`);
     }
+
     const chars = await characters.getByUserId(linkedUser.id);
     if (!chars.length) return interaction.editReply('You have no characters.');
 
     const embed = new EmbedBuilder()
-        .setTitle(`🧙 ${linkedUser.name}\'s Characters`)
+        .setTitle(`🧙 ${linkedUser.name}'s Characters`)
         .setColor(0x8b5cf6)
-        .setDescription(chars.map((c: any) =>
-            `**${c.name}** · Lv ${c.totalLevel ?? '?'} · ${c.status} · ${c.totalGold.toLocaleString()} GP`
-        ).join('\n'));
+        .setDescription(chars.map((c: any) => {
+            // totalLevel is now computed by enrichCharacter
+            const level = c.totalLevel ?? (c.classes ?? []).reduce((s: number, cc: any) => s + (cc.allocatedLevel ?? 0), 0);
+            const statusEmoji: Record<string,string> = {
+                ACTIVE:'🟢', RESTING:'🔵', PENDING:'🟡', SUSPENDED:'🔴', RETIRED:'⚫', DECEASED:'💀',
+            };
+            return `${statusEmoji[c.status]??'⚪'} **${c.name}** · Lv ${level} · ${c.totalGold?.toLocaleString() ?? 0} GP`;
+        }).join('\n'));
+
     return interaction.editReply({ embeds: [embed] });
 }

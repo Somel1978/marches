@@ -90,7 +90,7 @@ export const actions: Actions = {
 		const levels      = data.getAll('allocatedLevel').map(v => Number(v));
 		const classes     = classIds.map((classId, i) => ({
 			classId,
-			subclassId:     subclassIds[i] || null,
+			subclassId:     subclassIds[i]?.trim() || null,
 			allocatedLevel: levels[i] ?? 1,
 		})).filter(c => c.classId);
 		if (!classes.length) return fail(400, { message: 'At least one class is required.' });

@@ -2,6 +2,7 @@
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
+import { checkLevelChange } from './level-check.ts';
 
 export type CurrencyType = 'XP' | 'GOLD' | 'TOKEN';
 
@@ -12,7 +13,10 @@ export async function adjustCurrency(
     note: string,
     actorId: string,
 ) {
-    const character = await db.character.findUnique({ where: { id: characterId } });
+    const character = await db.character.findUnique({
+        where:   { id: characterId },
+        include: { classes: true },
+    });
     if (!character) throw new NotFoundError('Character', characterId);
     if (!note?.trim()) throw new ValidationError('Note is required for currency adjustments.');
 
@@ -46,6 +50,13 @@ export async function adjustCurrency(
                 createdBy:  actorId,
             },
         });
+
+        // ── Level-up / level-down detection ──
+        if (type === 'XP' && character.classes.length > 0) {
+            const currentTotal = character.classes.reduce((s: number, c: any) => s + c.allocatedLevel, 0);
+            await checkLevelChange(tx, characterId, character.userId, character.gameSystemId,
+                current, newValue, currentTotal, actorId);
+        }
 
         await logAudit(tx, {
             actorId,
