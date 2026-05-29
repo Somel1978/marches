@@ -2,60 +2,55 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
-	const dangerColors: Record<string, string> = {
-		Safe:     'badge-success', Low: 'badge-accent',
-		Moderate: 'badge-warning', High: 'badge-danger', Extreme: 'badge-danger',
-	};
+	const worlds = $derived((data as any).worlds ?? []);
 </script>
 
-<div class="page">
-	<div class="page__header">
-		<div>
-			<h2 class="page__title">World</h2>
-			<p class="page__subtitle">Explore the realms</p>
-		</div>
-	</div>
+<div class="worlds-page">
+	<header class="worlds-page__header">
+		<h1 class="worlds-page__title">The Worlds</h1>
+		<p class="worlds-page__subtitle">Choose your realm and begin your adventure</p>
+	</header>
 
-	{#each data.worlds.filter((w: any) => w.isActive) as world}
-		<div style="margin-bottom:2rem;">
-			<h3 style="font-size:1.25rem; font-weight:700; margin:0 0 1rem;">{world.name}</h3>
-
-			{#if world.mapImageUrl}
-				<div style="position:relative; display:inline-block; width:100%; margin-bottom:1.5rem;">
-					<img src={world.mapImageUrl} alt="{world.name} map" style="width:100%; border-radius:var(--radius-md); display:block;" />
-					{#each world.regions.filter((r: any) => r.isActive && r.mapX !== null && r.mapY !== null) as region}
-						<a href="/world/{world.slug}/{region.slug}"
-							style="position:absolute; left:{region.mapX}%; top:{region.mapY}%; transform:translate(-50%,-50%); z-index:10; text-decoration:none;"
-							title={region.name}>
-							<div class="world-map-marker" style="--marker-color:{region.color};"></div>
-							<span class="world-map-label">{region.name}</span>
-						</a>
-					{/each}
-				</div>
-			{/if}
-
-			<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:1rem;">
-				{#each world.regions.filter((r: any) => r.isActive) as region}
-					<a href="/world/{world.slug}/{region.slug}" style="text-decoration:none; color:inherit;">
-						<div class="card" style="border-left:4px solid {region.color};">
-							{#if region.imageUrl}
-								<img src={region.imageUrl} alt={region.name} style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius-sm); margin-bottom:0.75rem;" />
-							{/if}
-							<p style="font-weight:700; font-size:0.9375rem; margin:0 0 0.375rem;">{region.name}</p>
-							<div style="display:flex; gap:0.375rem; flex-wrap:wrap;">
-								<span class="badge {dangerColors[region.dangerRating] ?? 'badge-muted'}">{region.dangerRating}</span>
-								{#if region.minLevel && region.maxLevel}
-									<span class="badge badge-muted">Lv {region.minLevel}\u2013{region.maxLevel}</span>
-								{/if}
-							</div>
+	{#if worlds.length}
+		<div class="region-grid">
+			{#each worlds as world, i}
+				<a
+					href="/world/{world.slug}"
+					class="region-card"
+					style="--card-delay:{i * 80}ms;"
+				>
+					{#if world.mapImageUrl}
+						<img src={world.mapImageUrl} alt={world.name} class="region-card__img" />
+					{:else}
+						<div class="region-card__img region-card__img--fallback"
+							style="background:linear-gradient(145deg,rgba(245,175,70,0.2) 0%,#0a0805 100%);">
+							<svg class="region-card__fallback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+								<path d="M3 6l9-4 9 4v12l-9 4-9-4V6z"/>
+								<path d="M12 2v18M3 6l9 4 9-4"/>
+							</svg>
 						</div>
-					</a>
-				{/each}
-			</div>
+					{/if}
+
+					<div class="region-card__top">
+						{#if (world.regions?.filter((r: any) => r.isActive).length ?? 0) > 0}
+							{@const regionCount = world.regions.filter((r: any) => r.isActive).length}
+							<span class="region-card__level">{regionCount} region{regionCount !== 1 ? 's' : ''}</span>
+						{/if}
+					</div>
+
+					<div class="region-card__footer">
+						<div class="region-card__color-bar" style="background:{world.color ?? 'rgba(245,175,70,0.8)'};"></div>
+						<span class="region-card__name">{world.name}</span>
+						{#if world.description}
+							<span class="region-card__sub">{world.description}</span>
+						{/if}
+					</div>
+				</a>
+			{/each}
 		</div>
 	{:else}
-		<div class="card" style="text-align:center; padding:3rem;">
-			<p class="table__empty">No worlds available yet.</p>
+		<div class="worlds-empty">
+			<p>No worlds available yet. Check back soon.</p>
 		</div>
-	{/each}
+	{/if}
 </div>

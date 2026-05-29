@@ -29,7 +29,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	for (const c of allChars) {
 		if (c.status !== 'ACTIVE') continue;
 		if (!charsByUser[c.userId]) charsByUser[c.userId] = [];
-		charsByUser[c.userId].push({ id: c.id, name: c.name, totalLevel: (c as any).totalLevel ?? 0 });
+		const totalLevel = (c as any).totalLevel ?? ((c as any).classes ?? []).reduce((s: number, cl: any) => s + (cl.allocatedLevel ?? 0), 0);
+		charsByUser[c.userId].push({ id: c.id, name: c.name, totalLevel });
 	}
 
 	// Group by date → slot → players

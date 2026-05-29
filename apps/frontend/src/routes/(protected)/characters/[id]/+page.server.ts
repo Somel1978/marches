@@ -90,20 +90,26 @@ export const actions: Actions = {
 		}
 	},
 
+	// Level-up reuses submitChanges — classes go through approval same as structural edits
 	submitLevelUp: async ({ params, request, locals }) => {
 		const character = await characters.getById(params.id);
 		if (!character) return fail(404, { message: 'Character not found.' });
 		if (character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		if (!['ACTIVE','RESTING','PENDING'].includes(character.status)) return fail(400, { message: 'Cannot submit level-up at this time.' });
 
-		const data = await request.formData();
-		const raw  = data.get('classes')?.toString();
-		if (!raw) return fail(400, { message: 'No class data provided.' });
+		const data    = await request.formData();
+		const classIds    = data.getAll('classId').map(v => v.toString()).filter(Boolean);
+		const subclassIds = data.getAll('subclassId').map(v => v.toString());
+		const levels      = data.getAll('allocatedLevel').map(v => Number(v));
+		const classes     = classIds.map((classId, i) => ({
+			classId,
+			subclassId:     subclassIds[i] || null,
+			allocatedLevel: levels[i] ?? 1,
+		}));
+		if (!classes.length) return fail(400, { message: 'No class data provided.' });
 
 		try {
-			const classes = JSON.parse(raw);
-			await characters.updateClasses(params.id, classes, locals.user!.id);
-			// Set character to PENDING for admin approval
-			await characters.updateStatus(params.id, 'PENDING', null, 'Level-up allocation submitted', locals.user!.id);
+			await characters.submitChanges(params.id, { classes }, locals.user!.id);
 			return { levelUpSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

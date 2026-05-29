@@ -1,14 +1,22 @@
 // apps/frontend/src/routes/(protected)/journal/+page.server.ts
-import { redirect } from '@sveltejs/kit';
-import { news } from '@core/database';
+import { news, characters, users } from '@core/database';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	const roleIds  = ((locals.permissions as any)?.roles ?? []).map((r: any) => r.id ?? r).filter(Boolean);
-	const charIds  = url.searchParams.getAll('worldId');
-	const journals = await news.journals.getForUser(roleIds, charIds);
+	const [roleIds, userChars] = await Promise.all([
+		users.getRoleIds(locals.user!.id),
+		characters.getByUserId(locals.user!.id),
+	]);
 
-	// Redirect to first page if pageId provided
+	// World IDs from user's active world-locked characters
+	const worldIds = [...new Set(
+		userChars
+			.filter((c: any) => c.status === 'ACTIVE' && c.worldId)
+			.map((c: any) => c.worldId as string)
+	)];
+
+	const journals = await news.journals.getForUser(roleIds, worldIds);
+
 	const pageId = url.searchParams.get('page');
 	if (pageId) {
 		const page = await news.journals.getPage(pageId);

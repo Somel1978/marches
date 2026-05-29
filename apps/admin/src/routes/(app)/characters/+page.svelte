@@ -1,9 +1,11 @@
 <!-- apps/admin/src/routes/(app)/characters/+page.svelte -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import type { PageData } from './$types';
+	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
+	import type { PageData, ActionData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const STATUSES = ['PENDING', 'ACTIVE', 'RESTING', 'SUSPENDED', 'RETIRED', 'DECEASED'];
 
@@ -31,7 +33,13 @@
 			<h2 class="page__title">Characters</h2>
 			<p class="page__subtitle">{data.total} character{data.total !== 1 ? 's' : ''}</p>
 		</div>
+		<form method="post" action="?/clearRest" use:enhance={()=>{return async({update})=>{await update();await invalidateAll();};}}
+>
+			<button type="submit" class="btn btn-ghost btn-sm" title="Clear expired rest for all RESTING characters">⏰ Clear rested</button>
+		</form>
 	</div>
+
+	{#if (form as any)?.clearRestSuccess}<div class="form-success">{(form as any).count} character{(form as any).count !== 1 ? 's' : ''} cleared from rest.</div>{/if}
 
 	<!-- Filters -->
 	<div class="toolbar">

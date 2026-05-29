@@ -18,16 +18,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	await characters.checkRest(params.id);
 
-	const [owner, transactions, gameSystem, systemData] = await Promise.all([
+	const [owner, transactions, gameSystem, systemData, inventory, charAchievements, allWorlds] = await Promise.all([
 		users.getById(character.userId),
-		characters.getTransactions(params.id, 20),
+		characters.getTransactions(params.id, 50),
 		gameSystems.getById(character.gameSystemId),
 		dnd5e.getSystemData(character.gameSystemId),
+		characters.getInventory(params.id),
+		achievements.getForCharacter(params.id),
+		worlds.getAll(),
 	]);
 
-	const inventory = await characters.getInventory(params.id);
-	const charAchievements = await achievements.getForCharacter(params.id);
-	const allWorlds = await worlds.getAll();
 	return { character, charAchievements, allWorlds, owner, transactions, gameSystem, systemData, inventory };
 };
 
@@ -47,14 +47,12 @@ export const actions: Actions = {
 	reject: async ({ params, request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
-		const data    = await request.formData();
-		const note    = data.get('note')?.toString().trim() ?? '';
+		const data = await request.formData();
+		const note = data.get('note')?.toString().trim() ?? '';
 		if (!note) return fail(400, { message: 'Rejection reason is required.' });
 		try {
-			const character = await characters.getById(params.id);
-			const isLevelUp = character?.statusReason === 'LEVEL_UP_PENDING';
 			await characters.reject(params.id, note, locals.user!.id);
-			return { rejectSuccess: true, isLevelUp };
+			return { rejectSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;
@@ -64,30 +62,18 @@ export const actions: Actions = {
 	updateCharacter: async ({ params, request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
-
-		const data        = await request.formData();
-		const name        = data.get('name')?.toString().trim()        ?? '';
-		const speciesId    = data.get('speciesId')?.toString()           ?? '';
+		const data         = await request.formData();
+		const name         = data.get('name')?.toString().trim()        ?? '';
+		const speciesId    = data.get('speciesId')?.toString()           || null;
 		const backgroundId = data.get('backgroundId')?.toString()        || null;
-		const avatarUrl   = data.get('avatarUrl')?.toString().trim()   ?? '';
-		const portraitUrl = data.get('portraitUrl')?.toString().trim() ?? '';
-		const description = data.get('description')?.toString().trim() || null;
-		const worldId     = data.get('worldId')?.toString()            || null;
-		const isGlobal    = data.get('isGlobal') === 'true';
-
+		const avatarUrl    = data.get('avatarUrl')?.toString().trim()   || null;
+		const portraitUrl  = data.get('portraitUrl')?.toString().trim() || null;
+		const description  = data.get('description')?.toString().trim() || null;
+		const worldId      = data.get('worldId')?.toString()            || null;
+		const isGlobal     = data.get('isGlobal') === 'true';
 		if (!name) return fail(400, { message: 'Name is required.' });
-
 		try {
-			await characters.update(params.id, {
-				name,
-				speciesId:    speciesId    || null,
-				backgroundId: backgroundId || null,
-				avatarUrl:    avatarUrl    || null,
-				portraitUrl:  portraitUrl  || null,
-				description,
-				worldId,
-				isGlobal,
-			}, locals.user!.id);
+			await characters.update(params.id, { name, speciesId, backgroundId, avatarUrl, portraitUrl, description, worldId, isGlobal }, locals.user!.id);
 			return { updateSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -98,13 +84,17 @@ export const actions: Actions = {
 	updateClasses: async ({ params, request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
-
 		const data     = await request.formData();
-		const raw      = data.get('classes')?.toString();
-		if (!raw) return fail(400, { message: 'No class data provided.' });
-
+		const classIds    = data.getAll('classId').map(v => v.toString());
+		const subclassIds = data.getAll('subclassId').map(v => v.toString());
+		const levels      = data.getAll('allocatedLevel').map(v => Number(v));
+		const classes     = classIds.map((classId, i) => ({
+			classId,
+			subclassId:     subclassIds[i] || null,
+			allocatedLevel: levels[i] ?? 1,
+		})).filter(c => c.classId);
+		if (!classes.length) return fail(400, { message: 'At least one class is required.' });
 		try {
-			const classes = JSON.parse(raw);
 			await characters.updateClasses(params.id, classes, locals.user!.id);
 			return { classesSuccess: true };
 		} catch (e) {
@@ -129,20 +119,16 @@ export const actions: Actions = {
 		}
 	},
 
-
 	adjustCurrency: async ({ params, request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
-
 		const data  = await request.formData();
 		const type  = data.get('type')?.toString()  ?? '';
 		const delta = Number(data.get('delta') ?? 0);
 		const note  = data.get('note')?.toString().trim() ?? '';
-
-		if (!type)  return fail(400, { message: 'Currency type is required.' });
-		if (!note)  return fail(400, { message: 'Note is required.' });
+		if (!type)   return fail(400, { message: 'Currency type is required.' });
+		if (!note)   return fail(400, { message: 'Note is required.' });
 		if (delta === 0) return fail(400, { message: 'Delta cannot be zero.' });
-
 		try {
 			await characters.adjustCurrency(params.id, type as any, delta, note, locals.user!.id);
 			return { currencySuccess: true };
@@ -155,11 +141,9 @@ export const actions: Actions = {
 	removeInventory: async ({ request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
-
 		const data        = await request.formData();
 		const inventoryId = data.get('inventoryId')?.toString() ?? '';
 		const quantity    = Number(data.get('quantity') ?? 1);
-
 		try {
 			await characters.removeInventory(inventoryId, quantity, locals.user!.id, 'Admin removal');
 			return { inventorySuccess: true };

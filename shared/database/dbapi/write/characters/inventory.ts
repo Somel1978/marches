@@ -44,6 +44,36 @@ export async function removeFromInventory(
             });
         }
 
+        // Restore stock on marketplace item if it exists and stock is tracked
+        if (entry.itemId) {
+            const mItem = await tx.marketplaceItem.findUnique({ where: { id: entry.itemId }, select: { id: true, stock: true } });
+            if (mItem && mItem.stock !== null) {
+                await tx.marketplaceItem.update({
+                    where: { id: entry.itemId },
+                    data:  { stock: { increment: quantity } },
+                });
+            }
+        }
+
+        // Record marketplace transaction for audit trail (ADMIN_REMOVAL type reuses SELL flow)
+        if (entry.itemId) {
+            const character = await tx.character.findUnique({ where: { id: entry.characterId }, select: { userId: true } });
+            await tx.marketplaceTransaction.create({
+                data: {
+                    itemId:            entry.itemId,
+                    characterId:       entry.characterId,
+                    type:              'SELL',
+                    status:            'APPROVED',
+                    quantity,
+                    priceAtTransaction: entry.purchasePrice ?? 0,
+                    totalPrice:        entry.purchasePrice ? entry.purchasePrice * quantity : 0,
+                    reviewNote:        `Admin removal: ${note ?? 'Item removed by admin'}`,
+                    requestedBy:       character?.userId ?? actorId,
+                    reviewedBy:        actorId,
+                },
+            });
+        }
+
         // Log removal on CharacterInventory (audit trail)
         await logAudit(tx, {
             actorId,

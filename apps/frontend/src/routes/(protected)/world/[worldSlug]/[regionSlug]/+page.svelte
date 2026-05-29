@@ -7,6 +7,7 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let editingWiki = $state(false);
+	let mapOpen     = $state(false);
 
 	const dangerColors: Record<string, string> = {
 		Safe: 'badge-success', Low: 'badge-accent',
@@ -17,7 +18,7 @@
 <div class="page">
 	<div class="page__header">
 		<div>
-			<a href="/world" class="back-link">← {data.world.name}</a>
+			<a href="/world/{data.world.slug}" class="back-link">← {data.world.name}</a>
 			<h2 class="page__title">{data.region.name}</h2>
 			<div class="page__title-row">
 				{#if (data as any).showDanger}
@@ -28,19 +29,21 @@
 				{/if}
 			</div>
 		</div>
-		{#if (data as any).canEditWiki}
-			<button class="btn btn-ghost btn-sm" onclick={() => editingWiki = !editingWiki}>
-				{editingWiki ? 'Cancel' : data.wiki ? 'Edit wiki' : 'Create wiki'}
-			</button>
-		{/if}
+		<div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+			<a href="/world/{data.world.slug}" class="btn btn-ghost btn-sm">🗺 World map</a>
+			{#if data.region.imageUrl}
+				<button class="btn btn-ghost btn-sm" onclick={() => mapOpen = true}>🏔 Region map</button>
+			{/if}
+			{#if (data as any).canEditWiki}
+				<button class="btn btn-ghost btn-sm" onclick={() => editingWiki = !editingWiki}>
+					{editingWiki ? 'Cancel' : data.wiki ? 'Edit wiki' : 'Create wiki'}
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	{#if (form as any)?.message}<div class="form-error">{(form as any).message}</div>{/if}
 	{#if (form as any)?.wikiSuccess}<div class="form-success">Wiki saved.</div>{/if}
-
-	{#if data.region.imageUrl}
-		<img src={data.region.imageUrl} alt={data.region.name} style="width:100%; max-height:300px; object-fit:cover; border-radius:var(--radius-md); margin-bottom:1.5rem;" />
-	{/if}
 
 	{#if data.region.description}
 		<div class="card" style="margin-bottom:1.5rem;">
@@ -99,3 +102,17 @@
 		</div>
 	{/if}
 </div>
+
+{#if mapOpen && data.region.imageUrl}
+	<div class="lightbox" role="dialog" aria-modal="true" aria-label="Region map">
+		<button class="lightbox__backdrop" onclick={() => mapOpen = false} aria-label="Close"></button>
+		<div class="lightbox__card card">
+			<button class="lightbox__close btn btn-ghost btn-sm btn-icon" onclick={() => mapOpen = false} aria-label="Close">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+				</svg>
+			</button>
+			<img src={data.region.imageUrl} alt="{data.region.name} map" class="lightbox__image" />
+		</div>
+	</div>
+{/if}

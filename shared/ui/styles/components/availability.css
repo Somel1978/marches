@@ -1,0 +1,220 @@
+/* shared/ui/styles/components/availability.css */
+@layer components {
+
+  .avail { padding: 1rem 0.5rem 1.5rem; max-width: 100%; position: relative; }
+
+  /* Header */
+  .avail__header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;
+  }
+  .avail__title      { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 0.125rem; color: var(--text-primary); }
+  .avail__week-label { font-size: 0.75rem; color: var(--text-muted); margin: 0; }
+  .avail__header-actions { display: flex; align-items: center; gap: 0.375rem; flex-shrink: 0; }
+
+  .avail__nav-btn {
+    background: var(--bg-overlay); border: 1px solid var(--border-muted);
+    border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer;
+    font-size: 1.0625rem; line-height: 1; padding: 0.375rem 0.625rem;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .avail__nav-btn:hover { background: var(--bg-active); color: var(--text-primary); }
+  .avail__nav-btn--today { font-size: 0.75rem; padding: 0.375rem 0.75rem; }
+
+  /* Scroll — horizontal on mobile */
+  .avail__scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-lg);
+    position: relative;
+  }
+
+  /* Grid */
+  .avail__grid {
+    display: grid;
+    grid-template-columns: 42px repeat(7, minmax(44px, 1fr));
+    grid-auto-rows: auto;
+    gap: 1px;
+    /* On mobile: fix column width so grid is scrollable, ~360px visible + scroll for rest */
+    min-width: 600px;
+    position: relative;
+    background: rgba(255,255,255,0.04);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  /* Corner — sticky so time labels stay fixed while scrolling */
+  .avail__corner {
+    background: #100800; height: 32px;
+    position: sticky; left: 0; z-index: 20;
+  }
+
+  /* Day headers */
+  .avail__day-head {
+    background: #100800; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; height: 32px; padding: 0 2px;
+  }
+  .avail__day-name { font-size: 0.625rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(245,175,70,0.9); line-height: 1; }
+  .avail__day-date { font-size: 0.5rem; color: rgba(255,255,255,0.3); line-height: 1; margin-top: 2px; }
+
+  /* Time labels — sticky left */
+  .avail__time {
+    background: #100800; display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 5px; height: 16px; font-size: 0.5625rem; color: rgba(255,255,255,0.25);
+    white-space: nowrap; position: sticky; left: 0; z-index: 10; user-select: none; gap: 2px;
+  }
+  .avail__time--hour { color: rgba(255,255,255,0.5); }
+  .avail__time-icon  { font-size: 0.5625rem; }
+
+  /* Cells — <button> for a11y, 16px tall (48 slots = 768px total, scrollable) */
+  .avail__cell {
+    height: 16px;
+    width: 100%;
+    cursor: pointer;
+    border: none;
+    border-radius: 1px;
+    padding: 0;
+    transition: filter 0.1s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .avail__cell:hover  { filter: brightness(1.5); }
+  .avail__cell--active {
+    filter: brightness(1.8) saturate(1.3);
+    outline: 1.5px solid rgba(245,175,70,0.9);
+    outline-offset: -1px;
+    z-index: 3;
+  }
+  .avail__cell--mine { outline: 1.5px solid rgba(245,175,70,0.6); outline-offset: -1px; }
+  .avail__cell--mine.avail__cell--active { outline-color: rgba(245,175,70,1); }
+
+  /* Trend line */
+  .avail__trend {
+    position: absolute; pointer-events: none; z-index: 15;
+    left: 43px; top: 33px; right: 0; bottom: 0;
+  }
+  .avail__trend svg { width: 100%; height: 100%; overflow: visible; }
+
+  /* Tooltip */
+  .avail__tooltip {
+    position: fixed; z-index: 200;
+    transform: translateY(calc(-100% - 10px));
+    background: linear-gradient(145deg, #3a1e08, #251205);
+    border: 1px solid rgba(245,175,70,0.5);
+    border-radius: 10px; padding: 0.75rem 1rem 0.625rem;
+    min-width: 152px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.75), 0 0 0 2px rgba(245,175,70,0.1);
+    animation: avail-tip-in 0.15s ease both;
+    pointer-events: all;
+  }
+  .avail__tooltip::after {
+    content: ''; position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%);
+    border-left: 7px solid transparent; border-right: 7px solid transparent;
+    border-top: 7px solid #3a1e08;
+  }
+  @keyframes avail-tip-in {
+    from { opacity: 0; transform: translateY(calc(-100% - 16px)); }
+    to   { opacity: 1; transform: translateY(calc(-100% - 10px)); }
+  }
+  .avail__tip-day   { font-size: 0.9375rem; font-weight: 700; color: rgba(245,175,70,1); line-height: 1.2; }
+  .avail__tip-time  { font-size: 0.8125rem; color: rgba(255,255,255,0.45); margin: 1px 0 5px; }
+  .avail__tip-count { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
+  .avail__tip-btn {
+    width: 100%; background: rgba(245,175,70,0.12); border: 1px solid rgba(245,175,70,0.4);
+    border-radius: 6px; color: rgba(245,175,70,0.95); cursor: pointer; font-size: 0.6875rem;
+    font-weight: 700; letter-spacing: 0.04em; padding: 0.375rem 0.5rem;
+    text-align: center; text-transform: uppercase; transition: background var(--transition-fast);
+  }
+  .avail__tip-btn:hover { background: rgba(245,175,70,0.22); }
+
+  /* Footer */
+  .avail__footer {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 0.5rem; margin-top: 0.625rem; padding: 0 0.25rem;
+  }
+  .avail__footer-note { font-size: 0.6875rem; color: rgba(255,255,255,0.35); letter-spacing: 0.01em; }
+  .avail__legend { display: flex; align-items: center; gap: 3px; }
+  .avail__legend-lbl { font-size: 0.625rem; color: rgba(255,255,255,0.35); padding: 0 3px; }
+  .avail__legend-swatch { width: 13px; height: 13px; border-radius: 2px; }
+
+  /* Modal */
+  .avail__backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    z-index: 300; display: flex; align-items: center; justify-content: center; padding: 1rem;
+    cursor: default;
+  }
+  .avail__modal {
+    background: #160c04; border: 1px solid rgba(245,175,70,0.2); border-radius: var(--radius-lg);
+    padding: 1.25rem; width: 100%; max-width: 380px; box-shadow: 0 24px 80px rgba(0,0,0,0.9);
+  }
+  .avail__modal-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .avail__modal-title { font-size: 1rem; font-weight: 700; margin: 0; color: rgba(245,175,70,0.95); }
+  .avail__modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; line-height: 1; padding: 0.25rem; border-radius: 4px; transition: color var(--transition-fast); }
+  .avail__modal-close:hover { color: var(--text-primary); }
+
+  .avail__scopes { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+  .avail__scope {
+    display: flex; align-items: center; gap: 0.75rem; cursor: pointer;
+    padding: 0.625rem 0.75rem; background: rgba(255,255,255,0.03);
+    border-radius: var(--radius-md); border: 1.5px solid rgba(255,255,255,0.08);
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+  }
+  .avail__scope input[type="radio"] { display: none; }
+  .avail__scope--on { border-color: rgba(245,175,70,0.55); background: rgba(245,175,70,0.05); }
+  .avail__scope-name { font-size: 0.875rem; font-weight: 600; margin: 0; color: var(--text-primary); }
+  .avail__scope-desc { font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0; }
+
+  .avail__worlds { display: flex; flex-direction: column; gap: 0.375rem; margin-bottom: 0.75rem; padding: 0.25rem 0; }
+  .avail__world-opt { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem; color: var(--text-secondary); padding: 0.25rem 0; }
+
+  .avail__modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); }
+  .avail__remove-btn {
+    display: block; width: 100%; background: none; border: none; color: var(--color-danger);
+    cursor: pointer; font-size: 0.8125rem; padding: 0.5rem; text-align: center;
+    border-top: 1px solid rgba(255,255,255,0.06); margin-top: 0.5rem;
+    transition: opacity var(--transition-fast);
+  }
+  .avail__remove-btn:hover { opacity: 0.75; }
+
+  /* Multi-select */
+  .avail__nav-btn--selecting { background: rgba(245,175,70,0.15); border-color: rgba(245,175,70,0.5); color: rgba(245,175,70,0.95); }
+  .avail__cell--selected {
+    outline: 2px solid rgba(245,175,70,0.9) !important;
+    outline-offset: -1px;
+    filter: brightness(1.4);
+  }
+  .avail__bulk-bar {
+    position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 1rem;
+    background: #1a0e04; border: 1px solid rgba(245,175,70,0.45);
+    border-radius: 99px; padding: 0.5rem 0.75rem 0.5rem 1rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+    z-index: 150; white-space: nowrap;
+    animation: avail-tip-in 0.15s ease both;
+  }
+  .avail__bulk-count { font-size: 0.8125rem; font-weight: 600; color: rgba(245,175,70,0.9); }
+
+  /* Desktop — expand cells */
+  @media (min-width: 640px) {
+    .avail { padding: 1.25rem 1rem 1.75rem; }
+    .avail__title { font-size: 1.625rem; }
+    .avail__grid  { grid-template-columns: 50px repeat(7, 1fr); min-width: 0; }
+    .avail__corner, .avail__day-head { height: 36px; }
+    .avail__cell  { height: 13px; }
+    .avail__time  { height: 13px; font-size: 0.5625rem; padding-right: 6px; }
+    .avail__trend { left: 51px; top: 37px; }
+    .avail__day-name { font-size: 0.6875rem; }
+    .avail__day-date { font-size: 0.5625rem; }
+  }
+
+  @media (min-width: 1024px) {
+    .avail__grid  { grid-template-columns: 56px repeat(7, 1fr); }
+    .avail__corner, .avail__day-head { height: 40px; }
+    .avail__cell  { height: 14px; }
+    .avail__time  { height: 14px; font-size: 0.625rem; padding-right: 8px; }
+    .avail__day-name { font-size: 0.75rem; }
+    .avail__trend { left: 57px; top: 41px; }
+  }
+}

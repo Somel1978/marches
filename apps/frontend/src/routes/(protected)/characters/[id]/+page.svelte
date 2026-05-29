@@ -20,7 +20,7 @@
 	};
 
 	const totalLevel     = $derived((data.character as any).classes?.reduce((s: number, c: any) => s + c.allocatedLevel, 0) ?? 0);
-	const availableLevel = $derived(totalLevel); // In future: calculated from XP threshold
+	const availableLevel = $derived(totalLevel);
 
 	function openLightbox(src: string) { lightboxSrc = src; lightboxOpen = true; }
 
@@ -28,11 +28,8 @@
 		return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 	}
 
-	// Class allocation state
 	type ClassAlloc = { classId: string; subclassId: string | null; allocatedLevel: number };
-
 	let allocations = $state<ClassAlloc[]>([]);
-
 	let editClasses = $state<{classId:string;subclassId:string;allocatedLevel:number}[]>([]);
 
 	$effect.pre(() => {
@@ -50,11 +47,9 @@
 	function addClass() {
 		allocations = [...allocations, { classId: '', subclassId: null, allocatedLevel: 1 }];
 	}
-
 	function removeClass(i: number) {
 		allocations = allocations.filter((_, idx) => idx !== i);
 	}
-
 	function getSubclasses(classId: string) {
 		return data.systemData?.classes.find((c: any) => c.id === classId)?.subclasses ?? [];
 	}
@@ -183,7 +178,6 @@
 		</div>
 	</div>
 
-
 	<!-- Pending changes notice -->
 	{#if data.character.status === 'PENDING' && (data.character as any).statusReason === 'EDIT_PENDING'}
 		<div class="card" style="border-left:3px solid var(--color-warning);">
@@ -191,90 +185,198 @@
 		</div>
 	{/if}
 
-	<!-- Structural edit form -->
+	<!-- Species, Background & Classes — structural edit OR level-up allocation -->
 	{#if ['ACTIVE','RESTING'].includes(data.character.status)}
 		<div class="card">
-			<h3 class="section-title">Species, Background & Classes</h3>
-			<p class="field-hint" style="margin-bottom:0.75rem;">Changes to these fields require admin approval.</p>
-			{#if (form as any)?.changesSubmitted}
-				<div class="form-success" style="margin-bottom:0.75rem;">Changes submitted for approval.</div>
-			{/if}
-			<form method="post" action="?/submitChanges" use:enhance>
-				<div class="fields">
-					<div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-						<div class="field" style="flex:1 1 200px;">
-							<label class="label" for="speciesId">Species</label>
-							<select id="speciesId" name="speciesId" class="input input--select">
-								<option value="">Select species…</option>
-								{#each ((data as any).systemData?.species ?? []).filter((s:any) => s.isAvailable) as s}
-									<option value={s.id} selected={(data.character as any).speciesId === s.id}>{s.name}</option>
-								{/each}
-							</select>
+			{#if data.character.statusReason === 'LEVEL_UP_PENDING'}
+				<!-- Level-up: allocate class levels -->
+				<div class="page__header" style="margin-bottom:1rem;">
+					<h3 class="section-title" style="margin:0">Classes</h3>
+					<button type="button" class="btn btn-ghost btn-sm" onclick={() => showClasses = !showClasses}>
+						{showClasses ? 'Cancel' : 'Allocate levels'}
+					</button>
+				</div>
+				{#if !showClasses}
+					{#if (data.character as any).classes?.length}
+						<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+							{#each (data.character as any).classes as cc}
+								<div class="character-class-tag">
+									<span>{(cc as any).classRef?.name ?? cc.classId}</span>
+									{#if (cc as any).subclassRef}<span class="table__muted">· {(cc as any).subclassRef.name}</span>{/if}
+									<span class="badge badge-accent">Lv {cc.allocatedLevel}</span>
+								</div>
+							{/each}
 						</div>
-						<div class="field" style="flex:1 1 200px;">
-							<label class="label" for="backgroundId">Background</label>
-							<select id="backgroundId" name="backgroundId" class="input input--select">
-								<option value="">Select background…</option>
-								{#each ((data as any).systemData?.backgrounds ?? []).filter((b:any) => b.isAvailable) as b}
-									<option value={b.id} selected={(data.character as any).backgroundId === b.id}>{b.name}</option>
-								{/each}
-							</select>
-						</div>
-					</div>
-
-					<!-- Class rows -->
-					{#each editClasses as ec, i}
-						<div style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap; padding:0.5rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
-							<div class="field" style="flex:2 1 160px; margin:0;">
-								<label class="label" for="ec-class-{i}">Class</label>
-								<select id="ec-class-{i}" name="classId" class="input input--select" bind:value={ec.classId}
-									onchange={() => ec.subclassId = ''}>
-									<option value="">Select…</option>
-									{#each ((data as any).systemData?.classes ?? []).filter((c:any) => c.isAvailable) as cls}
-										<option value={cls.id}>{cls.name}</option>
-									{/each}
-								</select>
-							</div>
-							<div class="field" style="flex:0 0 60px; margin:0;">
-								<label class="label" for="ec-level-{i}">Level</label>
-								<input id="ec-level-{i}" name="allocatedLevel" type="number" class="input" min="1" max="20" bind:value={ec.allocatedLevel} />
-							</div>
-							<div class="field" style="flex:2 1 160px; margin:0;">
-								<label class="label" for="ec-sub-{i}">Subclass</label>
-								{#if ec.classId}
-									{@const editCls = (data as any).systemData?.classes?.find((c:any) => c.id === ec.classId)}
-									{@const editSubclasses = editCls?.subclasses?.filter((s:any) => s.isAvailable && ec.allocatedLevel >= (editCls.subclassAvailableAtLevel ?? 3)) ?? []}
-									{#if editSubclasses.length}
-										<select name="subclassId" class="input input--select" bind:value={ec.subclassId}>
-											<option value="">None</option>
-											{#each editSubclasses as sub}
+					{:else}
+						<p class="table__empty">No classes allocated yet.</p>
+					{/if}
+				{/if}
+				{#if showClasses}
+					<form method="post" action="?/submitLevelUp"
+						use:enhance={() => {
+							return async ({ update }) => { showClasses = false; await update(); await invalidateAll(); };
+						}}>
+						<div class="class-alloc-list">
+							{#each allocations as alloc, i}
+								<div class="class-alloc-row">
+									<div class="field" style="flex:2; min-width:140px;">
+										<label class="label" for="class-{i}">Class</label>
+										<select id="class-{i}" name="classId" class="input" bind:value={alloc.classId}
+											onchange={() => { alloc.subclassId = null; }}>
+											<option value="">Select class…</option>
+											{#each (data.systemData?.classes ?? []).filter((c: any) => c.isAvailable) as cls}
+												<option value={cls.id}>{cls.name}</option>
+											{/each}
+										</select>
+									</div>
+									<div class="field" style="flex:2; min-width:140px;">
+										<label class="label" for="subclass-{i}">Subclass <span class="optional">(optional)</span></label>
+										<select id="subclass-{i}" name="subclassId" class="input" bind:value={alloc.subclassId}>
+											<option value={null}>None</option>
+											{#each getSubclasses(alloc.classId).filter((s: any) => s.isAvailable) as sub}
 												<option value={sub.id}>{sub.name}</option>
 											{/each}
 										</select>
-									{:else}
-										<input type="hidden" name="subclassId" value="" />
-										<p class="field-hint" style="margin:0; padding:0.5rem 0; font-size:0.75rem;">
-											{editCls ? `Available at level ${editCls.subclassAvailableAtLevel ?? 3}` : '—'}
-										</p>
-									{/if}
-								{:else}
-									<input type="hidden" name="subclassId" value="" />
-								{/if}
-							</div>
-							{#if editClasses.length > 1}
-								<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"
-									onclick={() => editClasses = editClasses.filter((_,idx) => idx !== i)}>✕</button>
-							{/if}
+									</div>
+									<div class="field" style="flex:1; min-width:80px;">
+										<label class="label" for="level-{i}">Levels</label>
+										<input id="level-{i}" name="allocatedLevel" type="number" class="input"
+											bind:value={alloc.allocatedLevel} min="1" max="20" />
+									</div>
+									<button type="button" class="btn btn-ghost btn-sm btn-icon class-alloc-remove"
+										onclick={() => removeClass(i)} aria-label="Remove class">
+										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+										</svg>
+									</button>
+								</div>
+							{/each}
 						</div>
-					{/each}
-					<button type="button" class="btn btn-ghost btn-sm" onclick={() => editClasses = [...editClasses, {classId:'',subclassId:'',allocatedLevel:1}]}>
-						+ Add class
+						<div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+							<div style="display:flex; align-items:center; gap:0.75rem;">
+								<button type="button" class="btn btn-ghost btn-sm" onclick={addClass}>+ Add class</button>
+								<span class="table__muted" style="font-size:0.8125rem;">Total allocated: <strong>{allocTotal}</strong></span>
+							</div>
+							<div class="form-actions" style="margin:0;">
+								<button type="button" class="btn btn-ghost btn-sm" onclick={() => showClasses = false}>Cancel</button>
+								<button type="submit" class="btn btn-primary btn-sm" disabled={allocTotal < 1 || allocations.some(a => !a.classId)}>
+									Submit for approval
+								</button>
+							</div>
+						</div>
+					</form>
+				{/if}
+
+			{:else}
+				<!-- ACTIVE/RESTING: structural edit with read-only default -->
+				<div class="page__header" style="margin-bottom:1rem;">
+					<h3 class="section-title" style="margin:0">Species, Background & Classes</h3>
+					<button type="button" class="btn btn-ghost btn-sm" onclick={() => showClasses = !showClasses}>
+						{showClasses ? 'Cancel' : 'Edit'}
 					</button>
 				</div>
-				<div class="form-actions">
-					<button type="submit" class="btn btn-primary">Submit for approval</button>
-				</div>
-			</form>
+				{#if (form as any)?.changesSubmitted}
+					<div class="form-success" style="margin-bottom:0.75rem;">Changes submitted for approval.</div>
+				{/if}
+				{#if !showClasses}
+					<div style="display:flex; flex-direction:column; gap:0.375rem; font-size:0.875rem;">
+						{#if (data.character as any).speciesRef}
+							<div><span class="table__muted">Species:</span> <strong>{(data.character as any).speciesRef.name}</strong></div>
+						{/if}
+						{#if (data.character as any).backgroundRef}
+							<div><span class="table__muted">Background:</span> <strong>{(data.character as any).backgroundRef.name}</strong></div>
+						{/if}
+						{#if (data.character as any).classes?.length}
+							<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.25rem;">
+								{#each (data.character as any).classes as cc}
+									<div class="character-class-tag">
+										<span>{(cc as any).classRef?.name ?? cc.classId}</span>
+										{#if (cc as any).subclassRef}<span class="table__muted">· {(cc as any).subclassRef.name}</span>{/if}
+										<span class="badge badge-accent">Lv {cc.allocatedLevel}</span>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				{/if}
+				{#if showClasses}
+					<p class="field-hint" style="margin-bottom:0.75rem;">Changes require admin approval.</p>
+					<form method="post" action="?/submitChanges" use:enhance>
+						<div class="fields">
+							<div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+								<div class="field" style="flex:1 1 200px;">
+									<label class="label" for="speciesId">Species</label>
+									<select id="speciesId" name="speciesId" class="input input--select">
+										<option value="">Select species…</option>
+										{#each ((data as any).systemData?.species ?? []).filter((s:any) => s.isAvailable) as s}
+											<option value={s.id} selected={(data.character as any).speciesId === s.id}>{s.name}</option>
+										{/each}
+									</select>
+								</div>
+								<div class="field" style="flex:1 1 200px;">
+									<label class="label" for="backgroundId">Background</label>
+									<select id="backgroundId" name="backgroundId" class="input input--select">
+										<option value="">Select background…</option>
+										{#each ((data as any).systemData?.backgrounds ?? []).filter((b:any) => b.isAvailable) as b}
+											<option value={b.id} selected={(data.character as any).backgroundId === b.id}>{b.name}</option>
+										{/each}
+									</select>
+								</div>
+							</div>
+							{#each editClasses as ec, i}
+								<div style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap; padding:0.5rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
+									<div class="field" style="flex:2 1 160px; margin:0;">
+										<label class="label" for="ec-class-{i}">Class</label>
+										<select id="ec-class-{i}" name="classId" class="input input--select" bind:value={ec.classId}
+											onchange={() => ec.subclassId = ''}>
+											<option value="">Select…</option>
+											{#each ((data as any).systemData?.classes ?? []).filter((c:any) => c.isAvailable) as cls}
+												<option value={cls.id}>{cls.name}</option>
+											{/each}
+										</select>
+									</div>
+									<div class="field" style="flex:0 0 60px; margin:0;">
+										<label class="label" for="ec-level-{i}">Level</label>
+										<input id="ec-level-{i}" name="allocatedLevel" type="number" class="input" min="1" max="20" bind:value={ec.allocatedLevel} />
+									</div>
+									<div class="field" style="flex:2 1 160px; margin:0;">
+										<label class="label" for="ec-sub-{i}">Subclass</label>
+										{#if ec.classId}
+											{@const editCls = (data as any).systemData?.classes?.find((c:any) => c.id === ec.classId)}
+											{@const editSubclasses = editCls?.subclasses?.filter((s:any) => s.isAvailable && ec.allocatedLevel >= (editCls.subclassAvailableAtLevel ?? 3)) ?? []}
+											{#if editSubclasses.length}
+												<select id="ec-sub-{i}" name="subclassId" class="input input--select" bind:value={ec.subclassId}>
+													<option value="">None</option>
+													{#each editSubclasses as sub}
+														<option value={sub.id}>{sub.name}</option>
+													{/each}
+												</select>
+											{:else}
+												<input type="hidden" name="subclassId" value="" />
+												<p class="field-hint" style="margin:0; padding:0.5rem 0; font-size:0.75rem;">
+													{editCls ? `Available at level ${editCls.subclassAvailableAtLevel ?? 3}` : '—'}
+												</p>
+											{/if}
+										{:else}
+											<input type="hidden" name="subclassId" value="" />
+										{/if}
+									</div>
+									{#if editClasses.length > 1}
+										<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"
+											onclick={() => editClasses = editClasses.filter((_,idx) => idx !== i)}>✕</button>
+									{/if}
+								</div>
+							{/each}
+							<button type="button" class="btn btn-ghost btn-sm" onclick={() => editClasses = [...editClasses, {classId:'',subclassId:'',allocatedLevel:1}]}>
+								+ Add class
+							</button>
+						</div>
+						<div class="form-actions">
+							<button type="submit" class="btn btn-primary">Submit for approval</button>
+						</div>
+					</form>
+				{/if}
+			{/if}
 		</div>
 	{/if}
 
@@ -282,54 +384,46 @@
 	{#if (data.character as any).speciesRef || (data.character as any).backgroundRef}
 		<div class="card">
 			<h3 class="section-title">Character sheet</h3>
-
-			<!-- Species + Background side by side -->
-			<div class="sheet-panels">
-
-				{#if (data.character as any).speciesRef}
+			{#if (data.character as any).speciesRef}
 					{@const sp = (data.character as any).speciesRef}
-					<div style="background:var(--bg-overlay); border-radius:var(--radius-md); padding:0.75rem;">
-						<div class="sheet-panel__title">
+					<details class="sheet-class">
+						<summary>
 							<span>{sp.name}</span>
 							{#if sp.isSubrace}<span class="badge badge-muted">Subrace</span>{/if}
 							{#if sp.isLegacy}<span class="badge badge-warning">Legacy</span>{/if}
-						</div>
-						{#if sp.description}<p class="sheet-panel__desc">{sp.description}</p>{/if}
+							{#if sp.traits?.length}<span class="sheet-class__count">{sp.traits.length} traits</span>{/if}
+						</summary>
+						{#if sp.description}<p class="sheet-panel__desc" style="margin:0.5rem 0;">{sp.description}</p>{/if}
 						{#if sp.traits?.length}
-							<div class="sheet-traits">
+							<div class="sheet-features">
 								{#each sp.traits as trait}
-									<div class="sheet-trait">
-										<div class="sheet-trait__name">
-											<span>{trait.name}</span>
+									<div class="sheet-feature">
+										<div class="sheet-feature__name">
 											{#if trait.requiredLevel}<span class="badge badge-muted">Lv {trait.requiredLevel}</span>{/if}
+											<span>{trait.name}</span>
 										</div>
-										{#if trait.description}<p class="sheet-trait__desc">{trait.description}</p>{/if}
+										{#if trait.description}<p class="sheet-feature__desc">{trait.description}</p>{/if}
 									</div>
 								{/each}
 							</div>
 						{/if}
-					</div>
+					</details>
 				{/if}
-
-				{#if (data.character as any).backgroundRef}
-					{@const bg = (data.character as any).backgroundRef}
-					<div style="background:var(--bg-overlay); border-radius:var(--radius-md); padding:0.75rem;">
-						<div class="sheet-panel__title">
-							<span>{bg.name}</span>
-							{#if bg.featureName}<span class="badge badge-accent">{bg.featureName}</span>{/if}
-						</div>
-						{#if bg.shortDescription}<p class="sheet-panel__desc">{bg.shortDescription}</p>{/if}
-						<div class="sheet-panel__meta">
-							{#if bg.skillProficiencies}<div><span>Skills:</span> {bg.skillProficiencies}</div>{/if}
-							{#if bg.toolProficiencies}<div><span>Tools:</span> {bg.toolProficiencies}</div>{/if}
-							{#if bg.languages}<div><span>Languages:</span> {bg.languages}</div>{/if}
-						</div>
+			{#if (data.character as any).backgroundRef}
+				{@const bg = (data.character as any).backgroundRef}
+				<details class="sheet-class">
+					<summary>
+						<span>{bg.name}</span>
+						{#if bg.featureName}<span class="badge badge-accent">{bg.featureName}</span>{/if}
+					</summary>
+					{#if bg.shortDescription}<p class="sheet-panel__desc" style="margin:0.5rem 0;">{bg.shortDescription}</p>{/if}
+					<div class="sheet-panel__meta" style="margin-top:0.25rem;">
+						{#if bg.skillProficiencies}<div><span>Skills:</span> {bg.skillProficiencies}</div>{/if}
+						{#if bg.toolProficiencies}<div><span>Tools:</span> {bg.toolProficiencies}</div>{/if}
+						{#if bg.languages}<div><span>Languages:</span> {bg.languages}</div>{/if}
 					</div>
-				{/if}
-
-			</div>
-
-			<!-- Class features — each class in its own collapsible block -->
+				</details>
+			{/if}
 			{#each (data.character as any).classes ?? [] as cc}
 				{#if cc.classRef && (cc.classFeatures?.length || cc.subclassFeatures?.length)}
 					<details class="sheet-class">
@@ -356,96 +450,7 @@
 		</div>
 	{/if}
 
-	<!-- Class allocation -->
-	{#if data.character.status !== 'DECEASED' && data.character.status !== 'RETIRED' && data.gameSystem}
-		<div class="card">
-			<div class="page__header" style="margin-bottom:1rem;">
-				<h3 class="section-title" style="margin:0">Class allocation</h3>
-				{#if data.character.status === 'ACTIVE' || data.character.statusReason === 'LEVEL_UP_PENDING'}
-					<button class="btn btn-ghost btn-sm" onclick={() => showClasses = !showClasses}>
-						{showClasses ? 'Cancel' : 'Edit classes'}
-					</button>
-				{/if}
-			</div>
-
-			{#if (data.character as any).classes?.length && !showClasses}
-				<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-					{#each (data.character as any).classes as cc}
-						<div class="character-class-tag">
-							<span>{(cc as any).classRef?.name ?? cc.classId}</span>
-							{#if (cc as any).subclassRef}<span class="table__muted">· {(cc as any).subclassRef.name}</span>{/if}
-							<span class="badge badge-accent">Lv {cc.allocatedLevel}</span>
-						</div>
-					{/each}
-				</div>
-			{:else if !showClasses}
-				<p class="table__empty">No classes allocated yet.</p>
-			{/if}
-
-			{#if showClasses}
-				<form method="post" action="?/submitLevelUp"
-					use:enhance={() => {
-						return async ({ update }) => { showClasses = false; await update(); await invalidateAll(); };
-					}}>
-					<input type="hidden" name="classes" value={JSON.stringify(allocations)} />
-
-					<div class="class-alloc-list">
-						{#each allocations as alloc, i}
-							<div class="class-alloc-row">
-								<div class="field" style="flex:2; min-width:140px;">
-									<label class="label" for="class-{i}">Class</label>
-									<select id="class-{i}" class="input" bind:value={alloc.classId}
-										onchange={() => { alloc.subclassId = null; }}>
-										<option value="">Select class…</option>
-										{#each (data.systemData?.classes ?? []).filter((c: any) => c.isAvailable) as cls}
-											<option value={cls.id}>{cls.name}</option>
-										{/each}
-									</select>
-								</div>
-								<div class="field" style="flex:2; min-width:140px;">
-									<label class="label" for="subclass-{i}">Subclass <span class="optional">(optional)</span></label>
-									<select id="subclass-{i}" class="input" bind:value={alloc.subclassId}>
-										<option value={null}>None</option>
-										{#each getSubclasses(alloc.classId).filter((s: any) => s.isAvailable) as sub}
-											<option value={sub.id}>{sub.name}</option>
-										{/each}
-									</select>
-								</div>
-								<div class="field" style="flex:1; min-width:80px;">
-									<label class="label" for="level-{i}">Levels</label>
-									<input id="level-{i}" type="number" class="input"
-										bind:value={alloc.allocatedLevel} min="1" max="20" />
-								</div>
-								<button type="button" class="btn btn-ghost btn-sm btn-icon class-alloc-remove"
-									onclick={() => removeClass(i)} aria-label="Remove class">
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-										<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-									</svg>
-								</button>
-							</div>
-						{/each}
-					</div>
-
-					<div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.75rem; flex-wrap:wrap; gap:0.5rem;">
-						<div style="display:flex; align-items:center; gap:0.75rem;">
-							<button type="button" class="btn btn-ghost btn-sm" onclick={addClass}>+ Add class</button>
-							<span class="table__muted" style="font-size:0.8125rem;">Total allocated: <strong>{allocTotal}</strong></span>
-						</div>
-						<div class="form-actions" style="margin:0;">
-							<button type="button" class="btn btn-ghost btn-sm" onclick={() => showClasses = false}>Cancel</button>
-							<button type="submit" class="btn btn-primary btn-sm" disabled={allocTotal < 1 || allocations.some(a => !a.classId)}>
-								Submit for approval
-							</button>
-						</div>
-					</div>
-				</form>
-			{/if}
-		</div>
-	{/if}
-
-	<!-- Recent transactions -->
-	{#if data.transactions.length}
-		<!-- Description / Backstory -->
+	<!-- Backstory -->
 	<div class="card">
 		<h3 class="section-title">Backstory</h3>
 		<form method="post" action="?/update" use:enhance={() => {
@@ -529,7 +534,10 @@
 			<p class="table__empty">No items in inventory.</p>
 		{/if}
 	</div>
-	<div class="card">
+
+	<!-- Recent activity -->
+	{#if data.transactions.length}
+		<div class="card">
 			<h3 class="section-title">Recent activity</h3>
 			<table class="table">
 				<thead>
@@ -559,6 +567,7 @@
 			</table>
 		</div>
 	{/if}
+
 	<!-- Pending purchases -->
 	{#if ((data as any).pendingBuys ?? []).length}
 		<div class="card">
@@ -582,8 +591,6 @@
 			</div>
 		</div>
 	{/if}
-
-
 
 	<!-- Achievements -->
 	{#if (data as any).charAchievements?.length}

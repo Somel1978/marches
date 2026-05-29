@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-25 (session 7)
+> Last updated: 2026-05-29 (session 15)
 
 ---
 
@@ -43,27 +43,29 @@ marches/
 ## Database Schema Topology
 
 ```
-01 platform    — Module, Resource, Setting, NavVisibility
+01 platform    — Module, Resource, Setting, NavVisibility, Notification
 02 users       — User, Role, UserRole, RolePermission
 03 auth        — Session, Account, Verification (better-auth owned)
 04 audit       — AuditLog (append-only)
-05 gamesystem  — GameSystem, Class, Subclass, Species, ProgressionThreshold
-06 characters  — Character, CharacterClass, CharacterSlotGrant,
+05 gamesystem  — GameSystem, ProgressionThreshold
+06 dnd5e       — Dnd5eClass, Dnd5eClassFeature, Dnd5eSubclass, Dnd5eSubclassFeature,
+                 Dnd5eSpecies, Dnd5eSpeciesTrait, Dnd5eBackground
+07 characters  — Character, CharacterClass, CharacterSlotGrant,
                  CharacterTransaction, CharacterInventory
-07 dms         — DMProfile, DMGameSystem, RoleRequest, DMRating
-08 quests      — Quest, QuestDM, QuestReward (itemRarity/Category/MaxValue),
+08 dms         — DMProfile, DMGameSystem, RoleRequest, DMRating
+09 quests      — Quest, QuestDM, QuestReward (itemRarity/Category/MaxValue),
                  QuestSignup, QuestResult, QuestResultCharacter (itemGrantedId/Name),
                  QuestItemUsage
-09 marketplace — MarketplaceItem, MarketplaceTransaction
-10 world       — World, Region, RegionDM, Location, WikiPage, WikiRevision
-11 rewards     — Achievement, CharacterAchievement
-12 stats        — QuestStat (avgPartyLevel, playerCount, completedAt)
-13 availability — AvailabilitySlot (userId, date, slot 0-47, scope GLOBAL|WORLD, worldIds[])
-14 news         — Announcement (type NEWS|EVENT|WARNING|STATUS, tags[], scheduledAt, expiresAt),
-                  Journal, JournalSection, JournalPage
-15 discord      — DiscordServer (guildId, name, scope global|worldId),
-                  DiscordChannel (channelId, channelName, type ANNOUNCEMENTS|QUESTS|MARKET|CHARACTERS),
-                  DiscordNotificationQueue (type, payload JSON, processed)
+10 marketplace — MarketplaceItem, MarketplaceTransaction
+11 world       — World, Region, RegionDM, Location, WikiPage, WikiRevision
+12 rewards     — Achievement, CharacterAchievement
+13 stats       — QuestStat (avgPartyLevel, playerCount, completedAt)
+14 availability — AvailabilitySlot (userId, date, slot 0-47, scope GLOBAL|WORLD, worldIds[])
+15 news        — Announcement (type NEWS|EVENT|WARNING|STATUS, tags[], scheduledAt, expiresAt),
+                 Journal, JournalSection, JournalPage
+16 discord     — DiscordServer (guildId, name, scope global|worldId),
+                 DiscordChannel (channelId, channelName, type ANNOUNCEMENTS|QUESTS|MARKET|CHARACTERS),
+                 DiscordNotificationQueue (type, payload JSON, processed)
 ```
 
 ---
@@ -71,20 +73,28 @@ marches/
 ## Build Order
 
 ```
-✅ 0. Core platform
-✅ 1. GameSystem
-✅ 2. Character Hub
-✅ 3. DM Hub
-✅ 4. Quest System (full — lifecycle, rewards, item rewards, destroyable inventory)
-✅ 5. Marketplace + Character Inventory
-✅ 6. World System
-✅ 7. Notification System
-✅ 8. Quest Completion Workflow + Rewards Engine
-✅ 9. Character additions (backstory, world lock, inventory links)
+✅ 0.  Core platform
+✅ 1.  GameSystem
+✅ 2.  Character Hub
+✅ 3.  DM Hub
+✅ 4.  Quest System (full — lifecycle, rewards, item rewards, destroyable inventory)
+✅ 5.  Marketplace + Character Inventory
+✅ 6.  World System
+✅ 7.  Notification System
+✅ 8.  Quest Completion Workflow + Rewards Engine
+✅ 9.  Character additions (backstory, world lock, inventory links)
 ✅ 10. Statistics (platform + user + per-character, live queries)
 ✅ 11. Availability + Quest v2
 ✅ 12. News / Blog / Journal
-✅ 13. Discord
+✅ 13. Discord integration
+✅ 14. GameSystem refactor (dnd5e schema)
+✅ 15. Character system expansion
+✅ 16. Frontend navigation redesign
+✅ 17. Availability heatmap redesign (frontend)
+✅ 18. Admin character sheet layout (tabbed)
+✅ 19. World landing page card layout
+⬜ 20. World marketplace (per-world stock, price overrides, level restrictions)
+⬜ 21. DM dashboard quest filters (UI cleanup phase)
 ```
 
 ---
@@ -140,7 +150,7 @@ explicitly via `invalidateUserPermissions(userId)` after role changes.
 
 ### Site Branding
 
-**Settings:** `site.name`, `site.logo`, `site.url`
+**Settings:** `site.name`, `site.logo`, `site.logoIcon`, `site.url`, `site.footer`
 
 `site.name` — application name shown in the sidebar, nav bar, browser tab, and footer.
 
@@ -173,26 +183,91 @@ if (!locals.user) return { user: null, siteName, siteLogo, siteFooter };
 
 ---
 
-### 1. GameSystem ✅
+### 1. GameSystem ✅ (refactored session 13)
 
-**Schema:** `gamesystem`
+**Schemas:** `gamesystem`, `dnd5e`
 
-**Models:** GameSystem, Class, Subclass, Species, ProgressionThreshold
+**gamesystem models:** GameSystem, ProgressionThreshold
 
-**Admin routes:**
+**dnd5e models:**
 ```
-/game-systems          — list
-/game-systems/[id]     — edit system + manage classes/subclasses/species/progression inline
+Dnd5eClass             — gameSystemId, name, hitDice, canCastSpells, primaryAbilities,
+                         equipmentDescription, subclassAvailableAtLevel (default 3),
+                         isAvailable, sortOrder, source, link
+Dnd5eClassFeature      — classId, name, requiredLevel, description, url
+                         @@unique([classId, name, requiredLevel])
+Dnd5eSubclass          — classId, name, description, source, link, isAvailable, sortOrder
+                         @@unique([classId, name])
+Dnd5eSubclassFeature   — subclassId, name, requiredLevel, description, url
+                         @@unique([subclassId, name, requiredLevel])
+Dnd5eSpecies           — gameSystemId, name, description, source, link,
+                         isSubrace, isLegacy, isAvailable, sortOrder
+Dnd5eSpeciesTrait      — speciesId, name, description, requiredLevel
+Dnd5eBackground        — gameSystemId, name, shortDescription, featureName,
+                         skillProficiencies, toolProficiencies, languages,
+                         url, isAvailable, sortOrder
 ```
 
 **Key decisions:**
-- GameSystem is a data-only plugin — no code changes to add a system
-- `isAvailable` hides entries from players without deleting
+- Each game system gets its own schema (`dnd5e`, `pathfinder`, etc.) — fully isolated
+- `ProgressionThreshold` stays in `gamesystem` — agnostic, works across all systems
+- `CharacterClass.classId/subclassId` = plain String, cross-schema FK resolved at app level
+- `subclassAvailableAtLevel` on `Dnd5eClass` (default 3) — controls when subclass selector appears
+- Other game systems show "Schema not yet implemented" until their schema is built
+- `isActive` toggle on game systems list page — controls availability to players
+- GameSystem is a data-only plugin — no code changes needed to add a new system
 - Progression label is per-system (`label` field, e.g. "Level 1" vs "Tier 2")
+
+**Admin routes:**
+```
+/game-systems                               — list + isActive toggle
+/game-systems/new                           — create (name, slug, description)
+/game-systems/[id]/classes                  — list + create
+/game-systems/[id]/classes/[classId]        — edit class + features + subclasses inline
+/game-systems/[id]/species                  — list + inline traits
+/game-systems/[id]/backgrounds              — list
+/game-systems/[id]/progression              — manage ProgressionThresholds (XP per level)
+/game-systems/[id]/import                   — 7-tab Excel import
+```
+
+**Import system (7 tabs, flat Excel templates):**
+```
+Classes           — name, hitDice, canCastSpells, subclassAvailableAtLevel,
+                    primaryAbilities, equipmentDescription, description,
+                    source, link, sortOrder
+Class Features    — className, name, requiredLevel, description, url
+Subclasses        — className, name, description, source, link, sortOrder
+Subclass Features — className, subclassName, name, requiredLevel, description, url
+Species           — name, description, source, link, isSubrace, isLegacy, sortOrder
+Species Traits    — speciesName, name, description, requiredLevel
+Backgrounds       — name, shortDescription, featureName, skillProficiencies,
+                    toolProficiencies, languages, url, sortOrder
+```
+- Parent lookup: exact name match with whitespace normalization
+- Feature uniqueness: `name + requiredLevel` (same-name features at different levels = distinct)
+- `allowUpdate` checkbox: explicit opt-in to overwrite existing records (unchecked = skip duplicates)
+- `toInt(v, fallback)` helper strips Excel apostrophe prefix (`'1'` → `1`)
+- `boolVal(v)` handles `TRUE/true/1/yes` → boolean
+- `normalize(s)` collapses multiple spaces, trims
+- Friendly unique constraint error messages
+
+**DB API:**
+```
+dnd5e.classes.{getAll, getActive, getById, create, update, delete}
+dnd5e.classFeatures.{create, update, delete}
+dnd5e.subclasses.{create, update, delete}
+dnd5e.subclassFeatures.{create, update, delete}
+dnd5e.species.{getAll, getActive, create, update, delete}
+dnd5e.speciesTraits.{create, update, delete}
+dnd5e.backgrounds.{getAll, getActive, create, update, delete}
+dnd5e.getSystemData(gameSystemId) — returns {classes, species, backgrounds} for a system
+gameSystems.{getAll, getActive, getById, create, update, delete}
+gameSystems.progression.{create, update, delete}
+```
 
 ---
 
-### 2. Character Hub ✅
+### 2. Character Hub ✅ (expanded session 13)
 
 **World lock matrix:**
 | Character | World `acceptsGlobalCharacters` | Result |
@@ -203,15 +278,15 @@ if (!locals.user) return { user: null, siteName, siteLogo, siteFooter };
 | `isGlobal=false`, `worldId=X` | quest in world Y | ❌ blocked |
 | `isGlobal=false`, `worldId=null` | any world | ✅ allowed |
 
-
-
 **Schema:** `characters`
 
 **Models:**
 ```
-Character              — status, xp, gold, tokens, restUntil,
+Character              — status, statusReason, speciesId, backgroundId,
+                         pendingChanges Json?, xp, gold, tokens, restUntil,
                          description, worldId, isGlobal
-CharacterClass         — classRef, subclassRef (named cross-schema relations)
+CharacterClass         — classId (String), subclassId (String?), allocatedLevel
+                         (plain strings — cross-schema FK resolved at app level)
 CharacterSlotGrant     — delta grants per user
 CharacterTransaction   — audit trail (XP|GOLD|TOKEN|STATUS|ITEM|REWARD)
 CharacterInventory     — itemId, itemName, itemCategory, itemRarity,
@@ -219,11 +294,36 @@ CharacterInventory     — itemId, itemName, itemCategory, itemRarity,
                          sourceId, transactionId
 ```
 
+**CharacterStatusReason enum:**
+```
+NEW_CHARACTER    — new character awaiting first approval
+EDIT_PENDING     — player submitted structural changes, awaiting approval
+LEVEL_UP_PENDING — unallocated levels after XP threshold crossed
+QUEST_REST       — recovering after quest, clears after restDays
+ADMIN            — manually set by admin
+SYSTEM           — set by platform (e.g. quest death)
+```
+
 **Status flow:**
 ```
-PENDING → ACTIVE → RESTING (QUEST_REST | LEVEL_UP_PENDING)
-                 → SUSPENDED | RETIRED | DECEASED | REJECTED
+PENDING (NEW_CHARACTER)   → ACTIVE (approved) | REJECTED
+ACTIVE                    → PENDING (EDIT_PENDING)     → ACTIVE (approved) | ACTIVE (rejected, reverts)
+                          → PENDING (LEVEL_UP_PENDING) → ACTIVE (approved) | ACTIVE (rejected, reverts)
+                          → RESTING (QUEST_REST)       → ACTIVE (rest cleared)
+                          → SUSPENDED | RETIRED | DECEASED
 ```
+
+**Edit workflow — two paths:**
+- **Free fields** (name, avatarUrl, portraitUrl, description) → `updateFreeFields` → saves immediately, no approval needed
+- **Structural fields** (species, background, classes/levels/subclasses) → `submitStructuralChanges` → saves snapshot to `pendingChanges Json` + sets status PENDING/EDIT_PENDING → admin approval required
+- **Approval** → `approveCharacter` reads `pendingChanges`, applies to actual fields, clears `pendingChanges`, sets ACTIVE
+- **Rejection** → clears `pendingChanges`, reverts to ACTIVE
+- **Level-up** → same path as structural edit via `submitChanges` with classes only → LEVEL_UP_PENDING
+
+**Character sheet enrichment (`getCharacterById`):**
+- Loads `speciesRef` + all traits from `dnd5e.species`
+- Loads `backgroundRef` from `dnd5e.backgrounds`
+- Per class: loads `classRef` + features up to `allocatedLevel`, `subclassRef` + subclass features up to `allocatedLevel`
 
 **CharacterInventory snapshot:** stores name, category, rarity, source,
 and purchasePrice at acquisition time. Live price read from MarketplaceItem.
@@ -231,8 +331,9 @@ and purchasePrice at acquisition time. Live price read from MarketplaceItem.
 **Admin routes:**
 ```
 /characters            — list with status filter
-/characters/[id]       — approve/reject, edit, classes, currency, transactions,
-                         inventory (remove with refund), delete
+/characters/[id]       — approve/reject (with pendingChanges diff shown),
+                         edit all fields including backgroundId, species,
+                         currency, transactions, inventory (remove with refund), delete
 /characters/slots      — per-user slot management
 /characters/settings   — baseSlots, startingGold, restDays
 ```
@@ -240,17 +341,45 @@ and purchasePrice at acquisition time. Live price read from MarketplaceItem.
 **Frontend routes:**
 ```
 /characters            — own characters grid
-/characters/new        — create
-/characters/[id]       — view/edit, class allocation, transactions,
-                         inventory (sell requests), pending purchases
+/characters/new        — full creation form: system, name, species (required),
+                         background (required), classes+levels+subclasses (subclass
+                         gated by subclassAvailableAtLevel), backstory, avatar
+/characters/[id]       — view/edit (see card order below)
 ```
+
+**Frontend character page — card order:**
+```
+1. Portrait + stats (XP, Gold, Tokens, Level)
+2. Details — name, avatar, portrait, backstory (free fields, saves immediately)
+3. Pending changes notice (if EDIT_PENDING)
+4. Species, Background & Classes:
+   - ACTIVE/RESTING:        read-only summary + Edit button → structural edit form
+                            (species dropdown, background dropdown, class rows with
+                            multiclass + subclass gating) → ?/submitChanges
+   - LEVEL_UP_PENDING:      read-only summary + Allocate levels → class rows only
+                            → ?/submitLevelUp
+5. Character sheet (collapsible <details> blocks):
+   - Species traits
+   - Background info (skills, tools, languages)
+   - Class features per class (sorted by level, includes subclass features)
+6. Backstory
+7. Inventory (with sell requests)
+8. Recent activity
+9. Pending purchases
+10. Achievements
+```
+
+**Multiclassing:** multiple `CharacterClass` rows per character. Total level = sum of all
+`allocatedLevel` values. Used by quest signup check, marketplace level restrictions,
+and submit-result level-up detection. All use `db.characterClass.aggregate._sum.allocatedLevel`.
 
 **Settings:** `character.baseSlots`, `character.startingGold`, `character.restDays`
 
 **Key decisions:**
 - Characters are never deleted by workflow — REJECTED status is permanent for audit
-- Level-up rejection reverts to ACTIVE, discarding class allocation
-- Cross-schema relations require named relation fields (`classRef`/`subclassRef`)
+- Level-up rejection reverts to ACTIVE, discarding pending allocation
+- `CharacterClass.classId/subclassId` are plain String — no Prisma cross-schema FK
+- `pendingChanges` uses `Prisma.JsonNull` (not `null`) to clear the field
 
 ---
 
@@ -285,11 +414,11 @@ and purchasePrice at acquisition time. Live price read from MarketplaceItem.
 
 ---
 
-### 4. Quest System ✅ (core — item rewards pending Rewards Engine)
+### 4. Quest System ✅
 
 **Schema:** `quests`
 
-**Models:** Quest, QuestDM, QuestReward, QuestSignup, QuestResult, QuestResultCharacter
+**Models:** Quest, QuestDM, QuestReward, QuestSignup, QuestResult, QuestResultCharacter, QuestItemUsage
 
 **Quest status flow:**
 ```
@@ -324,7 +453,6 @@ DRAFT → PENDING_APPROVAL → PUBLISHED → IN_PROGRESS
 **Key decisions:**
 - `missionXp` divided equally among confirmed players, minimum 1
 - Extra rewards (GOLD/TOKEN) in QuestReward, divided equally
-- ITEM rewards pending Rewards Engine integration
 - Waitlist auto-promotes to PENDING_CONFIRMATION on cancellation; DM confirms
 - Co-DMs have equal access to main DM
 - Rewards changed after PUBLISHED → `rewardAdjusted` flag, reverts to PENDING_APPROVAL
@@ -337,7 +465,6 @@ DRAFT → PENDING_APPROVAL → PUBLISHED → IN_PROGRESS
 **Schema:** `marketplace`
 
 **Models:**
-
 ```
 MarketplaceItem        — category, rarity, baseItem, isVariant,
                          requiresAttunement, requirements, weight,
@@ -371,6 +498,7 @@ grantRewardItem() → creates APPROVED transaction at price 0
 **Level restrictions:** JSON tier table in `marketplace.levelRestrictions` setting.
 Admin UI is a proper table (not raw JSON). Each tier: minLevel, maxLevel,
 maxRarity, maxValue, allowedCategories.
+Level = sum of all `CharacterClass.allocatedLevel` — multiclassing supported automatically.
 
 **Import:** xlsx upsert by name. Column mapping:
 Category, Name, Price, Base Item, Var., Rarity, Att., Requirements,
@@ -546,8 +674,6 @@ Notification — userId, type, title, message, actionUrl, isRead, createdAt
 
 **Models:** Achievement, CharacterAchievement
 
-**See:** Progress Tracker — Rewards Engine section.
-
 ---
 
 ### 10. Discord Integration ✅
@@ -555,6 +681,94 @@ Notification — userId, type, title, message, actionUrl, isRead, createdAt
 **Schema:** `discord`
 
 **See:** Discord Setup Guide section.
+
+---
+
+### 11–13. Statistics, Availability, News/Journal ✅
+
+See previous session notes / implemented features.
+
+---
+
+### 14. GameSystem Refactor ✅
+
+See GameSystem section (§1) above — full dnd5e schema and import details.
+
+---
+
+### 15. Character System Expansion ✅
+
+See Character Hub section (§2) above — full details of new fields, edit workflow, character sheet.
+
+---
+
+### 16. Frontend Navigation Redesign ✅
+
+**Structure:** Top nav with 3 hover-dropdown groups + standalone DM Hub link + right-side actions unchanged.
+
+```
+Adventure:  Characters, Quests, World, Journal, Statistics
+Campaign:   Availability, Marketplace
+Community:  News
+[DM Hub | Become a DM]  — standalone, checks hasDMProfile
+[Notifications bell] [Profile] [Sign out]
+```
+
+**Implementation:**
+- Groups use CSS hover-based dropdowns (`.nav-group`, `.nav-group__trigger`, `.nav-group__menu`)
+- Nav links centered via `position: absolute; left: 50%; transform: translateX(-50%)` on `.nav-bar__links`
+- `.nav-bar` uses `position: relative` to anchor the absolute centering
+- Active group trigger highlighted when any child route is current (`groupActive()` helper)
+- Invisible `::after` pseudo-element bridges gap between trigger and menu to prevent premature close
+- `padding-top` on `.nav-group__menu` adds extra hover area
+- Mobile hamburger expands full menu with group section headers (`.nav-mobile__group-title` in `nav-mobile.css`)
+- All dropdown CSS in `shared/ui/styles/components/site.css`
+- Mobile group titles in `shared/ui/styles/components/nav-mobile.css`
+
+---
+
+### 20. World Marketplace ⬜ (planned)
+
+**Schema additions:**
+```
+WorldMarketplaceItem     — worldId, itemId, stock Int?, isAvailable Boolean?, priceOverride Int?
+                           @@unique([worldId, itemId])
+WorldMarketplaceSetting  — worldId @@unique, sellPricePercent Int?, stockEnabled Boolean?,
+                           levelRestrictions Json?
+MarketplaceTransaction   — add worldId String?
+CharacterInventory       — add worldId String?
+```
+
+**Resolution hierarchy (3 layers, null = fall through):**
+```
+WorldMarketplaceItem.priceOverride  → MarketplaceItem.buyPrice
+WorldMarketplaceItem.stock          → MarketplaceItem.stock
+WorldMarketplaceItem.isAvailable    → MarketplaceItem.isAvailable
+WorldMarketplaceSetting.*           → platform.Setting (marketplace.*)
+```
+
+**Resolution helper:** `resolveMarketplaceContext(itemId, worldId?)` — returns effective price,
+stock, availability, sell%, levelRestrictions. All workflows call this, no duplication.
+
+**Buy workflow:**
+1. `createBuyTransaction` — resolve context, check world level restrictions, check world stock, use world price
+2. `approveTransaction(buy)` — decrement stock on WorldMarketplaceItem row (or global), tag CharacterInventory.worldId
+
+**Sell workflow:**
+1. `createSellTransaction` — resolve sell% from inventory.worldId context
+2. `approveTransaction(sell)` — restore stock to origin row (inventory.worldId)
+
+**Admin removal:** restore stock to origin row (inventory.worldId), tag marketplace transaction with worldId
+
+**Global character (worldId=null):** always falls back to global catalogue and settings
+
+**Frontend marketplace:** world filter (persistent URL param), items priced/filtered by world context
+
+**Admin world pages:** new Marketplace section under each world — manage WorldMarketplaceItem rows
+(add from catalogue, set stock/price/availability) + WorldMarketplaceSetting (sell%, restrictions)
+
+**Stock origin rule:** stock always restored to where it was bought (inventory.worldId). Never cross-world.
+
 
 ---
 
@@ -583,9 +797,19 @@ Set in root `+layout.server.ts` via `dms.profiles.getByUserId()`.
 ### `$state` initialized from `data`
 Use `$effect.pre()`, not inline initialization, for `$state` vars derived from `data`.
 
+### `{@const}` placement
+Must be immediate child of `{#if}`, `{#each}`, `{:else}`, etc. — never top-level or inside a plain `<div>`.
+
 ### Cross-schema Prisma relations
-Require explicit named relation fields on both sides. `CharacterClass` → `Class` uses
-`classRef` / `@relation("ClassRef")`. Both sides must be present without `@ignore`.
+`CharacterClass.classId/subclassId` are plain `String` — cross-schema FK resolved at app level.
+No Prisma relation defined. Class name resolved by loading from `dnd5e.classes` by ID at enrichment time.
+
+### Prisma nullable JSON
+Use `Prisma.JsonNull` (not `null`) when clearing a nullable Json field:
+```typescript
+import { Prisma } from '@core/database';
+await db.character.update({ where: { id }, data: { pendingChanges: Prisma.JsonNull } });
+```
 
 ### MarketTransactionType naming
 Marketplace enum is `MarketTransactionType` (not `TransactionType`) to avoid conflict
@@ -612,10 +836,6 @@ with GFM + line breaks. All wiki displays use `{@html renderMarkdown(content)}` 
 Ratings are anonymous to the DM — no player name is stored or shown. The `userId` on
 `DMRating` is for uniqueness enforcement (one per user per quest) and future admin review,
 not for display. The DM sees star + comment only.
-
-For stats: `dms.dm_ratings` stores `dmProfileId + questId + userId`. Future queries can
-join with `quests.quests WHERE dm_profile_id = dmProfileId` to filter ratings only for
-quests where the DM was the main DM (not co-DM).
 
 ### Notification action URL format
 SvelteKit named actions with query params must place params **before** the action name:
@@ -684,8 +904,14 @@ All CSS lives in `shared/ui/styles/components/*.css`, imported via `index.css`.
 
 ### All DB access through named API
 Never use `db.*` directly in route files. Always use `@core/database` namespaced exports:
-`platform`, `users`, `roles`, `gameSystems`, `characters`, `dms`, `quests`,
-`marketplace`, `worlds`, `stats`, `achievements`.
+`platform`, `users`, `roles`, `gameSystems`, `dnd5e`, `characters`, `dms`, `quests`,
+`marketplace`, `worlds`, `stats`, `achievements`, `notifications`, `discord`,
+`availability`, `news`.
+
+### Excel import helpers (session 13)
+- `toInt(v, fallback)` — strips leading apostrophe prefix (`'1'` → `1`), parses integer
+- `boolVal(v)` — handles `TRUE/true/1/yes/true` → boolean
+- `normalize(s)` — collapses multiple spaces, trims — used for parent name matching
 
 ---
 
@@ -694,12 +920,23 @@ Never use `db.*` directly in route files. Always use `@core/database` namespaced
 ```
 platform.{getSettings, getSettingsMap, updateSettings, getModules, ...}
 users.{getAll, getById, getByEmail, create, update, delete}
+users.getByDiscordId, users.updateDiscord, users.getRoleIds
 roles.{getAll, getById, getByName, create, update, delete, assignToUser, ...}
-gameSystems.{getAll, getById, create, update, delete, ...}
+gameSystems.{getAll, getActive, getById, create, update, delete}
+gameSystems.progression.{create, update, delete}
+dnd5e.classes.{getAll, getActive, getById, create, update, delete}
+dnd5e.classFeatures.{create, update, delete}
+dnd5e.subclasses.{create, update, delete}
+dnd5e.subclassFeatures.{create, update, delete}
+dnd5e.species.{getAll, getActive, create, update, delete}
+dnd5e.speciesTraits.{create, update, delete}
+dnd5e.backgrounds.{getAll, getActive, create, update, delete}
+dnd5e.getSystemData(gameSystemId)
 characters.{getAll, getById, getByUserId, getSlotInfo, getAllSlotInfo,
             getInventory, addInventory, removeInventory, getTransactions,
-            create, update, updateStatus, updateClasses, approve, reject,
-            delete, adjustCurrency, grantSlot, checkRest}
+            create, update, updateFreeFields, submitChanges,
+            updateStatus, updateClasses, approve, reject,
+            delete, adjustCurrency, grantSlot, checkRest, clearExpiredRest}
 dms.profiles.{getAll, getById, getByUserId, create, update, revoke}
 dms.roleRequests.{getAll, getPending, getLatestByUser, create, approve, reject, delete}
 quests.{getAll, getById, getByDM, getResult, create, update, updateRewards,
@@ -719,7 +956,6 @@ news.enrichers.{resolve, search}
 discord.servers.{getAll, getByScope, upsert, delete}
 discord.channels.{getForType, upsert, delete}
 discord.notifications.{getPending, markProcessed}
-users.getByDiscordId, users.updateDiscord
 worlds.{getAll, getBySlug, getById, create, update}
 worlds.regions.{getBySlug, getById, create, update, assignDM, removeDM}
 worlds.locations.{getBySlug, create, update}
@@ -735,7 +971,8 @@ notifications.{getUnread, getAll, create, createForAdmins, markRead, markAllRead
 01-platform.seed.ts    — modules, resources, core settings
 02-roles.seed.ts       — SUPERADMIN, DM, PLAYER + permissions
 03-users.seed.ts       — default admin user
-04-gamesystem.seed.ts  — D&D 5e, Pathfinder 2e, Daggerheart
+04-gamesystem.seed.ts  — GameSystem records (slug required)
+04b-dnd5e.seed.ts      — empty (data loaded via Admin Import)
 05-dms.seed.ts         — DM resources + dm.ratingsEnabled
 06-quests.seed.ts      — quest resources + quest.minCapacity/maxCapacity
 07-marketplace.seed.ts — marketplace resources + settings
@@ -751,7 +988,12 @@ Feature settings always go in the feature seed file, never in 01-platform.
 ```
 /users, /users/[id]
 /roles, /roles/[id]
-/game-systems, /game-systems/[id]
+/game-systems, /game-systems/new
+/game-systems/[id]/classes, /game-systems/[id]/classes/[classId]
+/game-systems/[id]/species
+/game-systems/[id]/backgrounds
+/game-systems/[id]/progression
+/game-systems/[id]/import
 /characters, /characters/[id], /characters/slots, /characters/settings
 /role-requests
 /dms, /dms/[id], /dms/settings
@@ -786,9 +1028,13 @@ Feature settings always go in the feature seed file, never in 01-platform.
 /dm-request
 /marketplace, /marketplace/[id]
 /stats
-/world
-/world/[worldSlug]/[regionSlug]
+/world                                    — world cards landing (one per world, mapImageUrl)
+/world/[worldSlug]                        — world detail (map with region markers + region cards)
+/world/[worldSlug]/[regionSlug]           — region detail (wiki, locations, lightbox map)
 /world/[worldSlug]/[regionSlug]/[locationSlug]
+/journal
+/news
+/availability
 ```
 
 ---
@@ -798,11 +1044,17 @@ Feature settings always go in the feature seed file, never in 01-platform.
 ```
 shared/ui/styles/index.css          — imports all components
 shared/ui/styles/components/
-  character.css                     — character cards, portrait, avatar, lightbox,
-                                       signup cards, class allocation
-  nav-mobile.css                    — hamburger nav (≤640px) + SVG logo size constraints
-  world-map.css                     — .world-map-marker, .world-map-label
-  markdown.css                      — .markdown-body (headings, lists, code, tables)
+  site.css          — nav-bar, nav-group dropdowns, site layout
+  nav-mobile.css    — hamburger nav (≤640px) + .nav-mobile__group-title
+  character.css     — character cards, portrait, avatar, lightbox, class allocation,
+                      sheet-class, sheet-feature, sheet-trait
+  world.css         — .worlds-page, .worlds-section, .region-grid, .region-card,
+                      .region-card__img, .region-card__footer, .region-card__top,
+                      .region-card__danger--*, .region-card__level, .region-card__sub
+  availability.css  — .avail, .avail__grid, .avail__cell, .avail__tip, .avail__bulk-bar,
+                      .avail__modal, .avail__scopes, .avail__backdrop
+  world-map.css     — .world-map-marker, .world-map-label
+  markdown.css      — .markdown-body (headings, lists, code, tables)
 ```
 
 ### Shared UI Components
@@ -823,39 +1075,53 @@ shared/ui/components/layout/
 
 ### ✅ Completed
 - [x] Core platform (RBAC, users, audit, settings, email)
-- [x] GameSystem (admin CRUD: systems, classes, subclasses, species, progression)
-- [x] Character Hub (full: creation, approval, classes, XP/gold/tokens, inventory, slot grants)
+- [x] GameSystem (refactored: gamesystem + dnd5e schemas, 7-tab Excel import with upsert)
+- [x] Character Hub (full: creation with species/background/classes, structural edit workflow,
+      multiclassing, character sheet with collapsible traits/features)
 - [x] DM Hub (profiles, role requests, DM rating, rules field)
-- [x] Quest System (core: full lifecycle, rewards breakdown, waitlist, co-DMs, result approval)
+- [x] Quest System (full lifecycle, rewards breakdown, waitlist, co-DMs, result approval)
 - [x] Marketplace (catalogue, import, buy/sell/reward flows, level restrictions, filters, sort)
 - [x] Character Inventory (snapshots, pending purchases, sell requests, admin removal with refund)
-- [x] World System (multi-world, regions with map markers, locations, wiki with markdown + revision history, DM wiki edit)
-- [x] Site branding (site.name, site.logo, site.footer — platform settings, live in nav/sidebar/footer)
-- [x] Quest region/location assignment UI (new + edit forms, DM + admin, world › region › location display)
-- [x] Notification System (bell icon, unread count, panel, mark read, mark all read, all approval triggers)
-- [x] Quest completion workflow (XP/gold/token CharacterTransactions, rest status, level-up detection, player notifications)
-- [x] DM rating system (1-5 stars + comment, per quest, gated by dm.ratingsEnabled, DM self-rating blocked)
-- [x] Sign-up level enforcement (character level checked against quest min/max on signup)
-- [x] Completed quest list (frontend /quests?tab=completed with Rate DM button)
-- [x] Quest region/location on all list pages (admin, frontend, DM dashboard)
+- [x] World System (multi-world, regions with map markers, locations, wiki + revision history)
+- [x] Site branding (site.name, site.logo, site.logoIcon, site.footer)
+- [x] Quest region/location assignment UI
+- [x] Notification System (bell icon, unread count, panel, mark read, mark all read)
+- [x] Quest completion workflow (XP/gold/token transactions, rest, level-up detection)
+- [x] DM rating system (1-5 stars, anonymous, gated by setting)
+- [x] Sign-up level enforcement
+- [x] Completed quest list with Rate DM button
 - [x] Rewards Engine (Achievements, item grants, destroyable inventory, Admin Rewards Hub)
-- [x] Quest item rewards (random item per player per ITEM reward, filter by rarity/category/maxValue)
-- [x] Quest completion workflow full (PENDING_RESULT_APPROVAL status, result resubmission)
-- [x] Item usage tracking (DM records during IN_PROGRESS, approved atomically with quest result)
-- [x] canSell enforcement (QUEST/ADMIN granted items not sellable, UI + server-side)
-- [x] Sell by unit quantity (when quantity > 1, number input shown)
-- [x] Admin Rewards Hub (/rewards, /rewards/achievements, /rewards/grant with search + randomize)
-- [x] Character achievements display (frontend + admin character pages)
-- [x] Completed quest rewards display (per-character actual grants: XP/gold/tokens/item)
+- [x] Quest item rewards (random item per player per ITEM reward)
+- [x] Item usage tracking (DM records during IN_PROGRESS)
+- [x] canSell enforcement
+- [x] Sell by unit quantity
+- [x] Character achievements display
+- [x] Completed quest rewards display
 - [x] Cancel signup blocked on active/completed quests
+- [x] Discord integration (slash commands, notifications, guild management)
+- [x] Admin nav driven by can_read permission check
+- [x] site.logoIcon setting for collapsed sidebar
+- [x] Frontend navigation redesign (3-group dropdown: Adventure, Campaign, Community)
+
+### ✅ Completed (added session 15)
+- [x] Admin character sheet — tabbed layout (Overview/Identity/Sheet/Inventory/Activity)
+- [x] Admin character Overview — stats, adjust currency inline, status management, pending changes banner
+- [x] Admin character Identity — direct edit species/background/classes (bypasses approval), multiclass support
+- [x] Admin character Sheet — collapsible traits/features, game system aware
+- [x] Admin character Inventory — table + remove with stock restore + marketplace transaction record
+- [x] Admin character Activity — full transaction log
+- [x] Clear rested button — `clearAllExpiredRest()` bulk clears expired RESTING characters
+- [x] Tabs CSS — `.tabs` / `.tab` / `.tab--active` added to site.css
+- [x] Journal layout redesign — sidebar nav with expand/collapse, mobile toggle, no more fixed left bar
+- [x] Journal role filter fix — `getUserRoleIds()` added to users DB API, properly filters by role ID
+- [x] Journal world filter fix — uses character worldIds instead of URL params
+- [x] Quest approval fix — `LEVEL_UP_PENDING` moved from CharacterStatus to CharacterStatusReason (status=PENDING + statusReason=LEVEL_UP_PENDING)
+- [x] Character level display fix — `totalLevel` now computed in `enrichCharacter` and returned on all character objects
+- [x] Inventory admin removal — creates MarketplaceTransaction record + restores stock + uses character userId for playerName
 
 ### ⬜ Pending
-- [ ] Availability — further testing needed
-- [ ] News/Journal — further testing needed
-- [ ] Discord — further testing needed
-- [x] site.logoIcon setting for collapsed sidebar — SVG/URL/emoji, works in both admin sidebar (collapsed) and frontend nav bar
-- [ ] DM dashboard quest filters (by status, date)
-- [x] Admin nav now driven by can_read permission check — roles with read access see the nav item automatically
+- [ ] World marketplace (per-world stock, price overrides, level restrictions)
+- [ ] DM dashboard quest filters (UI cleanup phase)
 
 ---
 
@@ -937,6 +1203,41 @@ Players connect Discord via **Profile → Connect Discord** → OAuth flow store
 ---
 
 ## Bug Fixes & Patches
+
+### Session 15 (2026-05-29)
+- Quest approval — `LEVEL_UP_PENDING` was used as `CharacterStatus` value; refactored to `status: PENDING` + `statusReason: LEVEL_UP_PENDING` matching session 13 schema
+- Character level display — `enrichCharacter` in `get-by-id.ts` now computes and returns `totalLevel`; DM hub server has defensive fallback from classes array
+- Inventory admin removal — `removeFromInventory` now creates `MarketplaceTransaction(SELL/APPROVED)` record and restores stock to correct marketplace item; uses `character.userId` not `characterId` for `requestedBy`
+- Journal — `getForUser` was receiving empty `roleIds` because `locals.permissions` is a Map not role array; added `getUserRoleIds(userId)` to users DB API; world filter was reading URL params instead of user character worldIds
+- Admin character sheet — full tabbed rewrite; `updateClasses` action uses named form fields (classId/subclassId/allocatedLevel) not JSON blob
+- Tabs CSS — `.tabs`, `.tab`, `.tab--active` added to `shared/ui/styles/components/site.css`
+
+### Session 14 (2026-05-28)
+- Availability heatmap — new `+page.svelte` with 7×48 CSS grid, dot pattern color scale (dark brown→gold),
+  SVG trend line with glow, click-only tooltip (pinned until dismissed), multi-select mode with floating
+  action bar + bulk modal, GLOBAL/WORLD scope, `?/setSlot`, `?/clearSlot`, `?/clearDay`, `?/setSlots` actions
+- Availability CSS — new `shared/ui/styles/components/availability.css`; mobile: `min-width:600px` with
+  horizontal scroll + sticky time labels; cells are `<button>` elements (a11y)
+- World route restructure — old `world/+page.*` moved to `world/[worldSlug]/+page.*`;
+  new `world/+page.*` shows one card per world with `mapImageUrl` thumbnail
+- World CSS — new `shared/ui/styles/components/world.css`; `.region-card` 3:4 aspect-ratio portrait cards
+  with full-bleed image, gradient footer, color bar, danger/level badges, staggered animation
+- Region page — back-link fixed to `/world/{worldSlug}`; static banner removed; `mapOpen` lightbox state;
+  🗺 World map + 🏔 Region map buttons in header
+
+### Session 13 (2026-05-28)
+- `CharacterStatusReason` enum — added `NEW_CHARACTER`, `EDIT_PENDING`
+- `Character` model — added `backgroundId String?`, `pendingChanges Json?`
+- `Dnd5eClassFeature` unique constraint — changed from `(classId, name)` to `(classId, name, requiredLevel)` to support same-name features at different levels (e.g. Ability Score Improvement)
+- `Dnd5eSubclassFeature` — same unique constraint fix
+- `Dnd5eClass.subclassAvailableAtLevel` — new field (default 3), controls when subclass selector appears
+- Import server — `toInt()` strips Excel apostrophe prefix; `boolVal()` handles all Excel boolean formats; `allowUpdate` checkbox explicit opt-in to overwrite
+- Game systems list — `isActive` toggle button; slug-based conditional dnd5e links (other systems show "Schema not yet built")
+- Progression page — new `/game-systems/[id]/progression` route; fixed `xpRequired=0` validation (was treated as falsy)
+- Character sheet — collapsible species traits, background, class features using `<details class="sheet-class">`
+- Frontend character page — single "Species, Background & Classes" card handles both structural edit (ACTIVE/RESTING) and level-up allocation (LEVEL_UP_PENDING); removed duplicate Classes card
+- `approve.ts` — uses `Prisma.JsonNull` for clearing `pendingChanges` field
+- Frontend nav — 3-group dropdown redesign; groups centered with absolute positioning; invisible bridge prevents premature dropdown close
 
 ### Session 7 (2026-05-25)
 - Admin settings page — per-field save (each setting has its own Save button, no more bulk wipe)

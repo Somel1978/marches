@@ -53,10 +53,13 @@ async function enrichCharacter(character: any) {
         return { ...cc, classRef, subclassRef, classFeatures, subclassFeatures };
     });
 
+    const totalLevel = enrichedClasses.reduce((sum: number, c: any) => sum + (c.allocatedLevel ?? 0), 0);
+
     return {
         ...character,
-        classes:    enrichedClasses,
-        speciesRef: speciesRecord,
+        classes:       enrichedClasses,
+        totalLevel,
+        speciesRef:    speciesRecord,
         backgroundRef: backgroundRecord,
     };
 }

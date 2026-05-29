@@ -36,6 +36,16 @@
     border-radius: var(--radius-sm);
   }
 
+
+  .nav-mobile__group-title {
+    padding: 0.625rem 1rem 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
   .nav-mobile__link:hover {
     background: var(--bg-overlay);
   }

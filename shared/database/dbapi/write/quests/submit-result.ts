@@ -165,16 +165,18 @@ export async function approveQuestResult(resultId: string, actorId: string) {
             const prevThreshold  = charThresholds.filter(t => t.xpRequired <= (char?.totalXp ?? 0)).at(-1);
             const nextThreshold  = charThresholds.filter(t => t.xpRequired <= newXp).at(-1);
             const leveledUp      = nextThreshold && nextThreshold.id !== prevThreshold?.id;
-            const newStatus      = leveledUp ? 'LEVEL_UP_PENDING' : 'RESTING';
+            const newStatus       = leveledUp ? 'PENDING'          : 'RESTING';
+            const newStatusReason = leveledUp ? 'LEVEL_UP_PENDING' : 'QUEST_REST';
 
             await tx.character.update({
                 where: { id: rc.characterId },
                 data: {
-                    totalXp:     { increment: xpToGrant },
-                    totalGold:   { increment: goldToGrant },
-                    totalTokens: { increment: tokensToGrant },
+                    totalXp:      { increment: xpToGrant },
+                    totalGold:    { increment: goldToGrant },
+                    totalTokens:  { increment: tokensToGrant },
                     restUntil,
-                    status:      newStatus as any,
+                    status:       newStatus as any,
+                    statusReason: newStatusReason as any,
                 },
             });
 

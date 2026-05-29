@@ -21,13 +21,10 @@
 @import './components/site.css';
 @import './components/gamesystem.css';
 @import './components/character.css';
-
 @import './components/nav-mobile.css';
-
 @import './components/world-map.css';
-
 @import './components/markdown.css';
-
 @import './components/notifications.css';
-
 @import './components/modal.css';
+@import './components/availability.css';
+@import './components/world.css';

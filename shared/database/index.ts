@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client';
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 import { getAll    as getAllUsers  } from './dbapi/read/users/get-all.ts';
-import { getById as getUserById, getUserByDiscordId } from './dbapi/read/users/get-by-id.ts';
+import { getById as getUserById, getUserByDiscordId, getUserRoleIds } from './dbapi/read/users/get-by-id.ts';
 import { createUser                } from './dbapi/write/users/create.ts';
 import { updateUser, updateUserDiscord } from './dbapi/write/users/update.ts';
 import { deleteUser                } from './dbapi/write/users/delete.ts';
@@ -127,7 +127,7 @@ import { approveCharacter, rejectCharacter       } from './dbapi/write/character
 import { deleteCharacter                             } from './dbapi/write/characters/delete.ts';
 import { adjustCurrency                              } from './dbapi/write/characters/adjust-currency.ts';
 import { grantCharacterSlot                      } from './dbapi/write/characters/slot-grant.ts';
-import { checkAndClearRest                       } from './dbapi/write/characters/check-rest.ts';
+import { checkAndClearRest, clearAllExpiredRest   } from './dbapi/write/characters/check-rest.ts';
 
 // ── Prisma client ─────────────────────────────────────────────────────────────
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
@@ -147,6 +147,7 @@ export const users = {
     getAll: getAllUsers, getById: getUserById,
     create: createUser, update: updateUser, updateDiscord: updateUserDiscord, delete: deleteUser, setPassword,
     getByDiscordId: getUserByDiscordId,
+    getRoleIds: getUserRoleIds,
 };
 
 export const roles = {
@@ -218,6 +219,7 @@ export const characters = {
     adjustCurrency,
     grantSlot:        grantCharacterSlot,
     checkRest:        checkAndClearRest,
+    clearExpiredRest: clearAllExpiredRest,
 };
 
 export const quests = {

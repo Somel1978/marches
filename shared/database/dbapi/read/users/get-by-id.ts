@@ -27,3 +27,8 @@ export async function getById(id: string) {
 export async function getUserByDiscordId(discordId: string) {
     return db.user.findFirst({ where: { discordId } });
 }
+
+export async function getUserRoleIds(userId: string): Promise<string[]> {
+    const rows = await db.userRole.findMany({ where: { userId }, select: { roleId: true } });
+    return rows.map(r => r.roleId);
+}
