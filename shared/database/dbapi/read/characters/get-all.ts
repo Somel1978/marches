@@ -4,16 +4,18 @@ import { db } from '../../../index.ts';
 export type GetAllCharactersOptions = {
     userId?:  string;
     status?:  string;
+    worldId?: string;
     page?:    number;
     perPage?: number;
 };
 
 export async function getAllCharacters({
-    userId, status, page = 1, perPage = 20,
+    userId, status, worldId, page = 1, perPage = 20,
 }: GetAllCharactersOptions = {}) {
     const where = {
-        ...(userId && { userId }),
-        ...(status && { status: status as any }),
+        ...(userId  && { userId }),
+        ...(status  && { status: status as any }),
+        ...(worldId && { worldId }),
     };
 
     const [items, total] = await db.$transaction([

@@ -1,17 +1,12 @@
 // apps/frontend/src/routes/(protected)/dm/+page.server.ts
-import { error } from '@sveltejs/kit';
-import { dms, quests, availability, characters } from '@core/database';
-import { checkPermission } from '@core/rbac';
+import { quests, availability, characters } from '@core/database';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	const can = checkPermission(locals.permissions, { resourceKey: 'DMProfile', action: 'read' });
-	if (!can.allowed) throw error(403, 'You need the DM role to access this area.');
+export const load: PageServerLoad = async ({ locals, parent }) => {
+	const { dmProfile } = await parent();
 
-	const profile  = await dms.profiles.getByUserId(locals.user!.id);
-	const myQuests = profile ? await quests.getByDM(profile.id) : [];
+	const myQuests = await quests.getByDM(dmProfile.id);
 
-	// Player availability for the next 7 days — grouped by date+slot
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
 	const weekEnd = new Date(today);
@@ -20,10 +15,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const allSlots = await availability.getAll(today, weekEnd);
 
-	// Enrich each slot with user's active characters
 	const userIds  = [...new Set(allSlots.map((s: any) => s.userId))];
 	const allChars = userIds.length
-		? (await Promise.all(userIds.map((uid: string) => characters.getByUserId(uid)))).flat()
+		? (await Promise.all((userIds as string[]).map((uid: string) => characters.getByUserId(uid)))).flat()
 		: [];
 	const charsByUser: Record<string, any[]> = {};
 	for (const c of allChars) {
@@ -33,10 +27,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		charsByUser[c.userId].push({ id: c.id, name: c.name, totalLevel });
 	}
 
-	// Group by date → slot → players
 	const playerAvailability: Record<string, Record<number, { userId: string; chars: any[]; scope: string; worldIds: string[] }[]>> = {};
 	for (const s of allSlots) {
-		if (s.userId === locals.user!.id) continue; // skip DM's own slots
+		if (s.userId === locals.user!.id) continue;
 		const dk = new Date(s.date).toISOString().split('T')[0];
 		if (!playerAvailability[dk]) playerAvailability[dk] = {};
 		if (!playerAvailability[dk][s.slot]) playerAvailability[dk][s.slot] = [];
@@ -48,5 +41,5 @@ export const load: PageServerLoad = async ({ locals }) => {
 		});
 	}
 
-	return { profile, quests: myQuests, playerAvailability };
+	return { quests: myQuests, playerAvailability };
 };

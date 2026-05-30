@@ -99,6 +99,23 @@ export async function updateRegion(
     });
 }
 
+export async function assignDMToWorld(worldId: string, dmProfileId: string, actorId: string, canManage = false) {
+    const existing = await db.worldDM.findUnique({ where: { worldId_dmProfileId: { worldId, dmProfileId } } });
+    if (existing) throw new ValidationError('DM already assigned to this world.');
+    return db.worldDM.create({ data: { worldId, dmProfileId, canManage, assignedBy: actorId } });
+}
+
+export async function updateWorldDMPermission(worldId: string, dmProfileId: string, canManage: boolean) {
+    return db.worldDM.update({
+        where: { worldId_dmProfileId: { worldId, dmProfileId } },
+        data:  { canManage },
+    });
+}
+
+export async function removeDMFromWorld(worldId: string, dmProfileId: string, actorId: string) {
+    return db.worldDM.delete({ where: { worldId_dmProfileId: { worldId, dmProfileId } } });
+}
+
 export async function assignDMToRegion(regionId: string, dmProfileId: string, actorId: string) {
     const existing = await db.regionDM.findUnique({ where: { regionId_dmProfileId: { regionId, dmProfileId } } });
     if (existing) throw new ValidationError('DM already assigned to this region.');

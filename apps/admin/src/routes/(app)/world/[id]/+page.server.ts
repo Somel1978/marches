@@ -1,6 +1,6 @@
 // apps/admin/src/routes/(app)/world/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { worlds } from '@core/database';
+import { worlds, dms } from '@core/database';
 import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -8,9 +8,12 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const can = checkPermission(locals.permissions, { resourceKey: 'World', action: 'read' });
 	if (!can.allowed) throw error(403, 'Forbidden');
-	const world = await worlds.getById(params.id);
+	const [world, allDMs] = await Promise.all([
+		worlds.getById(params.id),
+		dms.profiles.getAll(),
+	]);
 	if (!world) throw error(404, 'World not found');
-	return { world };
+	return { world, allDMs };
 };
 
 export const actions: Actions = {
@@ -26,6 +29,50 @@ export const actions: Actions = {
 				isActive:    data.get('isActive') === 'true',
 			}, locals.user!.id);
 			return { worldSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	assignDM: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'World', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data        = await request.formData();
+		const dmProfileId = data.get('dmProfileId')?.toString() ?? '';
+		const canManage   = data.get('canManage') === 'true';
+		try {
+			await worlds.assignDM(params.id, dmProfileId, locals.user!.id, canManage);
+			return { dmSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	updateDMPermission: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'World', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data        = await request.formData();
+		const dmProfileId = data.get('dmProfileId')?.toString() ?? '';
+		const canManage   = data.get('canManage') === 'true';
+		try {
+			await worlds.updateDMPermission(params.id, dmProfileId, canManage);
+			return { dmSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	removeDM: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'World', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const dmProfileId = data.get('dmProfileId')?.toString() ?? '';
+		try {
+			await worlds.removeDM(params.id, dmProfileId, locals.user!.id);
+			return { dmSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

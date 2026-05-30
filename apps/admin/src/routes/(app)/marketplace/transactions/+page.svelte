@@ -21,6 +21,24 @@
 	function e_reload() {
 		return async ({ update }: any) => { await update(); await invalidateAll(); };
 	}
+
+	// Build filter URL preserving other params
+	function filterUrl(params: Record<string, string | null>) {
+		const p = new URLSearchParams();
+		const current: Record<string, string | null> = {
+			status:  (data as any).status  ?? null,
+			worldId: (data as any).worldId ?? null,
+		};
+		const merged = { ...current, ...params };
+		for (const [k, v] of Object.entries(merged)) {
+			if (v) p.set(k, v);
+		}
+		const qs = p.toString();
+		return `/marketplace/transactions${qs ? '?' + qs : ''}`;
+	}
+
+	const currentStatus  = $derived((data as any).status  ?? null);
+	const currentWorldId = $derived((data as any).worldId ?? null);
 </script>
 
 <div class="page">
@@ -31,11 +49,37 @@
 		</div>
 	</div>
 
-	<div class="toolbar">
-		<a href="/marketplace/transactions" class="btn btn-ghost btn-sm">All</a>
-		<a href="/marketplace/transactions?status=PENDING"  class="btn btn-ghost btn-sm">Pending</a>
-		<a href="/marketplace/transactions?status=APPROVED" class="btn btn-ghost btn-sm">Approved</a>
-		<a href="/marketplace/transactions?status=REJECTED" class="btn btn-ghost btn-sm">Rejected</a>
+	<!-- Filters -->
+	<div class="card" style="margin-bottom:1.5rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
+		<!-- Status filter -->
+		<div class="field" style="margin:0; flex:0 0 auto;">
+			<span class="label">Status</span>
+			<div style="display:flex; gap:0.375rem; flex-wrap:wrap; margin-top:0.25rem;">
+				<a href={filterUrl({ status: null })} class="btn btn-sm {!currentStatus ? 'btn-primary' : 'btn-ghost'}">All</a>
+				<a href={filterUrl({ status: 'PENDING' })}  class="btn btn-sm {currentStatus === 'PENDING'  ? 'btn-primary' : 'btn-ghost'}">Pending</a>
+				<a href={filterUrl({ status: 'APPROVED' })} class="btn btn-sm {currentStatus === 'APPROVED' ? 'btn-primary' : 'btn-ghost'}">Approved</a>
+				<a href={filterUrl({ status: 'REJECTED' })} class="btn btn-sm {currentStatus === 'REJECTED' ? 'btn-primary' : 'btn-ghost'}">Rejected</a>
+			</div>
+		</div>
+
+		<!-- World filter -->
+		<div class="field" style="margin:0; flex:1; min-width:180px; max-width:260px;">
+			<label class="label" for="worldFilter">World</label>
+			<select id="worldFilter" class="input input--select"
+				onchange={(e) => { window.location.href = filterUrl({ worldId: (e.target as HTMLSelectElement).value || null }); }}>
+				<option value="">All worlds</option>
+				<option value="global" selected={currentWorldId === 'global'}>Global (no world)</option>
+				{#each ((data as any).activeWorlds ?? []) as w}
+					<option value={(w as any).id} selected={currentWorldId === (w as any).id}>{(w as any).name}</option>
+				{/each}
+			</select>
+		</div>
+
+		{#if currentStatus || currentWorldId}
+			<div style="padding-top:1.25rem;">
+				<a href="/marketplace/transactions" class="btn btn-ghost btn-sm">Clear filters</a>
+			</div>
+		{/if}
 	</div>
 
 	{#if form?.message}<div class="form-error">{form.message}</div>{/if}
@@ -47,6 +91,7 @@
 				<tr>
 					<th>Item</th>
 					<th>Character</th>
+					<th>World</th>
 					<th>Type</th>
 					<th>Qty</th>
 					<th>Price (GP)</th>
@@ -64,6 +109,13 @@
 						<td>
 							<span>{(tx as any).character?.name ?? tx.characterId}</span>
 							<span class="table__muted" style="display:block; font-size:0.8125rem;">{(tx as any).playerName}</span>
+						</td>
+						<td>
+							{#if (tx as any).worldName}
+								<span class="badge badge-accent">{(tx as any).worldName}</span>
+							{:else}
+								<span class="table__muted">Global</span>
+							{/if}
 						</td>
 						<td><span class="badge {typeColors[tx.type] ?? 'badge-muted'}">{tx.type}</span></td>
 						<td>{tx.quantity}</td>
@@ -90,7 +142,7 @@
 						</td>
 					</tr>
 				{:else}
-					<tr><td colspan="7" class="table__empty">No transactions.</td></tr>
+					<tr><td colspan="8" class="table__empty">No transactions.</td></tr>
 				{/each}
 			</tbody>
 		</table>

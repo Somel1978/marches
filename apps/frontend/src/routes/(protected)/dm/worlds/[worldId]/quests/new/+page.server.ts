@@ -1,0 +1,74 @@
+// apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/quests/new/+page.server.ts
+import { fail, redirect } from '@sveltejs/kit';
+import { quests, platform, dms } from '@core/database';
+import { isMarchesError } from '@core/errors';
+import type { Actions, PageServerLoad } from './$types';
+
+const ITEM_RARITIES   = ['Mundane','Common','Uncommon','Rare','Very_Rare','Legendary','Artifact','Unknown'];
+const ITEM_CATEGORIES = ['Combat','Consumable','Utility','Destroyable'];
+
+export const load: PageServerLoad = async ({ parent }) => {
+	const { dmProfile, myWorlds } = await parent();
+
+	const settings = await platform.getSettingsMap();
+
+	return {
+		dmProfile,
+		// myWorlds already has all regions + locations from getWorldsByDMProfile
+		allWorlds:      myWorlds,
+		itemRarities:   ITEM_RARITIES,
+		itemCategories: ITEM_CATEGORIES,
+		globalMinCap:   Number(settings['quest.minCapacity'] ?? 2),
+		globalMaxCap:   Number(settings['quest.maxCapacity'] ?? 6),
+		dmRules:        dmProfile.rules ?? '',
+	};
+};
+
+export const actions: Actions = {
+	default: async ({ request, locals }) => {
+		const dmProfile = await dms.profiles.getByUserId(locals.user!.id);
+		if (!dmProfile) return fail(403, { message: 'DM profile required.' });
+
+		const data           = await request.formData();
+		const title          = data.get('title')?.toString().trim()       ?? '';
+		const description    = data.get('description')?.toString().trim() ?? '';
+		const rules          = data.get('rules')?.toString().trim()       ?? '';
+		const scheduledRaw   = data.get('scheduledAt')?.toString()        || null;
+		const deadlineRaw    = data.get('signupDeadline')?.toString()     || null;
+		const scheduledAt    = scheduledRaw  ? new Date(scheduledRaw)  : null;
+		const signupDeadline = deadlineRaw   ? new Date(deadlineRaw)   : null;
+		const missionXp      = Number(data.get('missionXp')   ?? 0);
+		const minCapacity    = Number(data.get('minCapacity') ?? 2);
+		const maxCapacity    = Number(data.get('maxCapacity') ?? 6);
+		const minLevel       = Number(data.get('minLevel')    ?? 1);
+		const maxLevel       = Number(data.get('maxLevel')    ?? 20);
+		const regionId       = data.get('regionId')?.toString()   || undefined;
+		const locationId     = data.get('locationId')?.toString() || undefined;
+
+		if (!title) return fail(400, { message: 'Title is required.' });
+
+		const rewardTypes   = data.getAll('rewardType').map(v => v.toString());
+		const rewardAmounts = data.getAll('rewardAmount').map(v => Number(v));
+		const rewards = rewardTypes.map((type, i) => ({
+			type,
+			amount:       type === 'ITEM' ? 0 : (rewardAmounts[i] ?? 0),
+			itemRarity:   data.get(`itemRarity_${i}`)?.toString()   || undefined,
+			itemCategory: data.get(`itemCategory_${i}`)?.toString() || undefined,
+			itemMaxValue: Number(data.get(`itemMaxValue_${i}`) ?? 0) || undefined,
+		})).filter(r => r.type);
+
+		try {
+			const quest = await quests.create({
+				dmProfileId: dmProfile.id,
+				title, description: description || undefined, rules: rules || undefined,
+				scheduledAt, signupDeadline,
+				missionXp, minCapacity, maxCapacity, minLevel, maxLevel, rewards,
+				regionId, locationId,
+			}, locals.user!.id);
+			redirect(302, `/dm/quests/${quest.id}`);
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+};

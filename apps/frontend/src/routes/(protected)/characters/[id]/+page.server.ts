@@ -21,18 +21,40 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		achievements.getForCharacter(params.id),
 	]);
 
-	const pendingBuys  = pendingTx.items.filter((t: any) => t.type === 'BUY');
-	const pendingSells = pendingTx.items.filter((t: any) => t.type === 'SELL');
-	const sellPct      = Number(settings['marketplace.sellPricePercent'] ?? 50);
-	const worldId      = (character as any).worldId ?? null;
-	const worldName    = worldId ? await worlds.getById(worldId).then((w: any) => w?.name ?? null) : null;
+	const pendingBuys   = pendingTx.items.filter((t: any) => t.type === 'BUY');
+	const pendingSells  = pendingTx.items.filter((t: any) => t.type === 'SELL');
+	const globalSellPct = Number(settings['marketplace.sellPricePercent'] ?? 50);
+	const worldId       = (character as any).worldId ?? null;
+	const worldName     = worldId ? await worlds.getById(worldId).then((w: any) => w?.name ?? null) : null;
+
+	// Resolve world-level sell % and per-item price overrides
+	let worldSellPct = globalSellPct;
+	let worldItemMap: Record<string, any> = {};
+	if (worldId) {
+		const [worldSetting, worldItems] = await Promise.all([
+			marketplace.worldSettings.get(worldId),
+			marketplace.worldItems.getAll(worldId),
+		]);
+		if (worldSetting?.sellPricePercent != null) worldSellPct = worldSetting.sellPricePercent;
+		for (const wi of (worldItems as any[])) worldItemMap[wi.itemId] = wi;
+	}
+
+	// Attach effective sell price to each inventory slot
+	const inventoryWithSellPrice = (inventory as any[]).map((slot: any) => {
+		if (!slot.itemId || slot.livePrice == null) return { ...slot, effectiveSellPrice: null };
+		const wi             = worldItemMap[slot.itemId];
+		const effectivePrice = (wi?.priceOverride != null ? wi.priceOverride : slot.livePrice) as number;
+		return { ...slot, effectiveSellPrice: Math.floor(effectivePrice * worldSellPct / 100) };
+	});
+
+	const sellPct = globalSellPct; // kept for reference
 
 	// Progression thresholds from game system (already included in getById)
 	const progressionThresholds = (gameSystem as any)?.progressionThresholds ?? [];
 
 	return {
 		character, charAchievements, transactions, gameSystem, systemData,
-		inventory, pendingBuys, pendingSells, sellPct, worldName,
+		inventory: inventoryWithSellPrice, pendingBuys, pendingSells, sellPct, worldName,
 		progressionThresholds,
 	};
 };

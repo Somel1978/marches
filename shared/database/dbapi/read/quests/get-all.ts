@@ -4,16 +4,33 @@ import { db } from '../../../index.ts';
 export type GetAllQuestsOptions = {
     status?:      string;
     dmProfileId?: string;
+    worldId?:     string;
     page?:        number;
     perPage?:     number;
 };
 
 export async function getAllQuests({
-    status, dmProfileId, page = 1, perPage = 20,
+    status, dmProfileId, worldId, page = 1, perPage = 20,
 }: GetAllQuestsOptions = {}) {
+    // Quest has no Prisma relation to Region (cross-schema FK).
+    // Filter by worldId by first resolving the world's region IDs.
+    let regionIds: string[] | undefined;
+    if (worldId) {
+        const regions = await db.region.findMany({
+            where:  { worldId },
+            select: { id: true },
+        });
+        regionIds = regions.map(r => r.id);
+        // If the world has no regions, no quests can match
+        if (regionIds.length === 0) {
+            return { items: [], total: 0, page, perPage, totalPages: 0 };
+        }
+    }
+
     const where = {
         ...(status      && { status: status as any }),
         ...(dmProfileId && { dmProfileId }),
+        ...(regionIds   && { regionId: { in: regionIds } }),
     };
 
     const [items, total] = await db.$transaction([
@@ -40,10 +57,10 @@ export async function getAllQuests({
     const profileMap = Object.fromEntries(dmProfiles.map(p => [p.id, userMap[p.userId] ?? p.userId]));
 
     // Enrich with region/location names
-    const regionIds   = [...new Set(items.map(q => q.regionId).filter(Boolean))] as string[];
+    const enrichRegionIds   = [...new Set(items.map(q => q.regionId).filter(Boolean))] as string[];
     const locationIds = [...new Set(items.map(q => q.locationId).filter(Boolean))] as string[];
     const [regions, locations] = await Promise.all([
-        regionIds.length   ? db.region.findMany({ where: { id: { in: regionIds } }, select: { id: true, name: true, world: { select: { name: true } } } }) : [],
+        enrichRegionIds.length   ? db.region.findMany({ where: { id: { in: enrichRegionIds } }, select: { id: true, name: true, world: { select: { name: true } } } }) : [],
         locationIds.length ? db.location.findMany({ where: { id: { in: locationIds } }, select: { id: true, name: true } }) : [],
     ]);
     const regionMap   = Object.fromEntries((regions as any[]).map(r => [r.id, { name: r.name, worldName: r.world?.name ?? null }]));

@@ -8,7 +8,7 @@ import { queueDiscordNotification } from '../discord/dispatcher';
 
 const RARITY_ORDER = ['Mundane','Common','Uncommon','Rare','Very_Rare','Legendary','Artifact','Unknown'];
 
-async function checkLevelRestrictions(characterId: string, item: any, restrictions: any[]) {
+async function checkLevelRestrictions(characterId: string, item: any, effectivePrice: number, restrictions: any[]) {
     if (!restrictions?.length) return;
 
     const totalLevel = await db.characterClass.aggregate({
@@ -25,7 +25,7 @@ async function checkLevelRestrictions(characterId: string, item: any, restrictio
         if (itemIdx > maxIdx)
             throw new ValidationError(`Your character level (${level}) cannot purchase ${item.rarity} items.`);
     }
-    if (tier.maxValue !== undefined && item.buyPrice > tier.maxValue)
+    if (tier.maxValue !== undefined && tier.maxValue !== null && effectivePrice > tier.maxValue)
         throw new ValidationError(`Your character level (${level}) cannot purchase items above ${tier.maxValue} GP.`);
     if (tier.allowedCategories?.length && !tier.allowedCategories.includes(item.category))
         throw new ValidationError(`Your character level (${level}) cannot purchase ${item.category} items.`);
@@ -101,17 +101,21 @@ export async function createBuyTransaction(
     const item = await db.marketplaceItem.findUnique({ where: { id: itemId } });
     if (!item) throw new NotFoundError('MarketplaceItem', itemId);
 
-    const ctx = await resolveMarketplaceContext(itemId, worldId);
+    // Character's worldId is authoritative — a world-locked character always
+    // buys in their world's economy regardless of what the frontend sends.
+    const character = await db.character.findUnique({ where: { id: characterId } });
+    if (!character) throw new NotFoundError('Character', characterId);
+    const effectiveWorldId = character.worldId ?? worldId ?? null;
+
+    const ctx = await resolveMarketplaceContext(itemId, effectiveWorldId);
 
     if (!ctx.isAvailable) throw new ValidationError('Item is not available.');
     if (ctx.stockEnabled && ctx.stock !== null && ctx.stock < quantity)
         throw new ValidationError(`Only ${ctx.stock} in stock.`);
 
-    await checkLevelRestrictions(characterId, item, ctx.levelRestrictions);
+    await checkLevelRestrictions(characterId, item, ctx.price, ctx.levelRestrictions);
 
     const totalPrice = ctx.price * quantity;
-    const character  = await db.character.findUnique({ where: { id: characterId } });
-    if (!character) throw new NotFoundError('Character', characterId);
     if (character.totalGold < totalPrice)
         throw new ValidationError(`Insufficient gold — you have ${character.totalGold.toLocaleString()} GP but need ${totalPrice.toLocaleString()} GP.`);
 
@@ -142,14 +146,14 @@ export async function createBuyTransaction(
                 priceAtTransaction: ctx.price,
                 totalPrice,
                 requestedBy,
-                worldId:            worldId ?? null,
+                worldId:            effectiveWorldId ?? null,
             },
         });
 
         await createNotificationsForAdmins('MARKETPLACE_PENDING', 'Purchase request pending',
             `Purchase request for "${item.name}" ×${quantity} needs approval.`, '/marketplace/transactions');
         await logAudit(dbTx, { actorId: requestedBy, action: 'CREATE', resourceKey: 'MarketplaceTransaction',
-            resourceId: tx.id, after: { type: 'BUY', itemId, characterId, quantity, totalPrice, worldId } });
+            resourceId: tx.id, after: { type: 'BUY', itemId, characterId, quantity, totalPrice, worldId: effectiveWorldId } });
 
         return tx;
     });

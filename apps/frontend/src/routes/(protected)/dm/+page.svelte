@@ -24,9 +24,12 @@
 		<div>
 			<h2 class="page__title">DM Dashboard</h2>
 		</div>
-		<div style="display:flex; gap:0.5rem;">
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+			{#if ((data as any).myWorlds ?? []).length}
+				<a href="/dm/worlds" class="btn btn-ghost btn-sm">🌍 My Worlds</a>
+			{/if}
 			<a href="/dm/quests/new" class="btn btn-primary btn-sm">+ New quest</a>
-			<a href="/dm/profile" class="btn btn-ghost btn-sm">{data.profile ? 'Edit profile' : 'Create profile'}</a>
+			<a href="/dm/profile" class="btn btn-ghost btn-sm">{(data as any).dmProfile ? 'Edit profile' : 'Create profile'}</a>
 		</div>
 	</div>
 
@@ -92,6 +95,30 @@
 					{/each}
 				</tbody>
 			</table>
+		</div>
+	{/if}
+
+	<!-- Assigned worlds -->
+	{#if ((data as any).myWorlds ?? []).length}
+		<div class="card" style="margin-top:1.5rem;">
+			<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+				<h3 class="section-title" style="margin:0;">My Worlds</h3>
+				<a href="/dm/worlds" class="btn btn-ghost btn-sm">View all</a>
+			</div>
+			<div style="display:flex; flex-direction:column; gap:0.375rem;">
+				{#each (data as any).myWorlds as world}
+					<a href="/dm/worlds/{world.id}"
+						style="display:flex; align-items:center; gap:0.75rem; padding:0.5rem; border-radius:var(--radius-sm); background:var(--bg-elevated); text-decoration:none;">
+						<span style="font-weight:600; color:var(--text-primary);">{world.name}</span>
+						{#if !world.isActive}<span class="badge badge-muted">Inactive</span>{/if}
+						{#if world.canManage}
+							<span class="badge badge-accent" style="margin-left:auto;">Manage</span>
+						{:else}
+							<span class="badge badge-muted" style="margin-left:auto;">Quests only</span>
+						{/if}
+					</a>
+				{/each}
+			</div>
 		</div>
 	{/if}
 </div>

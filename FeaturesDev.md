@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-29 (session 15)
+> Last updated: 2026-05-29 (session 17)
 
 ---
 
@@ -57,7 +57,7 @@ marches/
                  QuestSignup, QuestResult, QuestResultCharacter (itemGrantedId/Name),
                  QuestItemUsage
 10 marketplace — MarketplaceItem, MarketplaceTransaction
-11 world       — World, Region, RegionDM, Location, WikiPage, WikiRevision
+11 world       — World, WorldDM (canManage Boolean), Region, RegionDM, Location, WikiPage, WikiRevision
 12 rewards     — Achievement, CharacterAchievement
 13 stats       — QuestStat (avgPartyLevel, playerCount, completedAt)
 14 availability — AvailabilitySlot (userId, date, slot 0-47, scope GLOBAL|WORLD, worldIds[])
@@ -94,7 +94,10 @@ marches/
 ✅ 18. Admin character sheet layout (tabbed)
 ✅ 19. World landing page card layout
 ✅ 20. World marketplace (per-world stock, price overrides, level restrictions) — schema + workflows + admin pages + frontend filter
-⬜ 21. DM dashboard quest filters (UI cleanup phase)
+✅ 21. World marketplace expansion — per-world level restrictions UI, world-lock enforcement, buy/sell world context, Discord world commands, transaction world filter
+✅ 22. World DM assignment — WorldDM model, assign/remove DMs at world level (same pattern as RegionDM)
+✅ 23. DM Hub world management — full world/region/location/wiki/marketplace/transactions/characters/quests/journal/audit per world, canManage flag, quest approval routing
+⬜ 24. DM dashboard quest filters (UI cleanup phase)
 ```
 
 ---
@@ -466,12 +469,17 @@ DRAFT → PENDING_APPROVAL → PUBLISHED → IN_PROGRESS
 
 **Models:**
 ```
-MarketplaceItem        — category, rarity, baseItem, isVariant,
-                         requiresAttunement, requirements, weight,
-                         source, imageUrl, link, description,
-                         buyPrice, isDestroyable, isAvailable, stock
-MarketplaceTransaction — type (BUY|SELL|REWARD), status (PENDING|APPROVED|REJECTED),
-                         priceAtTransaction, totalPrice, requestedBy, reviewedBy
+MarketplaceItem          — category, rarity, baseItem, isVariant,
+                           requiresAttunement, requirements, weight,
+                           source, imageUrl, link, description,
+                           buyPrice, isDestroyable, isAvailable, stock
+MarketplaceTransaction   — type (BUY|SELL|REWARD), status (PENDING|APPROVED|REJECTED),
+                           priceAtTransaction, totalPrice, requestedBy, reviewedBy,
+                           worldId String? (null = global)
+WorldMarketplaceItem     — worldId, itemId, stock Int?, isAvailable Boolean?, priceOverride Int?
+                           @@unique([worldId, itemId])
+WorldMarketplaceSetting  — worldId @@unique, sellPricePercent Int?, stockEnabled Boolean?,
+                           levelRestrictions Json?
 ```
 
 **Buy flow:**
@@ -508,7 +516,7 @@ Weight, Source, Image, Link (+ description field optional)
 ```
 /marketplace/items           — browse/filter/sort catalogue
 /marketplace/items/[id]      — edit price, stock, availability; delete
-/marketplace/transactions    — all transactions with approve/reject
+/marketplace/transactions    — all transactions with approve/reject; world + status filters; World column
 /marketplace/import          — xlsx upload
 /marketplace/settings        — sellPricePercent, stockEnabled, levelRestrictions
 ```
@@ -539,6 +547,7 @@ Weight, Source, Image, Link (+ description field optional)
 **Models:**
 ```
 World          — name, slug, description, mapImageUrl, isActive
+WorldDM        — worldId, dmProfileId (many-to-many assignment)
 Region         — worldId, name, slug, description, mapX, mapY,
                  color, minLevel, maxLevel, dangerRating, isActive, imageUrl
 RegionDM       — regionId, dmProfileId (many-to-many)
@@ -563,7 +572,7 @@ current content as a WikiRevision before overwriting. Rendered via
 **Admin routes:**
 ```
 /world                               — world list + create
-/world/[id]                          — edit world, map, region list + add region
+/world/[id]                          — edit world, map, region list + add region, assign/remove world DMs
 /world/[id]/regions/[regionId]       — edit region, assign DMs, wiki, locations
 /world/[id]/regions/[regionId]/locations/[locationId] — edit location, wiki
 /world/settings                      — showDangerRating, showLevelRange
@@ -727,7 +736,7 @@ Community:  News
 
 ---
 
-### 20. World Marketplace ⬜ (planned)
+### 20–22. World Marketplace ✅ (session 15–16)
 
 **Schema additions:**
 ```
@@ -945,6 +954,9 @@ quests.{getAll, getById, getByDM, getResult, create, update, updateRewards,
         delete, itemUsage.{submit, approve, reject, getForQuest}}
 achievements.{getAll, getForCharacter, create, update, grant, revoke}
 marketplace.items.{getAll, getById, getByName, upsert, update, delete, import}
+marketplace.worldItems.{getAll, upsert, delete}
+marketplace.worldSettings.{get, upsert}
+marketplace.resolveContext(itemId, worldId?)
 marketplace.transactions.{getAll, buy, sell, approve, reject, cancel, reward}
 stats.{getPlatform, getPublic, getUser}
 availability.{setSlots, clearDay, clearSlot, adminDelete, getForUser, getForQuest, getAll}
@@ -956,7 +968,7 @@ news.enrichers.{resolve, search}
 discord.servers.{getAll, getByScope, upsert, delete}
 discord.channels.{getForType, upsert, delete}
 discord.notifications.{getPending, markProcessed}
-worlds.{getAll, getBySlug, getById, create, update}
+worlds.{getAll, getBySlug, getById, create, update, assignDM, updateDMPermission, removeDM, getByDMProfile}
 worlds.regions.{getBySlug, getById, create, update, assignDM, removeDM}
 worlds.locations.{getBySlug, create, update}
 worlds.wiki.{get, upsert}
@@ -1119,6 +1131,55 @@ shared/ui/components/layout/
 - [x] Character level display fix — `totalLevel` now computed in `enrichCharacter` and returned on all character objects
 - [x] Inventory admin removal — creates MarketplaceTransaction record + restores stock + uses character userId for playerName
 
+### ✅ Completed (session 17)
+- [x] DM Hub layout — `+layout.server.ts` loads `dmProfile` + `myWorlds`, guards DM access
+- [x] DM Hub `/dm/worlds` — world list, auto-redirect if single world
+- [x] DM Hub `/dm/worlds/[worldId]` layout — world switcher, tab nav, `canManage` flag
+- [x] DM Hub `/dm/worlds/[worldId]` dashboard — summary stats, region quick-list
+- [x] DM Hub `/dm/worlds/[worldId]/edit` — world settings + map + region list + add region
+- [x] DM Hub `/dm/worlds/[worldId]/regions` — redirects to /edit (list is there)
+- [x] DM Hub `/dm/worlds/[worldId]/regions/[regionId]` — edit region, wiki, locations, add location
+- [x] DM Hub `/dm/worlds/[worldId]/regions/[regionId]/locations/[locationId]` — edit location + wiki
+- [x] DM Hub `/dm/worlds/[worldId]/marketplace` — world item overrides + settings + level restrictions
+- [x] DM Hub `/dm/worlds/[worldId]/transactions` — world-scoped, approve/reject gated by canManage
+- [x] DM Hub `/dm/worlds/[worldId]/characters` — list with Review (canManage) or View (quest-only)
+- [x] DM Hub `/dm/worlds/[worldId]/characters/[charId]` — full character sheet, diff highlights for EDIT_PENDING, approve/reject gated by canManage
+- [x] DM Hub `/dm/worlds/[worldId]/quests` — world quest list, approve/reject PENDING_APPROVAL + PENDING_RESULT_APPROVAL for canManage DMs; quest-only DMs see "Awaiting approval" badge
+- [x] DM Hub `/dm/worlds/[worldId]/quests/new` — new quest pre-scoped to world, uses myWorlds from layout (no extra DB call)
+- [x] DM Hub `/dm/worlds/[worldId]/journal` — world journals list + create
+- [x] DM Hub `/dm/worlds/[worldId]/journal/[journalId]` — full journal editor (sections, pages, enricher popup)
+- [x] DM Hub `/dm/worlds/[worldId]/audit` — audit log with resourceId/action/date filters
+- [x] `WorldDM.canManage Boolean @default(false)` — schema + db:push
+- [x] `worlds.getByDMProfile` — includes ALL regions + locations (no isActive filter)
+- [x] `worlds.updateDMPermission` — toggle canManage on existing assignments
+- [x] Admin world page — canManage select on assign form, inline toggle on existing DMs
+- [x] `getAllQuests` worldId filter — resolves regionIds first (cross-schema FK, no Prisma relation)
+- [x] `getAllJournals` — filtered by worldIds array in DM Hub
+- [x] `getAuditLogs` — resourceId filter added
+- [x] `getAllCharacters` — worldId filter added
+- [x] Quest approval routing — world quests approved by canManage DMs (not admin); global quests admin only; quest-only DMs have no approval rights
+- [x] DM Hub tab access — baseTabs (Dashboard, Quests, Characters, Transactions) always visible; manageTabs (Settings, Regions, Marketplace, Journal, Audit) canManage only
+- [x] DM dashboard — "My Worlds" button + worlds summary card
+
+### ✅ Completed (session 16)
+- [x] World marketplace — per-world level restrictions UI (tier editor in admin world marketplace page)
+- [x] World marketplace — world-lock enforcement at character level (item detail resolves context per selected character's world)
+- [x] World marketplace — listing page world filter preserves worldId on item links
+- [x] World marketplace — buy action enforced server-side via character.worldId (cannot be spoofed)
+- [x] World marketplace — sell price in character inventory uses world sellPricePercent (not hardcoded 50%)
+- [x] World marketplace — sell request cancel button on character inventory page
+- [x] World marketplace — admin transactions page: World column + world/status filter (composable, URL-persistent)
+- [x] World marketplace — level restrictions check uses ctx.price (effective world price) not global buyPrice
+- [x] Marketplace — minPrice + maxPrice filter collision fixed (both mapped same buyPrice key in Prisma where clause)
+- [x] Marketplace — minPrice filter broken for value 0 (JS falsiness on '0' string)
+- [x] Discord — /item command: world-aware pricing (server scope → world option → global)
+- [x] Discord — /buyitem command: world resolution chain restored (server scope → char lock → world option → global)
+- [x] Discord — /sellitem command: world resolution chain restored; sell% from origin world
+- [x] Discord — world option registered for /item, /buyitem, /sellitem slash commands
+- [x] World DM assignment — WorldDM model added to schema; worlds.assignDM / worlds.removeDM DB API
+- [x] World DM assignment — admin world [id] page: assign/remove DMs UI (same pattern as RegionDM)
+- [x] World DM assignment — getWorldById includes dms relation
+
 ### ⬜ Pending
 - [ ] DM dashboard quest filters (UI cleanup phase)
 - [ ] General UI cleanup / polish pass
@@ -1203,6 +1264,90 @@ Players connect Discord via **Profile → Connect Discord** → OAuth flow store
 ---
 
 ## Bug Fixes & Patches
+
+
+### Session 17 (2026-05-29)
+
+**Schema + DB**
+- `shared/database/prisma/world.prisma` — `WorldDM.canManage Boolean @default(false)` added
+- `shared/database/dbapi/read/world/get-worlds.ts` — `getWorldsByDMProfile` with canManage, all regions/locations; `getWorldById` includes dms
+- `shared/database/dbapi/write/world/worlds.ts` — `assignDMToWorld` accepts canManage; `updateWorldDMPermission` added
+- `shared/database/dbapi/read/characters/get-all.ts` — `worldId` filter added
+- `shared/database/dbapi/read/quests/get-all.ts` — `worldId` filter via region ID lookup (cross-schema); enrichRegionIds rename to avoid duplicate declaration
+- `shared/database/dbapi/read/audit/get-logs.ts` — `resourceId` filter added
+- `shared/database/index.ts` — `worlds.getByDMProfile`, `worlds.updateDMPermission` exported
+
+**Admin**
+- `apps/admin/src/routes/(app)/world/[id]/+page.server.ts` — `assignDM` reads canManage; `updateDMPermission` action added
+- `apps/admin/src/routes/(app)/world/[id]/+page.svelte` — canManage select on assign form; Access column with inline toggle in DM table
+
+**Frontend DM Hub — new routes**
+- `apps/frontend/src/routes/(protected)/dm/+layout.server.ts` — loads dmProfile + myWorlds
+- `apps/frontend/src/routes/(protected)/dm/+layout.svelte` — pass-through
+- `apps/frontend/src/routes/(protected)/dm/+page.server.ts` — uses parent() for profile; My Worlds section
+- `apps/frontend/src/routes/(protected)/dm/+page.svelte` — My Worlds button + summary card
+- `apps/frontend/src/routes/(protected)/dm/worlds/+page.server.ts` — auto-redirect if single world
+- `apps/frontend/src/routes/(protected)/dm/worlds/+page.svelte` — world grid cards
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/+layout.server.ts` — canManage from assignment
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/+layout.svelte` — world header, switcher, split tabs
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/+page.server.ts` — dashboard stats
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/+page.svelte` — stat cards, region list
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/edit/+page.server.ts` — world + region management
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/edit/+page.svelte`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/regions/+page.server.ts` — redirect to /edit
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/regions/[regionId]/+page.server.ts`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/regions/[regionId]/+page.svelte`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/regions/[regionId]/locations/[locationId]/+page.server.ts`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/regions/[regionId]/locations/[locationId]/+page.svelte`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/marketplace/+page.server.ts`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/marketplace/+page.svelte`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/transactions/+page.server.ts` — canManage passed; approve/reject gated
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/transactions/+page.svelte`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/characters/+page.server.ts` — canManage passed
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/characters/+page.svelte` — Review vs View vs Pending badge
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/characters/[charId]/+page.server.ts`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/characters/[charId]/+page.svelte` — diff highlights, canManage-gated approve/reject
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/quests/+page.server.ts` — approve/reject/approveResult/rejectResult actions for canManage DMs
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/quests/+page.svelte` — approval actions for canManage; awaiting badge for quest-only
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/quests/new/+page.server.ts` — uses myWorlds from layout
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/quests/new/+page.svelte` — world pre-selected via $effect.pre
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/journal/+page.server.ts`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/journal/+page.svelte`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/journal/[journalId]/+page.server.ts`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/journal/[journalId]/+page.svelte`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/audit/+page.server.ts`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/audit/+page.svelte`
+
+
+### Session 16 (2026-05-29)
+
+**World marketplace expansion**
+- `apps/frontend/src/routes/(protected)/marketplace/[id]/+page.server.ts` — resolves contexts for all character worlds in parallel; returns `contexts` map keyed by worldId + `urlWorldId`; buy action passes null worldId (DB enforces via character.worldId)
+- `apps/frontend/src/routes/(protected)/marketplace/[id]/+page.svelte` — character selector drives world context; price/sell/stock update reactively per selected character; buy button shows world-resolved price
+- `apps/frontend/src/routes/(protected)/marketplace/+page.server.ts` — minPrice/maxPrice null-check fix (was truthy check, broke on 0); worldId from URL param
+- `apps/frontend/src/routes/(protected)/marketplace/+page.svelte` — item links preserve worldId param
+- `shared/database/dbapi/read/marketplace/get-items.ts` — minPrice+maxPrice merged into single buyPrice object (was overwriting each other as separate spread keys)
+- `shared/database/dbapi/write/marketplace/transactions.ts` — `checkLevelRestrictions` signature adds `effectivePrice` param; call site passes `ctx.price`; maxValue null check fixed
+- `shared/database/dbapi/read/marketplace/get-transactions.ts` — `worldId` filter added (`'global'` → `WHERE world_id IS NULL`); enriched with world name via parallel query
+- `apps/admin/src/routes/(app)/marketplace/transactions/+page.server.ts` — worldId filter param; loads activeWorlds for dropdown
+- `apps/admin/src/routes/(app)/marketplace/transactions/+page.svelte` — World column added; world + status filters composable via `filterUrl()` helper; colspan 7→8
+- `apps/admin/src/routes/(app)/world/[id]/marketplace/+page.svelte` — level restrictions tier editor added (was missing despite server already saving levelRestrictions)
+- `apps/frontend/src/routes/(protected)/characters/[id]/+page.server.ts` — resolves worldSellPct + worldItemMap in parallel; attaches effectiveSellPrice to each inventory slot
+- `apps/frontend/src/routes/(protected)/characters/[id]/+page.svelte` — sell button uses effectiveSellPrice; cancel sell request button (uses existing ?/cancel action); cancelSuccess feedback message
+
+**Discord commands**
+- `apps/discord/src/commands/buyitem.ts` — worlds import + full world resolution chain restored (was stripped to char.worldId only)
+- `apps/discord/src/commands/sellitem.ts` — worlds import + full world resolution chain restored
+- `apps/discord/src/commands/item.ts` — world option added; resolveContext called; shows world price, sell price, stock, unavailability
+- `apps/discord/src/register-commands.ts` — world option registered for /item, /buyitem, /sellitem
+
+**World DM assignment**
+- `shared/database/prisma/world.prisma` — WorldDM model added; dms WorldDM[] relation added to World
+- `shared/database/dbapi/write/world/worlds.ts` — `assignDMToWorld`, `removeDMFromWorld` added
+- `shared/database/dbapi/read/world/get-worlds.ts` — `getWorldById` includes `dms` relation
+- `shared/database/index.ts` — worlds.assignDM / worlds.removeDM exported; import updated
+- `apps/admin/src/routes/(app)/world/[id]/+page.server.ts` — loads allDMs; assignDM + removeDM actions added
+- `apps/admin/src/routes/(app)/world/[id]/+page.svelte` — DM assignment section at bottom: assign dropdown (filtered to unassigned), table with remove button
 
 ### Session 15 (2026-05-29)
 - Quest approval — `LEVEL_UP_PENDING` was used as `CharacterStatus` value; refactored to `status: PENDING` + `statusReason: LEVEL_UP_PENDING` matching session 13 schema

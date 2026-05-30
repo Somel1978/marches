@@ -40,7 +40,8 @@ export const commands = [
         data: new SlashCommandBuilder()
             .setName('item')
             .setDescription('Show item details and live price')
-            .addStringOption(o => o.setName('name').setDescription('Item name').setRequired(true)),
+            .addStringOption(o => o.setName('name').setDescription('Item name').setRequired(true))
+            .addStringOption(o => o.setName('world').setDescription('Show world-specific pricing').setRequired(false)),
     },
     {
         data: new SlashCommandBuilder()
@@ -48,7 +49,8 @@ export const commands = [
             .setDescription('Purchase an item from the marketplace')
             .addStringOption(o => o.setName('character').setDescription('Character name').setRequired(true))
             .addStringOption(o => o.setName('item').setDescription('Item name').setRequired(true))
-            .addIntegerOption(o => o.setName('quantity').setDescription('Quantity to buy').setMinValue(1).setRequired(false)),
+            .addIntegerOption(o => o.setName('quantity').setDescription('Quantity to buy').setMinValue(1).setRequired(false))
+            .addStringOption(o => o.setName('world').setDescription('World market to buy from (global characters only)').setRequired(false)),
     },
     {
         data: new SlashCommandBuilder()
@@ -56,7 +58,8 @@ export const commands = [
             .setDescription('Sell an item from a character\'s inventory')
             .addStringOption(o => o.setName('character').setDescription('Character name').setRequired(true))
             .addStringOption(o => o.setName('item').setDescription('Item name').setRequired(true))
-            .addIntegerOption(o => o.setName('quantity').setDescription('Quantity to sell').setMinValue(1).setRequired(false)),
+            .addIntegerOption(o => o.setName('quantity').setDescription('Quantity to sell').setMinValue(1).setRequired(false))
+            .addStringOption(o => o.setName('world').setDescription('World market to sell on (global characters only)').setRequired(false)),
     },
     {
         data: new SlashCommandBuilder()

@@ -1,6 +1,6 @@
 // apps/admin/src/routes/(app)/marketplace/transactions/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { marketplace } from '@core/database';
+import { marketplace, worlds } from '@core/database';
 import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -9,10 +9,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const can = checkPermission(locals.permissions, { resourceKey: 'MarketplaceItem', action: 'read' });
 	if (!can.allowed) throw error(403, 'Forbidden');
 
-	const status = url.searchParams.get('status') ?? undefined;
-	const page   = Number(url.searchParams.get('page') ?? 1);
+	const status  = url.searchParams.get('status')  ?? undefined;
+	const worldId = url.searchParams.get('worldId') ?? undefined;
+	const page    = Number(url.searchParams.get('page') ?? 1);
 
-	return await marketplace.transactions.getAll({ status, page });
+	const [txData, allWorlds] = await Promise.all([
+		marketplace.transactions.getAll({ status, worldId, page }),
+		worlds.getAll(),
+	]);
+
+	return { ...txData, activeWorlds: (allWorlds as any[]).filter((w: any) => w.isActive), worldId: worldId ?? null };
 };
 
 export const actions: Actions = {

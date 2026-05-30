@@ -44,6 +44,7 @@ model World {
   updatedAt    DateTime @updatedAt      @map("updated_at")
 
   regions      Region[]
+  dms          WorldDM[]
 
   @@map("worlds")
   @@schema("world")
@@ -135,5 +136,19 @@ model WikiRevision {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("wiki_revisions")
+  @@schema("world")
+}
+
+model WorldDM {
+  id          String   @id @default(uuid())
+  worldId     String   @map("world_id")
+  world       World    @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  dmProfileId String   @map("dm_profile_id")
+  canManage   Boolean  @default(false) @map("can_manage")
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+  assignedBy  String   @map("assigned_by")
+
+  @@unique([worldId, dmProfileId])
+  @@map("world_dms")
   @@schema("world")
 }

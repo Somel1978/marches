@@ -142,7 +142,7 @@
 	{:else}
 		<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1rem;">
 			{#each data.items as item}
-				<a href="/marketplace/{item.id}" style="text-decoration:none; color:inherit;">
+				<a href="/marketplace/{item.id}{(data as any).worldId ? `?worldId=${(data as any).worldId}` : ''}" style="text-decoration:none; color:inherit;">
 					<div class="card" style="height:100%; display:flex; flex-direction:column; gap:0.5rem;">
 						{#if item.imageUrl}
 							<img src={item.imageUrl} alt={item.name} style="width:48px; height:48px; object-fit:contain; border-radius:var(--radius-sm);" />

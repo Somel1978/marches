@@ -226,5 +226,90 @@
 				</tbody>
 			</table>
 		</div>
+
+	<!-- DMs assigned to this world -->
+	<div class="card">
+		<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+			<h3 class="section-title" style="margin:0;">World DMs ({(data as any).world.dms?.length ?? 0})</h3>
+		</div>
+
+		<!-- Assign new DM -->
+		<form method="post" action="?/assignDM" use:enhance={() => {
+			return async ({ update }) => { await update(); await invalidateAll(); };
+		}}>
+			<div style="display:flex; gap:0.5rem; align-items:flex-end; margin-bottom:1rem; flex-wrap:wrap;">
+				<div class="field" style="margin:0; flex:1; min-width:180px;">
+					<label class="label" for="dmSelect">Assign DM</label>
+					<select id="dmSelect" name="dmProfileId" class="input input--select" required>
+						<option value="">Select DM…</option>
+						{#each ((data as any).allDMs ?? []) as dm}
+							{#if !((data as any).world.dms ?? []).some((d: any) => d.dmProfileId === dm.id)}
+								<option value={dm.id}>{dm.name ?? dm.user?.name ?? dm.id}</option>
+							{/if}
+						{/each}
+					</select>
+				</div>
+				<div class="field" style="margin:0; flex:0 0 auto;">
+					<label class="label" for="canManageNew">Can manage world</label>
+					<select id="canManageNew" name="canManage" class="input input--select" style="width:120px;">
+						<option value="false">Quest only</option>
+						<option value="true">Full access</option>
+					</select>
+				</div>
+				<button type="submit" class="btn btn-primary btn-sm" style="margin-bottom:0;">Assign</button>
+			</div>
+		</form>
+
+		{#if (form as any)?.dmSuccess}<div class="form-success" style="margin-bottom:0.75rem;">DM assignment updated.</div>{/if}
+
+		{#if ((data as any).world.dms ?? []).length}
+			<table class="table">
+				<thead>
+					<tr>
+						<th>DM</th>
+						<th>Access</th>
+						<th>Assigned</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each (data as any).world.dms as dm}
+						<tr>
+							<td>
+								{#each ((data as any).allDMs ?? []).filter((d: any) => d.id === dm.dmProfileId) as profile}
+									<strong>{profile.name ?? profile.user?.name ?? dm.dmProfileId}</strong>
+								{/each}
+							</td>
+							<td>
+								<form method="post" action="?/updateDMPermission" use:enhance={() => {
+									return async ({ update }) => { await update(); await invalidateAll(); };
+								}}>
+									<input type="hidden" name="dmProfileId" value={dm.dmProfileId} />
+									<div style="display:flex; gap:0.375rem; align-items:center;">
+										<select name="canManage" class="input input--select" style="width:120px; padding:0.25rem 0.5rem; font-size:0.8125rem;">
+											<option value="false" selected={!dm.canManage}>Quest only</option>
+											<option value="true"  selected={dm.canManage}>Full access</option>
+										</select>
+										<button type="submit" class="btn btn-ghost btn-sm">Save</button>
+									</div>
+								</form>
+							</td>
+							<td class="table__muted">{new Date(dm.assignedAt).toLocaleDateString()}</td>
+							<td class="table__action">
+								<form method="post" action="?/removeDM" use:enhance={() => {
+									return async ({ update }) => { await update(); await invalidateAll(); };
+								}}>
+									<input type="hidden" name="dmProfileId" value={dm.dmProfileId} />
+									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Remove</button>
+								</form>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		{:else}
+			<p class="table__empty">No DMs assigned to this world yet.</p>
+		{/if}
+	</div>
 	</div>
 </div>

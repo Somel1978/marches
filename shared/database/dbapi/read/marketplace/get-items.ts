@@ -28,8 +28,12 @@ export async function getMarketplaceItems({
         ...(rarity    && { rarity: rarity as any }),
         ...(available !== undefined && { isAvailable: available }),
         ...(search    && { name: { contains: search, mode: 'insensitive' } }),
-        ...(minPrice  !== undefined && { buyPrice: { gte: minPrice } }),
-        ...(maxPrice  !== undefined && { buyPrice: { lte: maxPrice } }),
+        ...((minPrice !== undefined || maxPrice !== undefined) && {
+            buyPrice: {
+                ...(minPrice !== undefined && { gte: minPrice }),
+                ...(maxPrice !== undefined && { lte: maxPrice }),
+            },
+        }),
         ...(source       && { source: { contains: source, mode: 'insensitive' } }),
         ...(attunement !== undefined && { requiresAttunement: attunement }),
     };

@@ -3,6 +3,7 @@ import { db } from '../../../index.ts';
 
 export type GetAuditLogsOptions = {
     resourceKey?: string;
+    resourceId?:  string;
     action?:      string;
     actorId?:     string;
     from?:        Date;
@@ -13,6 +14,7 @@ export type GetAuditLogsOptions = {
 
 export async function getAuditLogs({
     resourceKey,
+    resourceId,
     action,
     actorId,
     from,
@@ -27,6 +29,7 @@ export async function getAuditLogs({
 
     const where = {
         ...(resourceKey              && { resourceKey }),
+        ...(resourceId               && { resourceId }),
         ...(action                   && { action: action as any }),
         ...(actorId                  && { actorId }),
         ...(createdAt                && { createdAt }),

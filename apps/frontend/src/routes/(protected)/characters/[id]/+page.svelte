@@ -589,6 +589,7 @@
 			<h3 class="section-title" style="margin:0;">Inventory ({((data as any).inventory ?? []).length})</h3>
 		</div>
 		{#if (form as any)?.sellSuccess}<div class="form-success">Sell request submitted — awaiting admin approval.</div>{/if}
+		{#if (form as any)?.cancelSuccess}<div class="form-success">Request cancelled.</div>{/if}
 		{#if ((data as any).inventory ?? []).length}
 			<div style="display:flex; flex-direction:column; gap:0.75rem;">
 				{#each ((data as any).inventory ?? []) as inv}
@@ -636,13 +637,27 @@
 											<input type="hidden" name="quantity" value="1" />
 										{/if}
 										<button type="submit" class="btn btn-ghost btn-sm">
-											Sell ({inv.livePrice !== null ? Math.floor(inv.livePrice * 0.5).toLocaleString() : '?'} GP ea)
+											Sell ({inv.effectiveSellPrice !== null && inv.effectiveSellPrice !== undefined ? inv.effectiveSellPrice.toLocaleString() : inv.livePrice !== null ? Math.floor(inv.livePrice * 0.5).toLocaleString() : '?'} GP ea)
 										</button>
 									</div>
 								{/if}
 							</form>
 						{:else if ((data as any).pendingSells ?? []).some((t: any) => t.itemId === inv.itemId)}
-							<span class="badge badge-warning">Sell pending</span>
+							{@const pendingSell = ((data as any).pendingSells ?? []).find((t: any) => t.itemId === inv.itemId)}
+							<div style="display:flex; align-items:center; gap:0.5rem;">
+								<span class="badge badge-warning">Sell pending</span>
+								{#if pendingSell}
+									<form method="post" action="?/cancel" use:enhance={() => {
+										return async ({ update }) => { await update(); await invalidateAll(); };
+									}}>
+										<input type="hidden" name="txId" value={pendingSell.id} />
+										<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"
+											onclick={(e) => { if (!confirm('Cancel this sell request?')) e.preventDefault(); }}>
+											Cancel
+										</button>
+									</form>
+								{/if}
+							</div>
 						{/if}
 					</div>
 				{/each}

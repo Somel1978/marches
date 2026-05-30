@@ -67,13 +67,14 @@ import { createNotification, createNotificationsForAdmins,
          markNotificationRead, markAllNotificationsRead } from './dbapi/write/notifications/notifications.ts';
 
 // ── World ────────────────────────────────────────────────────────────────────────
-import { getAllWorlds, getWorldBySlug, getWorldById  } from './dbapi/read/world/get-worlds.ts';
+import { getAllWorlds, getWorldBySlug, getWorldById, getWorldsByDMProfile  } from './dbapi/read/world/get-worlds.ts';
 import { getRegionBySlug, getRegionById,
          getLocationBySlug                           } from './dbapi/read/world/get-regions.ts';
 import { getWikiPage                                 } from './dbapi/read/world/get-wiki.ts';
 import { createWorld, updateWorld, createRegion,
          updateRegion, assignDMToRegion,
-         removeDMFromRegion, createLocation,
+         removeDMFromRegion, assignDMToWorld,
+         updateWorldDMPermission, removeDMFromWorld, createLocation,
          updateLocation                              } from './dbapi/write/world/worlds.ts';
 import { upsertWikiPage                              } from './dbapi/write/world/wiki.ts';
 
@@ -287,8 +288,12 @@ export const worlds = {
     getAll:           getAllWorlds,
     getBySlug:        getWorldBySlug,
     getById:          getWorldById,
+    getByDMProfile:   getWorldsByDMProfile,
     create:           createWorld,
     update:           updateWorld,
+    assignDM:         assignDMToWorld,
+    updateDMPermission: updateWorldDMPermission,
+    removeDM:         removeDMFromWorld,
     regions: {
         getBySlug:    getRegionBySlug,
         getById:      getRegionById,
