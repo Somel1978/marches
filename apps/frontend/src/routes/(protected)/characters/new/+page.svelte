@@ -164,6 +164,23 @@
 
 		</div>
 
+		<!-- World assignment -->
+		{#if ((data as any).activeWorlds ?? []).length}
+			<div class="card" style="margin-top:1rem;">
+				<h3 class="section-title">World <span class="optional">(optional)</span></h3>
+				<p class="field-hint" style="margin-bottom:0.75rem;">Assign this character to a world. If left blank the character will be global.</p>
+				<div class="field">
+					<label class="label" for="worldId">World</label>
+					<select id="worldId" name="worldId" class="input input--select">
+						<option value="">Global (no world)</option>
+						{#each (data as any).activeWorlds as w}
+							<option value={w.id}>{w.name}</option>
+						{/each}
+					</select>
+				</div>
+			</div>
+		{/if}
+
 		<div class="form-actions" style="margin-top:1rem;">
 			<a href="/characters" class="btn btn-ghost">Cancel</a>
 			<button type="submit" class="btn btn-primary">Submit for approval</button>

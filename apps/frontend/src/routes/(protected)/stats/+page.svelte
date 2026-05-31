@@ -30,7 +30,8 @@
 			<div class="card">
 				<h3 class="section-title">Characters by progression</h3>
 				{#if pub.charsByLevel?.length}
-					<table class="table">
+					<div class="table-wrap">
+						<table class="table">
 						<thead><tr><th>Tier</th><th>Characters</th></tr></thead>
 						<tbody>
 							{#each pub.charsByLevel as row}
@@ -38,6 +39,7 @@
 							{/each}
 						</tbody>
 					</table>
+</div>
 				{:else}
 					<p class="table__empty">No progression data yet.</p>
 				{/if}
@@ -47,7 +49,8 @@
 			<div class="card">
 				<h3 class="section-title">Average party level per quest</h3>
 				{#if pub.questStats?.length}
-					<table class="table">
+					<div class="table-wrap">
+						<table class="table">
 						<thead><tr><th>#</th><th>Players</th><th>Avg level</th><th>Date</th></tr></thead>
 						<tbody>
 							{#each pub.questStats as qs, i}
@@ -60,6 +63,7 @@
 							{/each}
 						</tbody>
 					</table>
+</div>
 				{:else}
 					<p class="table__empty">No quest data yet.</p>
 				{/if}
@@ -69,7 +73,8 @@
 			<div class="card">
 				<h3 class="section-title">Top 10 most purchased items</h3>
 				{#if pub.topBought?.length}
-					<table class="table">
+					<div class="table-wrap">
+						<table class="table">
 						<thead><tr><th>Item</th><th>Units sold</th></tr></thead>
 						<tbody>
 							{#each pub.topBought as item}
@@ -77,6 +82,7 @@
 							{/each}
 						</tbody>
 					</table>
+</div>
 				{:else}
 					<p class="table__empty">No purchases yet.</p>
 				{/if}
@@ -86,7 +92,8 @@
 			<div class="card">
 				<h3 class="section-title">Top 10 most sold items</h3>
 				{#if pub.topSold?.length}
-					<table class="table">
+					<div class="table-wrap">
+						<table class="table">
 						<thead><tr><th>Item</th><th>Units sold</th></tr></thead>
 						<tbody>
 							{#each pub.topSold as item}
@@ -94,6 +101,7 @@
 							{/each}
 						</tbody>
 					</table>
+</div>
 				{:else}
 					<p class="table__empty">No sales yet.</p>
 				{/if}
@@ -104,7 +112,8 @@
 				<h3 class="section-title">Marketplace — last 6 months</h3>
 				{#if pub.purchasesPerMonth?.length || pub.salesPerMonth?.length}
 					{@const months = [...new Set([...pub.purchasesPerMonth.map((r: any) => r.month), ...pub.salesPerMonth.map((r: any) => r.month)])].sort()}
-					<table class="table">
+					<div class="table-wrap">
+						<table class="table">
 						<thead><tr><th>Month</th><th>Purchases</th><th>Sales</th></tr></thead>
 						<tbody>
 							{#each months as month}
@@ -118,6 +127,7 @@
 							{/each}
 						</tbody>
 					</table>
+</div>
 				{:else}
 					<p class="table__empty">No marketplace activity yet.</p>
 				{/if}
@@ -146,7 +156,8 @@
 		{#if user.charStats?.length}
 			<div class="card">
 				<h3 class="section-title">Per character</h3>
-				<table class="table">
+				<div class="table-wrap">
+					<table class="table">
 					<thead><tr><th>Character</th><th>Wealth</th><th>Purchases</th><th>Sales</th><th>Delta</th></tr></thead>
 					<tbody>
 						{#each user.charStats as c}
@@ -160,6 +171,7 @@
 						{/each}
 					</tbody>
 				</table>
+</div>
 			</div>
 		{/if}
 	{/if}

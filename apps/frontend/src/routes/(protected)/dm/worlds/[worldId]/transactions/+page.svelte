@@ -5,6 +5,7 @@
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const canManage = $derived((data as any).canManage === true);
 
 	const statusColors: Record<string, string> = {
 		PENDING:  'badge-warning',
@@ -48,7 +49,8 @@
 {#if form?.success}<div class="form-success">Done.</div>{/if}
 
 <div class="table-wrap card">
-	<table class="table">
+	<div class="table-wrap">
+		<table class="table">
 		<thead>
 			<tr>
 				<th>Item</th>
@@ -76,7 +78,7 @@
 					<td><strong>{tx.totalPrice.toLocaleString()}</strong></td>
 					<td><span class="badge {statusColors[tx.status] ?? 'badge-muted'}">{tx.status}</span></td>
 					<td class="table__action">
-						{#if tx.status === 'PENDING'}
+						{#if tx.status === 'PENDING' && canManage}
 							<div style="display:flex; gap:0.375rem; flex-wrap:wrap; justify-content:flex-end;">
 								<form method="post" action="?/approve" use:enhance={e_reload}>
 									<input type="hidden" name="id" value={tx.id} />
@@ -84,12 +86,14 @@
 								</form>
 								<form method="post" action="?/reject" use:enhance={e_reload}>
 									<input type="hidden" name="id" value={tx.id} />
-									<div style="display:flex; gap:0.25rem;">
+									<div style="display:flex; gap:0.25rem; flex-wrap:wrap">
 										<input name="note" type="text" class="input" placeholder="Reason" required style="width:120px;" />
 										<button type="submit" class="btn btn-danger btn-sm">Reject</button>
 									</div>
 								</form>
 							</div>
+						{:else if tx.status === 'PENDING'}
+							<span class="badge badge-warning">Awaiting approval</span>
 						{:else}
 							<span class="table__muted" style="font-size:0.8125rem;">{tx.reviewNote ?? '—'}</span>
 						{/if}
@@ -100,4 +104,5 @@
 			{/each}
 		</tbody>
 	</table>
+</div>
 </div>

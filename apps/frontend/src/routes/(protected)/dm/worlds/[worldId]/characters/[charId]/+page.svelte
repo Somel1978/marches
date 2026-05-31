@@ -71,7 +71,7 @@
 				<form method="post" action="?/approve" use:enhance={e_reload}>
 					<button type="submit" class="btn btn-primary btn-sm">Approve</button>
 				</form>
-				<form method="post" action="?/reject" use:enhance={e_reload} style="display:flex; gap:0.25rem;">
+				<form method="post" action="?/reject" use:enhance={e_reload} style="display:flex; gap:0.25rem; flex-wrap:wrap">
 					<input name="note" type="text" class="input" placeholder="Rejection reason" required style="width:180px;" />
 					<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Reject</button>
 				</form>
@@ -106,7 +106,7 @@
 			<div class="field" style={changed('speciesId') ? 'background:color-mix(in srgb, var(--color-warning) 12%, transparent); border-radius:var(--radius-sm); padding:0.5rem;' : ''}>
 				<span class="label">Species</span>
 				{#if changed('speciesId')}
-					<div style="display:flex; gap:0.5rem; align-items:center;">
+					<div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap">
 						<span class="table__muted" style="text-decoration:line-through;">{speciesName(char.speciesId)}</span>
 						<span style="color:var(--color-warning);">→</span>
 						<strong style="color:var(--color-warning);">{speciesName(pending.speciesId)}</strong>
@@ -120,7 +120,7 @@
 			<div class="field" style={changed('backgroundId') ? 'background:color-mix(in srgb, var(--color-warning) 12%, transparent); border-radius:var(--radius-sm); padding:0.5rem;' : ''}>
 				<span class="label">Background</span>
 				{#if changed('backgroundId')}
-					<div style="display:flex; gap:0.5rem; align-items:center;">
+					<div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap">
 						<span class="table__muted" style="text-decoration:line-through;">{backgroundName(char.backgroundId)}</span>
 						<span style="color:var(--color-warning);">→</span>
 						<strong style="color:var(--color-warning);">{backgroundName(pending.backgroundId)}</strong>
@@ -189,7 +189,8 @@
 	{#if (data as any).inventory?.length}
 		<div class="card">
 			<h3 class="section-title">Inventory ({(data as any).inventory.length} items)</h3>
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Item</th><th>Qty</th><th>Origin</th></tr></thead>
 				<tbody>
 					{#each (data as any).inventory as slot}
@@ -201,6 +202,77 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
+		</div>
+	{/if}
+
+	<!-- Character sheet — Species, Background & Features -->
+	{#if char.speciesRef || char.backgroundRef}
+		<div class="card">
+			<h3 class="section-title">Character sheet</h3>
+			{#if char.speciesRef}
+				{@const sp = char.speciesRef}
+				<details class="sheet-class">
+					<summary>
+						<span>{sp.name}</span>
+						{#if sp.isSubrace}<span class="badge badge-muted">Subrace</span>{/if}
+						{#if sp.isLegacy}<span class="badge badge-warning">Legacy</span>{/if}
+						{#if sp.traits?.length}<span class="sheet-class__count">{sp.traits.length} traits</span>{/if}
+					</summary>
+					{#if sp.description}<p class="sheet-panel__desc" style="margin:0.5rem 0;">{sp.description}</p>{/if}
+					{#if sp.traits?.length}
+						<div class="sheet-features">
+							{#each sp.traits as trait}
+								<div class="sheet-feature">
+									<div class="sheet-feature__name">
+										{#if trait.requiredLevel}<span class="badge badge-muted">Lv {trait.requiredLevel}</span>{/if}
+										<span>{trait.name}</span>
+									</div>
+									{#if trait.description}<p class="sheet-feature__desc">{trait.description}</p>{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</details>
+			{/if}
+			{#if char.backgroundRef}
+				{@const bg = char.backgroundRef}
+				<details class="sheet-class">
+					<summary>
+						<span>{bg.name}</span>
+						{#if bg.featureName}<span class="badge badge-accent">{bg.featureName}</span>{/if}
+					</summary>
+					{#if bg.shortDescription}<p class="sheet-panel__desc" style="margin:0.5rem 0;">{bg.shortDescription}</p>{/if}
+					<div class="sheet-panel__meta" style="margin-top:0.25rem;">
+						{#if bg.skillProficiencies}<div><span>Skills:</span> {bg.skillProficiencies}</div>{/if}
+						{#if bg.toolProficiencies}<div><span>Tools:</span> {bg.toolProficiencies}</div>{/if}
+						{#if bg.languages}<div><span>Languages:</span> {bg.languages}</div>{/if}
+					</div>
+				</details>
+			{/if}
+			{#each char.classes ?? [] as cc}
+				{#if cc.classRef && (cc.classFeatures?.length || cc.subclassFeatures?.length)}
+					<details class="sheet-class">
+						<summary>
+							<span>{cc.classRef.name}</span>
+							<span class="badge badge-muted">Lv {cc.allocatedLevel}</span>
+							{#if cc.subclassRef}<span class="badge badge-accent">{cc.subclassRef.name}</span>{/if}
+							<span class="sheet-class__count">{(cc.classFeatures?.length ?? 0) + (cc.subclassFeatures?.length ?? 0)} features</span>
+						</summary>
+						<div class="sheet-features">
+							{#each [...(cc.classFeatures ?? []), ...(cc.subclassFeatures ?? [])].sort((a,b) => a.requiredLevel - b.requiredLevel) as feat}
+								<div class="sheet-feature">
+									<div class="sheet-feature__name">
+										<span class="badge badge-muted">Lv {feat.requiredLevel}</span>
+										<span>{feat.name}</span>
+									</div>
+									{#if feat.description}<p class="sheet-feature__desc">{feat.description}</p>{/if}
+								</div>
+							{/each}
+						</div>
+					</details>
+				{/if}
+			{/each}
 		</div>
 	{/if}
 </div>

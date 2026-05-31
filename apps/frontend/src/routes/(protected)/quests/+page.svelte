@@ -18,7 +18,7 @@
 	</div>
 
 	<!-- Tabs -->
-	<div style="display:flex; gap:0.25rem; margin-bottom:1.5rem; border-bottom:1px solid var(--border-muted); padding-bottom:0;">
+	<div style="display:flex; gap:0.25rem; margin-bottom:1.5rem; border-bottom:1px solid var(--border-muted); padding-bottom:0; flex-wrap:wrap">
 		<a href="/quests?tab=open"
 			class="btn btn-ghost btn-sm"
 			style="border-radius:var(--radius-sm) var(--radius-sm) 0 0; {tab === 'open' ? 'border-bottom:2px solid var(--color-accent); color:var(--color-accent);' : ''}">
@@ -58,7 +58,7 @@
 							{/if}
 						</div>
 
-						<div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
+						<div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0; flex-wrap:wrap">
 							{#if tab === 'completed' && participatedIds.has(quest.id) && (data as any).ratingsEnabled}
 								{#if ratingMap[quest.id]}
 									<span style="font-size:0.875rem; color:var(--text-muted);">
@@ -96,7 +96,7 @@
 
 		<!-- Pagination -->
 		{#if data.totalPages > 1}
-			<div style="display:flex; justify-content:center; gap:0.5rem; margin-top:1.5rem;">
+			<div style="display:flex; justify-content:center; gap:0.5rem; margin-top:1.5rem; flex-wrap:wrap">
 				{#if data.page > 1}
 					<a href="?tab={tab}&page={data.page - 1}" class="btn btn-ghost btn-sm">← Prev</a>
 				{/if}

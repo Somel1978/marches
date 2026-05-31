@@ -34,7 +34,8 @@
 	{#if pending.length}
 		<h3 class="section-title">Pending</h3>
 		<div class="table-wrap card" style="margin-bottom:1.5rem;">
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead>
 					<tr>
 						<th>User</th>
@@ -74,7 +75,7 @@
 									<form method="post" action="?/reject"
 										use:enhance={() => { return async ({ update }) => { await update(); await invalidateAll(); }; }}>
 										<input type="hidden" name="id" value={req.id} />
-										<div style="display:flex; gap:0.375rem; align-items:center;">
+										<div style="display:flex; gap:0.375rem; align-items:center; flex-wrap:wrap">
 											<input name="note" type="text" class="input" placeholder="Reason" required style="width:160px;" />
 											<button type="submit" class="btn btn-danger btn-sm">Reject</button>
 										</div>
@@ -85,6 +86,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		</div>
 	{:else}
 		<div class="card" style="text-align:center; padding:2rem; margin-bottom:1.5rem;">
@@ -95,7 +97,8 @@
 	{#if resolved.length}
 		<h3 class="section-title">Resolved</h3>
 		<div class="table-wrap card">
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead>
 					<tr>
 						<th>User</th>
@@ -118,6 +121,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		</div>
 	{/if}
 </div>

@@ -89,7 +89,7 @@
 				<p class="label" style="margin-bottom:0.5rem;">Servers the bot is in:</p>
 				<div style="display:flex; flex-direction:column; gap:0.375rem;">
 					{#each botGuilds as guild}
-						<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.5rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
+						<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.5rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-md); flex-wrap:wrap">
 							<div>
 								<span style="font-weight:600; font-size:0.875rem;">{guild.name}</span>
 								<span class="table__muted" style="font-size:0.75rem; margin-left:0.5rem;">{guild.id}</span>
@@ -154,7 +154,7 @@
 						ID: {server.guildId} · Scope: {server.scope === 'global' ? 'Global' : worlds.find((w: any) => w.id === server.scope)?.name ?? server.scope}
 					</p>
 				</div>
-				<div style="display:flex; gap:0.5rem;">
+				<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 					<button type="button" class="btn btn-ghost btn-sm"
 						onclick={() => fetchChannels(server.guildId)}
 						disabled={channelsLoading[server.guildId]}>

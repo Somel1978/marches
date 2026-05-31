@@ -103,7 +103,7 @@
 			{#if cls.features?.length}
 				<div style="display:flex; flex-direction:column; gap:0.375rem; margin-bottom:0.75rem;">
 					{#each cls.features as f}
-						<div style="display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
+						<div style="display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-md); flex-wrap:wrap">
 							<span class="badge badge-muted">Lv {f.requiredLevel}</span>
 							<span style="flex:1; font-weight:500;">{f.name}</span>
 							{#if f.url}<a href={f.url} target="_blank" class="btn btn-ghost btn-sm" style="font-size:0.75rem;">↗</a>{/if}
@@ -143,7 +143,7 @@
 			<h3 class="section-title">Subclasses ({cls.subclasses?.length ?? 0})</h3>
 			{#each cls.subclasses ?? [] as sub}
 				<div style="margin-bottom:0.5rem; border:1px solid var(--border-muted); border-radius:var(--radius-md); overflow:hidden;">
-					<div style="display:flex; align-items:center; gap:0.5rem; padding:0.625rem 0.75rem; background:var(--bg-overlay);">
+					<div style="display:flex; align-items:center; gap:0.5rem; padding:0.625rem 0.75rem; background:var(--bg-overlay); flex-wrap:wrap">
 						<button type="button" style="flex:1; text-align:left; background:none; border:none; cursor:pointer; font-weight:600; font-size:0.875rem;"
 							onclick={() => expandedSubclass = expandedSubclass === sub.id ? null : sub.id}>
 							{sub.name}
@@ -164,7 +164,7 @@
 							{#if sub.features?.length}
 								<div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.5rem;">
 									{#each sub.features as sf}
-										<div style="display:flex; align-items:center; gap:0.5rem; padding:0.375rem 0.5rem; background:var(--bg-surface); border-radius:var(--radius-sm);">
+										<div style="display:flex; align-items:center; gap:0.5rem; padding:0.375rem 0.5rem; background:var(--bg-surface); border-radius:var(--radius-sm); flex-wrap:wrap">
 											<span class="badge badge-muted">Lv {sf.requiredLevel}</span>
 											<span style="flex:1; font-size:0.8125rem;">{sf.name}</span>
 											<form method="post" action="?/deleteSubclassFeature" use:enhance={() => {

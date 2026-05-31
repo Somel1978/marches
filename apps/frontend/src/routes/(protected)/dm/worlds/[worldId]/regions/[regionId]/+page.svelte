@@ -181,7 +181,8 @@
 	{/if}
 
 	{#if data.region.locations.length}
-		<table class="table">
+		<div class="table-wrap">
+			<table class="table">
 			<thead><tr><th>Name</th><th>Type</th><th>Danger</th><th class="col-hide-mobile">Levels</th><th></th></tr></thead>
 			<tbody>
 				{#each data.region.locations as loc}
@@ -199,6 +200,7 @@
 				{/each}
 			</tbody>
 		</table>
+</div>
 	{:else}
 		<p class="table__empty">No locations yet.</p>
 	{/if}

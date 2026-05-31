@@ -42,7 +42,7 @@
 					<p class="field-hint" style="margin-bottom:0.5rem;">DMs can see and mark items in these categories as used during an active quest.</p>
 					<div style="display:flex; flex-wrap:wrap; gap:0.75rem;">
 						{#each ['Combat','Consumable','Utility','Destroyable'] as cat}
-							<label style="display:flex; align-items:center; gap:0.375rem; cursor:pointer; font-size:0.875rem;">
+							<label style="display:flex; align-items:center; gap:0.375rem; cursor:pointer; font-size:0.875rem; flex-wrap:wrap">
 								<input type="checkbox" name="quest.destroyableCategories[]" value={cat}
 									checked={selected.includes(cat)} />
 								{cat}

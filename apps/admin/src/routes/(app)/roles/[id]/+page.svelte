@@ -98,7 +98,8 @@
 		<input type="hidden" name="permissions" value={serialized} />
 
 		<div class="matrix-wrap card">
-			<table class="matrix">
+			<div class="table-wrap">
+				<table class="matrix">
 				<thead>
 					<tr>
 						<th class="matrix__resource">Resource</th>
@@ -155,6 +156,7 @@
 					{/each}
 				</tbody>
 			</table>
+			</div>
 		</div>
 
 		{#if !locked}

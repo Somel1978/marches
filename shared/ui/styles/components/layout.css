@@ -120,6 +120,8 @@
     gap: 1.5rem;
     align-items: start;
   }
+  /* Grid children must have min-width:0 or they expand beyond the column */
+  .sections > * { min-width: 0; }
   @media (max-width: 768px) {
     .sections { grid-template-columns: 1fr; }
   }

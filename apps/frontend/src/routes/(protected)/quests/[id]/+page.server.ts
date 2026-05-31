@@ -59,9 +59,12 @@ export const actions: Actions = {
 		const characterId = data.get('characterId')?.toString() ?? '';
 		if (!characterId) return fail(400, { message: 'Select a character.' });
 		try {
+			// Guard: only PUBLISHED quests accept signups
+			const questForCheck = await quests.getById(params.id);
+			if (!questForCheck || questForCheck.status !== 'PUBLISHED')
+				return fail(400, { message: 'This quest is no longer accepting signups.' });
 			// World lock check
 			const char = await characters.getById(characterId);
-			const questForCheck = await quests.getById(params.id);
 			if (char && questForCheck) {
 				const questWorld = (questForCheck as any).worldId ?? null;
 				if (questWorld) {

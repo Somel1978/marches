@@ -104,7 +104,7 @@
 		<div class="card">
 			<h3 class="section-title">Assigned DMs</h3>
 			{#each data.region.dms as rdm}
-				<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0;">
+				<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0; flex-wrap:wrap">
 					<span>{data.allDMs.find((d: any) => d.id === rdm.dmProfileId)?.user?.name ?? rdm.dmProfileId}</span>
 					<form method="post" action="?/removeDM" use:enhance={e_reload}>
 						<input type="hidden" name="dmProfileId" value={rdm.dmProfileId} />
@@ -120,7 +120,7 @@
 			{/each}
 			{#if availableDMs.length}
 				<form method="post" action="?/assignDM" use:enhance={e_reload} style="margin-top:0.75rem;">
-					<div style="display:flex; gap:0.5rem;">
+					<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 						<select name="dmProfileId" class="input" style="flex:1;">
 							<option value="">Select DM…</option>
 							{#each availableDMs as dm}
@@ -214,7 +214,8 @@
 		{/if}
 
 		{#if data.region.locations.length}
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Name</th><th>Type</th><th>Danger</th><th class="col-hide-mobile">Levels</th><th></th></tr></thead>
 				<tbody>
 					{#each data.region.locations as loc}
@@ -230,6 +231,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		{:else}
 			<p class="table__empty">No locations yet.</p>
 		{/if}

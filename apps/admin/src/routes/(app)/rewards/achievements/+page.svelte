@@ -44,7 +44,8 @@
 
 	<div class="card">
 		{#if data.achievements.length}
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Icon</th><th>Name</th><th>Description</th><th>Status</th><th></th></tr></thead>
 				<tbody>
 					{#each data.achievements as a}
@@ -66,6 +67,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		{:else}
 			<p class="table__empty">No achievements defined yet.</p>
 		{/if}

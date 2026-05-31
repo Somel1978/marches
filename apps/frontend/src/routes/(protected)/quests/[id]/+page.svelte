@@ -30,7 +30,7 @@
 	</div>
 
 	{#if (data.quest as any).regionName}
-		<div style="display:flex; align-items:center; gap:0.375rem; margin-bottom:0.75rem; font-size:0.875rem;">
+		<div style="display:flex; align-items:center; gap:0.375rem; margin-bottom:0.75rem; font-size:0.875rem; flex-wrap:wrap">
 			<span>📍</span>
 			{#if (data.quest as any).worldName}
 				<span style="color:var(--text-secondary);">{(data.quest as any).worldName}</span>
@@ -73,20 +73,22 @@
 			{#if data.quest.status === 'COMPLETED'}
 				<h3 class="section-title">Rewards granted</h3>
 				{#if (data as any).resultCharacters?.length}
-					<table class="table">
-						<thead><tr><th>Character</th><th>XP</th><th>Gold</th><th>Tokens</th><th>Item</th></tr></thead>
-						<tbody>
-							{#each (data as any).resultCharacters as rc}
-								<tr>
-									<td style="font-weight:600;">{rc.characterName}</td>
-									<td>{rc.xpAwarded?.toLocaleString() ?? '0'}</td>
-									<td>{rc.goldAwarded?.toLocaleString() ?? '0'}</td>
-									<td>{rc.tokensAwarded?.toLocaleString() ?? '0'}</td>
-									<td>{rc.itemGrantedName ?? '—'}</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
+					<div class="table-wrap">
+						<table class="table">
+							<thead><tr><th>Character</th><th>XP</th><th>Gold</th><th>Tokens</th><th>Item</th></tr></thead>
+							<tbody>
+								{#each (data as any).resultCharacters as rc}
+									<tr>
+										<td style="font-weight:600;">{rc.characterName}</td>
+										<td>{rc.xpAwarded?.toLocaleString() ?? '0'}</td>
+										<td>{rc.goldAwarded?.toLocaleString() ?? '0'}</td>
+										<td>{rc.tokensAwarded?.toLocaleString() ?? '0'}</td>
+										<td>{rc.itemGrantedName ?? '—'}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
 				{:else}
 					<p class="table__empty">No reward records for this quest.</p>
 				{/if}
@@ -157,7 +159,7 @@
 				</div>
 			{/each}
 		</div>
-	{:else if data.eligible.length}
+	{:else if data.eligible.length && data.quest.status === 'PUBLISHED'}
 		<div class="card">
 			<h3 class="section-title">{isFull ? 'Join waitlist' : 'Sign up'}</h3>
 			<form method="post" action="?/signup" use:enhance={() => {
@@ -223,7 +225,7 @@
 		<div class="card" id="rate">
 			<h3 class="section-title">Rate the DM</h3>
 			{#if (data as any).existingRating}
-				<div style="display:flex; align-items:center; gap:0.5rem;">
+				<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap">
 					<span style="font-size:1.5rem;">{'★'.repeat((data as any).existingRating.rating)}{'☆'.repeat(5 - (data as any).existingRating.rating)}</span>
 					<span style="font-size:0.875rem; color:var(--text-muted);">You rated this DM {(data as any).existingRating.rating}/5</span>
 				</div>
@@ -237,7 +239,7 @@
 					<div class="fields">
 						<div class="field">
 							<p class="label" style="margin-bottom:0.375rem;">Rating</p>
-							<div style="display:flex; gap:0.25rem;" role="radiogroup" aria-label="Star rating">
+							<div style="display:flex; gap:0.25rem; flex-wrap:wrap" role="radiogroup" aria-label="Star rating">
 								{#each [1,2,3,4,5] as n}
 									<button
 										type="button"

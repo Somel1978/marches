@@ -115,7 +115,7 @@
 		</div>
 		<div class="field" style="margin:0;">
 			<label class="label" for="f-sortby">Sort by</label>
-			<div style="display:flex; gap:0.375rem;">
+			<div style="display:flex; gap:0.375rem; flex-wrap:wrap">
 				<select id="f-sortby" name="sortBy" class="input input--select" style="flex:1;">
 					<option value="name"     selected={param('sortBy') === 'name'    || !param('sortBy')}>Name</option>
 					<option value="buyPrice" selected={param('sortBy') === 'buyPrice'}>Price</option>
@@ -129,7 +129,7 @@
 				</select>
 			</div>
 		</div>
-		<div style="display:flex; gap:0.5rem;">
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 			<button type="submit" class="btn btn-primary btn-sm">Apply filters</button>
 			<a href="/marketplace" class="btn btn-ghost btn-sm">Reset</a>
 		</div>

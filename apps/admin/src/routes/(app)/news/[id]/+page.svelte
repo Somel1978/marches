@@ -70,7 +70,7 @@
 			</div>
 
 			<div class="card">
-				<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+				<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; flex-wrap:wrap">
 					<h3 class="section-title" style="margin:0;">Content</h3>
 					<button type="button" class="btn btn-ghost btn-sm" onclick={() => showPreview = !showPreview}>
 						{showPreview ? 'Edit' : 'Preview'}

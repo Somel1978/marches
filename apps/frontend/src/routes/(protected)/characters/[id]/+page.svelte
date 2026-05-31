@@ -363,7 +363,7 @@
 							{/each}
 						</div>
 						<div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.75rem; flex-wrap:wrap; gap:0.5rem;">
-							<div style="display:flex; align-items:center; gap:0.75rem;">
+							<div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap">
 								<button type="button" class="btn btn-ghost btn-sm" onclick={addClass}>+ Add class</button>
 								<span class="table__muted" style="font-size:0.8125rem;">
 									Allocated: <strong>{allocTotal}</strong>
@@ -629,7 +629,7 @@
 									<input type="hidden" name="quantity" value="1" />
 									<span class="badge badge-muted" title="Granted as reward — cannot be sold">Not sellable</span>
 								{:else}
-									<div style="display:flex; align-items:center; gap:0.5rem;">
+									<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap">
 										{#if inv.quantity > 1}
 											<input type="number" name="quantity" class="input" min="1" max={inv.quantity}
 												value="1" style="width:60px; padding:0.25rem 0.5rem; font-size:0.8rem;" />
@@ -644,7 +644,7 @@
 							</form>
 						{:else if ((data as any).pendingSells ?? []).some((t: any) => t.itemId === inv.itemId)}
 							{@const pendingSell = ((data as any).pendingSells ?? []).find((t: any) => t.itemId === inv.itemId)}
-							<div style="display:flex; align-items:center; gap:0.5rem;">
+							<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap">
 								<span class="badge badge-warning">Sell pending</span>
 								{#if pendingSell}
 									<form method="post" action="?/cancel" use:enhance={() => {
@@ -671,7 +671,8 @@
 	{#if data.transactions.length}
 		<div class="card">
 			<h3 class="section-title">Recent activity</h3>
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead>
 					<tr>
 						<th>Type</th>
@@ -697,6 +698,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		</div>
 	{/if}
 
@@ -730,7 +732,7 @@
 			<h3 class="section-title">Achievements</h3>
 			<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
 				{#each (data as any).charAchievements as g}
-					<div style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-sm); border:1px solid var(--border-muted);" title={g.note ?? g.achievement?.description ?? ''}>
+					<div style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-sm); border:1px solid var(--border-muted); flex-wrap:wrap" title={g.note ?? g.achievement?.description ?? ''}>
 						<span style="font-size:1.125rem;">{g.achievement?.icon ?? '🏆'}</span>
 						<span style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">{g.achievement?.name ?? g.achievementId}</span>
 					</div>

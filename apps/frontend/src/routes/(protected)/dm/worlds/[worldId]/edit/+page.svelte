@@ -80,7 +80,7 @@
 		<div class="page__header" style="margin-bottom:1rem;">
 			<h3 class="section-title" style="margin:0;">Map</h3>
 			{#if placingMarker}
-				<div style="display:flex; align-items:center; gap:0.5rem;">
+				<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap">
 					<span class="badge badge-warning">Click map to place marker</span>
 					<button class="btn btn-ghost btn-sm" onclick={() => placingMarker = null}>Cancel</button>
 				</div>
@@ -167,7 +167,8 @@
 	{/if}
 
 	<div class="table-wrap">
-		<table class="table">
+		<div class="table-wrap">
+			<table class="table">
 			<thead>
 				<tr>
 					<th>Region</th><th>Danger</th>
@@ -180,7 +181,7 @@
 				{#each world.regions as region}
 					<tr>
 						<td>
-							<div style="display:flex; align-items:center; gap:0.5rem;">
+							<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap">
 								<div style="width:12px; height:12px; border-radius:50%; background:{region.color}; flex-shrink:0;"></div>
 								<span class="table__name">{region.name}</span>
 							</div>
@@ -213,5 +214,6 @@
 				{/each}
 			</tbody>
 		</table>
+</div>
 	</div>
 </div>

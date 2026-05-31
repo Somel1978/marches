@@ -3,6 +3,7 @@
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const canManage = $derived((data as any).canManage === true);
 
 	const statusColors: Record<string, string> = {
 		PENDING:   'badge-warning',
@@ -14,6 +15,7 @@
 	};
 
 	const statusReasonLabels: Record<string, string> = {
+		NEW_CHARACTER:      'New character',
 		EDIT_PENDING:       'Edit pending',
 		LEVEL_UP_PENDING:   'Level-up pending',
 		LEVEL_DOWN_PENDING: 'Level-down pending',
@@ -52,7 +54,8 @@
 </div>
 
 <div class="card">
-	<table class="table">
+	<div class="table-wrap">
+		<table class="table">
 		<thead>
 			<tr>
 				<th>Character</th>
@@ -67,7 +70,7 @@
 			{#each data.items as char}
 				<tr>
 					<td>
-						<div style="display:flex; align-items:center; gap:0.625rem;">
+						<div style="display:flex; align-items:center; gap:0.625rem; flex-wrap:wrap">
 							{#if char.avatarUrl}
 								<img src={char.avatarUrl} alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover; flex-shrink:0;" />
 							{/if}
@@ -84,8 +87,13 @@
 					<td class="table__muted col-hide-mobile">{totalLevel(char)}</td>
 					<td class="table__muted col-hide-mobile">{formatDate(char.createdAt)}</td>
 					<td class="table__action">
-						{#if char.status === 'PENDING' || (char as any).statusReason === 'EDIT_PENDING'}
+						{#if (char.status === 'PENDING' || (char as any).statusReason === 'EDIT_PENDING') && canManage}
 							<a href="/dm/worlds/{(data as any).world?.id ?? ''}/characters/{char.id}" class="btn btn-primary btn-sm">Review</a>
+						{:else if char.status === 'PENDING' || (char as any).statusReason === 'EDIT_PENDING'}
+							<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap">
+								<span class="badge badge-warning">Pending</span>
+								<a href="/dm/worlds/{(data as any).world?.id ?? ''}/characters/{char.id}" class="btn btn-ghost btn-sm">View</a>
+							</div>
 						{:else}
 							<a href="/dm/worlds/{(data as any).world?.id ?? ''}/characters/{char.id}" class="btn btn-ghost btn-sm">View</a>
 						{/if}
@@ -96,4 +104,5 @@
 			{/each}
 		</tbody>
 	</table>
+</div>
 </div>

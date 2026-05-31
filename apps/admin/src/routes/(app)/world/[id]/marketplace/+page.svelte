@@ -122,7 +122,7 @@
 
 		<!-- Level restrictions -->
 		<div class="card" style="margin-bottom:1.5rem;">
-			<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+			<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; flex-wrap:wrap">
 				<div>
 					<h3 class="section-title" style="margin:0;">Level restrictions</h3>
 					<p class="field-hint" style="margin-top:0.25rem;">Overrides global restrictions for this world. Leave empty to inherit global.</p>
@@ -253,7 +253,8 @@
 	<div class="card">
 		<h3 class="section-title">World item overrides ({worldItems.length})</h3>
 		{#if worldItems.length}
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead>
 					<tr>
 						<th>Item</th>
@@ -294,12 +295,12 @@
 									<span class="table__muted">Global</span>
 								{/if}
 							</td>
-							<td style="display:flex; gap:0.5rem;">
+							<td style="display:flex; gap:0.5rem; flex-wrap:wrap">
 								<form method="post" action="?/upsertItem" use:enhance={()=>{return async({update})=>{await update();await invalidateAll();};}}> 
 									<input type="hidden" name="itemId" value={wi.itemId} />
 									<input type="hidden" name="priceOverride" value={wi.priceOverride ?? ''} />
 									<input type="hidden" name="isAvailable" value={wi.isAvailable ?? ''} />
-									<div style="display:flex; align-items:center; gap:0.25rem;">
+									<div style="display:flex; align-items:center; gap:0.25rem; flex-wrap:wrap">
 										<input name="stock" type="number" class="input" min="0" style="width:64px; padding:0.25rem 0.375rem; font-size:0.8rem;"
 											value={wi.stock ?? ''} placeholder="—" />
 										<button type="submit" class="btn btn-ghost btn-sm">Save</button>
@@ -317,6 +318,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		{:else}
 			<p class="table__empty">No world overrides yet — items use global catalogue settings.</p>
 		{/if}

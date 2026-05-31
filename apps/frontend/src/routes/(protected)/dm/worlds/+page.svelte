@@ -24,7 +24,7 @@
 					{#if world.mapImageUrl}
 						<img src={world.mapImageUrl} alt={world.name} class="region-card__img" />
 					{:else}
-						<div class="region-card__img" style="background:var(--bg-elevated); display:flex; align-items:center; justify-content:center;">
+						<div class="region-card__img" style="background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; flex-wrap:wrap">
 							<span style="font-size:2rem;">🌍</span>
 						</div>
 					{/if}

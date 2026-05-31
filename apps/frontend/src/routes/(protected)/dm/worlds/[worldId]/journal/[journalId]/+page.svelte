@@ -92,7 +92,7 @@
 			<h3 class="section-title">Journal settings</h3>
 			<form method="post" action="?/updateJournal" use:enhance={e_reload}>
 				<div class="fields">
-					<div style="display:flex; gap:0.75rem;">
+					<div style="display:flex; gap:0.75rem; flex-wrap:wrap">
 						<div class="field" style="flex:0 0 60px;">
 							<label class="label" for="j-icon">Icon</label>
 							<input id="j-icon" name="icon" type="text" class="input" value={journal.icon ?? ''} placeholder="📖" style="text-align:center; font-size:1.25rem;" />
@@ -123,7 +123,7 @@
 			{#each journal.sections ?? [] as section}
 				<div style="margin-bottom:0.75rem; padding:0.5rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
 					<form method="post" action="?/updateSection" use:enhance={e_reload}
-						style="display:flex; align-items:center; gap:0.375rem; margin-bottom:0.375rem;">
+						style="display:flex; align-items:center; gap:0.375rem; margin-bottom:0.375rem; flex-wrap:wrap">
 						<input type="hidden" name="id" value={section.id} />
 						<input name="icon" type="text" class="input" value={section.icon ?? ''}
 							style="width:36px; text-align:center; font-size:1rem; padding:0.125rem; flex-shrink:0;" placeholder="📂" />
@@ -172,7 +172,7 @@
 							<input id="pg-title" name="title" type="text" class="input" bind:value={editTitle} required />
 						</div>
 						<div class="field">
-							<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.375rem;">
+							<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.375rem; flex-wrap:wrap">
 								<label class="label" for="pg-content" style="margin:0;">Content (Markdown)</label>
 								<button type="button" class="btn btn-ghost btn-sm" onclick={() => showPreview = !showPreview}>
 									{showPreview ? 'Edit' : 'Preview'}
@@ -193,7 +193,7 @@
 										<div style="position:absolute; left:0; bottom:100%; width:100%; max-height:280px; overflow-y:auto; background:var(--bg-surface); border:1px solid var(--border-muted); border-radius:var(--radius-md); box-shadow:var(--shadow-lg); z-index:50;">
 											{#each enricherResults as item}
 												<button type="button"
-													style="display:flex; align-items:center; gap:0.625rem; width:100%; padding:0.5rem 0.75rem; background:none; border:none; cursor:pointer; text-align:left; font-size:0.875rem;"
+													style="display:flex; align-items:center; gap:0.625rem; width:100%; padding:0.5rem 0.75rem; background:none; border:none; cursor:pointer; text-align:left; font-size:0.875rem; flex-wrap:wrap"
 													onclick={() => insertEnricher(item)}>
 													<span style="width:20px; text-align:center;">{typeIcon[item.type] ?? '🔗'}</span>
 													<span style="flex:1; font-weight:500;">{item.label}</span>
@@ -216,7 +216,7 @@
 				</form>
 			</div>
 		{:else}
-			<div class="card" style="display:flex; align-items:center; justify-content:center; min-height:300px; color:var(--text-muted); text-align:center;">
+			<div class="card" style="display:flex; align-items:center; justify-content:center; min-height:300px; color:var(--text-muted); text-align:center; flex-wrap:wrap">
 				<div>
 					<p style="font-size:2rem; margin:0 0 0.5rem;">📄</p>
 					<p>Select a page from the structure tree to edit it.</p>

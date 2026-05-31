@@ -16,7 +16,7 @@
 			<a href="/game-systems" class="back-link">← Game Systems</a>
 			<h2 class="page__title">{system.name} — Backgrounds</h2>
 		</div>
-		<div style="display:flex; gap:0.5rem;">
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 			<a href="/game-systems/{system.id}/classes" class="btn btn-ghost btn-sm">Classes</a>
 			<a href="/game-systems/{system.id}/species" class="btn btn-ghost btn-sm">Species</a>
 			<button type="button" class="btn btn-primary btn-sm" onclick={() => showNew = !showNew}>+ New background</button>
@@ -73,7 +73,8 @@
 
 	<div class="card">
 		{#if backgrounds.length}
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Name</th><th>Feature</th><th>Skills</th><th>Languages</th><th>Available</th><th></th></tr></thead>
 				<tbody>
 					{#each backgrounds as b}
@@ -96,6 +97,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		{:else}
 			<p class="table__empty">No backgrounds yet.</p>
 		{/if}

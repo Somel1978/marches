@@ -1,13 +1,14 @@
 // apps/frontend/src/routes/(protected)/characters/new/+page.server.ts
 import { fail, redirect } from '@sveltejs/kit';
-import { dnd5e, characters, gameSystems } from '@core/database';
+import { dnd5e, characters, gameSystems, worlds } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const [slotInfo, systems] = await Promise.all([
+	const [slotInfo, systems, allWorlds] = await Promise.all([
 		characters.getSlotInfo(locals.user!.id),
 		gameSystems.getActive(),
+		worlds.getAll(),
 	]);
 
 	if (slotInfo.available <= 0) redirect(302, '/characters');
@@ -16,7 +17,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const systemDetails = firstSystem ? await gameSystems.getById(firstSystem.id) : null;
 	const systemData    = firstSystem ? await dnd5e.getSystemData(firstSystem.id)  : null;
 
-	return { slotInfo, systems, systemDetails, systemData };
+	const activeWorlds = (allWorlds as any[]).filter((w: any) => w.isActive && w.acceptsGlobalCharacters);
+	return { slotInfo, systems, systemDetails, systemData, activeWorlds };
 };
 
 export const actions: Actions = {
@@ -28,6 +30,7 @@ export const actions: Actions = {
 		const backgroundId = data.get('backgroundId')?.toString() || undefined;
 		const description  = data.get('description')?.toString().trim() || undefined;
 		const avatarUrl    = data.get('avatarUrl')?.toString().trim()   || undefined;
+		const worldId      = data.get('worldId')?.toString() || undefined;
 
 		// Parse classes
 		const classIds     = data.getAll('classId').map(v => v.toString()).filter(Boolean);
@@ -46,7 +49,7 @@ export const actions: Actions = {
 		if (!classes.length) return fail(400, { message: 'At least one class is required.' });
 
 		try {
-			await characters.create({
+			await characters.create({ worldId,
 				userId:       locals.user!.id,
 				gameSystemId,
 				name,

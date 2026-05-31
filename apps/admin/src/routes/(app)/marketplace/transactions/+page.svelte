@@ -86,7 +86,8 @@
 	{#if form?.success}<div class="form-success">Done.</div>{/if}
 
 	<div class="table-wrap card">
-		<table class="table">
+		<div class="table-wrap">
+			<table class="table">
 			<thead>
 				<tr>
 					<th>Item</th>
@@ -130,7 +131,7 @@
 									</form>
 									<form method="post" action="?/reject" use:enhance={e_reload}>
 										<input type="hidden" name="id" value={tx.id} />
-										<div style="display:flex; gap:0.25rem;">
+										<div style="display:flex; gap:0.25rem; flex-wrap:wrap">
 											<input name="note" type="text" class="input" placeholder="Reason" required style="width:120px;" />
 											<button type="submit" class="btn btn-danger btn-sm">Reject</button>
 										</div>
@@ -146,5 +147,6 @@
 				{/each}
 			</tbody>
 		</table>
+</div>
 	</div>
 </div>

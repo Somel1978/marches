@@ -25,7 +25,8 @@
 	{#if form?.success}<div class="form-success">Slot grant saved.</div>{/if}
 
 	<div class="table-wrap card">
-		<table class="table">
+		<div class="table-wrap">
+			<table class="table">
 			<thead>
 				<tr>
 					<th>User</th>
@@ -70,7 +71,8 @@
 							<td colspan="7" style="padding:1rem; background:var(--bg-overlay);">
 								<!-- Grant history -->
 								{#if row.grants.length}
-									<table class="table" style="margin-bottom:1rem;">
+									<div class="table-wrap">
+										<table class="table" style="margin-bottom:1rem;">
 										<thead><tr><th>Delta</th><th>Reason</th><th>Granted by</th><th>Date</th></tr></thead>
 										<tbody>
 											{#each row.grants as grant}
@@ -83,6 +85,7 @@
 											{/each}
 										</tbody>
 									</table>
+</div>
 								{/if}
 
 								<!-- Grant form -->
@@ -111,5 +114,6 @@
 				{/each}
 			</tbody>
 		</table>
+</div>
 	</div>
 </div>

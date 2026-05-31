@@ -24,7 +24,8 @@
 	<div class="card" style="margin-bottom:1rem;">
 		<h3 class="section-title">Thresholds ({thresholds.length})</h3>
 		{#if thresholds.length}
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Label</th><th>XP Required</th><th>Description</th><th></th></tr></thead>
 				<tbody>
 					{#each thresholds as t}
@@ -58,7 +59,7 @@
 								<td style="font-weight:600;">{t.label}</td>
 								<td>{t.xpRequired.toLocaleString()} XP</td>
 								<td class="table__muted">{t.description ?? '—'}</td>
-								<td style="display:flex; gap:0.5rem;">
+								<td style="display:flex; gap:0.5rem; flex-wrap:wrap">
 									<button type="button" class="btn btn-ghost btn-sm" onclick={() => editing = t.id}>Edit</button>
 									<form method="post" action="?/delete"
 										use:enhance={({ cancel }) => {
@@ -74,6 +75,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		{:else}
 			<p class="table__empty">No thresholds yet.</p>
 		{/if}

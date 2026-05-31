@@ -71,7 +71,7 @@
 			<a href="/game-systems" class="back-link">← Game Systems</a>
 			<h2 class="page__title">{system.name} — Import</h2>
 		</div>
-		<div style="display:flex; gap:0.5rem;">
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 			<a href="/game-systems/{system.id}/classes"     class="btn btn-ghost btn-sm">Classes</a>
 			<a href="/game-systems/{system.id}/species"     class="btn btn-ghost btn-sm">Species</a>
 			<a href="/game-systems/{system.id}/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
@@ -157,7 +157,7 @@
 
 			<form method="post" action={activeTabDef.action} use:enhance>
 				<input type="hidden" name="json" value={parsedJson} />
-				<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.75rem; padding:0.625rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
+				<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.75rem; padding:0.625rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-md); flex-wrap:wrap">
 					<input type="checkbox" id="allowUpdate" name="allowUpdate" value="true" />
 					<label for="allowUpdate" style="font-size:0.875rem; cursor:pointer;">
 						<strong>Update existing records</strong> — if unchecked, duplicate rows are skipped

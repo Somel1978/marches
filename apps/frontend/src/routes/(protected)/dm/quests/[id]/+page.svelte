@@ -35,6 +35,7 @@
 			: [{ type: 'GOLD', amount: 0 }];
 	});
 
+	const isReadOnly = $derived(['COMPLETED', 'CANCELLED'].includes(data.quest.status));
 	const confirmed = $derived(data.quest.signups.filter((s: any) => s.status === 'CONFIRMED'));
 	const waitlist  = $derived(data.quest.signups.filter((s: any) => s.status === 'WAITLIST'));
 	const pending   = $derived(data.quest.signups.filter((s: any) => s.status === 'PENDING_CONFIRMATION'));
@@ -146,7 +147,9 @@
 	<div class="sections">
 		<div class="card">
 			<h3 class="section-title">Details</h3>
+			{#if isReadOnly}<p class="field-hint" style="margin-bottom:0.75rem; color:var(--color-warning);">This quest is {data.quest.status.toLowerCase()} — read only.</p>{/if}
 			<form method="post" action="?/updateDetails" use:enhance={e_reload}>
+				<fieldset disabled={isReadOnly} style="border:none; padding:0; margin:0;">
 				<div class="fields">
 					<div class="field">
 						<label class="label" for="qdesc">Description <span class="optional">(optional)</span></label>
@@ -220,9 +223,12 @@
 					{:else}
 						<input type="hidden" name="locationId" value={selectedLocationId} />
 					{/if}
+				</fieldset>
+				{#if !isReadOnly}
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">Save details</button>
 				</div>
+				{/if}
 			</form>
 		</div>
 
@@ -231,7 +237,7 @@
 			<div class="card" style="border-color:var(--border-accent);">
 				<h3 class="section-title">Waitlist promotions pending confirmation ({pending.length})</h3>
 				{#each pending as s}
-					<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0;">
+					<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0; flex-wrap:wrap">
 						<span>{s.characterId}</span>
 						<form method="post" action="?/confirmWaitlist" use:enhance={e_reload}>
 							<input type="hidden" name="signupId" value={s.id} />
@@ -243,11 +249,12 @@
 		{/if}
 	</div>
 
-	<!-- Edit rewards (DRAFT / PENDING_APPROVAL / IN_PROGRESS / PENDING_RESULT) -->
-	{#if ['DRAFT', 'PENDING_APPROVAL', 'IN_PROGRESS', 'PENDING_RESULT', 'PENDING_RESULT_APPROVAL'].includes(data.quest.status)}
+	<!-- Rewards (editable for active statuses, read-only for COMPLETED/CANCELLED) -->
+	{#if ['DRAFT', 'PENDING_APPROVAL', 'IN_PROGRESS', 'PENDING_RESULT', 'PENDING_RESULT_APPROVAL', 'COMPLETED', 'CANCELLED'].includes(data.quest.status)}
 		<div class="card">
-			<h3 class="section-title">Edit rewards</h3>
+			<h3 class="section-title">{isReadOnly ? 'Rewards' : 'Edit rewards'}</h3>
 			<form method="post" action="?/updateRewards" use:enhance={e_reload}>
+				<fieldset disabled={isReadOnly} style="border:none; padding:0; margin:0;">
 				<div class="class-alloc-list">
 					{#each rewardRows as r, i}
 						<div class="class-alloc-row">
@@ -303,11 +310,14 @@
 						</div>
 					{/each}
 				</div>
-				<div style="display:flex; justify-content:space-between; margin-top:0.5rem;">
+				</fieldset>
+				{#if !isReadOnly}
+				<div style="display:flex; justify-content:space-between; margin-top:0.5rem; flex-wrap:wrap">
 					<button type="button" class="btn btn-ghost btn-sm"
 						onclick={() => rewardRows = [...rewardRows, { type: 'GOLD', amount: 0 }]}>+ Add reward</button>
 					<button type="submit" class="btn btn-primary btn-sm">Save rewards</button>
 				</div>
+				{/if}
 			</form>
 		</div>
 	{/if}
@@ -437,7 +447,7 @@
 
 			{#if ['DRAFT','PUBLISHED','IN_PROGRESS'].includes(data.quest.status)}
 				<form method="post" action="?/addCoDM" use:enhance={e_reload} style="margin-top:0.75rem;">
-					<div style="display:flex; gap:0.5rem; align-items:flex-end;">
+					<div style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap">
 						<div class="field" style="flex:1;">
 							<label class="label" for="coDM">Add co-DM</label>
 							<select id="coDM" name="dmProfileId" class="input">
@@ -464,7 +474,8 @@
 				<div class="form-success">Item usage saved.</div>
 			{/if}
 			<form method="post" action="?/saveItemUsages" use:enhance={e_reload}>
-				<table class="table">
+				<div class="table-wrap">
+					<table class="table">
 					<thead><tr><th>Character</th><th>Random item</th><th>Category</th><th>Available</th><th>Qty used</th></tr></thead>
 					<tbody>
 						{#each (data as any).destroyableInventory as inv}
@@ -490,6 +501,7 @@
 						{/each}
 					</tbody>
 				</table>
+</div>
 				<div class="form-actions" style="margin-top:0.75rem;">
 					<button type="submit" class="btn btn-primary btn-sm">Save item usage</button>
 				</div>
@@ -501,7 +513,8 @@
 	{#if (data as any).itemUsages?.length}
 		<div class="card">
 			<h3 class="section-title">Item usage submissions</h3>
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Random item</th><th>Qty</th><th>Status</th><th>Note</th></tr></thead>
 				<tbody>
 					{#each (data as any).itemUsages as u}
@@ -514,13 +527,14 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		</div>
 	{/if}
 
 	<!-- Player ratings for this quest -->
 	{#if data.quest.status === 'COMPLETED'}
 		<div class="card">
-			<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.75rem;">
+			<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.75rem; flex-wrap:wrap">
 				<h3 class="section-title" style="margin:0;">Player ratings</h3>
 				{#if ratingsAvg}
 					<span style="font-size:1.25rem; font-weight:700; color:var(--color-accent);">{ratingsAvg}</span>
@@ -531,7 +545,7 @@
 				<div style="display:flex; flex-direction:column; gap:0.625rem;">
 					{#each questRatings as r}
 						<div style="padding:0.625rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-sm);">
-							<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.125rem;">
+							<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.125rem; flex-wrap:wrap">
 								<span style="color:#f59e0b;">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
 								<span style="font-size:0.75rem; color:var(--text-muted);">{new Date(r.createdAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}</span>
 							</div>

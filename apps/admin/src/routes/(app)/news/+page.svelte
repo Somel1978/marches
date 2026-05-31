@@ -20,7 +20,8 @@
 	</div>
 	<div class="card">
 		{#if (data as any).announcements?.length}
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Title</th><th>Type</th><th>Published</th><th>Date</th><th></th></tr></thead>
 				<tbody>
 					{#each (data as any).announcements as a}
@@ -34,6 +35,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		{:else}
 			<p class="table__empty">No announcements yet.</p>
 		{/if}

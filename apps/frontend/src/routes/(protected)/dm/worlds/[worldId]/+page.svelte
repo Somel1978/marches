@@ -56,7 +56,7 @@
 		<div style="display:flex; flex-direction:column; gap:0.375rem;">
 			{#each world.regions as region}
 				<a href="/dm/worlds/{world.id}/regions/{region.id}"
-					style="display:flex; align-items:center; gap:0.75rem; padding:0.5rem; border-radius:var(--radius-sm); background:var(--bg-elevated); text-decoration:none;">
+					style="display:flex; align-items:center; gap:0.75rem; padding:0.5rem; border-radius:var(--radius-sm); background:var(--bg-elevated); text-decoration:none; flex-wrap:wrap">
 					<div style="width:10px; height:10px; border-radius:50%; background:{region.color}; flex-shrink:0;"></div>
 					<span style="font-weight:600; color:var(--text-primary);">{region.name}</span>
 					<span class="badge badge-muted" style="margin-left:auto;">{region.dangerRating}</span>

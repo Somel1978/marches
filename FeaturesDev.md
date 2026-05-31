@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-29 (session 17)
+> Last updated: 2026-05-31 (session 18)
 
 ---
 
@@ -1264,6 +1264,44 @@ Players connect Discord via **Profile → Connect Discord** → OAuth flow store
 ---
 
 ## Bug Fixes & Patches
+
+
+### Session 18 — Bug fixes (2026-05-31)
+
+**Quest read-only for COMPLETED/CANCELLED**
+- `apps/frontend/src/routes/(protected)/dm/quests/[id]/+page.svelte` — `isReadOnly` derived; details + rewards wrapped in `<fieldset disabled>`; save buttons hidden when isReadOnly
+- `apps/frontend/src/routes/(protected)/quests/[id]/+page.svelte` — signup form gated: `data.eligible.length && data.quest.status === 'PUBLISHED'`
+- `apps/frontend/src/routes/(protected)/quests/[id]/+page.server.ts` — signup action validates `quest.status === 'PUBLISHED'` server-side
+
+**Character creation world selector**
+- `apps/frontend/src/routes/(protected)/characters/new/+page.server.ts` — loads `activeWorlds` (isActive + acceptsGlobalCharacters); passes `worldId` to `characters.create()`
+- `apps/frontend/src/routes/(protected)/characters/new/+page.svelte` — world selector card added before submit
+
+**Availability tooltip mobile fix**
+- `apps/frontend/src/routes/(protected)/availability/+page.svelte` — `flipped` field added to `Tip` type; tooltip renders below cell when near top of viewport
+
+**DM Hub character features**
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/characters/[charId]/+page.svelte` — species traits, background proficiencies, class/subclass features section added using `sheet-class`/`sheet-feature` markup
+
+**Status reason label**
+- `NEW_CHARACTER` added to `statusReasonLabels` in DM Hub character list
+
+**Quest approval routing**
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/quests/+page.server.ts` — approve/reject/approveResult/rejectResult actions for canManage DMs; quest-only DMs see "Awaiting approval" badge
+
+**Mobile layout — tables**
+- `shared/ui/styles/components/table.css` — `.table-wrap` gets `max-width:100%`; `.table-wrap > .table` gets `width:max-content; min-width:100%`
+- `shared/ui/styles/components/layout.css` — `.sections > *` gets `min-width:0` to prevent grid children expanding beyond column width
+- All frontend + admin svelte files with `<table>` — wrapped in `<div class="table-wrap">` (previously inline `overflow-x:auto`)
+
+**Mobile layout — flex rows**
+- All frontend + admin svelte files — `flex-wrap:wrap` added to all inline `display:flex` rows missing it
+
+**Journal sidebar mobile**
+- `shared/ui/styles/components/site.css` — sidebar uses `z-index:200`, `padding-top:4rem` for nav clearance, semi-transparent backdrop on mobile
+
+**Broken table indentation**
+- All svelte files — `<table>` tags inside `.table-wrap` re-indented to correct level after earlier regex script left them at column 0
 
 
 ### Session 17 (2026-05-29)

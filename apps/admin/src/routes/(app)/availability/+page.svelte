@@ -76,7 +76,7 @@
 					{#each slots as slotIdx}
 						{@const entries = bySlot[slotIdx] ?? []}
 						<button type="button"
-							style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.75rem; background:{selectedSlot === slotIdx ? 'var(--bg-active)' : 'var(--bg-overlay)'}; border:1px solid {selectedSlot === slotIdx ? 'var(--color-accent)' : 'var(--border-muted)'}; border-radius:var(--radius-md); cursor:pointer; text-align:left; width:100%;"
+							style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.75rem; background:{selectedSlot === slotIdx ? 'var(--bg-active)' : 'var(--bg-overlay)'}; border:1px solid {selectedSlot === slotIdx ? 'var(--color-accent)' : 'var(--border-muted)'}; border-radius:var(--radius-md); cursor:pointer; text-align:left; width:100%; flex-wrap:wrap"
 							onclick={() => selectedSlot = selectedSlot === slotIdx ? null : slotIdx}>
 							<span style="font-weight:600; font-size:0.875rem;">{HOURS[slotIdx]}</span>
 							<span class="badge badge-muted">{entries.length} player{entries.length !== 1 ? 's' : ''}</span>
@@ -93,7 +93,7 @@
 						{#each bySlot[selectedSlot] as entry}
 							<div style="padding:0.625rem; background:var(--bg-overlay); border-radius:var(--radius-md); border:1px solid var(--border-muted);">
 								<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.375rem;">
-									<div style="display:flex; align-items:center; gap:0.5rem;">
+									<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap">
 										<span style="font-weight:600; font-size:0.875rem;">{entry.userName}</span>
 										<span class="badge {entry.scope === 'GLOBAL' ? 'badge-success' : 'badge-accent'}">{entry.scope}</span>
 										{#if entry.scope === 'WORLD' && entry.worldIds?.length}

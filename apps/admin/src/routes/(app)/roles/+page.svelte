@@ -23,7 +23,8 @@
 	</div>
 
 	<div class="table-wrap card">
-		<table class="table">
+		<div class="table-wrap">
+			<table class="table">
 			<thead>
 				<tr>
 					<th>Name</th>
@@ -58,5 +59,6 @@
 				{/each}
 			</tbody>
 		</table>
+</div>
 	</div>
 </div>

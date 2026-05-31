@@ -20,7 +20,8 @@
 	{#if data.pendingItemUsages.length}
 		<div class="card" style="border-color:var(--color-warning); margin-bottom:1.5rem;">
 			<h3 class="section-title" style="color:var(--color-warning);">Pending item usage approvals ({data.pendingItemUsages.length})</h3>
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Character</th><th>Item</th><th>Qty</th><th>Quest</th><th>Actions</th></tr></thead>
 				<tbody>
 					{#each data.pendingItemUsages as u}
@@ -36,13 +37,15 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		</div>
 	{/if}
 
 	<div class="card">
 		<h3 class="section-title">Recent achievement grants</h3>
 		{#if data.recentGrants.length}
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Character</th><th>Achievement</th><th>Date</th><th></th></tr></thead>
 				<tbody>
 					{#each data.recentGrants as g}
@@ -64,6 +67,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		{:else}
 			<p class="table__empty">No achievements granted yet.</p>
 		{/if}

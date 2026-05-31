@@ -55,7 +55,7 @@
 						{/if}
 					</div>
 					<div class="character-card__body">
-						<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+						<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap">
 							<h3 class="character-card__name">{char.name}</h3>
 							<span class="badge {statusColors[char.status] ?? 'badge-muted'}">{char.status}</span>
 						</div>

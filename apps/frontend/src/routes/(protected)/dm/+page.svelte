@@ -48,7 +48,7 @@
 					<div style="display:flex; flex-direction:column; gap:0.25rem;">
 						{#each slotNums as slot}
 							{@const players = daySlots[slot]}
-							<div style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.375rem 0.625rem; background:var(--bg-overlay); border-radius:var(--radius-sm);">
+							<div style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.375rem 0.625rem; background:var(--bg-overlay); border-radius:var(--radius-sm); flex-wrap:wrap">
 								<span style="font-size:0.8125rem; font-weight:600; width:40px; flex-shrink:0; color:var(--text-secondary);">{HOURS[slot]}</span>
 								<div style="display:flex; flex-wrap:wrap; gap:0.375rem;">
 									{#each players as p}
@@ -75,7 +75,8 @@
 		</div>
 	{:else}
 		<div class="table-wrap card">
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead>
 					<tr>
 						<th>Quest</th>
@@ -95,20 +96,21 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		</div>
 	{/if}
 
 	<!-- Assigned worlds -->
 	{#if ((data as any).myWorlds ?? []).length}
 		<div class="card" style="margin-top:1.5rem;">
-			<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+			<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap">
 				<h3 class="section-title" style="margin:0;">My Worlds</h3>
 				<a href="/dm/worlds" class="btn btn-ghost btn-sm">View all</a>
 			</div>
 			<div style="display:flex; flex-direction:column; gap:0.375rem;">
 				{#each (data as any).myWorlds as world}
 					<a href="/dm/worlds/{world.id}"
-						style="display:flex; align-items:center; gap:0.75rem; padding:0.5rem; border-radius:var(--radius-sm); background:var(--bg-elevated); text-decoration:none;">
+						style="display:flex; align-items:center; gap:0.75rem; padding:0.5rem; border-radius:var(--radius-sm); background:var(--bg-elevated); text-decoration:none; flex-wrap:wrap">
 						<span style="font-weight:600; color:var(--text-primary);">{world.name}</span>
 						{#if !world.isActive}<span class="badge badge-muted">Inactive</span>{/if}
 						{#if world.canManage}

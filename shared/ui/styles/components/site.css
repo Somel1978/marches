@@ -318,10 +318,17 @@
 @media (max-width: 639px) {
   .journal-content-area { padding: 1.25rem 1rem; }
   .journal-sidebar.journal-sidebar--open {
-    position: fixed; inset: 0; top: 4rem; z-index: 50;
+    position: fixed; left: 0; right: 0; top: 0; z-index: 200;
     width: 100%; background: var(--bg-surface);
     border-right: none; border-bottom: 1px solid var(--border-muted);
-    max-height: 60vh; overflow-y: auto;
+    max-height: 80vh; overflow-y: auto;
+    padding-top: 4rem; /* clear the nav bar */
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  /* Backdrop when sidebar open */
+  .journal-layout:has(.journal-sidebar--open)::before {
+    content: ''; position: fixed; inset: 0; z-index: 199;
+    background: rgba(0,0,0,0.5);
   }
 }
 

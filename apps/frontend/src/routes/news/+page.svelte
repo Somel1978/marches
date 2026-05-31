@@ -40,7 +40,7 @@
 					<div class="card" style="border:1px solid var(--border-muted);">
 						<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
 							<div style="flex:1;">
-								<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.375rem;">
+								<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.375rem; flex-wrap:wrap">
 									<span class="badge {typeColors[a.type] ?? 'badge-muted'}">{a.type}</span>
 									{#each a.tags as tag}
 										<span class="badge badge-muted">{tag}</span>

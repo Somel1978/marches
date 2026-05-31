@@ -14,7 +14,8 @@
 	</div>
 	<div class="card">
 		{#if (data as any).journals?.length}
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Icon</th><th>Title</th><th>Sections</th><th>Published</th><th></th></tr></thead>
 				<tbody>
 					{#each (data as any).journals as j}
@@ -28,6 +29,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		{:else}
 			<p class="table__empty">No journals yet.</p>
 		{/if}

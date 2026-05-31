@@ -117,12 +117,13 @@
 	<!-- Ratings -->
 	{#if (data as any).ratings?.length}
 		<div class="card">
-			<div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+			<div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem; flex-wrap:wrap">
 				<h3 class="section-title" style="margin:0;">Player ratings</h3>
 				<span style="font-size:1.25rem; font-weight:700; color:var(--color-accent);">{(data as any).avgRating} / 5</span>
 				<span style="color:var(--text-muted); font-size:0.875rem;">({(data as any).ratings.length} rating{(data as any).ratings.length !== 1 ? 's' : ''})</span>
 			</div>
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Rating</th><th>Quest</th><th>Comment</th><th>Date</th></tr></thead>
 				<tbody>
 					{#each (data as any).ratings as r}
@@ -135,6 +136,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		</div>
 	{:else}
 		<div class="card"><p class="table__empty">No ratings yet.</p></div>

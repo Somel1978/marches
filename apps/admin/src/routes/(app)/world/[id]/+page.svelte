@@ -88,7 +88,7 @@
 			<div class="page__header" style="margin-bottom:1rem;">
 				<h3 class="section-title" style="margin:0;">Map</h3>
 				{#if placingMarker}
-					<div style="display:flex; align-items:center; gap:0.5rem;">
+					<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap">
 						<span class="badge badge-warning">Click map to place marker</span>
 						<button class="btn btn-ghost btn-sm" onclick={() => placingMarker = null}>Cancel</button>
 					</div>
@@ -177,7 +177,8 @@
 		{/if}
 
 		<div class="table-wrap">
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead>
 					<tr>
 						<th>Region</th>
@@ -192,7 +193,7 @@
 					{#each data.world.regions as region}
 						<tr>
 							<td>
-								<div style="display:flex; align-items:center; gap:0.5rem;">
+								<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap">
 									<div style="width:12px; height:12px; border-radius:50%; background:{region.color}; flex-shrink:0;"></div>
 									<span class="table__name">{region.name}</span>
 								</div>
@@ -225,11 +226,12 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		</div>
 
 	<!-- DMs assigned to this world -->
 	<div class="card">
-		<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+		<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; flex-wrap:wrap">
 			<h3 class="section-title" style="margin:0;">World DMs ({(data as any).world.dms?.length ?? 0})</h3>
 		</div>
 
@@ -263,7 +265,8 @@
 		{#if (form as any)?.dmSuccess}<div class="form-success" style="margin-bottom:0.75rem;">DM assignment updated.</div>{/if}
 
 		{#if ((data as any).world.dms ?? []).length}
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead>
 					<tr>
 						<th>DM</th>
@@ -285,7 +288,7 @@
 									return async ({ update }) => { await update(); await invalidateAll(); };
 								}}>
 									<input type="hidden" name="dmProfileId" value={dm.dmProfileId} />
-									<div style="display:flex; gap:0.375rem; align-items:center;">
+									<div style="display:flex; gap:0.375rem; align-items:center; flex-wrap:wrap">
 										<select name="canManage" class="input input--select" style="width:120px; padding:0.25rem 0.5rem; font-size:0.8125rem;">
 											<option value="false" selected={!dm.canManage}>Quest only</option>
 											<option value="true"  selected={dm.canManage}>Full access</option>
@@ -307,6 +310,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		{:else}
 			<p class="table__empty">No DMs assigned to this world yet.</p>
 		{/if}

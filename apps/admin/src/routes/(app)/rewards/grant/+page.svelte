@@ -53,7 +53,7 @@
 							{/each}
 						</select>
 					</div>
-					<div style="display:flex; gap:0.75rem;">
+					<div style="display:flex; gap:0.75rem; flex-wrap:wrap">
 						<div class="field" style="flex:1;">
 							<label class="label" for="g-type">Type</label>
 							<select id="g-type" name="type" class="input input--select">
@@ -173,7 +173,8 @@
 
 			{#if searchResults.length}
 				<div style="margin-bottom:1rem; max-height:300px; overflow-y:auto; border:1px solid var(--border-muted); border-radius:var(--radius-sm);">
-					<table class="table">
+					<div class="table-wrap">
+						<table class="table">
 						<thead><tr><th>Name</th><th>Rarity</th><th>Category</th><th>Price</th><th></th></tr></thead>
 						<tbody>
 							{#each searchResults as i}
@@ -187,6 +188,7 @@
 							{/each}
 						</tbody>
 					</table>
+</div>
 				</div>
 			{/if}
 		</div>

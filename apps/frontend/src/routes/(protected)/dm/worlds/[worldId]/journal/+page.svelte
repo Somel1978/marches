@@ -10,7 +10,7 @@
 	const world     = $derived((data as any).world);
 </script>
 
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap">
 	<p class="page__subtitle">{journals.length} journal{journals.length !== 1 ? 's' : ''}</p>
 	{#if canManage}
 		<form method="post" action="?/create" use:enhance>
@@ -25,7 +25,7 @@
 	<div style="display:flex; flex-direction:column; gap:0.75rem;">
 		{#each journals as journal}
 			<a href="/dm/worlds/{world.id}/journal/{journal.id}"
-				style="display:flex; align-items:center; gap:0.75rem; text-decoration:none;"
+				style="display:flex; align-items:center; gap:0.75rem; text-decoration:none; flex-wrap:wrap"
 				class="card">
 				{#if journal.icon}
 					<span style="font-size:1.25rem;">{journal.icon}</span>

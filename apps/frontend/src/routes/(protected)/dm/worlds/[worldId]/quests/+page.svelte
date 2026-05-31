@@ -33,7 +33,7 @@
 	}
 </script>
 
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap">
 	<p class="page__subtitle">{data.total} quest{data.total !== 1 ? 's' : ''}</p>
 	<a href="/dm/worlds/{world.id}/quests/new" class="btn btn-primary btn-sm">+ New quest</a>
 </div>
@@ -50,7 +50,8 @@
 </div>
 
 <div class="card">
-	<table class="table">
+	<div class="table-wrap">
+		<table class="table">
 		<thead>
 			<tr>
 				<th>Quest</th>
@@ -81,7 +82,7 @@
 									<input type="hidden" name="id" value={quest.id} />
 									<button type="submit" class="btn btn-primary btn-sm">Approve</button>
 								</form>
-								<form method="post" action="?/reject" use:enhance={e_reload} style="display:flex; gap:0.25rem;">
+								<form method="post" action="?/reject" use:enhance={e_reload} style="display:flex; gap:0.25rem; flex-wrap:wrap">
 									<input type="hidden" name="id" value={quest.id} />
 									<input name="note" type="text" class="input" placeholder="Reason" required style="width:110px;" />
 									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Reject</button>
@@ -93,7 +94,7 @@
 									<input type="hidden" name="questId" value={quest.id} />
 									<button type="submit" class="btn btn-primary btn-sm">Approve result</button>
 								</form>
-								<form method="post" action="?/rejectResult" use:enhance={e_reload} style="display:flex; gap:0.25rem;">
+								<form method="post" action="?/rejectResult" use:enhance={e_reload} style="display:flex; gap:0.25rem; flex-wrap:wrap">
 									<input type="hidden" name="questId" value={quest.id} />
 									<input name="note" type="text" class="input" placeholder="Reason" required style="width:110px;" />
 									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Reject</button>
@@ -111,4 +112,5 @@
 			{/each}
 		</tbody>
 	</table>
+</div>
 </div>

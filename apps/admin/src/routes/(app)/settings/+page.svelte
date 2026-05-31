@@ -45,7 +45,7 @@
 			<div class="fields">
 				{#each settings as setting}
 					<div class="field">
-						<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.25rem;">
+						<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.25rem; flex-wrap:wrap">
 							<label class="label" for={setting.key} style="margin:0;">
 								{setting.key}
 								{#if setting.isSecret}<span class="badge badge-muted">secret</span>{/if}
@@ -70,7 +70,7 @@
 							}}>
 							<input type="hidden" name="key"      value={setting.key} />
 							<input type="hidden" name="isSecret" value={String(setting.isSecret)} />
-							<div style="display:flex; gap:0.5rem; align-items:center;">
+							<div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap">
 								<input
 									id={setting.key}
 									name="value"

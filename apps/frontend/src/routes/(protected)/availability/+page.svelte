@@ -49,7 +49,7 @@
 	}
 
 	// ── Tooltip — click only ─────────────────────────────────────────
-	type Tip = { di:number;si:number;x:number;y:number;count:number;isMine:boolean };
+	type Tip = { di:number;si:number;x:number;y:number;flipped:boolean;count:number;isMine:boolean };
 	let tip = $state<Tip|null>(null);
 
 	function onCellClick(e: MouseEvent, di:number, si:number) {
@@ -57,8 +57,13 @@
 		if(tip?.di===di&&tip?.si===si){ tip=null; return; }
 		const r=(e.currentTarget as HTMLElement).getBoundingClientRect();
 		const vw=window.innerWidth;
+		const vh=window.innerHeight;
 		const x=Math.min(Math.max(r.left+r.width/2-74,6),vw-160);
-		tip={di,si,x,y:r.top,count:getCount(di,si),isMine:!!getMySlot(di,si)};
+		// Flip tooltip below the cell if there's not enough space above
+		const tipH=120; // approx tooltip height
+		const y=r.top>tipH ? r.top : r.bottom;
+		const flipped=r.top<=tipH;
+		tip={di,si,x,y,flipped,count:getCount(di,si),isMine:!!getMySlot(di,si)};
 	}
 	function onPageClick(e: MouseEvent) {
 		const t=e.target as HTMLElement;
@@ -178,7 +183,7 @@
 {#if selecting && selected.size > 0}
 	<div class="avail__bulk-bar">
 		<span class="avail__bulk-count">{selected.size} slot{selected.size!==1?'s':''} selected</span>
-		<div style="display:flex;gap:0.5rem;">
+		<div style="display:flex;gap:0.5rem; flex-wrap:wrap">
 			<button class="btn btn-ghost btn-sm" onclick={clearSelection}>Clear</button>
 			<button class="btn btn-primary btn-sm" onclick={openBulkModal}>Set availability</button>
 		</div>
@@ -186,7 +191,7 @@
 {/if}
 
 {#if tip}
-	<div class="avail__tooltip" style="left:{tip.x}px; top:{tip.y}px;" role="tooltip">
+	<div class="avail__tooltip" style="left:{tip.x}px; top:{tip.flipped ? tip.y + 'px' : (tip.y - 130) + 'px'};" role="tooltip">
 		<div class="avail__tip-day">{DAYS[tip.di]}</div>
 		<div class="avail__tip-time">{SLOTS[tip.si].label}</div>
 		<div class="avail__tip-count">{tip.count} {tip.count===1?'Player':'Players'} 🐾</div>

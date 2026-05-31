@@ -99,7 +99,7 @@
 					</p>
 				{/if}
 				</div>
-				<div style="display:flex; gap:0.5rem;">
+				<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 					<form method="post" action="?/approve" use:enhance={()=>{return async({update})=>{await update();await invalidateAll();};}}>
 						<button type="submit" class="btn btn-primary btn-sm">✓ Approve</button>
 					</form>
@@ -286,7 +286,7 @@
 							</select>
 						</div>
 						<div class="field" style="flex:0 0 auto;">
-							<div style="display:flex; align-items:center; gap:0.5rem; padding-top:1.5rem;">
+							<div style="display:flex; align-items:center; gap:0.5rem; padding-top:1.5rem; flex-wrap:wrap">
 								<input type="checkbox" name="isGlobal" value="true" checked={character.isGlobal} id="isGlobal" />
 								<label for="isGlobal" class="label" style="margin:0; cursor:pointer;">Global character</label>
 							</div>
@@ -452,7 +452,8 @@
 	{#if tab === 'inventory'}
 		{#if data.inventory?.length}
 			<div class="card">
-				<table class="table">
+				<div class="table-wrap">
+					<table class="table">
 					<thead>
 						<tr>
 							<th>Item</th>
@@ -496,6 +497,7 @@
 						{/each}
 					</tbody>
 				</table>
+</div>
 			</div>
 		{:else}
 			<p class="table__empty">No inventory.</p>
@@ -507,7 +509,7 @@
 				<h3 class="section-title">Achievements</h3>
 				<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
 					{#each (data as any).charAchievements as g}
-						<div style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-sm);" title={(g as any).achievement?.description??''}>
+						<div style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-sm); flex-wrap:wrap" title={(g as any).achievement?.description??''}>
 							<span style="font-size:1.125rem;">{(g as any).achievement?.icon??'🏆'}</span>
 							<span style="font-size:0.875rem; font-weight:600;">{(g as any).achievement?.name??g.achievementId}</span>
 						</div>
@@ -524,7 +526,8 @@
 		{#if data.transactions?.length}
 			<div class="card">
 				<h3 class="section-title">Transactions</h3>
-				<table class="table">
+				<div class="table-wrap">
+					<table class="table">
 					<thead>
 						<tr>
 							<th>Type</th>
@@ -552,6 +555,7 @@
 						{/each}
 					</tbody>
 				</table>
+</div>
 			</div>
 		{:else}
 			<p class="table__empty">No transactions.</p>

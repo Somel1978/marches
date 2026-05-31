@@ -26,7 +26,8 @@
 			<div class="card">
 				<h3 class="section-title">Quests completed — last 6 months</h3>
 				{#if s.completedPerMonth?.length}
-					<table class="table">
+					<div class="table-wrap">
+						<table class="table">
 						<thead><tr><th>Month</th><th>Completed</th></tr></thead>
 						<tbody>
 							{#each s.completedPerMonth as row}
@@ -34,6 +35,7 @@
 							{/each}
 						</tbody>
 					</table>
+</div>
 				{:else}
 					<p class="table__empty">No completed quests yet.</p>
 				{/if}

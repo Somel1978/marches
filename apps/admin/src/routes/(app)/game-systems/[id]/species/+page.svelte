@@ -18,7 +18,7 @@
 			<a href="/game-systems" class="back-link">← Game Systems</a>
 			<h2 class="page__title">{system.name} — Species</h2>
 		</div>
-		<div style="display:flex; gap:0.5rem;">
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 			<a href="/game-systems/{system.id}/classes"     class="btn btn-ghost btn-sm">Classes</a>
 			<a href="/game-systems/{system.id}/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
 			<button type="button" class="btn btn-primary btn-sm" onclick={() => showNew = !showNew}>+ New species</button>
@@ -70,7 +70,7 @@
 			<div style="display:flex; flex-direction:column; gap:0.5rem;">
 				{#each species as s}
 					<div style="border:1px solid var(--border-muted); border-radius:var(--radius-md); overflow:hidden;">
-						<div style="display:flex; align-items:center; gap:0.75rem; padding:0.625rem 0.75rem; background:var(--bg-overlay);">
+						<div style="display:flex; align-items:center; gap:0.75rem; padding:0.625rem 0.75rem; background:var(--bg-overlay); flex-wrap:wrap">
 							<button type="button" style="flex:1; text-align:left; background:none; border:none; cursor:pointer; font-weight:600;"
 								onclick={() => expandedSpecies = expandedSpecies === s.id ? null : s.id}>
 								{s.name}
@@ -92,7 +92,7 @@
 								{#if s.traits?.length}
 									<div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.5rem;">
 										{#each s.traits as t}
-											<div style="display:flex; align-items:center; gap:0.5rem; padding:0.375rem 0.5rem; background:var(--bg-surface); border-radius:var(--radius-sm);">
+											<div style="display:flex; align-items:center; gap:0.5rem; padding:0.375rem 0.5rem; background:var(--bg-surface); border-radius:var(--radius-sm); flex-wrap:wrap">
 												{#if t.requiredLevel}<span class="badge badge-muted">Lv {t.requiredLevel}</span>{/if}
 												<span style="flex:1; font-size:0.8125rem; font-weight:500;">{t.name}</span>
 												{#if t.description}<span style="font-size:0.75rem; color:var(--text-muted); flex:2;">{t.description}</span>{/if}

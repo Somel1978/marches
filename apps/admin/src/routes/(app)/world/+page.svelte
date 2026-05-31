@@ -46,7 +46,7 @@
 	<div class="sections">
 		{#each data.worlds as world}
 			<div class="card">
-				<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;">
+				<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap">
 					<div>
 						<h3 style="margin:0 0 0.25rem; font-size:1rem; font-weight:700;">{world.name}</h3>
 						<p style="font-size:0.875rem; color:var(--text-muted); margin:0;">{world.regions.length} region{world.regions.length !== 1 ? 's' : ''}</p>

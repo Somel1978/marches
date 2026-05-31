@@ -54,7 +54,14 @@
   }
 
   /* Scroll wrapper for wide tables on mobile */
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  /* Table inside scroll wrapper sizes to content but never less than wrapper width */
+  .table-wrap > .table { width: max-content; min-width: 100%; }
 
   /* ── Pagination ─────────────────────────────────────────── */
   .pagination {

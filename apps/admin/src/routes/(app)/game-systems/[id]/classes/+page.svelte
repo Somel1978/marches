@@ -17,7 +17,7 @@
 			<a href="/game-systems" class="back-link">← Game Systems</a>
 			<h2 class="page__title">{system.name} — Classes</h2>
 		</div>
-		<div style="display:flex; gap:0.5rem;">
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 			<a href="/game-systems/{system.id}/species"     class="btn btn-ghost btn-sm">Species</a>
 			<a href="/game-systems/{system.id}/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
 			<a href="/game-systems/{system.id}/import"      class="btn btn-ghost btn-sm">Import</a>
@@ -74,7 +74,8 @@
 
 	<div class="card">
 		{#if classes.length}
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead>
 					<tr>
 						<th>Name</th>
@@ -100,6 +101,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		{:else}
 			<p class="table__empty">No classes yet. Create the first one above.</p>
 		{/if}

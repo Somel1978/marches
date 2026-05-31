@@ -106,14 +106,15 @@
 		</div>
 		<input type="hidden" name="sortBy"  value={param('sortBy')} />
 		<input type="hidden" name="sortDir" value={param('sortDir')} />
-		<div style="display:flex; gap:0.5rem;">
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 			<button type="submit" class="btn btn-primary btn-sm">Apply filters</button>
 			<a href="/marketplace/items" class="btn btn-ghost btn-sm">Reset</a>
 		</div>
 	</form>
 
 	<div class="table-wrap card">
-		<table class="table">
+		<div class="table-wrap">
+			<table class="table">
 			<thead>
 				<tr>
 					<th><a href={sortUrl('name')}     style="text-decoration:none; color:inherit;">Name {sortIcon('name')}</a></th>
@@ -145,6 +146,7 @@
 				{/each}
 			</tbody>
 		</table>
+</div>
 	</div>
 
 	{#if data.totalPages > 1}

@@ -101,7 +101,7 @@
 				<h3 class="section-title">Journal settings</h3>
 				<form method="post" action="?/updateJournal" use:enhance>
 					<div class="fields">
-						<div style="display:flex; gap:0.75rem;">
+						<div style="display:flex; gap:0.75rem; flex-wrap:wrap">
 							<div class="field" style="flex:0 0 60px;">
 								<label class="label" for="j-icon">Icon</label>
 								<input id="j-icon" name="icon" type="text" class="input" value={journal.icon ?? ''} placeholder="📖" style="text-align:center; font-size:1.25rem;" />
@@ -126,7 +126,7 @@
 							<p class="label">World restrictions <span class="optional">(empty = all worlds)</span></p>
 							<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
 								{#each allWorlds as w}
-									<label style="display:flex; align-items:center; gap:0.375rem; cursor:pointer; font-size:0.8125rem;">
+									<label style="display:flex; align-items:center; gap:0.375rem; cursor:pointer; font-size:0.8125rem; flex-wrap:wrap">
 										<input type="checkbox" name="worldIds" value={w.id} checked={journal.worldIds?.includes(w.id)} />
 										{w.name}
 									</label>
@@ -137,7 +137,7 @@
 							<p class="label">Role restrictions <span class="optional">(empty = all roles)</span></p>
 							<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
 								{#each allRoles as r}
-									<label style="display:flex; align-items:center; gap:0.375rem; cursor:pointer; font-size:0.8125rem;">
+									<label style="display:flex; align-items:center; gap:0.375rem; cursor:pointer; font-size:0.8125rem; flex-wrap:wrap">
 										<input type="checkbox" name="roleIds" value={r.id} checked={journal.roleIds?.includes(r.id)} />
 										{r.name}
 									</label>
@@ -157,7 +157,7 @@
 						<!-- Section header with inline rename -->
 						<form method="post" action="?/updateSection" use:enhance={() => {
 							return async ({ update }) => { await update(); await invalidateAll(); };
-						}} style="display:flex; align-items:center; gap:0.375rem; margin-bottom:0.375rem;">
+						}} style="display:flex; align-items:center; gap:0.375rem; margin-bottom:0.375rem; flex-wrap:wrap">
 							<input type="hidden" name="id" value={section.id} />
 							<input name="icon" type="text" class="input" value={section.icon ?? ''}
 								style="width:36px; text-align:center; font-size:1rem; padding:0.125rem; flex-shrink:0;" placeholder="📂" />
@@ -214,9 +214,9 @@
 								<input id="pg-title" name="title" type="text" class="input" bind:value={editTitle} required />
 							</div>
 							<div class="field">
-								<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.375rem;">
+								<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.375rem; flex-wrap:wrap">
 									<label class="label" for="pg-content" style="margin:0;">Content (Markdown)</label>
-									<div style="display:flex; gap:0.5rem; align-items:center;">
+									<div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap">
 							<div style="background:var(--bg-overlay); border-radius:var(--radius-md); padding:0.75rem; margin-bottom:0.75rem; font-size:0.8125rem; border:1px solid var(--border-muted);">
 							<p style="font-weight:600; margin:0 0 0.375rem;">📝 Markdown + Enrichers</p>
 							<p style="color:var(--text-secondary); margin:0 0 0.5rem;">Standard Markdown is supported (# headings, **bold**, *italic*, etc). Use enrichers to embed live links to platform entities.</p>
@@ -255,7 +255,7 @@
 											<div style="position:absolute; left:0; bottom:100%; width:100%; max-height:280px; overflow-y:auto; background:var(--bg-surface); border:1px solid var(--border-muted); border-radius:var(--radius-md); box-shadow:var(--shadow-lg); z-index:50;">
 												{#each enricherResults as item}
 													<button type="button"
-														style="display:flex; align-items:center; gap:0.625rem; width:100%; padding:0.5rem 0.75rem; background:none; border:none; cursor:pointer; text-align:left; font-size:0.875rem;"
+														style="display:flex; align-items:center; gap:0.625rem; width:100%; padding:0.5rem 0.75rem; background:none; border:none; cursor:pointer; text-align:left; font-size:0.875rem; flex-wrap:wrap"
 														onmouseenter={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--bg-overlay)'}
 														onmouseleave={(e) => (e.currentTarget as HTMLElement).style.background = 'none'}
 														onclick={() => insertEnricher(item)}>
@@ -281,7 +281,7 @@
 					</form>
 				</div>
 			{:else}
-				<div class="card" style="display:flex; align-items:center; justify-content:center; min-height:300px; color:var(--text-muted); text-align:center;">
+				<div class="card" style="display:flex; align-items:center; justify-content:center; min-height:300px; color:var(--text-muted); text-align:center; flex-wrap:wrap">
 					<div>
 						<p style="font-size:2rem; margin:0 0 0.5rem;">📄</p>
 						<p>Select a page from the structure tree to edit it.</p>

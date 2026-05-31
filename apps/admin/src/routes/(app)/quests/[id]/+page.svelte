@@ -80,7 +80,7 @@
 
 	<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
 		{#if (data.quest as any).regionName}
-			<div style="display:flex; align-items:center; gap:0.375rem; font-size:0.875rem;">
+			<div style="display:flex; align-items:center; gap:0.375rem; font-size:0.875rem; flex-wrap:wrap">
 				<span>📍</span>
 				{#if (data.quest as any).worldName}
 					<span style="color:var(--text-secondary);">{(data.quest as any).worldName}</span>
@@ -118,7 +118,7 @@
 					<button type="submit" class="btn btn-primary btn-sm">Approve & Publish</button>
 				</form>
 				<form method="post" action="?/reject" use:enhance={e_reload}>
-					<div style="display:flex; gap:0.375rem; align-items:center;">
+					<div style="display:flex; gap:0.375rem; align-items:center; flex-wrap:wrap">
 						<input name="note" type="text" class="input" placeholder="Reason" required style="width:220px;" />
 						<button type="submit" class="btn btn-danger btn-sm">Reject</button>
 					</div>
@@ -136,7 +136,7 @@
 					<button type="submit" class="btn btn-primary btn-sm">Approve & Distribute Rewards</button>
 				</form>
 				<form method="post" action="?/rejectResult" use:enhance={e_reload}>
-					<div style="display:flex; gap:0.375rem; align-items:center;">
+					<div style="display:flex; gap:0.375rem; align-items:center; flex-wrap:wrap">
 						<input name="note" type="text" class="input" placeholder="Reason" required style="width:220px;" />
 						<button type="submit" class="btn btn-danger btn-sm">Reject</button>
 					</div>
@@ -386,7 +386,8 @@
 				{#if data.quest.result.reviewNote}<div class="field"><span class="label">Review note</span><span class="table__muted">{data.quest.result.reviewNote}</span></div>{/if}
 			</div>
 			{#if data.quest.result.characters.length}
-				<table class="table">
+				<div class="table-wrap">
+					<table class="table">
 					<thead><tr><th>Character</th><th>XP</th><th>Gold</th><th>Tokens</th><th>Item</th></tr></thead>
 					<tbody>
 						{#each data.quest.result.characters as rc}
@@ -400,6 +401,7 @@
 						{/each}
 					</tbody>
 				</table>
+</div>
 			{/if}
 		</div>
 	{/if}
@@ -409,7 +411,8 @@
 	{#if (data as any).itemUsages?.length}
 		<div class="card">
 			<h3 class="section-title">Item usage submissions</h3>
-			<table class="table">
+			<div class="table-wrap">
+				<table class="table">
 				<thead><tr><th>Character</th><th>Random item</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
 				<tbody>
 					{#each (data as any).itemUsages as u}
@@ -425,6 +428,7 @@
 					{/each}
 				</tbody>
 			</table>
+</div>
 		</div>
 	{/if}
 
@@ -458,7 +462,7 @@
 		oncancel={() => { showDeleteModal = false; revertRewards = false; }}>
 		{#snippet extra()}
 			{#if data.quest.status === 'COMPLETED'}
-				<label style="display:flex; align-items:flex-start; gap:0.625rem; margin-bottom:1rem; cursor:pointer; font-size:0.875rem; color:var(--text-secondary);">
+				<label style="display:flex; align-items:flex-start; gap:0.625rem; margin-bottom:1rem; cursor:pointer; font-size:0.875rem; color:var(--text-secondary); flex-wrap:wrap">
 					<input type="checkbox" style="margin-top:2px; flex-shrink:0;"
 						checked={revertRewards}
 						onchange={(e) => revertRewards = (e.currentTarget as HTMLInputElement).checked} />

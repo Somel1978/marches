@@ -122,7 +122,8 @@
 
 	<!-- Table -->
 	<div class="table-wrap card">
-		<table class="table">
+		<div class="table-wrap">
+			<table class="table">
 			<thead>
 				<tr>
 					<th>When</th>
@@ -199,6 +200,7 @@
 				{/if}
 			</tbody>
 		</table>
+</div>
 	</div>
 
 	<!-- Pagination -->
