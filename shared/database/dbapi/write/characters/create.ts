@@ -5,6 +5,7 @@ import { ConflictError, ValidationError } from '@core/errors';
 import { getSlotInfo } from '../../read/characters/get-slot-info.ts';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
 import { createNotificationsForAdmins } from '../notifications/notifications.ts';
+import { queueDiscordNotification } from '../discord/dispatcher';
 
 export type ClassAllocationInput = {
     classId:        string;
@@ -94,6 +95,12 @@ export async function createCharacter(
         `A new character "${input.name}" has been submitted for approval.`,
         `/characters/${character.id}`,
     );
+
+    try {
+        await queueDiscordNotification('CHAR_PENDING_APPROVAL', {
+            char: { name: character.name, statusReason: 'NEW_CHARACTER', worldId: (character as any).worldId ?? null },
+        });
+    } catch { /* discord not running */ }
 
     return character;
 }

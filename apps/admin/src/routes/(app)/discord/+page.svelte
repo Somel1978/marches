@@ -10,7 +10,7 @@
 	const worlds   = $derived((data as any).allWorlds ?? []);
 	const settings = $derived((data as any).settings  ?? {});
 
-	const CHANNEL_TYPES = ['ANNOUNCEMENTS', 'QUESTS', 'MARKET', 'CHARACTERS'];
+	const CHANNEL_TYPES = ['ANNOUNCEMENTS', 'QUESTS', 'MARKET', 'CHARACTERS', 'APPROVALS'];
 
 	let botGuilds       = $state<{ id: string; name: string }[]>([]);
 	let guildsLoading   = $state(false);
@@ -99,10 +99,15 @@
 							{:else}
 								<form method="post" action="?/saveServer" use:enhance={() => {
 									return async ({ update }) => { await update(); await invalidateAll(); };
-								}}>
+								}} style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
 									<input type="hidden" name="guildId" value={guild.id} />
 									<input type="hidden" name="name"    value={guild.name} />
-									<input type="hidden" name="scope"   value="global" />
+									<select name="scope" class="input input--select" style="font-size:0.8125rem; width:auto; min-width:140px;">
+										<option value="global">Global</option>
+										{#each worlds as w}
+											<option value={w.id}>{w.name}</option>
+										{/each}
+									</select>
 									<button type="submit" class="btn btn-primary btn-sm">Add</button>
 								</form>
 							{/if}
@@ -150,9 +155,22 @@
 			<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
 				<div>
 					<h3 class="section-title" style="margin:0;">{server.name}</h3>
-					<p class="table__muted" style="font-size:0.8125rem; margin:0.125rem 0 0;">
-						ID: {server.guildId} · Scope: {server.scope === 'global' ? 'Global' : worlds.find((w: any) => w.id === server.scope)?.name ?? server.scope}
-					</p>
+					<div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem; flex-wrap:wrap;">
+						<span class="table__muted" style="font-size:0.8125rem;">ID: {server.guildId} · Scope:</span>
+						<form method="post" action="?/saveServer" use:enhance={() => {
+							return async ({ update }) => { await update(); await invalidateAll(); };
+						}} style="display:flex; align-items:center; gap:0.25rem;">
+							<input type="hidden" name="guildId" value={server.guildId} />
+							<input type="hidden" name="name"    value={server.name} />
+							<select name="scope" class="input input--select" style="font-size:0.8125rem; width:auto; min-width:130px; padding:0.2rem 0.5rem;">
+								<option value="global" selected={server.scope === 'global'}>Global</option>
+								{#each worlds as w}
+									<option value={w.id} selected={server.scope === w.id}>{w.name}</option>
+								{/each}
+							</select>
+							<button type="submit" class="btn btn-ghost btn-sm" style="font-size:0.75rem;">Save</button>
+						</form>
+					</div>
 				</div>
 				<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 					<button type="button" class="btn btn-ghost btn-sm"

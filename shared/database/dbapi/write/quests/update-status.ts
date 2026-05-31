@@ -71,6 +71,23 @@ export async function updateQuestStatus(
                 title:   quest.title,
                 worldId: (quest as any).worldId ?? null,
             });
+        } else if (status === 'PENDING_APPROVAL') {
+            const dm = await db.dMProfile.findUnique({ where: { id: quest.dmProfileId }, select: { name: true } });
+            await queueDiscordNotification('QUEST_PENDING_APPROVAL', {
+                questId:   id,
+                title:     quest.title,
+                dmName:    dm?.name ?? '',
+                minLevel:  quest.minLevel,
+                maxLevel:  quest.maxLevel,
+                missionXp: quest.missionXp,
+                worldId:   (quest as any).worldId ?? null,
+            });
+        } else if (status === 'PENDING_RESULT_APPROVAL') {
+            await queueDiscordNotification('QUEST_RESULT_PENDING', {
+                questId: id,
+                title:   quest.title,
+                worldId: (quest as any).worldId ?? null,
+            });
         }
     } catch { /* discord not running */ }
 

@@ -42,3 +42,11 @@
 ## Journal
     - Frontend:
         - Sidebar overlays menu on mobile — FIXED (z-index:200, backdrop, padding-top for nav clearance)
+
+## Discord
+    - Discord server scope was hardcoded to global — FIXED (scope selector on add + inline scope change on existing)
+    - CHAR_APPROVED never enqueued — FIXED
+    - No pending/approval notifications — FIXED (CHAR_PENDING, QUEST_PENDING_APPROVAL, QUEST_RESULT_PENDING, MARKET_PENDING)
+    - No world routing on character/market notifications — FIXED
+    - Inconsistent siteUrl links on quest notifications — FIXED
+    - APPROVALS channel type missing from schema — FIXED (requires db:push)

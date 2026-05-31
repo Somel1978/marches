@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-31 (session 18)
+> Last updated: 2026-05-31 (session 19)
 
 ---
 
@@ -1264,6 +1264,33 @@ Players connect Discord via **Profile → Connect Discord** → OAuth flow store
 ---
 
 ## Bug Fixes & Patches
+
+
+### Session 19 — Discord improvements (2026-05-31)
+
+**Fixed: CHAR_APPROVED never enqueued**
+- `shared/database/dbapi/write/characters/approve.ts` — `CHAR_APPROVED` and `CHAR_REJECTED` now properly queued with worldId for world routing
+
+**New: Pending/approval-needed notifications**
+- `shared/database/dbapi/write/characters/create.ts` — `CHAR_PENDING_APPROVAL` queued on character submission
+- `shared/database/dbapi/write/quests/update-status.ts` — `QUEST_PENDING_APPROVAL` queued on DRAFT→PENDING_APPROVAL; `QUEST_RESULT_PENDING` queued on PENDING_RESULT→PENDING_RESULT_APPROVAL
+- `shared/database/dbapi/write/marketplace/transactions.ts` — `MARKET_PENDING` queued on both buy and sell submission
+
+**New: World routing on all notifications**
+- `notifyCharacterApproved/Rejected` — now posts to world channel if char.worldId set
+- `notifyItemPurchased/Sold` — worldId passed through and routed to world MARKET channel
+- `notifyQuestStarted` — now includes siteUrl link (was missing)
+- `notifyQuestResult` — now includes siteUrl link (was missing)
+- `notifyInvite` — scheduledAt added to embed
+
+**New: APPROVALS channel type**
+- `shared/database/prisma/discord.prisma` — APPROVALS added to DiscordChannelType enum (requires db:push + db:generate)
+- `apps/discord/src/notifications/dispatcher.ts` — notifyQuestPendingApproval, notifyQuestResultPending, notifyCharacterPendingApproval, notifyCharacterRejected, notifyMarketplacePending all post to APPROVALS channel
+- `apps/discord/src/notifications/process-queue.ts` — handles all 5 new notification types
+- `apps/admin/src/routes/(app)/discord/+page.svelte` — APPROVALS added to CHANNEL_TYPES
+
+**Fixed: Discord server scope always global**
+- `apps/admin/src/routes/(app)/discord/+page.svelte` — "Add server" from bot list now shows world scope selector; existing servers show inline scope change form
 
 
 ### Session 18 — Bug fixes (2026-05-31)

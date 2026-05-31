@@ -5,6 +5,7 @@ enum DiscordChannelType {
   QUESTS
   MARKET
   CHARACTERS
+  APPROVALS
 
   @@schema("discord")
 }

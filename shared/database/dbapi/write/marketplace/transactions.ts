@@ -152,6 +152,15 @@ export async function createBuyTransaction(
 
         await createNotificationsForAdmins('MARKETPLACE_PENDING', 'Purchase request pending',
             `Purchase request for "${item.name}" ×${quantity} needs approval.`, '/marketplace/transactions');
+        try {
+            const buyChar = await db.character.findUnique({ where: { id: characterId }, select: { name: true } });
+            await queueDiscordNotification('MARKET_PENDING', {
+                char:    { name: buyChar?.name ?? '' },
+                item:    { name: item.name, price: totalPrice },
+                txType:  'BUY',
+                worldId: effectiveWorldId ?? null,
+            });
+        } catch { /* discord not running */ }
         await logAudit(dbTx, { actorId: requestedBy, action: 'CREATE', resourceKey: 'MarketplaceTransaction',
             resourceId: tx.id, after: { type: 'BUY', itemId, characterId, quantity, totalPrice, worldId: effectiveWorldId } });
 
@@ -199,6 +208,16 @@ export async function createSellTransaction(
         await logAudit(dbTx, { actorId: requestedBy, action: 'CREATE', resourceKey: 'MarketplaceTransaction',
             resourceId: tx.id, after: { type: 'SELL', itemId: item.id, characterId, quantity, totalPrice, worldId: (inv as any).worldId } });
     });
+
+    try {
+        const sellChar = await db.character.findUnique({ where: { id: characterId }, select: { name: true } });
+        await queueDiscordNotification('MARKET_PENDING', {
+            char:    { name: sellChar?.name ?? '' },
+            item:    { name: item.name, price: totalPrice },
+            txType:  'SELL',
+            worldId: (inv as any).worldId ?? null,
+        });
+    } catch { /* discord not running */ }
 
     return tx;
 }
@@ -287,10 +306,11 @@ export async function approveTransaction(id: string, actorId: string) {
 
         try {
             const char = await db.character.findUnique({ where: { id: tx.characterId }, select: { name: true } });
+            const worldId = (tx as any).worldId ?? null;
             if (tx.type === 'BUY') {
-                await queueDiscordNotification('ITEM_PURCHASED', { char: { name: char?.name ?? '' }, item: { name: tx.item.name, buyPrice: tx.item.buyPrice } });
+                await queueDiscordNotification('ITEM_PURCHASED', { char: { name: char?.name ?? '' }, item: { name: tx.item.name, buyPrice: tx.item.buyPrice }, worldId });
             } else {
-                await queueDiscordNotification('ITEM_SOLD', { char: { name: char?.name ?? '' }, item: { name: tx.item.name }, price: tx.totalPrice });
+                await queueDiscordNotification('ITEM_SOLD', { char: { name: char?.name ?? '' }, item: { name: tx.item.name }, price: tx.totalPrice, worldId });
             }
         } catch { /* discord not running */ }
     });

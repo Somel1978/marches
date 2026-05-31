@@ -2,6 +2,7 @@
 import { db, Prisma } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { createNotification } from '../notifications/notifications.ts';
+import { queueDiscordNotification } from '../discord/dispatcher';
 import { NotFoundError, ValidationError } from '@core/errors';
 
 export async function approveCharacter(id: string, actorId: string) {
@@ -96,7 +97,14 @@ export async function approveCharacter(id: string, actorId: string) {
         `/characters/${id}`,
     );
 
-    return db.character.findUnique({ where: { id } });
+    const approved = await db.character.findUnique({ where: { id } });
+    try {
+        await queueDiscordNotification('CHAR_APPROVED', {
+            char: { name: approved?.name ?? '', worldId: (approved as any)?.worldId ?? null },
+        });
+    } catch { /* discord not running */ }
+
+    return approved;
 }
 
 export async function rejectCharacter(id: string, note: string, actorId: string) {
@@ -148,6 +156,13 @@ export async function rejectCharacter(id: string, note: string, actorId: string)
         note,
         `/characters/${id}`,
     );
+
+    try {
+        await queueDiscordNotification('CHAR_REJECTED', {
+            char: { name: character.name, worldId: (character as any).worldId ?? null },
+            note,
+        });
+    } catch { /* discord not running */ }
 
     return db.character.findUnique({ where: { id } });
 }

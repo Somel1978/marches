@@ -24,20 +24,14 @@ async function send(scope: string, type: string, embed: EmbedBuilder) {
     if (channel) await channel.send({ embeds: [embed] });
 }
 
-// ── Notification dispatchers ──────────────────────────────────────────────────
-
-export async function notifyQuestStarted(quest: any) {
-    const embed = new EmbedBuilder()
-        .setTitle(`⚔ Quest Started: ${quest.title}`)
-        .setColor(0x6366f1)
-        .setDescription('This quest is now in progress. Good luck adventurers!')
-        .setTimestamp();
-    await send('global', 'QUESTS', embed);
-    if (quest.worldId) await send(quest.worldId, 'QUESTS', embed);
+async function getSettings() {
+    return platform.getSettingsMap();
 }
 
+// ── Quest notifications ───────────────────────────────────────────────────────
+
 export async function notifyQuestPublished(quest: any) {
-    const settings = await platform.getSettingsMap();
+    const settings = await getSettings();
     const siteUrl  = settings['site.url'] ?? '';
     const embed = new EmbedBuilder()
         .setTitle(`⚔ New Quest: ${quest.title}`)
@@ -50,14 +44,57 @@ export async function notifyQuestPublished(quest: any) {
         )
         .setURL(`${siteUrl}/quests/${quest.id}`)
         .setTimestamp();
+    if (quest.scheduledAt) embed.addFields({ name: 'Scheduled', value: new Date(quest.scheduledAt).toLocaleString(), inline: true });
 
-    // Post to global quests channel + world-specific if quest has a world
     await send('global', 'QUESTS', embed);
     if (quest.worldId) await send(quest.worldId, 'QUESTS', embed);
 }
 
+export async function notifyQuestStarted(quest: any) {
+    const settings = await getSettings();
+    const siteUrl  = settings['site.url'] ?? '';
+    const embed = new EmbedBuilder()
+        .setTitle(`⚔ Quest Started: ${quest.title}`)
+        .setColor(0x6366f1)
+        .setDescription('This quest is now in progress. Good luck adventurers!')
+        .setURL(`${siteUrl}/quests/${quest.id}`)
+        .setTimestamp();
+    await send('global', 'QUESTS', embed);
+    if (quest.worldId) await send(quest.worldId, 'QUESTS', embed);
+}
+
+export async function notifyQuestPendingApproval(quest: any) {
+    const settings = await getSettings();
+    const siteUrl  = settings['site.url'] ?? '';
+    const embed = new EmbedBuilder()
+        .setTitle(`📋 Quest Awaiting Approval: ${quest.title}`)
+        .setColor(0xf59e0b)
+        .setDescription(`Submitted by **${quest.dmName ?? 'DM'}** — needs review before publishing.`)
+        .addFields(
+            { name: 'Level', value: `${quest.minLevel}–${quest.maxLevel}`, inline: true },
+            { name: 'XP',    value: quest.missionXp?.toLocaleString() ?? '0', inline: true },
+        )
+        .setURL(`${siteUrl}/quests/${quest.id}`)
+        .setTimestamp();
+    await send('global', 'APPROVALS', embed);
+    if (quest.worldId) await send(quest.worldId, 'APPROVALS', embed);
+}
+
+export async function notifyQuestResultPending(quest: any) {
+    const settings = await getSettings();
+    const siteUrl  = settings['site.url'] ?? '';
+    const embed = new EmbedBuilder()
+        .setTitle(`📋 Quest Result Awaiting Approval: ${quest.title}`)
+        .setColor(0xf59e0b)
+        .setDescription('Quest result has been submitted and needs review.')
+        .setURL(`${siteUrl}/quests/${quest.id}`)
+        .setTimestamp();
+    await send('global', 'APPROVALS', embed);
+    if (quest.worldId) await send(quest.worldId, 'APPROVALS', embed);
+}
+
 export async function notifyQuestResult(quest: any, resultChars: any[]) {
-    const settings = await platform.getSettingsMap();
+    const settings = await getSettings();
     const siteUrl  = settings['site.url'] ?? '';
     const embed = new EmbedBuilder()
         .setTitle(`✅ Quest Completed: ${quest.title ?? 'Unknown Quest'}`)
@@ -72,11 +109,83 @@ export async function notifyQuestResult(quest: any, resultChars: any[]) {
                     inline: false,
                 }))
         )
+        .setURL(`${siteUrl}/quests/${quest.id}`)
         .setTimestamp();
 
     await send('global', 'QUESTS', embed);
     if (quest.worldId) await send(quest.worldId, 'QUESTS', embed);
 }
+
+// ── Character notifications ───────────────────────────────────────────────────
+
+export async function notifyCharacterPendingApproval(char: any) {
+    const embed = new EmbedBuilder()
+        .setTitle(`📋 Character Awaiting Approval: ${char.name}`)
+        .setColor(0xf59e0b)
+        .setDescription(`**${char.name}** has been submitted for review.`)
+        .addFields({ name: 'Reason', value: char.statusReason?.replace(/_/g, ' ') ?? 'New character', inline: true })
+        .setTimestamp();
+    await send('global', 'APPROVALS', embed);
+    if (char.worldId) await send(char.worldId, 'APPROVALS', embed);
+}
+
+export async function notifyCharacterApproved(char: any) {
+    const embed = new EmbedBuilder()
+        .setTitle('🧙 Character Approved')
+        .setColor(0x8b5cf6)
+        .setDescription(`**${char.name}** has been approved and is now active!`)
+        .setTimestamp();
+    await send('global', 'CHARACTERS', embed);
+    if (char.worldId) await send(char.worldId, 'CHARACTERS', embed);
+}
+
+export async function notifyCharacterRejected(char: any, note: string) {
+    const embed = new EmbedBuilder()
+        .setTitle('❌ Character Rejected')
+        .setColor(0xef4444)
+        .setDescription(`**${char.name}** was rejected.`)
+        .addFields({ name: 'Reason', value: note, inline: false })
+        .setTimestamp();
+    await send('global', 'CHARACTERS', embed);
+    if (char.worldId) await send(char.worldId, 'CHARACTERS', embed);
+}
+
+// ── Marketplace notifications ─────────────────────────────────────────────────
+
+export async function notifyMarketplacePending(char: any, item: any, type: 'BUY' | 'SELL', worldId?: string) {
+    const embed = new EmbedBuilder()
+        .setTitle(`📋 Marketplace ${type === 'BUY' ? 'Purchase' : 'Sale'} Pending`)
+        .setColor(0xf59e0b)
+        .setDescription(`**${char.name}** wants to ${type === 'BUY' ? 'buy' : 'sell'} **${item.name}** — awaiting approval.`)
+        .addFields({ name: 'Value', value: `${item.price?.toLocaleString() ?? '?'} GP`, inline: true })
+        .setTimestamp();
+    await send('global', 'APPROVALS', embed);
+    if (worldId) await send(worldId, 'APPROVALS', embed);
+}
+
+export async function notifyItemPurchased(char: any, item: any, worldId?: string) {
+    const embed = new EmbedBuilder()
+        .setTitle('🛒 Purchase Approved')
+        .setColor(0x22c55e)
+        .setDescription(`**${char.name}** purchased **${item.name}**`)
+        .addFields({ name: 'Price', value: `${item.buyPrice?.toLocaleString() ?? '?'} GP`, inline: true })
+        .setTimestamp();
+    await send('global', 'MARKET', embed);
+    if (worldId) await send(worldId, 'MARKET', embed);
+}
+
+export async function notifyItemSold(char: any, item: any, price: number, worldId?: string) {
+    const embed = new EmbedBuilder()
+        .setTitle('💰 Sale Approved')
+        .setColor(0x22c55e)
+        .setDescription(`**${char.name}** sold **${item.name}**`)
+        .addFields({ name: 'Received', value: `${price.toLocaleString()} GP`, inline: true })
+        .setTimestamp();
+    await send('global', 'MARKET', embed);
+    if (worldId) await send(worldId, 'MARKET', embed);
+}
+
+// ── Announcements ─────────────────────────────────────────────────────────────
 
 export async function notifyAnnouncement(announcement: any) {
     const embed = new EmbedBuilder()
@@ -97,41 +206,11 @@ export async function notifyAnnouncement(announcement: any) {
     await send('global', 'ANNOUNCEMENTS', embed);
 }
 
-export async function notifyItemPurchased(char: any, item: any) {
-    const embed = new EmbedBuilder()
-        .setTitle('🛒 Purchase Approved')
-        .setColor(0x22c55e)
-        .setDescription(`**${char.name}** purchased **${item.name}**`)
-        .addFields({ name: 'Price', value: `${item.buyPrice?.toLocaleString() ?? '?'} GP`, inline: true })
-        .setTimestamp();
-
-    await send('global', 'MARKET', embed);
-}
-
-export async function notifyItemSold(char: any, item: any, price: number) {
-    const embed = new EmbedBuilder()
-        .setTitle('💰 Sale Approved')
-        .setColor(0x22c55e)
-        .setDescription(`**${char.name}** sold **${item.name}**`)
-        .addFields({ name: 'Received', value: `${price.toLocaleString()} GP`, inline: true })
-        .setTimestamp();
-
-    await send('global', 'MARKET', embed);
-}
-
-export async function notifyCharacterApproved(char: any) {
-    const embed = new EmbedBuilder()
-        .setTitle('🧙 Character Approved')
-        .setColor(0x8b5cf6)
-        .setDescription(`**${char.name}** has been approved and is now active!`)
-        .setTimestamp();
-
-    await send('global', 'CHARACTERS', embed);
-}
+// ── DM invite ─────────────────────────────────────────────────────────────────
 
 export async function notifyInvite(discordId: string, quest: any) {
     if (!_client) return;
-    const settings = await platform.getSettingsMap();
+    const settings = await getSettings();
     const siteUrl  = settings['site.url'] ?? '';
     try {
         const user = await _client.users.fetch(discordId);
@@ -145,6 +224,7 @@ export async function notifyInvite(discordId: string, quest: any) {
             )
             .setURL(`${siteUrl}/quests/${quest.id}`)
             .setTimestamp();
+        if (quest.scheduledAt) embed.addFields({ name: 'Scheduled', value: new Date(quest.scheduledAt).toLocaleString(), inline: true });
         await user.send({ embeds: [embed] });
     } catch { /* user has DMs disabled */ }
 }
