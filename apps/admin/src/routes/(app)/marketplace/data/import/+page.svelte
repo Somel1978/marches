@@ -1,4 +1,4 @@
-<!-- apps/admin/src/routes/(app)/marketplace/import/+page.svelte -->
+<!-- apps/admin/src/routes/(app)/marketplace/data/import/+page.svelte -->
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
 	let { form }: { form: ActionData } = $props();
@@ -11,6 +11,7 @@
 			<a href="/marketplace/items" class="back-link">← Items</a>
 			<h2 class="page__title">Import Items</h2>
 		</div>
+		<a href="/marketplace/data/export" class="btn btn-ghost btn-sm" download>↓ Export all items</a>
 	</div>
 
 	{#if form?.message}<div class="form-error">{form.message}</div>{/if}

@@ -11,7 +11,7 @@ export type ImportRow = {
     rarity:      string;
     attunement:  string | number;
     requirements?: string;
-    weight?:     number | string;
+    weight?:     number | string | null;
     source?:     string;
     imageUrl?:   string;
     link?:       string;

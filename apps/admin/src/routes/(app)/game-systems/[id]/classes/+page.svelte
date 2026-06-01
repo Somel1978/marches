@@ -20,7 +20,7 @@
 		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
 			<a href="/game-systems/{system.id}/species"     class="btn btn-ghost btn-sm">Species</a>
 			<a href="/game-systems/{system.id}/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
-			<a href="/game-systems/{system.id}/import"      class="btn btn-ghost btn-sm">Import</a>
+			<a href="/game-systems/{system.id}/data/import"      class="btn btn-ghost btn-sm">Import</a>
 			<button type="button" class="btn btn-primary btn-sm" onclick={() => showNew = !showNew}>+ New class</button>
 		</div>
 	</div>

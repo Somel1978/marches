@@ -1,4 +1,4 @@
-<!-- apps/admin/src/routes/(app)/game-systems/[id]/import/+page.svelte -->
+<!-- apps/admin/src/routes/(app)/game-systems/[id]/data/import/+page.svelte -->
 <script lang="ts">
 	import * as XLSX from 'xlsx';
 	import { enhance } from '$app/forms';
@@ -116,9 +116,15 @@
 					The <code>speciesName</code> column must match an existing species name exactly.
 				{/if}
 			</p>
-			<button type="button" class="btn btn-ghost btn-sm" onclick={downloadTemplate}>
-				↓ Download {activeTabDef.label} template
-			</button>
+			<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+				<button type="button" class="btn btn-ghost btn-sm" onclick={downloadTemplate}>
+					↓ Download {activeTabDef.label} template
+				</button>
+				<a href="/game-systems/{system.id}/data/export?type={activeTab}"
+					class="btn btn-ghost btn-sm" download>
+					↓ Export current {activeTabDef.label}
+				</a>
+			</div>
 		</div>
 
 		<div style="margin-bottom:0.75rem;">

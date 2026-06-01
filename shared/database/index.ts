@@ -79,7 +79,7 @@ import { createWorld, updateWorld, createRegion,
 import { upsertWikiPage                              } from './dbapi/write/world/wiki.ts';
 
 // ── Marketplace ──────────────────────────────────────────────────────────────────
-import { getMarketplaceItems, getMarketplaceItemById,
+import { getMarketplaceItems, getMarketplaceItemById, getAllMarketplaceItemsForExport,
          getMarketplaceItemByName                         } from './dbapi/read/marketplace/get-items.ts';
 import { resolveMarketplaceContext                        } from './dbapi/read/marketplace/resolve-context.ts';
 import { getMarketplaceTransactions                       } from './dbapi/read/marketplace/get-transactions.ts';
@@ -255,8 +255,9 @@ export const quests = {
 
 export const marketplace = {
     items: {
-        getAll:       getMarketplaceItems,
-        getById:      getMarketplaceItemById,
+        getAll:          getMarketplaceItems,
+        getAllForExport:  getAllMarketplaceItemsForExport,
+        getById:         getMarketplaceItemById,
         getByName:    getMarketplaceItemByName,
         upsert:       upsertMarketplaceItem,
         update:       updateMarketplaceItem,

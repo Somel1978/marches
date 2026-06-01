@@ -1,4 +1,4 @@
-// apps/admin/src/routes/(app)/marketplace/import/+page.server.ts
+// apps/admin/src/routes/(app)/marketplace/data/import/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
 import { marketplace } from '@core/database';
 import { checkPermission } from '@core/rbac';
@@ -36,7 +36,7 @@ export const actions: Actions = {
 				rarity:       r['Rarity']       ?? 'Unknown',
 				attunement:   r['Att.']         ?? '',
 				requirements: r['Requirements'] ?? '',
-				weight:       r['Weight']       ?? null,
+				weight:       (r['Weight'] !== undefined && r['Weight'] !== '' && !isNaN(Number(r['Weight']))) ? Number(r['Weight']) : null,
 				source:       r['Source']       ?? '',
 				imageUrl:     r['Image']        ?? '',
 				link:         r['Link']         ?? '',

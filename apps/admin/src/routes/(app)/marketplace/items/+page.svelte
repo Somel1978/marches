@@ -59,7 +59,10 @@
 			<h2 class="page__title">Marketplace Items</h2>
 			<p class="page__subtitle">{data.total.toLocaleString()} items</p>
 		</div>
-		<a href="/marketplace/import" class="btn btn-primary btn-sm">Import</a>
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+			<a href="/marketplace/data/export" class="btn btn-ghost btn-sm" download>↓ Export</a>
+			<a href="/marketplace/data/import" class="btn btn-primary btn-sm">↑ Import</a>
+		</div>
 	</div>
 
 	<!-- Filters -->

@@ -18,6 +18,10 @@
 			<a href="/game-systems" class="back-link">← Game Systems</a>
 			<h2 class="page__title">{system.name} — Progression</h2>
 		</div>
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+			<a href="/game-systems/{system.id}/progression/data/export" class="btn btn-ghost btn-sm" download>↓ Export</a>
+			<a href="/game-systems/{system.id}/progression/data/import" class="btn btn-ghost btn-sm">↑ Import</a>
+		</div>
 	</div>
 
 	<!-- Existing thresholds -->

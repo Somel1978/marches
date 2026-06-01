@@ -67,6 +67,26 @@ export async function getMarketplaceItems({
     return { items, total, page, perPage, totalPages: Math.ceil(total / perPage) };
 }
 
+export async function getAllMarketplaceItemsForExport() {
+    return db.marketplaceItem.findMany({
+        orderBy: [{ category: 'asc' }, { name: 'asc' }],
+        select: {
+            category:           true,
+            name:               true,
+            buyPrice:           true,
+            baseItem:           true,
+            isVariant:          true,
+            rarity:             true,
+            requiresAttunement: true,
+            requirements:       true,
+            weight:             true,
+            source:             true,
+            imageUrl:           true,
+            link:               true,
+        },
+    });
+}
+
 export async function getMarketplaceItemById(id: string) {
     return db.marketplaceItem.findUnique({ where: { id } });
 }

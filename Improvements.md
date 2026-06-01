@@ -43,6 +43,9 @@
     - Frontend:
         - Sidebar overlays menu on mobile — FIXED (z-index:200, backdrop, padding-top for nav clearance)
 
+## Import/Export
+    - Marketplace import stored NaN for non-numeric weight values — FIXED (sanitize on import, handle on export)
+
 ## Discord
     - Discord server scope was hardcoded to global — FIXED (scope selector on add + inline scope change on existing)
     - CHAR_APPROVED never enqueued — FIXED

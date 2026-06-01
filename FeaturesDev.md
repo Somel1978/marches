@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-05-31 (session 19)
+> Last updated: 2026-06-01 (session 21)
 
 ---
 
@@ -97,7 +97,11 @@ marches/
 ✅ 21. World marketplace expansion — per-world level restrictions UI, world-lock enforcement, buy/sell world context, Discord world commands, transaction world filter
 ✅ 22. World DM assignment — WorldDM model, assign/remove DMs at world level (same pattern as RegionDM)
 ✅ 23. DM Hub world management — full world/region/location/wiki/marketplace/transactions/characters/quests/journal/audit per world, canManage flag, quest approval routing
-⬜ 24. DM dashboard quest filters (UI cleanup phase)
+✅ 24. Import/Export audit — identified all gaps (progression missing both, all areas missing export)
+✅ 25. Import/Export — add progression import/export, add export to all existing import areas (see ImportExportPlan.md)
+⬜ 26. Character system refactor — sculpt dnd5e out of universal character layer (see CharacterSystemRefactor.md) — DB reset OK
+⬜ 27. dnd5e character sheet completion — stats/ability scores + feats (builds on top of refactored Dnd5eCharacterSheet model)
+⬜ 28. DM dashboard quest filters (UI cleanup phase)
 ```
 
 ---
@@ -1264,6 +1268,47 @@ Players connect Discord via **Profile → Connect Discord** → OAuth flow store
 ---
 
 ## Bug Fixes & Patches
+
+
+### Session 21 — Import/Export (2026-06-01)
+
+**Architecture**
+- Established consistent `data/import` + `data/export` pattern for all data-owning areas
+- Each area owns its own import and export — no shared api/export routes
+- Structure: `game-systems/[id]/data/import|export`, `game-systems/[id]/progression/data/import|export`, `marketplace/data/import|export`
+- Pattern established for future systems: `game-systems/[id]/data/` for system-specific data
+
+**New routes**
+- `apps/admin/src/routes/(app)/game-systems/[id]/data/import/+page.server.ts` — moved from `game-systems/[id]/import/`
+- `apps/admin/src/routes/(app)/game-systems/[id]/data/import/+page.svelte`
+- `apps/admin/src/routes/(app)/game-systems/[id]/data/export/+server.ts` — new, exports classes/features/subclasses/species/backgrounds
+- `apps/admin/src/routes/(app)/game-systems/[id]/progression/data/import/+page.server.ts` — new
+- `apps/admin/src/routes/(app)/game-systems/[id]/progression/data/import/+page.svelte` — new
+- `apps/admin/src/routes/(app)/game-systems/[id]/progression/data/export/+server.ts` — new
+- `apps/admin/src/routes/(app)/marketplace/data/import/+page.server.ts` — moved from `marketplace/import/`
+- `apps/admin/src/routes/(app)/marketplace/data/import/+page.svelte`
+- `apps/admin/src/routes/(app)/marketplace/data/export/+server.ts` — new
+
+**Deleted routes**
+- `apps/admin/src/routes/(app)/game-systems/[id]/import/` — replaced by `data/import/`
+- `apps/admin/src/routes/(app)/marketplace/import/` — replaced by `data/import/`
+
+**Updated sveltes** (import links updated to new paths)
+- `apps/admin/src/routes/(app)/game-systems/+page.svelte`
+- `apps/admin/src/routes/(app)/game-systems/[id]/+page.svelte`
+- `apps/admin/src/routes/(app)/game-systems/[id]/classes/+page.svelte`
+- `apps/admin/src/routes/(app)/game-systems/[id]/progression/+page.svelte`
+- `apps/admin/src/routes/(app)/marketplace/items/+page.svelte`
+
+**DB API**
+- `shared/database/dbapi/read/marketplace/get-items.ts` — `getAllMarketplaceItemsForExport()` added (no pagination, select only export columns)
+- `shared/database/dbapi/write/marketplace/import.ts` — `ImportRow.weight` accepts `null`; weight sanitized on import to prevent NaN storage
+- `shared/database/index.ts` — `marketplace.items.getAllForExport` exported
+
+**Bug fixed**
+- Marketplace import was storing NaN for weight when source data had empty/non-numeric values (e.g. blank, N/A)
+- 327 affected items identified, export handled NaN gracefully, reimport cleaned all to null
+- Import now sanitizes weight: only stores numeric values, null otherwise
 
 
 ### Session 19 — Discord improvements (2026-05-31)
