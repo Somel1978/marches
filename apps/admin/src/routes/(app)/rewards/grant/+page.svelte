@@ -49,7 +49,7 @@
 						<select id="g-char" name="characterId" class="input input--select" required>
 							<option value="">Select character…</option>
 							{#each data.allChars as c}
-								<option value={c.id}>{c.name}</option>
+								<option value={c.id}>{c.name}{c.status !== 'ACTIVE' ? ` (${c.status})` : ''}</option>
 							{/each}
 						</select>
 					</div>
@@ -91,7 +91,7 @@
 							<select id="ga-char" name="characterId" class="input input--select" required>
 								<option value="">Select character…</option>
 								{#each data.allChars as c}
-									<option value={c.id}>{c.name}</option>
+									<option value={c.id}>{c.name}{c.status !== 'ACTIVE' ? ` (${c.status})` : ''}</option>
 								{/each}
 							</select>
 						</div>
@@ -204,7 +204,7 @@
 							<select id="gi-char" name="characterId" class="input input--select" required>
 								<option value="">Select character…</option>
 								{#each data.allChars as c}
-									<option value={c.id}>{c.name}</option>
+									<option value={c.id}>{c.name}{c.status !== 'ACTIVE' ? ` (${c.status})` : ''}</option>
 								{/each}
 							</select>
 						</div>

@@ -19,6 +19,25 @@ async function checkDMAccess(questId: string, userId: string) {
 	return { quest, profile, isMainDM };
 }
 
+
+async function checkCanApprove(questId: string, userId: string) {
+	const quest = await quests.getById(questId);
+	if (!quest) return null;
+	const profile = await dms.profiles.getByUserId(userId);
+	if (!profile) return null;
+	// Cannot approve own quest
+	if ((quest as any).dmProfileId === profile.id) return null;
+	// Must have canManage on the quest's world
+	const worldId = (quest as any).worldId;
+	if (!worldId) return null;
+	const assignment = await db.worldDM.findUnique({
+		where: { worldId_dmProfileId: { worldId, dmProfileId: profile.id } },
+		select: { canManage: true },
+	});
+	if (!assignment?.canManage) return null;
+	return { quest, profile, worldId };
+}
+
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const access = await checkDMAccess(params.id, locals.user!.id);
 	if (!access) throw error(403, 'Forbidden');
@@ -99,7 +118,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		}
 	}
 
-	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds, questRatings, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES, destroyableInventory, itemUsages, availablePlayers };
+	const canApprove = !!(await checkCanApprove(params.id, locals.user!.id));
+	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds, questRatings, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES, destroyableInventory, itemUsages, availablePlayers, canApprove };
 };
 
 export const actions: Actions = {
@@ -267,6 +287,33 @@ export const actions: Actions = {
 			return { usageSaved: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail((e as any).statusCode ?? 500, { message: (e as any).message });
+			throw e;
+		}
+	},
+
+	approve: async ({ params, locals }) => {
+		const access = await checkCanApprove(params.id, locals.user!.id);
+		if (!access) return fail(403, { message: 'You cannot approve this quest.' });
+		try {
+			await quests.updateStatus(params.id, 'PUBLISHED', undefined, locals.user!.id);
+			return { success: true, action: 'approved' };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	reject: async ({ params, request, locals }) => {
+		const access = await checkCanApprove(params.id, locals.user!.id);
+		if (!access) return fail(403, { message: 'You cannot reject this quest.' });
+		const data = await request.formData();
+		const note = data.get('note')?.toString().trim() ?? '';
+		if (!note) return fail(400, { message: 'Rejection reason required.' });
+		try {
+			await quests.updateStatus(params.id, 'CANCELLED', note, locals.user!.id);
+			return { success: true, action: 'rejected' };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;
 		}
 	},

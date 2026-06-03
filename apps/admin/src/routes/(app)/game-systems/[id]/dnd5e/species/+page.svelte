@@ -1,4 +1,4 @@
-<!-- apps/admin/src/routes/(app)/game-systems/[id]/species/+page.svelte -->
+<!-- apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/species/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -19,8 +19,8 @@
 			<h2 class="page__title">{system.name} — Species</h2>
 		</div>
 		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
-			<a href="/game-systems/{system.id}/classes"     class="btn btn-ghost btn-sm">Classes</a>
-			<a href="/game-systems/{system.id}/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
+			<a href="/game-systems/{system.id}/dnd5e/classes"     class="btn btn-ghost btn-sm">Classes</a>
+			<a href="/game-systems/{system.id}/dnd5e/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
 			<button type="button" class="btn btn-primary btn-sm" onclick={() => showNew = !showNew}>+ New species</button>
 		</div>
 	</div>
@@ -89,6 +89,9 @@
 
 						{#if expandedSpecies === s.id}
 							<div style="padding:0.75rem; border-top:1px solid var(--border-muted);">
+								{#if s.description}
+									<p style="margin:0 0 0.75rem; font-size:0.875rem; color:var(--text-secondary); line-height:1.6; word-break:break-word; overflow-wrap:anywhere;">{s.description}</p>
+								{/if}
 								{#if s.traits?.length}
 									<div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.5rem;">
 										{#each s.traits as t}

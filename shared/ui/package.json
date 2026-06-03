@@ -6,7 +6,8 @@
   "types": "./index.ts",
   "exports": {
     ".": "./index.ts",
-    "./styles/*": "./styles/*"
+    "./styles/*": "./styles/*",
+    "./gamesystems/*": "./src/gamesystems/*"
   },
   "dependencies": {
     "marked": "^18.0.4"

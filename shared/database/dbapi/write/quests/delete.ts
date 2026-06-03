@@ -76,14 +76,12 @@ export async function deleteQuest(id: string, actorId: string, revertRewards = f
                     // Check if XP loss causes level-down
                     const char = await tx.character.findUnique({
                         where: { id: characterId },
-                        include: { classes: true },
                     });
-                    if (char && char.classes.length > 0) {
+                    if (char && char.level > 0) {
                         const prevXp = (char.totalXp ?? 0);
                         const newXp  = prevXp - deltas.xp;
-                        const currentTotal = char.classes.reduce((s: number, c: any) => s + c.allocatedLevel, 0);
                         await checkLevelChange(tx, characterId, char.userId, char.gameSystemId,
-                            prevXp, Math.max(0, newXp), currentTotal, actorId);
+                            prevXp, Math.max(0, newXp), char.level, actorId);
                     }
                 }
                 if (deltas.gold > 0) await tx.characterTransaction.create({

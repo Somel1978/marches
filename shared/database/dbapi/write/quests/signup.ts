@@ -21,11 +21,7 @@ export async function signupForQuest(questId: string, characterId: string, actor
     const character = await db.character.findUnique({ where: { id: characterId } });
     if (!character) throw new NotFoundError('Character', characterId);
 
-    const totalLevel = await db.characterClass.aggregate({
-        where: { characterId },
-        _sum:  { allocatedLevel: true },
-    });
-    const level = totalLevel._sum.allocatedLevel ?? 0;
+    const level = character.level ?? 0;
     if (level < quest.minLevel || level > quest.maxLevel)
         throw new ValidationError(`Character level ${level} is outside the quest range (${quest.minLevel}–${quest.maxLevel}).`);
 

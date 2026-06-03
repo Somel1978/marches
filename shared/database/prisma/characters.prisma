@@ -61,8 +61,7 @@ model Character {
   userId       String                  @map("user_id")
   gameSystemId String                  @map("game_system_id")
   name         String                  @unique
-  speciesId    String?                 @map("species_id")
-  backgroundId String?                 @map("background_id")
+  level        Int                     @default(0)          // universal level — written by system on create/approve/level-change
   avatarUrl    String?                 @map("avatar_url")
   portraitUrl  String?                 @map("portrait_url")
   status       CharacterStatus         @default(PENDING)
@@ -75,32 +74,20 @@ model Character {
   description  String?                 // backstory / character description
   worldId      String?                 @map("world_id")   // null = unassigned
   isGlobal     Boolean                 @default(true)  @map("is_global") // can join any world quests
-  pendingChanges Json?                 @map("pending_changes") // snapshot of proposed structural changes
   createdAt    DateTime                @default(now()) @map("created_at")
   updatedAt    DateTime                @updatedAt      @map("updated_at")
 
-  classes      CharacterClass[]
-  transactions CharacterTransaction[]
+  classes      Dnd5eCharacterClass[]
+  feats         Dnd5eCharacterFeat[]
+  abilityScores Dnd5eAbilityScore[]
+  transactions  CharacterTransaction[]
   inventory    CharacterInventory[]
+  dnd5eSheet   Dnd5eCharacterSheet?
 
   @@map("characters")
   @@schema("characters")
 }
 
-model CharacterClass {
-  id             String    @id @default(uuid())
-  characterId    String    @map("character_id")
-  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  classId        String    @map("class_id")       // references dnd5e.classes.id — resolved at app level
-  subclassId     String?   @map("subclass_id")    // references dnd5e.subclasses.id — resolved at app level
-  allocatedLevel Int       @default(1) @map("allocated_level")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt      @map("updated_at")
-
-  @@unique([characterId, classId])
-  @@map("character_classes")
-  @@schema("characters")
-}
 
 model CharacterSlotGrant {
   id          String   @id @default(uuid())

@@ -1,4 +1,4 @@
-<!-- apps/admin/src/routes/(app)/game-systems/[id]/classes/+page.svelte -->
+<!-- apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/classes/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -18,9 +18,9 @@
 			<h2 class="page__title">{system.name} — Classes</h2>
 		</div>
 		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
-			<a href="/game-systems/{system.id}/species"     class="btn btn-ghost btn-sm">Species</a>
-			<a href="/game-systems/{system.id}/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
-			<a href="/game-systems/{system.id}/data/import"      class="btn btn-ghost btn-sm">Import</a>
+			<a href="/game-systems/{system.id}/dnd5e/species"     class="btn btn-ghost btn-sm">Species</a>
+			<a href="/game-systems/{system.id}/dnd5e/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
+			<a href="/game-systems/{system.id}/data/import/dnd5e"      class="btn btn-ghost btn-sm">Import</a>
 			<button type="button" class="btn btn-primary btn-sm" onclick={() => showNew = !showNew}>+ New class</button>
 		</div>
 	</div>
@@ -96,7 +96,7 @@
 							<td>{c.subclasses?.length ?? 0}</td>
 							<td>{c.features?.length ?? 0}</td>
 							<td>{c.isAvailable ? '✓' : '—'}</td>
-							<td><a href="/game-systems/{system.id}/classes/{c.id}" class="btn btn-ghost btn-sm">Manage</a></td>
+							<td><a href="/game-systems/{system.id}/dnd5e/classes/{c.id}" class="btn btn-ghost btn-sm">Manage</a></td>
 						</tr>
 					{/each}
 				</tbody>

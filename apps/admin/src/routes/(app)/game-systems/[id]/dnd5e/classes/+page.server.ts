@@ -1,4 +1,4 @@
-// apps/admin/src/routes/(app)/game-systems/[id]/classes/+page.server.ts
+// apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/classes/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
 import { gameSystems, dnd5e } from '@core/database';
 import { checkPermission } from '@core/rbac';

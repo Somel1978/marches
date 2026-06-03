@@ -39,7 +39,8 @@
 		{
 			label: 'Community',
 			items: [
-				{ href: '/news', label: 'News' },
+				{ href: '/news',               label: 'News'           },
+				{ href: '/tools/dndpointbuy',  label: 'Point Buy'      },
 			],
 		},
 	];

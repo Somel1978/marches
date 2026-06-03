@@ -5,6 +5,7 @@
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const canApprove = $derived((data as any).canApprove === true);
 
 	const statusColors: Record<string, string> = {
 		DRAFT:            'badge-muted',
@@ -97,6 +98,8 @@
 			{#if (form as any).action === 'details_updated'}Details updated.
 		{:else if (form as any).action === 'rewards_updated'}Rewards updated.
 		{:else if (form as any).action === 'submitted'}Quest submitted for admin approval.
+		{:else if (form as any).action === 'approved'}Quest approved and published.
+		{:else if (form as any).action === 'rejected'}Quest rejected.
 			{:else if (form as any).action === 'started'}Quest started!
 			{:else if (form as any).action === 'ended'}Quest ended — please submit results.
 			{:else if (form as any).action === 'result_submitted'}Results submitted for admin approval.
@@ -111,6 +114,17 @@
 			<form method="post" action="?/submit" use:enhance={e_reload}>
 				<button type="submit" class="btn btn-primary btn-sm">Submit for approval</button>
 			</form>
+		{/if}
+		{#if data.quest.status === 'PENDING_APPROVAL' && canApprove}
+			<form method="post" action="?/approve" use:enhance={e_reload}>
+				<button type="submit" class="btn btn-primary btn-sm">Approve</button>
+			</form>
+			<form method="post" action="?/reject" use:enhance={e_reload} style="display:flex; gap:0.25rem; flex-wrap:wrap;">
+				<input name="note" type="text" class="input" placeholder="Rejection reason" required style="width:160px;" />
+				<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Reject</button>
+			</form>
+		{:else if data.quest.status === 'PENDING_APPROVAL'}
+			<span class="badge badge-warning">Awaiting approval</span>
 		{/if}
 		{#if data.quest.status === 'PUBLISHED'}
 			<form method="post" action="?/start" use:enhance={e_reload}>

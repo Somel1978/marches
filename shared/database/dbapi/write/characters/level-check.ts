@@ -26,10 +26,10 @@ export async function checkLevelChange(
         // Level-up: unallocated levels available — only if not already pending
         const current = await tx.character.findUnique({ where: { id: characterId }, select: { status: true, statusReason: true } });
         if (current?.statusReason !== 'LEVEL_UP_PENDING') {
-        // Level-up: new threshold crossed
+        // Level-up: new threshold crossed — write level immediately (player will allocate classes)
         await tx.character.update({
             where: { id: characterId },
-            data:  { status: 'PENDING', statusReason: 'LEVEL_UP_PENDING', statusChangedAt: new Date() },
+            data:  { level: newEarned, status: 'PENDING', statusReason: 'LEVEL_UP_PENDING', statusChangedAt: new Date() },
         });
         await createNotification(
             userId, 'CHARACTER_LEVEL_UP', 'Level up available!',
@@ -38,10 +38,10 @@ export async function checkLevelChange(
         );
         }
     } else if (newEarned < currentAllocatedLevels) {
-        // Level-down: dropped below allocated levels
+        // Level-down: dropped below allocated levels — write new level immediately
         await tx.character.update({
             where: { id: characterId },
-            data:  { status: 'PENDING', statusReason: 'LEVEL_DOWN_PENDING', statusChangedAt: new Date() },
+            data:  { level: newEarned, status: 'PENDING', statusReason: 'LEVEL_DOWN_PENDING', statusChangedAt: new Date() },
         });
         await tx.characterTransaction.create({
             data: {

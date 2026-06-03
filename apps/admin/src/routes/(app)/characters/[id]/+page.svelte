@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/characters/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import AdminDnd5eSheetSection from './_sheets/AdminDnd5eSheetSection.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { renderMarkdown } from '@core/ui';
 	import type { PageData, ActionData } from './$types';
@@ -12,18 +13,22 @@
 	let tab = $state<Tab>('overview');
 
 	// ── Derived ──────────────────────────────────────────────────────
-	const character = $derived(data.character as any);
-	const totalLevel = $derived(character.classes?.reduce((s: number, c: any) => s + c.allocatedLevel, 0) ?? 0);
-	const pendingChanges = $derived(character.pendingChanges as any);
+	const character  = $derived(data.character as any);
+	const charSheet       = $derived((data as any).charSheet);
+	const enrichedClasses = $derived(charSheet?.enrichedClasses ?? character.classes ?? []);
 
-	// ── Edit classes state ───────────────────────────────────────────
+	// ── Edit classes state (identity tab) ───────────────────────────────────
 	let editClasses = $state<{classId:string;subclassId:string;allocatedLevel:number}[]>([]);
-	$effect.pre(() => {
+	$effect(() => {
 		const cls = (character.classes ?? []).map((c: any) => ({
 			classId: c.classId, subclassId: c.subclassId ?? '', allocatedLevel: c.allocatedLevel,
 		}));
-		editClasses = cls.length ? cls : [{classId:'',subclassId:'',allocatedLevel:1}];
+		const current = editClasses;
+		if (current.length === 0) editClasses = cls.length ? cls : [{classId:'',subclassId:'',allocatedLevel:1}];
 	});
+	const pendingChanges  = $derived((charSheet?.sheet?.pendingChanges ?? (character as any).dnd5eSheet?.pendingChanges) as any);
+	const totalLevel = $derived((character as any).level ?? 0);
+
 
 	// ── Helpers ──────────────────────────────────────────────────────
 	const statusColors: Record<string,string> = {
@@ -87,7 +92,7 @@
 	{#if (form as any)?.inventorySuccess}<div class="form-success">Inventory updated.</div>{/if}
 
 	<!-- ── Pending banner ────────────────────────────────────────── -->
-	{#if character.status === 'PENDING' && (pendingChanges || character.statusReason === 'LEVEL_DOWN_PENDING')}
+	{#if character.status === 'PENDING'}
 		<div class="card" style="border-left:3px solid var(--color-warning); margin-bottom:1rem;">
 			<div class="page__header" style="margin-bottom:0.75rem;">
 				<div>
@@ -109,28 +114,56 @@
 					</form>
 				</div>
 			</div>
-			<div style="display:flex; flex-wrap:wrap; gap:1rem; font-size:0.8125rem;">
+			{#if pendingChanges}
+			<div style="display:grid; gap:0.75rem; font-size:0.8125rem; margin-top:0.5rem;">
 				{#if pendingChanges.speciesId}
 					{@const sp = (data as any).systemData?.species?.find((s:any) => s.id === pendingChanges.speciesId)}
-					<div><span class="table__muted">Species →</span> <strong>{sp?.name ?? pendingChanges.speciesId}</strong></div>
+					{@const currentSp = (data as any).systemData?.species?.find((s:any) => s.id === charSheet?.sheet?.speciesId)}
+					<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+						<span class="table__muted">Species</span>
+						<span style="color:var(--text-secondary);">{currentSp?.name ?? '—'}</span>
+						<span style="color:var(--text-muted);">→</span>
+						<strong style="color:var(--color-success);">{sp?.name ?? pendingChanges.speciesId}</strong>
+					</div>
 				{/if}
 				{#if pendingChanges.backgroundId}
 					{@const bg = (data as any).systemData?.backgrounds?.find((b:any) => b.id === pendingChanges.backgroundId)}
-					<div><span class="table__muted">Background →</span> <strong>{bg?.name ?? pendingChanges.backgroundId}</strong></div>
+					{@const currentBg = (data as any).systemData?.backgrounds?.find((b:any) => b.id === charSheet?.sheet?.backgroundId)}
+					<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+						<span class="table__muted">Background</span>
+						<span style="color:var(--text-secondary);">{currentBg?.name ?? '—'}</span>
+						<span style="color:var(--text-muted);">→</span>
+						<strong style="color:var(--color-success);">{bg?.name ?? pendingChanges.backgroundId}</strong>
+					</div>
 				{/if}
 				{#if pendingChanges.classes?.length}
-					<div style="display:flex; flex-wrap:wrap; gap:0.375rem; align-items:center;">
-						<span class="table__muted">Classes →</span>
-						{#each pendingChanges.classes as c}
-							{@const cls = (data as any).systemData?.classes?.find((cl:any) => cl.id === c.classId)}
-							{@const sub = cls?.subclasses?.find((s:any) => s.id === c.subclassId)}
-							<span class="badge badge-muted">
-								{cls?.name ?? c.classId} Lv{c.allocatedLevel}{sub ? ` · ${sub.name}` : ''}
-							</span>
-						{/each}
+					<div>
+						<span class="table__muted" style="display:block; margin-bottom:0.375rem;">Classes</span>
+						<div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
+							<div>
+								<p style="font-size:0.75rem; color:var(--text-muted); margin:0 0 0.25rem;">Current</p>
+								<div style="display:flex; flex-wrap:wrap; gap:0.25rem;">
+									{#each enrichedClasses as cc}
+										<span class="badge badge-muted">{cc.classRef?.name ?? cc.classId} Lv{cc.allocatedLevel}{cc.subclassRef ? ` · ${cc.subclassRef.name}` : ''}</span>
+									{/each}
+								</div>
+							</div>
+							<span style="font-size:1rem; color:var(--text-muted); padding-top:1.25rem;">→</span>
+							<div>
+								<p style="font-size:0.75rem; color:var(--color-success); margin:0 0 0.25rem;">Proposed</p>
+								<div style="display:flex; flex-wrap:wrap; gap:0.25rem;">
+									{#each pendingChanges.classes as c}
+										{@const cls = (data as any).systemData?.classes?.find((cl:any) => cl.id === c.classId)}
+										{@const sub = cls?.subclasses?.find((s:any) => s.id === c.subclassId)}
+										<span class="badge badge-success">{cls?.name ?? c.classId} Lv{c.allocatedLevel}{sub ? ` · ${sub.name}` : ''}</span>
+									{/each}
+								</div>
+							</div>
+						</div>
 					</div>
 				{/if}
 			</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -251,7 +284,7 @@
 							<select id="species" name="speciesId" class="input input--select">
 								<option value="">— None —</option>
 								{#each ((data as any).systemData?.species ?? []) as s}
-									<option value={s.id} selected={character.speciesId === s.id}>{s.name}</option>
+									<option value={s.id} selected={(character as any).dnd5eSheet?.speciesId === s.id}>{s.name}</option>
 								{/each}
 							</select>
 						</div>
@@ -260,7 +293,7 @@
 							<select id="bg" name="backgroundId" class="input input--select">
 								<option value="">— None —</option>
 								{#each ((data as any).systemData?.backgrounds ?? []) as b}
-									<option value={b.id} selected={character.backgroundId === b.id}>{b.name}</option>
+									<option value={b.id} selected={(character as any).dnd5eSheet?.backgroundId === b.id}>{b.name}</option>
 								{/each}
 							</select>
 						</div>
@@ -369,82 +402,15 @@
 	<!-- ══════════════════════════════════════════════════════════ -->
 	{#if tab === 'sheet'}
 		{#if (data as any).systemData}
-			<!-- Species -->
-			{#if character.speciesRef}
-				{@const sp = character.speciesRef}
-				<details class="sheet-class" open>
-					<summary>
-						<span>{sp.name}</span>
-						{#if sp.isSubrace}<span class="badge badge-muted">Subrace</span>{/if}
-						{#if sp.isLegacy}<span class="badge badge-warning">Legacy</span>{/if}
-						{#if sp.traits?.length}<span class="sheet-class__count">{sp.traits.length} traits</span>{/if}
-					</summary>
-					{#if sp.description}<p class="sheet-panel__desc" style="margin:0.5rem 0;">{sp.description}</p>{/if}
-					{#if sp.traits?.length}
-						<div class="sheet-features">
-							{#each sp.traits as trait}
-								<div class="sheet-feature">
-									<div class="sheet-feature__name">
-										{#if trait.requiredLevel}<span class="badge badge-muted">Lv {trait.requiredLevel}</span>{/if}
-										<span>{trait.name}</span>
-									</div>
-									{#if trait.description}<p class="sheet-feature__desc">{trait.description}</p>{/if}
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</details>
-			{/if}
-
-			<!-- Background -->
-			{#if character.backgroundRef}
-				{@const bg = character.backgroundRef}
-				<details class="sheet-class">
-					<summary>
-						<span>{bg.name}</span>
-						{#if bg.featureName}<span class="badge badge-accent">{bg.featureName}</span>{/if}
-					</summary>
-					{#if bg.shortDescription}<p class="sheet-panel__desc" style="margin:0.5rem 0;">{bg.shortDescription}</p>{/if}
-					<div class="sheet-panel__meta" style="margin-top:0.25rem;">
-						{#if bg.skillProficiencies}<div><span>Skills:</span> {bg.skillProficiencies}</div>{/if}
-						{#if bg.toolProficiencies}<div><span>Tools:</span> {bg.toolProficiencies}</div>{/if}
-						{#if bg.languages}<div><span>Languages:</span> {bg.languages}</div>{/if}
-					</div>
-				</details>
-			{/if}
-
-			<!-- Class features -->
-			{#each (character.classes ?? []) as cc}
-				{#if cc.classRef && (cc.classFeatures?.length || cc.subclassFeatures?.length)}
-					<details class="sheet-class">
-						<summary>
-							<span>{cc.classRef.name}</span>
-							<span class="badge badge-muted">Lv {cc.allocatedLevel}</span>
-							{#if cc.subclassRef}<span class="badge badge-accent">{cc.subclassRef.name}</span>{/if}
-							<span class="sheet-class__count">{(cc.classFeatures?.length??0)+(cc.subclassFeatures?.length??0)} features</span>
-						</summary>
-						<div class="sheet-features">
-							{#each [...(cc.classFeatures??[]),...(cc.subclassFeatures??[])].sort((a,b)=>a.requiredLevel-b.requiredLevel) as feat}
-								<div class="sheet-feature">
-									<div class="sheet-feature__name">
-										<span class="badge badge-muted">Lv {feat.requiredLevel}</span>
-										<span>{feat.name}</span>
-									</div>
-									{#if feat.description}<p class="sheet-feature__desc">{feat.description}</p>{/if}
-								</div>
-							{/each}
-						</div>
-					</details>
-				{/if}
-			{/each}
-
-			{#if !character.speciesRef && !character.backgroundRef && !character.classes?.length}
-				<p class="table__empty">No character sheet data available — assign species, background and classes in the Identity tab.</p>
-			{/if}
+			<AdminDnd5eSheetSection
+				charSheet={charSheet}
+				systemData={(data as any).systemData}
+			/>
 		{:else}
 			<p class="table__empty">Game system data not available.</p>
 		{/if}
 	{/if}
+
 
 	<!-- ══════════════════════════════════════════════════════════ -->
 	<!-- TAB: INVENTORY                                             -->

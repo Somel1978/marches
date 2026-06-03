@@ -15,7 +15,6 @@ export async function adjustCurrency(
 ) {
     const character = await db.character.findUnique({
         where:   { id: characterId },
-        include: { classes: true },
     });
     if (!character) throw new NotFoundError('Character', characterId);
     if (!note?.trim()) throw new ValidationError('Note is required for currency adjustments.');
@@ -52,10 +51,9 @@ export async function adjustCurrency(
         });
 
         // ── Level-up / level-down detection ──
-        if (type === 'XP' && character.classes.length > 0) {
-            const currentTotal = character.classes.reduce((s: number, c: any) => s + c.allocatedLevel, 0);
+        if (type === 'XP') {
             await checkLevelChange(tx, characterId, character.userId, character.gameSystemId,
-                current, newValue, currentTotal, actorId);
+                current, newValue, character.level, actorId);
         }
 
         await logAudit(tx, {

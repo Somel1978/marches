@@ -53,9 +53,19 @@ import { upsertDiscordServer, deleteDiscordServer, upsertDiscordChannel, deleteD
 import { getAllDiscordServers, getDiscordServerByScope, getChannelForType, getPendingNotifications, markNotificationProcessed } from './dbapi/read/discord/get-servers.ts';
 
 
+import { getDnd5eCharacterSheet } from './dbapi/read/dnd5e/get-character-sheet.ts';
+import { getDnd5eFeats, getAllDnd5eFeats, getDnd5eFeatById } from './dbapi/read/dnd5e/get-feats.ts';
+import { createDnd5eFeat, updateDnd5eFeat, deleteDnd5eFeat } from './dbapi/write/dnd5e/feats.ts';
+import { saveDnd5eAbilityScores, applyDnd5eAsiStatBump } from './dbapi/write/dnd5e/update-ability-scores.ts';
+import { addDnd5eCharacterFeat, removeDnd5eCharacterFeat } from './dbapi/write/dnd5e/update-character-feats.ts';
+import { enrichDnd5eSignups } from './dbapi/read/dnd5e/enrich-signups.ts';
 import { getDnd5eClasses, getAllDnd5eClasses, getDnd5eClassById, getDnd5eSpecies, getAllDnd5eSpecies, getDnd5eBackgrounds, getAllDnd5eBackgrounds, getDnd5eSystemData } from './dbapi/read/dnd5e/get-classes.ts';
 import { createDnd5eClass, updateDnd5eClass, deleteDnd5eClass, createClassFeature, updateClassFeature, deleteClassFeature, createDnd5eSubclass, updateDnd5eSubclass, deleteDnd5eSubclass, createSubclassFeature, updateSubclassFeature, deleteSubclassFeature } from './dbapi/write/dnd5e/classes.ts';
 import { createDnd5eSpecies, updateDnd5eSpecies, deleteDnd5eSpecies, createSpeciesTrait, updateSpeciesTrait, deleteSpeciesTrait, createDnd5eBackground, updateDnd5eBackground, deleteDnd5eBackground } from './dbapi/write/dnd5e/species.ts';
+import { createDnd5eCharacter } from './dbapi/write/dnd5e/create-character.ts';
+import { approveDnd5eCharacter, rejectDnd5eCharacter } from './dbapi/write/dnd5e/approve-character.ts';
+import { submitDnd5eStructuralChanges, updateDnd5eCharacterFields } from './dbapi/write/dnd5e/update-character.ts';
+import { updateDnd5eCharacterClasses } from './dbapi/write/dnd5e/update-classes.ts';
 
 // ── Achievements ─────────────────────────────────────────────────────────────────
 import { createAchievement, updateAchievement, grantAchievement, revokeAchievement } from './dbapi/write/rewards/achievements.ts';
@@ -63,7 +73,7 @@ import { getAllAchievements, getCharacterAchievements } from './dbapi/read/rewar
 
 // ── Notifications ────────────────────────────────────────────────────────────────
 import { getUnreadNotifications, getNotifications  } from './dbapi/read/notifications/get-notifications.ts';
-import { createNotification, createNotificationsForAdmins,
+import { createNotification, createNotificationsForAdmins, createNotificationsForWorldDMs,
          markNotificationRead, markAllNotificationsRead } from './dbapi/write/notifications/notifications.ts';
 
 // ── World ────────────────────────────────────────────────────────────────────────
@@ -125,10 +135,10 @@ import { getCharacterTransactions                } from './dbapi/read/characters
 import { getCharacterInventory                   } from './dbapi/read/characters/get-inventory.ts';
 import { removeFromInventory, addToInventory      } from './dbapi/write/characters/inventory.ts';
 import { createCharacter                         } from './dbapi/write/characters/create.ts';
-import { updateCharacter, updateCharacterFreeFields, submitStructuralChanges } from './dbapi/write/characters/update.ts';
+import { updateCharacter, updateCharacterFreeFields } from './dbapi/write/characters/update.ts';
 import { updateCharacterStatus                   } from './dbapi/write/characters/update-status.ts';
-import { updateCharacterClasses                  } from './dbapi/write/characters/update-classes.ts';
-import { approveCharacter, rejectCharacter       } from './dbapi/write/characters/approve.ts';
+
+import { approveCharacter, rejectCharacter, dispatchApproveCharacter, dispatchRejectCharacter } from './dbapi/write/characters/approve.ts';
 import { deleteCharacter                             } from './dbapi/write/characters/delete.ts';
 import { adjustCurrency                              } from './dbapi/write/characters/adjust-currency.ts';
 import { grantCharacterSlot                      } from './dbapi/write/characters/slot-grant.ts';
@@ -215,11 +225,11 @@ export const characters = {
     create:           createCharacter,
     update:           updateCharacter,
     updateFreeFields: updateCharacterFreeFields,
-    submitChanges:    submitStructuralChanges,
     updateStatus:     updateCharacterStatus,
-    updateClasses:    updateCharacterClasses,
     approve:          approveCharacter,
     reject:           rejectCharacter,
+    dispatchApprove:  dispatchApproveCharacter,
+    dispatchReject:   dispatchRejectCharacter,
     delete:           deleteCharacter,
     adjustCurrency,
     grantSlot:        grantCharacterSlot,
@@ -318,7 +328,8 @@ export const notifications = {
     getUnread:      getUnreadNotifications,
     getAll:         getNotifications,
     create:         createNotification,
-    createForAdmins: createNotificationsForAdmins,
+    createForAdmins:   createNotificationsForAdmins,
+    createForWorldDMs: createNotificationsForWorldDMs,
     markRead:       markNotificationRead,
     markAllRead:    markAllNotificationsRead,
 };
@@ -434,5 +445,25 @@ export const dnd5e = {
         update:    updateDnd5eBackground,
         delete:    deleteDnd5eBackground,
     },
-    getSystemData: getDnd5eSystemData,
+    getSystemData:       getDnd5eSystemData,
+    getCharacterSheet:   getDnd5eCharacterSheet,
+    enrichSignups:       enrichDnd5eSignups,
+    feats: {
+        getAll:         getDnd5eFeats,
+        getAllForAdmin:  getAllDnd5eFeats,
+        getById:        getDnd5eFeatById,
+        create:         createDnd5eFeat,
+        update:         updateDnd5eFeat,
+        delete:         deleteDnd5eFeat,
+    },
+    saveAbilityScores:   saveDnd5eAbilityScores,
+    applyAsiStatBump:    applyDnd5eAsiStatBump,
+    addCharacterFeat:    addDnd5eCharacterFeat,
+    removeCharacterFeat: removeDnd5eCharacterFeat,
+    createCharacter:     createDnd5eCharacter,
+    approveCharacter:    approveDnd5eCharacter,
+    rejectCharacter:     rejectDnd5eCharacter,
+    submitChanges:       submitDnd5eStructuralChanges,
+    updateFields:        updateDnd5eCharacterFields,
+    updateClasses:       updateDnd5eCharacterClasses,
 };

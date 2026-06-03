@@ -13,7 +13,7 @@
 	};
 
 	function totalLevel(char: any) {
-		return char.classes?.reduce((s: number, c: any) => s + c.allocatedLevel, 0) ?? 0;
+		return (char as any).level ?? char.classes?.reduce((s: number, c: any) => s + c.allocatedLevel, 0) ?? 0;
 	}
 </script>
 

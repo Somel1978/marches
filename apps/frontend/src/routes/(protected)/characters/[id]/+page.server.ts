@@ -1,7 +1,9 @@
 // apps/frontend/src/routes/(protected)/characters/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { dnd5e, characters, achievements, gameSystems, marketplace, platform, worlds } from '@core/database';
+import { characters, achievements, gameSystems, marketplace, platform, worlds } from '@core/database';
 import { isMarchesError } from '@core/errors';
+import { loadDnd5eCharacterData } from './_loaders/dnd5e.server.ts';
+import { dnd5eActions } from './_sheets/dnd5e.actions.server.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -11,10 +13,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	await characters.checkRest(params.id);
 
-	const [transactions, gameSystem, systemData, inventory, pendingTx, settings, charAchievements] = await Promise.all([
+	const [transactions, gameSystem, inventory, pendingTx, settings, charAchievements] = await Promise.all([
 		characters.getTransactions(params.id, 10),
 		gameSystems.getById(character.gameSystemId),
-		dnd5e.getSystemData(character.gameSystemId),
 		characters.getInventory(params.id),
 		marketplace.transactions.getAll({ characterId: params.id, status: 'PENDING' }),
 		platform.getSettingsMap(),
@@ -26,8 +27,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const globalSellPct = Number(settings['marketplace.sellPricePercent'] ?? 50);
 	const worldId       = (character as any).worldId ?? null;
 	const worldName     = worldId ? await worlds.getById(worldId).then((w: any) => w?.name ?? null) : null;
+	const progressionThresholds = (gameSystem as any)?.progressionThresholds ?? [];
 
-	// Resolve world-level sell % and per-item price overrides
 	let worldSellPct = globalSellPct;
 	let worldItemMap: Record<string, any> = {};
 	if (worldId) {
@@ -39,7 +40,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		for (const wi of (worldItems as any[])) worldItemMap[wi.itemId] = wi;
 	}
 
-	// Attach effective sell price to each inventory slot
 	const inventoryWithSellPrice = (inventory as any[]).map((slot: any) => {
 		if (!slot.itemId || slot.livePrice == null) return { ...slot, effectiveSellPrice: null };
 		const wi             = worldItemMap[slot.itemId];
@@ -47,33 +47,34 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		return { ...slot, effectiveSellPrice: Math.floor(effectivePrice * worldSellPct / 100) };
 	});
 
-	const sellPct = globalSellPct; // kept for reference
-
-	// Progression thresholds from game system (already included in getById)
-	const progressionThresholds = (gameSystem as any)?.progressionThresholds ?? [];
+	// Load system-specific data conditionally
+	const slug = (gameSystem as any)?.slug ?? '';
+	let systemSpecific: Record<string, any> = {};
+	if (slug === 'dnd5e') {
+		systemSpecific = await loadDnd5eCharacterData(params.id, character.gameSystemId);
+	}
 
 	return {
-		character, charAchievements, transactions, gameSystem, systemData,
-		inventory: inventoryWithSellPrice, pendingBuys, pendingSells, sellPct, worldName,
-		progressionThresholds,
+		character, charAchievements, transactions, gameSystem, progressionThresholds,
+		inventory: inventoryWithSellPrice, pendingBuys, pendingSells, sellPct: globalSellPct, worldName,
+		...systemSpecific,
 	};
 };
 
 export const actions: Actions = {
+	// ── Universal actions ─────────────────────────────────────────────────────
+
 	update: async ({ params, request, locals }) => {
 		const character = await characters.getById(params.id);
 		if (!character) return fail(404, { message: 'Character not found.' });
 		if (character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
-
 		const data        = await request.formData();
 		const name        = data.get('name')?.toString().trim()        ?? '';
 		const avatarUrl   = data.get('avatarUrl')?.toString().trim()   || null;
 		const portraitUrl = data.get('portraitUrl')?.toString().trim() || null;
-		const description = data.get('description')?.toString().trim() || null;
-
 		if (!name) return fail(400, { message: 'Name is required.' });
 		try {
-			await characters.updateFreeFields(params.id, { name, avatarUrl, portraitUrl, description }, locals.user!.id);
+			await characters.updateFreeFields(params.id, { name, avatarUrl, portraitUrl, description: null }, locals.user!.id);
 			return { updateSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -81,59 +82,47 @@ export const actions: Actions = {
 		}
 	},
 
-	submitChanges: async ({ params, request, locals }) => {
+	saveBackstory: async ({ params, request, locals }) => {
 		const character = await characters.getById(params.id);
 		if (!character) return fail(404, { message: 'Character not found.' });
 		if (character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
-		if (!['ACTIVE', 'RESTING', 'REJECTED'].includes(character.status)) return fail(400, { message: 'Cannot edit a character that is pending approval.' });
-
 		const data        = await request.formData();
-		const speciesId    = data.get('speciesId')?.toString()    || undefined;
-		const backgroundId = data.get('backgroundId')?.toString() || undefined;
-		const classIds    = data.getAll('classId').map(v => v.toString()).filter(Boolean);
-		const subclassIds = data.getAll('subclassId').map(v => v.toString());
-		const levels      = data.getAll('allocatedLevel').map(v => Number(v));
-		const classes     = classIds.map((classId, i) => ({
-			classId,
-			subclassId:     subclassIds[i]?.trim() || null,  // empty string → null
-			allocatedLevel: levels[i] ?? 1,
-		}));
-
+		const description = data.get('description')?.toString().trim() || null;
 		try {
-			if (character.status === 'REJECTED') {
-				// For rejected characters: save directly, resubmit button sets PENDING
-				await characters.update(params.id, { speciesId, backgroundId }, locals.user!.id);
-				if (classes.length) await characters.updateClasses(params.id, classes, locals.user!.id);
-				return { changesSubmitted: true };
-			}
-			await characters.submitChanges(params.id, { speciesId, backgroundId, classes }, locals.user!.id);
-			return { changesSubmitted: true };
+			await characters.updateFreeFields(params.id, {
+				name:        character.name,
+				avatarUrl:   (character as any).avatarUrl   ?? null,
+				portraitUrl: (character as any).portraitUrl ?? null,
+				description,
+			}, locals.user!.id);
+			return { backstorySuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;
 		}
 	},
 
-	submitLevelUp: async ({ params, request, locals }) => {
+	resubmit: async ({ params, request, locals }) => {
 		const character = await characters.getById(params.id);
 		if (!character) return fail(404, { message: 'Character not found.' });
 		if (character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
-		if (!['ACTIVE','RESTING','PENDING'].includes(character.status)) return fail(400, { message: 'Cannot submit level-up at this time.' });
-
-		const data        = await request.formData();
-		const classIds    = data.getAll('classId').map(v => v.toString()).filter(Boolean);
-		const subclassIds = data.getAll('subclassId').map(v => v.toString());
-		const levels      = data.getAll('allocatedLevel').map(v => Number(v));
-		const classes     = classIds.map((classId, i) => ({
-			classId,
-			subclassId:     subclassIds[i]?.trim() || null,  // empty string → null
-			allocatedLevel: levels[i] ?? 1,
-		}));
-		if (!classes.length) return fail(400, { message: 'No class data provided.' });
-
+		if (character.status !== 'REJECTED') return fail(400, { message: 'Only rejected characters can be resubmitted.' });
 		try {
-			await characters.submitChanges(params.id, { classes }, locals.user!.id);
-			return { levelUpSuccess: true };
+			await characters.updateStatus(params.id, 'PENDING', 'NEW_CHARACTER', 'Resubmitted by player', locals.user!.id);
+			return { resubmitSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	retire: async ({ params, locals }) => {
+		const character = await characters.getById(params.id);
+		if (!character) return fail(404, { message: 'Character not found.' });
+		if (character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		try {
+			await characters.updateStatus(params.id, 'RETIRED', 'ADMIN', 'Retired by player', locals.user!.id);
+			return { retireSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;
@@ -165,40 +154,10 @@ export const actions: Actions = {
 		}
 	},
 
-	resubmit: async ({ params, request, locals }) => {
-		const character = await characters.getById(params.id);
-		if (!character) return fail(404, { message: 'Character not found.' });
-		if (character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
-		if (character.status !== 'REJECTED') return fail(400, { message: 'Only rejected characters can be resubmitted.' });
-
-		const data        = await request.formData();
-		const name        = data.get('name')?.toString().trim()        ?? character.name;
-		const avatarUrl   = data.get('avatarUrl')?.toString().trim()   || null;
-		const portraitUrl = data.get('portraitUrl')?.toString().trim() || null;
-		const description = data.get('description')?.toString().trim() || null;
-
-		try {
-			// Update free fields first
-			await characters.updateFreeFields(params.id, { name, avatarUrl, portraitUrl, description }, locals.user!.id);
-			// Set back to PENDING
-			await characters.updateStatus(params.id, 'PENDING', 'NEW_CHARACTER', 'Resubmitted by player', locals.user!.id);
-			return { resubmitSuccess: true };
-		} catch (e) {
-			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
-			throw e;
-		}
-	},
-
-	retire: async ({ params, locals }) => {
-		const character = await characters.getById(params.id);
-		if (!character) return fail(404, { message: 'Character not found.' });
-		if (character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
-		try {
-			await characters.updateStatus(params.id, 'RETIRED', 'ADMIN', 'Retired by player', locals.user!.id);
-			return { retireSuccess: true };
-		} catch (e) {
-			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
-			throw e;
-		}
-	},
+	// ── dnd5e actions — dispatched from _sheets/dnd5e.actions.server.ts ──────
+	submitChanges:    dnd5eActions.submitChanges,
+	submitLevelUp:    dnd5eActions.submitLevelUp,
+	addFeat:          dnd5eActions.addFeat,
+	removeFeat:       dnd5eActions.removeFeat,
+	saveAbilityScores: dnd5eActions.saveAbilityScores,
 };

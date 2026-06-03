@@ -17,8 +17,7 @@ export async function handleCharactersCommand(interaction: ChatInputCommandInter
         .setTitle(`🧙 ${linkedUser.name}'s Characters`)
         .setColor(0x8b5cf6)
         .setDescription(chars.map((c: any) => {
-            // totalLevel is now computed by enrichCharacter
-            const level = c.totalLevel ?? (c.classes ?? []).reduce((s: number, cc: any) => s + (cc.allocatedLevel ?? 0), 0);
+            const level = c.level ?? 0;
             const statusEmoji: Record<string,string> = {
                 ACTIVE:'🟢', RESTING:'🔵', PENDING:'🟡', SUSPENDED:'🔴', RETIRED:'⚫', DECEASED:'💀',
             };

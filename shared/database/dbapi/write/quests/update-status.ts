@@ -4,6 +4,7 @@ import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import type { QuestStatus } from '@prisma/client';
 import { queueDiscordNotification } from '../discord/dispatcher';
+import { createNotificationsForWorldDMs } from '../notifications/notifications.ts';
 
 const VALID_TRANSITIONS: Partial<Record<QuestStatus, QuestStatus[]>> = {
     DRAFT:            ['PENDING_APPROVAL', 'CANCELLED'],
@@ -72,17 +73,36 @@ export async function updateQuestStatus(
                 worldId: (quest as any).worldId ?? null,
             });
         } else if (status === 'PENDING_APPROVAL') {
-            const dm = await db.dMProfile.findUnique({ where: { id: quest.dmProfileId }, select: { name: true } });
+            const worldId = (quest as any).worldId;
+            if (worldId) {
+                await createNotificationsForWorldDMs(
+                    worldId,
+                    'QUEST_PENDING_APPROVAL', 'Quest awaiting approval',
+                    `Quest "${quest.title}" has been submitted for approval.`,
+                    `/dm/worlds/${worldId}/quests?status=PENDING_APPROVAL`,
+                );
+            }
+            const dm       = await db.dMProfile.findUnique({ where: { id: quest.dmProfileId }, select: { userId: true } });
+            const dmUser   = dm ? await db.user.findUnique({ where: { id: dm.userId }, select: { name: true } }) : null;
             await queueDiscordNotification('QUEST_PENDING_APPROVAL', {
                 questId:   id,
                 title:     quest.title,
-                dmName:    dm?.name ?? '',
+                dmName:    dmUser?.name ?? '',
                 minLevel:  quest.minLevel,
                 maxLevel:  quest.maxLevel,
                 missionXp: quest.missionXp,
                 worldId:   (quest as any).worldId ?? null,
             });
         } else if (status === 'PENDING_RESULT_APPROVAL') {
+            const worldId2 = (quest as any).worldId;
+            if (worldId2) {
+                await createNotificationsForWorldDMs(
+                    worldId2,
+                    'QUEST_RESULT_PENDING', 'Quest result awaiting approval',
+                    `Quest "${quest.title}" result has been submitted for review.`,
+                    `/dm/worlds/${worldId2}/quests?status=PENDING_RESULT_APPROVAL`,
+                );
+            }
             await queueDiscordNotification('QUEST_RESULT_PENDING', {
                 questId: id,
                 title:   quest.title,

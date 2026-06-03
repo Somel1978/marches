@@ -2,7 +2,7 @@
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
-import { createNotification, createNotificationsForAdmins } from '../notifications/notifications.ts';
+import { createNotification, createNotificationsForAdmins, createNotificationsForWorldDMs } from '../notifications/notifications.ts';
 import { resolveMarketplaceContext } from '../../read/marketplace/resolve-context.ts';
 import { queueDiscordNotification } from '../discord/dispatcher';
 
@@ -11,11 +11,8 @@ const RARITY_ORDER = ['Mundane','Common','Uncommon','Rare','Very_Rare','Legendar
 async function checkLevelRestrictions(characterId: string, item: any, effectivePrice: number, restrictions: any[]) {
     if (!restrictions?.length) return;
 
-    const totalLevel = await db.characterClass.aggregate({
-        where: { characterId },
-        _sum:  { allocatedLevel: true },
-    });
-    const level = totalLevel._sum.allocatedLevel ?? 0;
+    const charForLevel = await db.character.findUnique({ where: { id: characterId }, select: { level: true } });
+    const level = charForLevel?.level ?? 0;
     const tier  = restrictions.find((r: any) => level >= r.minLevel && level <= r.maxLevel);
     if (!tier) return;
 
@@ -152,6 +149,14 @@ export async function createBuyTransaction(
 
         await createNotificationsForAdmins('MARKETPLACE_PENDING', 'Purchase request pending',
             `Purchase request for "${item.name}" ×${quantity} needs approval.`, '/marketplace/transactions');
+        if (effectiveWorldId) {
+            await createNotificationsForWorldDMs(
+                effectiveWorldId,
+                'MARKETPLACE_PENDING', 'Purchase request pending',
+                `Purchase request for "${item.name}" ×${quantity} needs approval.`,
+                `/dm/worlds/${effectiveWorldId}/marketplace/transactions`,
+            );
+        }
         try {
             const buyChar = await db.character.findUnique({ where: { id: characterId }, select: { name: true } });
             await queueDiscordNotification('MARKET_PENDING', {
@@ -209,13 +214,22 @@ export async function createSellTransaction(
             resourceId: tx.id, after: { type: 'SELL', itemId: item.id, characterId, quantity, totalPrice, worldId: (inv as any).worldId } });
     });
 
+    const sellWorldId = (inv as any).worldId ?? null;
+    if (sellWorldId) {
+        await createNotificationsForWorldDMs(
+            sellWorldId,
+            'MARKETPLACE_PENDING', 'Sale request pending',
+            `Sale request for "${item.name}" needs approval.`,
+            `/dm/worlds/${sellWorldId}/marketplace/transactions`,
+        );
+    }
     try {
         const sellChar = await db.character.findUnique({ where: { id: characterId }, select: { name: true } });
         await queueDiscordNotification('MARKET_PENDING', {
             char:    { name: sellChar?.name ?? '' },
             item:    { name: item.name, price: totalPrice },
             txType:  'SELL',
-            worldId: (inv as any).worldId ?? null,
+            worldId: sellWorldId,
         });
     } catch { /* discord not running */ }
 

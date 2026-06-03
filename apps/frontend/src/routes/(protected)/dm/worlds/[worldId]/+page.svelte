@@ -23,7 +23,7 @@
 		</div>
 	{/if}
 	{#if (data as any).questStats.pending > 0}
-		<a href="/dm/worlds/{world.id}/quests" class="card" style="text-align:center; border-color:var(--color-warning); text-decoration:none;">
+		<a href="/dm/worlds/{world.id}/quests?status=PENDING_APPROVAL" class="card" style="text-align:center; border-color:var(--color-warning); text-decoration:none;">
 			<div style="font-size:1.75rem; font-weight:700; color:var(--color-warning);">{(data as any).questStats.pending}</div>
 			<div class="label" style="margin-top:0.25rem;">Quests awaiting approval</div>
 		</a>

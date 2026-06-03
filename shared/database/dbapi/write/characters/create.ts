@@ -4,28 +4,22 @@ import { logAudit } from '../audit/log.ts';
 import { ConflictError, ValidationError } from '@core/errors';
 import { getSlotInfo } from '../../read/characters/get-slot-info.ts';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
-import { createNotificationsForAdmins } from '../notifications/notifications.ts';
+import { createNotificationsForAdmins, createNotificationsForWorldDMs } from '../notifications/notifications.ts';
 import { queueDiscordNotification } from '../discord/dispatcher';
 
-export type ClassAllocationInput = {
-    classId:        string;
-    subclassId?:    string | null;
-    allocatedLevel: number;
-};
-
+// Universal character creation — no system-specific fields
+// For dnd5e characters use dnd5e.createCharacter() instead
 export async function createCharacter(
     input: {
         userId:        string;
         gameSystemId:  string;
         name:          string;
-        speciesId?:    string;
-        backgroundId?: string;
         avatarUrl?:    string;
         portraitUrl?:  string;
         description?:  string;
         worldId?:      string;
         isGlobal?:     boolean;
-        classes?:      ClassAllocationInput[];
+        level?:        number;
     },
     actorId?: string,
 ) {
@@ -36,10 +30,6 @@ export async function createCharacter(
     if (slotInfo.available <= 0)
         throw new ValidationError(`No character slots available. Used ${slotInfo.used} of ${slotInfo.total}.`);
 
-    if (!input.speciesId)    throw new ValidationError('Species is required.');
-    if (!input.backgroundId) throw new ValidationError('Background is required.');
-    if (!input.classes?.length) throw new ValidationError('At least one class is required.');
-
     const settings     = await getSettingsMap();
     const startingGold = Number(settings['character.startingGold'] ?? 100);
 
@@ -49,29 +39,17 @@ export async function createCharacter(
                 userId:        input.userId,
                 gameSystemId:  input.gameSystemId,
                 name:          input.name,
-                speciesId:     input.speciesId,
-                backgroundId:  input.backgroundId,
-                avatarUrl:     input.avatarUrl    ?? null,
-                portraitUrl:   input.portraitUrl  ?? null,
-                description:   input.description  ?? null,
-                worldId:       input.worldId      ?? null,
-                isGlobal:      input.isGlobal      ?? false,
+                level:         input.level ?? 0,
+                avatarUrl:     input.avatarUrl   ?? null,
+                portraitUrl:   input.portraitUrl ?? null,
+                description:   input.description ?? null,
+                worldId:       input.worldId     ?? null,
+                isGlobal:      input.isGlobal    ?? false,
                 totalGold:     startingGold,
                 status:        'PENDING',
                 statusReason:  'NEW_CHARACTER',
             },
         });
-
-        if (input.classes?.length) {
-            await tx.characterClass.createMany({
-                data: input.classes.map(c => ({
-                    characterId:    char.id,
-                    classId:        c.classId,
-                    subclassId:     c.subclassId ?? null,
-                    allocatedLevel: c.allocatedLevel,
-                })),
-            });
-        }
 
         if (startingGold > 0) {
             await tx.characterTransaction.create({
@@ -96,9 +74,18 @@ export async function createCharacter(
         `/characters/${character.id}`,
     );
 
+    if (input.worldId) {
+        await createNotificationsForWorldDMs(
+            input.worldId,
+            'CHARACTER_PENDING', 'New character awaiting approval',
+            `A new character "${input.name}" has been submitted for approval.`,
+            `/dm/worlds/${input.worldId}/characters`,
+        );
+    }
+
     try {
         await queueDiscordNotification('CHAR_PENDING_APPROVAL', {
-            char: { name: character.name, statusReason: 'NEW_CHARACTER', worldId: (character as any).worldId ?? null },
+            char: { name: character.name, statusReason: 'NEW_CHARACTER', worldId: input.worldId ?? null },
         });
     } catch { /* discord not running */ }
 

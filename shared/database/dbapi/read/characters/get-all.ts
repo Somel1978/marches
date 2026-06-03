@@ -24,7 +24,7 @@ export async function getAllCharacters({
             orderBy: { createdAt: 'desc' },
             skip:    (page - 1) * perPage,
             take:    perPage,
-            include: { classes: true },
+            include: { dnd5eSheet: true },
         }),
         db.character.count({ where }),
     ]);

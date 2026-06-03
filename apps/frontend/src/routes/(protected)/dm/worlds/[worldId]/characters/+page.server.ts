@@ -15,15 +15,14 @@ async function assertCanManage(worldId: string, userId: string) {
 }
 
 export const load: PageServerLoad = async ({ params, parent, url }) => {
-	// Any assigned DM can view characters in their world
-	await parent(); // layout already guards world assignment
+	const { canManage } = await parent();
 
 	const status = url.searchParams.get('status') ?? undefined;
 	const page   = Number(url.searchParams.get('page') ?? 1);
 
 	const result = await characters.getAll({ worldId: params.worldId, status, page, perPage: 20 });
 
-	return { ...result, status };
+	return { ...result, status, canManage };
 };
 
 export const actions: Actions = {
@@ -32,7 +31,7 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const id   = data.get('id')?.toString() ?? '';
 		try {
-			await characters.approve(id, locals.user!.id);
+			await characters.dispatchApprove(id, locals.user!.id);
 			return { approveSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -47,7 +46,7 @@ export const actions: Actions = {
 		const note = data.get('note')?.toString().trim() ?? '';
 		if (!note) return fail(400, { message: 'Rejection reason is required.' });
 		try {
-			await characters.reject(id, note, locals.user!.id);
+			await characters.dispatchReject(id, note, locals.user!.id);
 			return { rejectSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

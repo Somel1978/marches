@@ -23,7 +23,7 @@
 	}
 
 	function totalLevel(item: any) {
-		return item.classes?.reduce((s: number, c: any) => s + c.allocatedLevel, 0) ?? 0;
+		return (item as any).level ?? item.classes?.reduce((s: number, c: any) => s + c.allocatedLevel, 0) ?? 0;
 	}
 </script>
 

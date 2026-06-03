@@ -70,6 +70,9 @@ export const actions: Actions = {
 		try {
 			const quest = await quests.getById(questId);
 			if (!quest?.result) return fail(400, { message: 'No result to approve.' });
+			// Self-approval guard
+			const profile = await db.dMProfile.findFirst({ where: { userId: locals.user!.id }, select: { id: true } });
+			if (profile && (quest as any).dmProfileId === profile.id) return fail(403, { message: 'You cannot approve your own quest result.' });
 			await quests.approveResult(quest.result.id, locals.user!.id);
 			return { success: true };
 		} catch (e) {
@@ -88,6 +91,9 @@ export const actions: Actions = {
 		try {
 			const quest = await quests.getById(questId);
 			if (!quest?.result) return fail(400, { message: 'No result to reject.' });
+			// Self-approval guard
+			const profile = await db.dMProfile.findFirst({ where: { userId: locals.user!.id }, select: { id: true } });
+			if (profile && (quest as any).dmProfileId === profile.id) return fail(403, { message: 'You cannot reject your own quest result.' });
 			await quests.rejectResult(quest.result.id, note, locals.user!.id);
 			return { success: true };
 		} catch (e) {

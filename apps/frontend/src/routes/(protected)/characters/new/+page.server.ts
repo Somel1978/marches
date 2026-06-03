@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const systemData    = firstSystem ? await dnd5e.getSystemData(firstSystem.id)  : null;
 
 	const activeWorlds = (allWorlds as any[]).filter((w: any) => w.isActive && w.acceptsGlobalCharacters);
-	return { slotInfo, systems, systemDetails, systemData, activeWorlds };
+	return { slotInfo, systems, systemDetails, systemData, activeWorlds, gameSystem: firstSystem };
 };
 
 export const actions: Actions = {
@@ -49,15 +49,17 @@ export const actions: Actions = {
 		if (!classes.length) return fail(400, { message: 'At least one class is required.' });
 
 		try {
-			await characters.create({ worldId,
+			// Use dnd5e.createCharacter for dnd5e — universal characters.create for other systems
+			await dnd5e.createCharacter({
 				userId:       locals.user!.id,
 				gameSystemId,
 				name,
-				speciesId,
-				backgroundId,
+				speciesId:    speciesId!,
+				backgroundId: backgroundId!,
+				classes,
 				description,
 				avatarUrl,
-				classes,
+				worldId,
 			});
 			redirect(302, '/characters');
 		} catch (e) {

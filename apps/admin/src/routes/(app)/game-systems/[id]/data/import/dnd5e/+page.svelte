@@ -1,4 +1,4 @@
-<!-- apps/admin/src/routes/(app)/game-systems/[id]/data/import/+page.svelte -->
+<!-- apps/admin/src/routes/(app)/game-systems/[id]/data/import/dnd5e/+page.svelte -->
 <script lang="ts">
 	import * as XLSX from 'xlsx';
 	import { enhance } from '$app/forms';
@@ -7,7 +7,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const system = $derived((data as any).system);
 
-	type ImportTab = 'classes' | 'classFeatures' | 'subclasses' | 'subclassFeatures' | 'species' | 'speciesTraits' | 'backgrounds';
+	type ImportTab = 'classes' | 'classFeatures' | 'subclasses' | 'subclassFeatures' | 'species' | 'speciesTraits' | 'backgrounds' | 'feats';
 	let activeTab = $state<ImportTab>('classes');
 
 	let parsedJson  = $state('');
@@ -22,7 +22,8 @@
 		{ key: 'subclassFeatures',label: 'Subclass Features',action: '?/importSubclassFeatures',columns: ['className','subclassName','name','requiredLevel','description','url'] },
 		{ key: 'species',         label: 'Species',          action: '?/importSpecies',         columns: ['name','description','source','link','isSubrace','isLegacy','sortOrder'] },
 		{ key: 'speciesTraits',   label: 'Species Traits',   action: '?/importSpeciesTraits',   columns: ['speciesName','name','description','requiredLevel'] },
-		{ key: 'backgrounds',     label: 'Backgrounds',      action: '?/importBackgrounds',     columns: ['name','shortDescription','featureName','skillProficiencies','toolProficiencies','languages','url','sortOrder'] },
+		{ key: 'backgrounds',     label: 'Backgrounds',      action: '?/importBackgrounds',     columns: ['name','shortDescription','featureName','grantsFeatCategory','grantsFeatId','skillProficiencies','toolProficiencies','languages','url','sortOrder'] },
+		{ key: 'feats',           label: 'Feats',            action: '?/importFeats',           columns: ['name','description','snippet','repeatable','categories','prerequisites','detailsUrl','isEpicBoon','sortOrder'] },
 	];
 
 	const activeTabDef = $derived(TABS.find(t => t.key === activeTab)!);
@@ -72,9 +73,9 @@
 			<h2 class="page__title">{system.name} — Import</h2>
 		</div>
 		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
-			<a href="/game-systems/{system.id}/classes"     class="btn btn-ghost btn-sm">Classes</a>
-			<a href="/game-systems/{system.id}/species"     class="btn btn-ghost btn-sm">Species</a>
-			<a href="/game-systems/{system.id}/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
+			<a href="/game-systems/{system.id}/dnd5e/classes"     class="btn btn-ghost btn-sm">Classes</a>
+			<a href="/game-systems/{system.id}/dnd5e/species"     class="btn btn-ghost btn-sm">Species</a>
+			<a href="/game-systems/{system.id}/dnd5e/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
 		</div>
 	</div>
 
@@ -120,7 +121,7 @@
 				<button type="button" class="btn btn-ghost btn-sm" onclick={downloadTemplate}>
 					↓ Download {activeTabDef.label} template
 				</button>
-				<a href="/game-systems/{system.id}/data/export?type={activeTab}"
+				<a href="/game-systems/{system.id}/data/export/dnd5e?type={activeTab}"
 					class="btn btn-ghost btn-sm" download>
 					↓ Export current {activeTabDef.label}
 				</a>

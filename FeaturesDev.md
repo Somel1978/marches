@@ -99,7 +99,7 @@ marches/
 ✅ 23. DM Hub world management — full world/region/location/wiki/marketplace/transactions/characters/quests/journal/audit per world, canManage flag, quest approval routing
 ✅ 24. Import/Export audit — identified all gaps (progression missing both, all areas missing export)
 ✅ 25. Import/Export — add progression import/export, add export to all existing import areas (see ImportExportPlan.md)
-⬜ 26. Character system refactor — sculpt dnd5e out of universal character layer (see CharacterSystemRefactor.md) — DB reset OK
+✅ 26. Character system refactor — sculpt dnd5e out of universal character layer (see CharacterSystemRefactor.md) — COMPLETE
 ⬜ 27. dnd5e character sheet completion — stats/ability scores + feats (builds on top of refactored Dnd5eCharacterSheet model)
 ⬜ 28. DM dashboard quest filters (UI cleanup phase)
 ```
@@ -1268,6 +1268,47 @@ Players connect Discord via **Profile → Connect Discord** → OAuth flow store
 ---
 
 ## Bug Fixes & Patches
+
+
+### Session 22-23 — Character System Refactor (2026-06-01)
+
+**Schema**
+- `characters.prisma` — removed `speciesId`, `backgroundId`, `pendingChanges`; added `level Int @default(0)`; added `dnd5eSheet Dnd5eCharacterSheet?` relation
+- `dnd5e.prisma` — added `Dnd5eCharacterSheet` model
+
+**Universal character DB API** (zero dnd5e knowledge)
+- `write/characters/create.ts`, `update.ts`, `approve.ts`, `level-check.ts`, `adjust-currency.ts` — all dnd5e removed
+- `read/characters/get-by-id.ts`, `get-all.ts` — no enrichment, uses `character.level`
+- Deleted: `write/characters/update-classes.ts`
+
+**dnd5e character DB API** (new files in `write/dnd5e/` and `read/dnd5e/`)
+- `write/dnd5e/create-character.ts`, `approve-character.ts`, `update-character.ts`, `update-classes.ts`
+- `read/dnd5e/get-character-sheet.ts`, `enrich-signups.ts`
+
+**Level references fixed** — all use `character.level` now:
+- `write/quests/signup.ts`, `submit-result.ts`, `delete.ts`
+- `write/marketplace/transactions.ts`
+- `read/quests/get-by-id.ts` — uses `enrichDnd5eSignups` from dnd5e layer
+- `apps/discord/src/commands/characters.ts`
+
+**UI components extracted to `@core/ui`**
+- `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte`
+- `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterCreation.svelte`
+- `shared/ui/index.ts` — exports both components
+
+**Server + svelte files** — all dispatch by system, use `charSheet` from `dnd5e.getCharacterSheet()`
+
+### Session 24 — Quest DM Approval Fix (2026-06-01)
+
+**Problem:** DM with `canManage` had no way to approve quests from their own quest detail page — had to navigate to world quest list.
+
+**Option B** — `dm/quests/[id]/+page.server.ts`:
+- Added `checkCanApprove()` — verifies DM has `canManage` on quest's world AND is not the quest's own DM (self-approval guard)
+- Added `approve` action (`PENDING_APPROVAL → PUBLISHED`) and `reject` action (`PENDING_APPROVAL → CANCELLED`)
+- `canApprove` passed to page
+
+**Option C** — `dm/worlds/[worldId]/+page.svelte`:
+- Pending quests stat card now links to `?status=PENDING_APPROVAL` instead of unfiltered list
 
 
 ### Session 21 — Import/Export (2026-06-01)

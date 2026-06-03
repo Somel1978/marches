@@ -1,4 +1,4 @@
-<!-- apps/admin/src/routes/(app)/game-systems/[id]/classes/[classId]/+page.svelte -->
+<!-- apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/classes/[classId]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
@@ -15,7 +15,7 @@
 <div class="page">
 	<div class="page__header">
 		<div>
-			<a href="/game-systems/{system.id}/classes" class="back-link">← Classes</a>
+			<a href="/game-systems/{system.id}/dnd5e/classes" class="back-link">← Classes</a>
 			<h2 class="page__title">{cls.name}</h2>
 		</div>
 	</div>
@@ -94,7 +94,7 @@
 		</div>
 
 		<form bind:this={deleteForm} method="post" action="?/deleteClass" use:enhance={() => {
-			return async ({ update }) => { goto(`/game-systems/${system.id}/classes`); await update(); };
+			return async ({ update }) => { goto(`/game-systems/${system.id}/dnd5e/classes`); await update(); };
 		}} style="display:none;"></form>
 
 		<!-- Class Features -->

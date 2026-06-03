@@ -1,4 +1,4 @@
-// apps/admin/src/routes/(app)/game-systems/[id]/data/import/+page.server.ts
+// apps/admin/src/routes/(app)/game-systems/[id]/data/import/dnd5e/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
 import { gameSystems, dnd5e } from '@core/database';
 import { checkPermission } from '@core/rbac';
@@ -317,6 +317,55 @@ export const actions: Actions = {
 	},
 
 	// ── Backgrounds ───────────────────────────────────────────────────────────
+	importFeats: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'create' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data        = await request.formData();
+		const raw         = data.get('json')?.toString() ?? '';
+		const allowUpdate = data.get('allowUpdate') === 'true';
+		if (!raw) return fail(400, { message: 'No data provided.' });
+		try {
+			const rows: any[] = JSON.parse(raw);
+			let created = 0; let updated = 0; let skipped = 0;
+			const all = await dnd5e.feats.getAllForAdmin(params.id);
+			for (const row of rows) {
+				const existing = all.find((f: any) => normalize(f.name).toLowerCase() === normalize(row.name).toLowerCase());
+				if (existing) {
+					if (!allowUpdate) { skipped++; continue; }
+					await dnd5e.feats.update(existing.id, {
+						description:   row.description   || null,
+						snippet:       row.snippet        || null,
+						repeatable:    String(row.repeatable).toLowerCase() === 'true',
+						categories:    row.categories     || null,
+						prerequisites: row.prerequisites  || null,
+						detailsUrl:    row.detailsUrl      || null,
+						isEpicBoon:    String(row.isEpicBoon).toLowerCase() === 'true',
+						sortOrder:     Number(row.sortOrder) || 0,
+					}, locals.user!.id);
+					updated++;
+				} else {
+					await dnd5e.feats.create({
+						gameSystemId:  params.id,
+						name:          row.name,
+						description:   row.description   || undefined,
+						snippet:       row.snippet        || undefined,
+						repeatable:    String(row.repeatable).toLowerCase() === 'true',
+						categories:    row.categories     || undefined,
+						prerequisites: row.prerequisites  || undefined,
+						detailsUrl:    row.detailsUrl      || undefined,
+						isEpicBoon:    String(row.isEpicBoon).toLowerCase() === 'true',
+						sortOrder:     Number(row.sortOrder) || 0,
+					}, locals.user!.id);
+					created++;
+				}
+			}
+			return { success: true, created, updated, skipped, type: 'feats' };
+		} catch (e: any) {
+			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
+			return fail(400, { message: isUnique ? 'A record with that name already exists. Tick "Update existing records" to overwrite.' : `Import failed: ${e.message}` });
+		}
+	},
+
 	importBackgrounds: async ({ params, request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'create' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
@@ -335,6 +384,8 @@ export const actions: Actions = {
 					await dnd5e.backgrounds.update(existing.id, {
 						shortDescription:   row.shortDescription   || null,
 						featureName:        row.featureName        || null,
+						grantsFeatCategory: row.grantsFeatCategory || null,
+						grantsFeatId:       row.grantsFeatId       || null,
 						skillProficiencies: row.skillProficiencies || null,
 						toolProficiencies:  row.toolProficiencies  || null,
 						languages:          row.languages          || null,
@@ -348,6 +399,8 @@ export const actions: Actions = {
 						name:               row.name,
 						shortDescription:   row.shortDescription   || undefined,
 						featureName:        row.featureName        || undefined,
+						grantsFeatCategory: row.grantsFeatCategory || undefined,
+						grantsFeatId:       row.grantsFeatId       || undefined,
 						skillProficiencies: row.skillProficiencies || undefined,
 						toolProficiencies:  row.toolProficiencies  || undefined,
 						languages:          row.languages          || undefined,

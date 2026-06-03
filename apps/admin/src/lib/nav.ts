@@ -86,7 +86,7 @@ export const NAV_ITEMS: NavItemDef[] = [
         children: [
             { label: 'Items',        href: '/marketplace/items' },
             { label: 'Transactions', href: '/marketplace/transactions' },
-            { label: 'Import',       href: '/marketplace/import' },
+            { label: 'Import',       href: '/marketplace/data/import' },
             { label: 'Settings',     href: '/marketplace/settings' },
         ],
     },

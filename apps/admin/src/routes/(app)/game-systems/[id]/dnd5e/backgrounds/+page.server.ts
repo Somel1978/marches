@@ -1,0 +1,75 @@
+// apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/backgrounds/+page.server.ts
+import { fail, error } from '@sveltejs/kit';
+import { gameSystems, dnd5e } from '@core/database';
+import { checkPermission } from '@core/rbac';
+import { isMarchesError } from '@core/errors';
+import type { PageServerLoad, Actions } from './$types';
+
+export const load: PageServerLoad = async ({ params }) => {
+	const system      = await gameSystems.getById(params.id);
+	if (!system) throw error(404, 'Game system not found');
+	const [backgrounds, feats] = await Promise.all([
+		dnd5e.backgrounds.getAll(params.id),
+		dnd5e.feats.getAll(params.id),
+	]);
+	return { system, backgrounds, feats };
+};
+
+export const actions: Actions = {
+	create: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'create' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const name = data.get('name')?.toString().trim() ?? '';
+		if (!name) return fail(400, { message: 'Name required.' });
+		try {
+			await dnd5e.backgrounds.create({
+				gameSystemId:       params.id,
+				name,
+				shortDescription:   data.get('shortDescription')?.toString().trim()   || undefined,
+				featureName:           data.get('featureName')?.toString().trim()           || undefined,
+				grantsFeatCategory:    data.get('grantsFeatCategory')?.toString().trim()    || undefined,
+				grantsFeatId:          data.get('grantsFeatId')?.toString().trim()          || undefined,
+				skillProficiencies:    data.get('skillProficiencies')?.toString().trim()    || undefined,
+				toolProficiencies:  data.get('toolProficiencies')?.toString().trim()  || undefined,
+				languages:          data.get('languages')?.toString().trim()          || undefined,
+				url:                data.get('url')?.toString().trim()                || undefined,
+			}, locals.user!.id);
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+	updateBackground: async ({ request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const id   = data.get('id')?.toString() ?? '';
+		if (!id) return fail(400, { message: 'ID required.' });
+		try {
+			await dnd5e.backgrounds.update(id, {
+				name:               data.get('name')?.toString().trim()               || undefined,
+				shortDescription:   data.get('shortDescription')?.toString().trim()   || undefined,
+				featureName:           data.get('featureName')?.toString().trim()           || undefined,
+				grantsFeatCategory:    data.get('grantsFeatCategory')?.toString().trim()    || undefined,
+				grantsFeatId:          data.get('grantsFeatId')?.toString().trim()          || undefined,
+				skillProficiencies:    data.get('skillProficiencies')?.toString().trim()    || undefined,
+				toolProficiencies:  data.get('toolProficiencies')?.toString().trim()  || undefined,
+				languages:          data.get('languages')?.toString().trim()          || undefined,
+				url:                data.get('url')?.toString().trim()                || undefined,
+				isAvailable:        data.get('isAvailable') !== 'false',
+			}, locals.user!.id);
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	deleteBackground: async ({ request, locals }) => {
+		const data = await request.formData();
+		await dnd5e.backgrounds.delete(data.get('id')?.toString() ?? '', locals.user!.id);
+		return { success: true };
+	},
+};

@@ -10,7 +10,7 @@ const ITEM_CATEGORIES = ['Combat','Consumable','Utility','Destroyable'];
 
 export const load: PageServerLoad = async () => {
 	const [allChars, allAchs] = await Promise.all([
-		db.character.findMany({ where: { status: 'ACTIVE' }, select: { id: true, name: true, userId: true }, orderBy: { name: 'asc' } }),
+		db.character.findMany({ where: { status: { in: ['ACTIVE', 'RESTING', 'PENDING'] } }, select: { id: true, name: true, userId: true, status: true }, orderBy: { name: 'asc' } }),
 		achievements.getAll(true),
 	]);
 	return { allChars, allAchs, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES };

@@ -1,5 +1,6 @@
 // shared/database/dbapi/read/dnd5e/get-classes.ts
 import { db } from '../../../index.ts';
+import { getDnd5eFeats } from './get-feats.ts';
 
 export async function getDnd5eClasses(gameSystemId: string) {
     return db.dnd5eClass.findMany({
@@ -75,10 +76,11 @@ export async function getAllDnd5eBackgrounds(gameSystemId: string) {
 
 // Get all dnd5e data for a game system in one call (for character sheet)
 export async function getDnd5eSystemData(gameSystemId: string) {
-    const [classes, species, backgrounds] = await Promise.all([
+    const [classes, species, backgrounds, feats] = await Promise.all([
         getDnd5eClasses(gameSystemId),
         getDnd5eSpecies(gameSystemId),
         getDnd5eBackgrounds(gameSystemId),
+        getDnd5eFeats(gameSystemId),
     ]);
-    return { classes, species, backgrounds };
+    return { classes, species, backgrounds, feats };
 }

@@ -19,3 +19,7 @@ export { default as PermissionCell } from './components/ui/PermissionCell.svelte
 export { renderMarkdown } from './src/markdown.ts';
 export { default as NotificationBell } from './components/ui/NotificationBell.svelte';
 export { default as ConfirmModal } from './components/ui/ConfirmModal.svelte';
+// Game system components — dnd5e
+export { default as Dnd5eCharacterSheet }    from './src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte';
+export { default as Dnd5eCharacterCreation } from './src/gamesystems/dnd5e/Dnd5eCharacterCreation.svelte';
+export { default as Dnd5eAsiFeatsPanel }    from './src/gamesystems/dnd5e/Dnd5eAsiFeatsPanel.svelte';

@@ -119,6 +119,9 @@ model Dnd5eBackground {
   name                String
   shortDescription    String?  @map("short_description")
   featureName         String?  @map("feature_name")
+  grantsFeatCategory  String?  @map("grants_feat_category")  // player picks any feat of this category
+  grantsFeatId        String?  @map("grants_feat_id")          // background auto-grants this specific feat
+  grantsFeat          Dnd5eFeat? @relation("BackgroundGrantedFeat", fields: [grantsFeatId], references: [id], onDelete: SetNull)
   skillProficiencies  String?  @map("skill_proficiencies")
   toolProficiencies   String?  @map("tool_proficiencies")
   languages           String?
@@ -130,5 +133,101 @@ model Dnd5eBackground {
 
   @@unique([gameSystemId, name])
   @@map("backgrounds")
+  @@schema("dnd5e")
+}
+
+model Dnd5eCharacterSheet {
+  id             String    @id @default(uuid())
+  characterId    String    @unique @map("character_id")
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  speciesId      String?   @map("species_id")
+  backgroundId   String?   @map("background_id")
+  pendingChanges Json?     @map("pending_changes")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt      @map("updated_at")
+
+  @@map("character_sheets")
+  @@schema("dnd5e")
+}
+
+model Dnd5eCharacterClass {
+  id             String    @id @default(uuid())
+  characterId    String    @map("character_id")
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  classId        String    @map("class_id")
+  subclassId     String?   @map("subclass_id")
+  allocatedLevel Int       @default(1) @map("allocated_level")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt      @map("updated_at")
+
+  @@unique([characterId, classId])
+  @@map("character_classes")
+  @@schema("dnd5e")
+}
+
+model Dnd5eFeat {
+  id            String   @id @default(uuid())
+  gameSystemId  String   @map("game_system_id")
+  name          String
+  description   String?
+  snippet       String?
+  repeatable    Boolean  @default(false)
+  categories    String?
+  prerequisites String?
+  detailsUrl    String?  @map("details_url")
+  isAvailable   Boolean  @default(true)  @map("is_available")
+  isEpicBoon    Boolean  @default(false) @map("is_epic_boon")
+  sortOrder     Int      @default(0)     @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt      @map("updated_at")
+
+  characterFeats       Dnd5eCharacterFeat[]
+  grantedByBackgrounds Dnd5eBackground[]     @relation("BackgroundGrantedFeat")
+
+  @@unique([gameSystemId, name])
+  @@map("feats")
+  @@schema("dnd5e")
+}
+
+model Dnd5eCharacterFeat {
+  id            String    @id @default(uuid())
+  characterId   String    @map("character_id")
+  character     Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  featId        String    @map("feat_id")
+  feat          Dnd5eFeat @relation(fields: [featId], references: [id], onDelete: Cascade)
+  sourceClassId String?   @map("source_class_id")
+  sourceLevel   Int?      @map("source_level")
+  asiStat1      String?   @map("asi_stat1")
+  asiAmount1    Int?      @map("asi_amount1")
+  asiStat2      String?   @map("asi_stat2")
+  asiAmount2    Int?      @map("asi_amount2")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@map("character_feats")
+  @@schema("dnd5e")
+}
+
+enum Dnd5eAbilityStat {
+  STRENGTH
+  DEXTERITY
+  CONSTITUTION
+  INTELLIGENCE
+  WISDOM
+  CHARISMA
+
+  @@schema("dnd5e")
+}
+
+model Dnd5eAbilityScore {
+  id          String           @id @default(uuid())
+  characterId String           @map("character_id")
+  character   Character        @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  stat        Dnd5eAbilityStat
+  baseScore   Int              @map("base_score")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt      @map("updated_at")
+
+  @@unique([characterId, stat])
+  @@map("ability_scores")
   @@schema("dnd5e")
 }
