@@ -25,6 +25,7 @@ export const GET: RequestHandler = async ({ locals }) => {
             'Source':       i.source        ?? '',
             'Image':        i.imageUrl      ?? '',
             'Link':         i.link          ?? '',
+            'Description':  i.description   ?? '',
         }));
 
         const ws = XLSX.utils.json_to_sheet(rows);

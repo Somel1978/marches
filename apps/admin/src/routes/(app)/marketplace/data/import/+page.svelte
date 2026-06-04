@@ -26,7 +26,7 @@
 
 	<div class="card" style="max-width:480px;">
 		<p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1rem;">
-			Upload an xlsx file with columns: <strong>Category, Name, Price, Base Item, Var., Rarity, Att., Requirements, Weight, Source, Image, Link</strong>.
+			Upload an xlsx file with columns: <strong>Category, Name, Price, Base Item, Var., Rarity, Att., Requirements, Weight, Source, Image, Link, Description</strong>.
 			Items are upserted by name — existing items are updated, new items are created.
 		</p>
 		<form method="post" enctype="multipart/form-data"

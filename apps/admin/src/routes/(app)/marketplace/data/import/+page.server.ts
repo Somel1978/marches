@@ -40,6 +40,7 @@ export const actions: Actions = {
 				source:       r['Source']       ?? '',
 				imageUrl:     r['Image']        ?? '',
 				link:         r['Link']         ?? '',
+				description:  r['Description']   || null,
 			}));
 
 			const result = await marketplace.items.import(mapped, locals.user!.id);
