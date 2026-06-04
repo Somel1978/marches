@@ -1,0 +1,324 @@
+/* shared/ui/styles/components/wizard.css */
+/* Character creation wizard — step ribbon, tarot cards, stat boxes, class browser, bottom sheet */
+
+/* ── Step ribbon ─────────────────────────────────────────────────── */
+.ribbon {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-base);
+}
+.ribbon__step {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.625rem 1rem;
+  background: var(--bg-surface);
+  border: none;
+  border-right: 1px solid var(--border-base);
+  cursor: default;
+  text-align: left;
+  transition: background var(--transition-base);
+}
+.ribbon__step:last-child { border-right: none; }
+.ribbon__step--clickable { cursor: pointer; }
+.ribbon__step--active { background: var(--brand-accent); }
+.ribbon__step--active .ribbon__num,
+.ribbon__step--active .ribbon__label { color: #fff; }
+.ribbon__step--done { background: var(--bg-overlay); }
+.ribbon__num {
+  font-size: 0.6875rem; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;
+}
+.ribbon__label { font-size: 0.875rem; font-weight: 700; color: var(--text-primary); }
+
+/* ── System selector cards ───────────────────────────────────────── */
+.system-card {
+  display: flex; flex-direction: column; align-items: flex-start; text-align: left;
+  padding: 1.5rem; background: var(--bg-surface); border: 1px solid var(--border-base);
+  border-radius: var(--radius-lg); cursor: pointer;
+  transition: transform var(--transition-base), border-color var(--transition-base), background var(--transition-base);
+}
+.system-card:hover:not(.system-card--disabled) {
+  transform: translateY(-2px); border-color: var(--border-accent); background: var(--bg-overlay);
+}
+.system-card--disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Tarot cards (species) ───────────────────────────────────────── */
+.tarot {
+  display: flex; flex-direction: column; align-items: center; gap: 0.375rem;
+  padding: 1rem 0.75rem; position: relative; min-height: 130px;
+  background: var(--bg-surface); border: 1px solid var(--border-base);
+  border-radius: var(--radius-lg); cursor: pointer;
+  transition: transform var(--transition-base), border-color var(--transition-base), background var(--transition-base);
+  width: 100%;
+}
+.tarot:hover { transform: translateY(-2px); border-color: var(--border-accent); }
+.tarot--active {
+  border-color: var(--border-accent); background: var(--bg-overlay);
+  box-shadow: 0 0 0 1px var(--border-accent);
+}
+.tarot__badges { position: absolute; top: 0.375rem; right: 0.375rem; display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.tarot__icon { font-size: 2rem; margin-top: 0.5rem; }
+.tarot__name { margin: 0; font-size: 0.9375rem; text-align: center; font-weight: 600; }
+.tarot__desc {
+  margin: 0; font-size: 0.6875rem; color: var(--text-muted); text-align: center;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* ── Background list rows ────────────────────────────────────────── */
+.wizard-bg-row {
+  display: flex; flex-direction: column; align-items: flex-start; text-align: left;
+  gap: 0.25rem; padding: 0.625rem 0.875rem; width: 100%;
+  background: var(--bg-surface); border: 1px solid var(--border-base);
+  border-radius: var(--radius-md); cursor: pointer;
+  transition: border-color var(--transition-base), background var(--transition-base);
+}
+.wizard-bg-row:hover { border-color: var(--border-accent); background: var(--bg-overlay); }
+.wizard-bg-row--active {
+  border-color: var(--border-accent); background: var(--bg-overlay);
+  box-shadow: 0 0 0 1px var(--border-accent);
+}
+
+/* ── Class browser cards ─────────────────────────────────────────── */
+.wizard-class-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.125rem;
+  padding: 0.625rem 0.75rem; background: var(--bg-surface); width: 100%;
+  border: 1px solid var(--border-base); border-radius: var(--radius-md); cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-base), background var(--transition-base);
+}
+.wizard-class-card:hover { border-color: var(--border-accent); background: var(--bg-overlay); }
+.wizard-class-card--active {
+  border-color: var(--border-accent); background: var(--bg-overlay);
+  box-shadow: 0 0 0 1px var(--border-accent);
+}
+
+/* ── Feature timeline (accordion) ───────────────────────────────── */
+.feat-timeline { display: flex; flex-direction: column; gap: 0.25rem; }
+.feat-row {
+  border: 1px solid var(--border-muted); border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.feat-row__header {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem;
+  cursor: pointer; background: var(--bg-overlay);
+  transition: background var(--transition-fast);
+  width: 100%; border: none; text-align: left;
+}
+.feat-row__header:hover { background: var(--bg-surface); }
+.feat-row__level {
+  flex: 0 0 32px; font-size: 0.6875rem; font-weight: 700;
+  color: var(--text-muted); text-align: center;
+}
+.feat-row__name { flex: 1; font-size: 0.8125rem; font-weight: 600; color: var(--text-primary); }
+.feat-row__source { flex: 0 0 auto; }
+.feat-row__chevron {
+  flex: 0 0 16px; font-size: 0.6875rem; color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+.feat-row__chevron--open { transform: rotate(90deg); }
+.feat-row__body {
+  padding: 0.375rem 0.5rem 0.5rem 1.5rem;
+  font-size: 0.8125rem; color: var(--text-secondary); background: var(--bg-surface);
+  border-top: 1px solid var(--border-muted);
+}
+
+/* ── Stat boxes (point buy) ──────────────────────────────────────── */
+.wizard-stat-box {
+  padding: 0.75rem 0.5rem; background: var(--bg-overlay);
+  border-radius: var(--radius-md); border: 1px solid var(--border-muted); text-align: center;
+  min-width: 0; overflow: hidden;
+}
+.wizard-stat-box__label {
+  font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+  color: var(--text-muted); margin: 0 0 0.25rem;
+}
+.wizard-stat-box__value { font-size: 1.75rem; font-weight: 800; line-height: 1; margin: 0; }
+.wizard-stat-box__mod { font-size: 0.8125rem; font-weight: 600; color: var(--brand-accent); margin: 0.125rem 0 0; }
+.wizard-stat-box__cost { font-size: 0.625rem; color: var(--text-muted); margin: 0.375rem 0 0; }
+
+/* ── Class allocation row ────────────────────────────────────────── */
+.wizard-class-row {
+  padding: 0.75rem; background: var(--bg-overlay);
+  border-radius: var(--radius-md); margin-bottom: 0.5rem;
+}
+
+/* ── Stat control buttons ────────────────────────────────────────── */
+.wizard-ctrl-btn {
+  width: 28px; height: 28px;
+  border: 1px solid var(--border-base); border-radius: var(--radius-sm);
+  background: var(--bg-surface); color: var(--text-primary);
+  font-size: 1.125rem; font-weight: 700; cursor: pointer; line-height: 1;
+  transition: all var(--transition-fast);
+}
+.wizard-ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.wizard-ctrl-btn:not(:disabled):hover { border-color: var(--border-accent); background: var(--bg-overlay); }
+
+/* ── Drawer (desktop sticky) ─────────────────────────────────────── */
+.wizard-drawer {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+/* ── Bottom sheet (mobile overlay) ──────────────────────────────── */
+.wizard-sheet-backdrop {
+  display: none;
+}
+.wizard-sheet {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Hide desktop drawer, show mobile trigger */
+  .wizard-drawer { display: none; }
+
+  .wizard-sheet-backdrop {
+    display: block;
+    cursor: default;
+    border: none;
+    padding: 0;
+    position: fixed; inset: 0; z-index: 40;
+    background: rgba(0,0,0,0.5);
+    animation: backdropIn 200ms ease;
+  }
+  .wizard-sheet-backdrop--hidden { display: none; }
+
+  .wizard-sheet {
+    display: flex;
+    flex-direction: column;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    max-height: 90vh;
+    background: var(--bg-surface);
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+    border-top: 1px solid var(--border-base);
+    animation: sheetUp 250ms cubic-bezier(0.32, 0.72, 0, 1);
+    overflow: hidden;
+  }
+  .wizard-sheet--hidden { display: none; }
+  .wizard-sheet__handle {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 1rem 0.5rem;
+    border-bottom: 1px solid var(--border-muted);
+  }
+  .wizard-sheet__handle-bar {
+    width: 40px; height: 4px; background: var(--border-base); border-radius: 99px; margin: 0 auto;
+  }
+  .wizard-sheet__body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 1rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .wizard-sheet__footer {
+    flex: 0 0 auto;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border-muted);
+    background: var(--bg-surface);
+  }
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Mobile-specific overrides ───────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Ribbon: 2-column grid instead of wrapping horizontal strip */
+  .ribbon {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-radius: var(--radius-md);
+  }
+  .ribbon__step {
+    border-right: 1px solid var(--border-base);
+    border-bottom: 1px solid var(--border-base);
+  }
+  .ribbon__step:nth-child(even) { border-right: none; }
+  .ribbon__step:nth-last-child(-n+2) { border-bottom: none; }
+
+  /* Two-column content grids → single column */
+  .wizard-two-col {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Species: 2-column card grid on mobile */
+  .wizard-species-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Class detail panel: hidden on mobile (use sheet instead) */
+  .wizard-class-detail {
+    display: none !important;
+  }
+
+  /* Review stat grid: 3x2 on mobile */
+  .wizard-review-stats {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  /* Scores grid: 2x3 already — keep as is */
+}
+
+
+
+/* ── Mobile layout fixes ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Identity: stack preview below form */
+  .wizard-identity-grid {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Species: single column */
+  .wizard-species-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Classes list: single column */
+  .wizard-classes-list {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Two-col grids collapse to single column */
+  .wizard-two-col {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Scores: 3-col, contained, no overflow */
+  .wizard-scores-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.375rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .wizard-scores-grid .wizard-stat-box {
+    min-width: 0 !important;
+    padding: 0.5rem 0.25rem !important;
+  }
+  .wizard-scores-grid .wizard-stat-box__value {
+    font-size: 1.25rem !important;
+  }
+  .wizard-scores-grid .wizard-ctrl-btn {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 1rem !important;
+  }
+}

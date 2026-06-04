@@ -142,7 +142,7 @@
 	$effect(() => {
 		const asiSlots = charSheet?.asiSlots ?? [];
 		const current  = untrack(() => slots);
-		const newSlots = asiSlots.filter(s => !(sk(s) in current));
+		const newSlots = asiSlots.filter((s: any) => !(sk(s) in current));
 		if (newSlots.length === 0) return; // nothing to add — avoid infinite loop
 		const next = { ...current };
 		for (const slot of newSlots) {
