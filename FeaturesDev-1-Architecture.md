@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-06-03 (session 61-70)
+> Last updated: 2026-06-04 (wizard session)
 
 ---
 
@@ -108,6 +108,7 @@ marches/
 ✅ 26. Character system refactor — sculpt dnd5e out of universal character layer (see CharacterSystemRefactor.md) — COMPLETE
 ✅ 27. dnd5e character sheet completion — ASI/feats, ability scores, background feat grants, DM/admin sheet sections
 ⬜ 28. DM dashboard quest filters (UI cleanup phase)
+✅ 29. Character creation wizard — 6-step D&D 5e wizard (/characters/new/dnd5e), system selector gate, point-buy + roll, class browser with feature timeline, mobile bottom sheets
 ```
 
 ---

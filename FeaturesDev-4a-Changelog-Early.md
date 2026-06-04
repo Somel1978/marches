@@ -196,4 +196,3 @@ All internal links updated. `progression/` stays at root (universal).
 - Marketplace import was storing NaN for weight when source data had empty/non-numeric values (e.g. blank, N/A)
 - 327 affected items identified, export handled NaN gracefully, reimport cleaned all to null
 - Import now sanitizes weight: only stores numeric values, null otherwise
-

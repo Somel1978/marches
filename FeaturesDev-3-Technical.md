@@ -1,12 +1,27 @@
 # Marches — Technical Reference
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-06-03 (session 61-70)
+> Last updated: 2026-06-04 (wizard session)
 
 ---
 
 
 ## Critical Technical Decisions
+
+
+### Character Creation Wizard Architecture
+- System selector gate at `/characters/new` — agnostic, lists active game systems
+- D&D 5e wizard at `/characters/new/dnd5e` — 6 steps, single `create` action on final submit
+- Character created `PENDING`/`NEW_CHARACTER` only on final submit — one approval at the end
+- Ability scores saved via `dnd5e.saveAbilityScores` after `createCharacter`
+- Background feat (grantsFeatCategory) saved via `dnd5e.addCharacterFeat` after create
+- All wizard CSS in `@core/ui/styles/components/wizard.css` — no `<style>` in svelte files
+- Name generator in `shared/ui/src/gamesystems/dnd5e/name-generator.ts` — syllable-based, species-keyed
+- Mobile: bottom sheet pattern (`.wizard-sheet`) for species/background/class detail on ≤768px
+- Desktop: sticky two-column drawer (`.wizard-drawer`) for species/background, detail panel for classes
+- Feature timeline: accordion sorted by level, class + subclass features merged, colour-coded by source
+- Point buy: 27-point standard + DM-granted bonus pool (honour system, user-enterable)
+- Breakpoint: `768px` — two-column → single column, drawer → bottom sheet
 
 ### use:enhance + confirm pattern
 `onclick e.preventDefault()` does not work with `use:enhance`. Always use `cancel()`:

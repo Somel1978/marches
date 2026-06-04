@@ -1,6 +1,7 @@
 <!-- apps/frontend/src/routes/(protected)/characters/new/dnd5e/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { browser } from '$app/environment';
 	import { generateFantasyName } from '@core/ui';
 	import type { PageData, ActionData } from './$types';
 
@@ -219,6 +220,58 @@
 		classAllocs = [{ classId: cls.id, subclassId:'', allocatedLevel:1 }];
 	}
 	const classesValid = $derived(totalLevel >= 1 && classAllocs.every(c => c.classId));
+
+
+	// ── sessionStorage persistence ───────────────────────────────────────────
+	const STORAGE_KEY = 'wizard_dnd5e';
+
+	function saveState() {
+		if (!browser) return;
+		try {
+			sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+				step, name, avatarUrl, portraitUrl, worldId,
+				speciesId, backgroundId, bgFeatPick,
+				scores, rolled, bonusGranted, bonus,
+				classAllocs,
+			}));
+		} catch (_) {}
+	}
+
+	function restoreState() {
+		if (!browser) return;
+		try {
+			const raw = sessionStorage.getItem(STORAGE_KEY);
+			if (!raw) return;
+			const s = JSON.parse(raw);
+			if (s.step        !== undefined) step         = s.step;
+			if (s.name        !== undefined) name         = s.name;
+			if (s.avatarUrl   !== undefined) avatarUrl    = s.avatarUrl;
+			if (s.portraitUrl !== undefined) portraitUrl  = s.portraitUrl;
+			if (s.worldId     !== undefined) worldId      = s.worldId;
+			if (s.speciesId   !== undefined) speciesId    = s.speciesId;
+			if (s.backgroundId!== undefined) backgroundId = s.backgroundId;
+			if (s.bgFeatPick  !== undefined) bgFeatPick   = s.bgFeatPick;
+			if (s.scores      !== undefined) scores       = s.scores;
+			if (s.rolled      !== undefined) rolled       = s.rolled;
+			if (s.bonusGranted!== undefined) bonusGranted = s.bonusGranted;
+			if (s.bonus       !== undefined) bonus        = s.bonus;
+			if (s.classAllocs !== undefined) classAllocs  = s.classAllocs;
+		} catch (_) {}
+	}
+
+	function clearState() {
+		if (!browser) return;
+		try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
+	}
+
+	// Restore on mount, save on every state change
+	$effect(() => { restoreState(); });
+	$effect(() => {
+		// Track all state — any change triggers save
+		void [step, name, avatarUrl, portraitUrl, worldId, speciesId, backgroundId,
+			bgFeatPick, scores, rolled, bonusGranted, bonus, classAllocs];
+		saveState();
+	});
 
 	// ── Validation ───────────────────────────────────────────────────────────
 	const canAdvance = $derived.by(() => {
@@ -868,7 +921,7 @@
 				<p style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:1rem;">Submitting creates your character pending approval.</p>
 			{/if}
 
-			<form method="post" action="?/create" use:enhance>
+			<form method="post" action="?/create" use:enhance={() => { return async ({ update }) => { clearState(); await update(); }; }}>
 				<input type="hidden" name="gameSystemId"  value={data.gameSystem.id} />
 				<input type="hidden" name="name"          value={name} />
 				<input type="hidden" name="avatarUrl"     value={avatarUrl} />
