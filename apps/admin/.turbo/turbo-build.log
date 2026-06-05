@@ -1,0 +1,304 @@
+
+[43m[33m[[39m[49m[43m[30mWARN[39m[49m[43m[33m][39m[49m The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.overrides", "pnpm.allowedDeprecatedVersions", "pnpm.peerDependencyRules". See https://pnpm.io/settings for the new home of each setting.
+[2m$ vite build[22m
+[1m[33m`config.kit.csrf.checkOrigin` has been deprecated in favour of `csrf.trustedOrigins`. It will be removed in a future version[22m[39m
+[36mvite v8.0.13 [32mbuilding ssr environment for production...[36m[39m
+[2Ktransforming (2) [2msrc/hooks.server.ts[0m[2Ktransforming (73) [2msrc/routes/(app)/characters/settings/+page.svelte[0m[2Ktransforming (75) [2msrc/routes/(app)/discord/+page.svelte[0m[2Ktransforming (78) [2msrc/routes/(app)/dms/[id]/+page.svelte[0m[2Ktransforming (81) [2msrc/routes/(app)/game-systems/[id]/data/import/dnd5e/+page.svelte[0m[2Ktransforming (83) [2msrc/routes/(app)/game-systems/[id]/dnd5e/classes/+page.svelte[0m[2Ktransforming (85) [2msrc/routes/(app)/game-systems/[id]/dnd5e/feats/+page.svelte[0m[2Ktransforming (87) [2msrc/routes/(app)/game-systems/[id]/progression/+page.svelte[0m[2Ktransforming (91) [2msrc/routes/(app)/journal/[id]/+page.svelte[0m[2Ktransforming (93) [2msrc/routes/(app)/marketplace/items/+page.svelte[0m[2Ktransforming (95) [2msrc/routes/(app)/marketplace/settings/+page.svelte[0m[2Ktransforming (97) [2msrc/routes/(app)/news/+page.svelte[0m[2Ktransforming (102) [2msrc/routes/+layout.svelte[0m[2Ktransforming (105) [2msrc/routes/(app)/quests/[id]/+page.svelte[0m[2Ktransforming (109) [2msrc/routes/(app)/rewards/grant/+page.svelte[0m[2Ktransforming (113) [2msrc/routes/(app)/roles/new/+page.svelte[0m[2Ktransforming (116) [2msrc/routes/(app)/users/[id]/+page.svelte[0m[2Ktransforming (118) [2msrc/routes/(app)/users/new/+page.svelte[0m[2Ktransforming (120) [2msrc/routes/(app)/world/[id]/+page.svelte[0m[2Ktransforming (122) [2msrc/routes/(app)/world/[id]/regions/[regionId]/locations/[locationId]/+page.svelte[0m[2Ktransforming (129) [2msrc/routes/(app)/availability/+page.svelte[0m[2Ktransforming (131) [2msrc/routes/(app)/+page.svelte[0m[2Ktransforming (133) [2msrc/routes/(app)/characters/+page.svelte[0m[2Ktransforming (134) [2msrc/routes/(app)/characters/[id]/+page.svelte[0m[2Ktransforming (164) [2m../../node_modules/.pnpm/@sveltejs+kit@2.60.1_@sveltejs+vite-plugin-svelte@7.1.2_svelte@5.55.7_vite@8.0.13_@type_085ba01b66b1c6e5c23365a40a287f3c/node_modules/@svelt[2Ktransforming (327) [2msrc/routes/(app)/characters/[id]/_sheets/AdminDnd5eSheetSection.svelte[0m[2Ktransforming (423) [2m.svelte-kit/generated/root.svelte[0m[2Ktransforming (428) [2m../../shared/ui/components/ui/Card.svelte[0m[2Ktransforming (432) [2m../../shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte[0m[2Ktransforming (434) [2m../../shared/ui/src/gamesystems/dnd5e/Dnd5eAsiFeatsPanel.svelte[0m[2Ktransforming (590) [2m../../node_modules/.pnpm/better-auth@1.4.22_b916777fce5dec34b71ea477522b8d0c/node_modules/better-auth/dist/db/adapter-kysely.mjs[0m[2Ktransforming (597) [2m../../node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js[0m[2Ktransforming (713) [2m__vite-optional-peer-dep:pg-native:pg[0m[2Ktransforming (831) [2m../../node_modules/.pnpm/kysely@0.28.17/node_modules/kysely/dist/esm/dialect/sqlite/sqlite-query-compiler.js[0m[2Ktransforming (1057) [2m../../node_modules/.pnpm/kysely@0.28.17/node_modules/kysely/dist/esm/driver/runtime-driver.js[0m[2Ktransforming (1135) [2m../../shared/ui/components/layout/NavBar.svelte[0m[2Ktransforming (1141) [2m../../shared/ui/components/layout/AppShell.svelte[0m[2K[32m✓[39m 1151 modules transformed.
+[2Krendering chunks (1)...[2Krendering chunks (2)...[2Krendering chunks (3)...[2Krendering chunks (4)...[2Krendering chunks (5)...[2Krendering chunks (6)...[2Krendering chunks (7)...[2Krendering chunks (8)...[2Krendering chunks (9)...[2Krendering chunks (10)...[2Krendering chunks (11)...[2Krendering chunks (12)...[2Krendering chunks (13)...[2Krendering chunks (14)...[2Krendering chunks (15)...[2Krendering chunks (16)...[2Krendering chunks (17)...[2Krendering chunks (18)...[2Krendering chunks (19)...[2Krendering chunks (20)...[2Krendering chunks (21)...[2Krendering chunks (22)...[2Krendering chunks (23)...[2Krendering chunks (24)...[2Krendering chunks (25)...[2Krendering chunks (26)...[2Krendering chunks (27)...[2Krendering chunks (28)...[2Krendering chunks (29)...[2Krendering chunks (30)...[2Krendering chunks (31)...[2Krendering chunks (32)...[2Krendering chunks (33)...[2Krendering chunks (34)...[2Krendering chunks (35)...[2Krendering chunks (36)...[2Krendering chunks (37)...[2Krendering chunks (38)...[2Krendering chunks (39)...[2Krendering chunks (40)...[2Krendering chunks (41)...[2Krendering chunks (42)...[2Krendering chunks (43)...[2Krendering chunks (44)...[2Krendering chunks (45)...[2Krendering chunks (46)...[2Krendering chunks (47)...[2Krendering chunks (48)...[2Krendering chunks (49)...[2Krendering chunks (50)...[2Krendering chunks (51)...[2Krendering chunks (52)...[2Krendering chunks (53)...[2Krendering chunks (54)...[2Krendering chunks (55)...[2Krendering chunks (56)...[2Krendering chunks (57)...[2Krendering chunks (58)...[2Krendering chunks (59)...[2Krendering chunks (60)...[2Krendering chunks (61)...[2Krendering chunks (62)...[2Krendering chunks (63)...[2Krendering chunks (64)...[2Krendering chunks (65)...[2Krendering chunks (66)...[2Krendering chunks (67)...[2Krendering chunks (68)...[2Krendering chunks (69)...[2Krendering chunks (70)...[2Krendering chunks (71)...[2Krendering chunks (72)...[2Krendering chunks (73)...[2Krendering chunks (74)...[2Krendering chunks (75)...[2Krendering chunks (76)...[2Krendering chunks (77)...[2Krendering chunks (78)...[2Krendering chunks (79)...[2Krendering chunks (80)...[2Krendering chunks (81)...[2Krendering chunks (82)...[2Krendering chunks (83)...[2Krendering chunks (84)...[2Krendering chunks (85)...[2Krendering chunks (86)...[2Krendering chunks (87)...[2Krendering chunks (88)...[2Krendering chunks (89)...[2Krendering chunks (90)...[2Krendering chunks (91)...[2Krendering chunks (92)...[2Krendering chunks (93)...[2Krendering chunks (94)...[2Krendering chunks (95)...[2Krendering chunks (96)...[2Krendering chunks (97)...[2Krendering chunks (98)...[2Krendering chunks (99)...[2Krendering chunks (100)...[2Krendering chunks (101)...[2Krendering chunks (102)...[2Krendering chunks (103)...[2Krendering chunks (104)...[2Krendering chunks (105)...[2Krendering chunks (106)...[2Krendering chunks (107)...[2Krendering chunks (108)...[2Krendering chunks (109)...[2Krendering chunks (110)...[2Krendering chunks (111)...[2Krendering chunks (112)...[2Krendering chunks (113)...[2Krendering chunks (114)...[2Krendering chunks (115)...[2Krendering chunks (116)...[2Krendering chunks (117)...[2Krendering chunks (118)...[2Krendering chunks (119)...[2Krendering chunks (120)...[2Krendering chunks (121)...[2Krendering chunks (122)...[2Krendering chunks (123)...[2Krendering chunks (124)...[2Krendering chunks (125)...[2Krendering chunks (126)...[2Krendering chunks (127)...[2Krendering chunks (128)...[2Krendering chunks (129)...[2Krendering chunks (130)...[2Krendering chunks (131)...[2Krendering chunks (132)...[2Krendering chunks (133)...[2Krendering chunks (134)...[2Krendering chunks (135)...[2Krendering chunks (136)...[2Krendering chunks (137)...[2Krendering chunks (138)...[2Krendering chunks (139)...[2Krendering chunks (140)...[2Krendering chunks (141)...[2Krendering chunks (142)...[2Krendering chunks (143)...[2Krendering chunks (144)...[2Krendering chunks (145)...[2Krendering chunks (146)...[2Krendering chunks (147)...[2Krendering chunks (148)...[2Krendering chunks (149)...[2Krendering chunks (150)...[2Krendering chunks (151)...[2Krendering chunks (152)...[2Krendering chunks (153)...[2Krendering chunks (154)...[2Krendering chunks (155)...[2Krendering chunks (156)...[2Krendering chunks (157)...[2Krendering chunks (158)...[2Krendering chunks (159)...[2Krendering chunks (160)...[2Krendering chunks (161)...[2Krendering chunks (162)...[2Krendering chunks (163)...[2Krendering chunks (164)...[2Krendering chunks (165)...[2Krendering chunks (166)...[2Krendering chunks (167)...[2Krendering chunks (168)...[2Krendering chunks (169)...[2Krendering chunks (170)...[2K`config.kit.csrf.checkOrigin` has been deprecated in favour of `csrf.trustedOrigins`. It will be removed in a future version
+[1m[33m`config.kit.csrf.checkOrigin` has been deprecated in favour of `csrf.trustedOrigins`. It will be removed in a future version[22m[39m
+[36mvite v8.0.13 [32mbuilding client environment for production...[36m[39m
+[2Ktransforming (72) [2msrc/routes/(app)/+layout.svelte[0m[2Ktransforming (75) [2msrc/routes/(app)/game-systems/[id]/dnd5e/classes/+page.svelte[0m[2Ktransforming (79) [2msrc/routes/+error.svelte[0m[2Ktransforming (81) [2msrc/routes/(app)/game-systems/[id]/data/import/dnd5e/+page.svelte[0m[2Ktransforming (84) [2msrc/routes/(app)/dms/settings/+page.svelte[0m[2Ktransforming (87) [2msrc/routes/(app)/game-systems/[id]/dnd5e/feats/+page.svelte[0m[2Ktransforming (90) [2msrc/routes/(app)/game-systems/[id]/dnd5e/species/+page.svelte[0m[2Ktransforming (91) [2msrc/routes/(app)/characters/[id]/+page.svelte[0m[2Ktransforming (92) [2msrc/routes/(app)/discord/+page.svelte[0m[2Ktransforming (94) [2msrc/routes/(app)/game-systems/[id]/progression/+page.svelte[0m[2Ktransforming (99) [2msrc/routes/(app)/characters/slots/+page.svelte[0m[2Ktransforming (102) [2msrc/routes/(app)/world/[id]/regions/[regionId]/+page.svelte[0m[2Ktransforming (107) [2msrc/routes/(app)/marketplace/transactions/+page.svelte[0m[2Ktransforming (111) [2msrc/routes/(app)/news/[id]/+page.svelte[0m[2Ktransforming (117) [2msrc/routes/(app)/quests/settings/+page.svelte[0m[2Ktransforming (120) [2msrc/routes/(app)/roles/[id]/+page.svelte[0m[2Ktransforming (124) [2msrc/routes/(app)/users/[id]/+page.svelte[0m[2Ktransforming (130) [2msrc/routes/(app)/world/[id]/+page.svelte[0m[2Ktransforming (132) [2msrc/routes/(app)/world/[id]/marketplace/+page.svelte[0m[2Ktransforming (133) [2msrc/routes/(app)/quests/[id]/+page.svelte[0m[2Ktransforming (143) [2m.svelte-kit/generated/root.svelte[0m[2Ktransforming (164) [2m../../node_modules/.pnpm/svelte@5.55.7/node_modules/svelte/src/version.js[0m[2Ktransforming (249) [2msrc/lib/assets/favicon.svg[0m[2Ktransforming (256) [2m../../shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterCreation.svelte[0m[2Ktransforming (258) [2m../../shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte[0m[2Ktransforming (262) [2m../../shared/ui/src/gamesystems/dnd5e/Dnd5eAsiFeatsPanel.svelte[0m[2Ktransforming (289) [2m../../node_modules/.pnpm/@sveltejs+kit@2.60.1_@sveltejs+vite-plugin-svelte@7.1.2_svelte@5.55.7_vite@8.0.13_@type_085ba01b66b1c6e5c23365a40a287f3c/node_modules/@svelt[2Ktransforming (294) [2m../../shared/ui/components/layout/Sidebar.svelte[0m[2K[32m✓[39m 308 modules transformed.
+[2Krendering chunks (1)...[2Krendering chunks (2)...[2Krendering chunks (3)...[2Krendering chunks (4)...[2Krendering chunks (5)...[2Krendering chunks (6)...[2Krendering chunks (7)...[2Krendering chunks (8)...[2Krendering chunks (9)...[2Krendering chunks (10)...[2Krendering chunks (11)...[2Krendering chunks (12)...[2Krendering chunks (13)...[2Krendering chunks (14)...[2Krendering chunks (15)...[2Krendering chunks (16)...[2Krendering chunks (17)...[2Krendering chunks (18)...[2Krendering chunks (19)...[2Krendering chunks (20)...[2Krendering chunks (21)...[2Krendering chunks (22)...[2Krendering chunks (23)...[2Krendering chunks (24)...[2Krendering chunks (25)...[2Krendering chunks (26)...[2Krendering chunks (27)...[2Krendering chunks (28)...[2Krendering chunks (29)...[2Krendering chunks (30)...[2Krendering chunks (31)...[2Krendering chunks (32)...[2Krendering chunks (33)...[2Krendering chunks (34)...[2Krendering chunks (35)...[2Krendering chunks (36)...[2Krendering chunks (37)...[2Krendering chunks (38)...[2Krendering chunks (39)...[2Krendering chunks (40)...[2Krendering chunks (41)...[2Krendering chunks (42)...[2Krendering chunks (43)...[2Krendering chunks (44)...[2Krendering chunks (45)...[2Krendering chunks (46)...[2Krendering chunks (47)...[2Krendering chunks (48)...[2Krendering chunks (49)...[2Krendering chunks (50)...[2Krendering chunks (51)...[2Krendering chunks (52)...[2Krendering chunks (53)...[2Krendering chunks (54)...[2Krendering chunks (55)...[2Krendering chunks (56)...[2Krendering chunks (57)...[2Krendering chunks (58)...[2Krendering chunks (59)...[2Krendering chunks (60)...[2Krendering chunks (61)...[2Krendering chunks (62)...[2Krendering chunks (63)...[2Krendering chunks (64)...[2Krendering chunks (65)...[2Krendering chunks (66)...[2Krendering chunks (67)...[2Krendering chunks (68)...[2Krendering chunks (69)...[2Krendering chunks (70)...[2Krendering chunks (71)...[2Krendering chunks (72)...[2Krendering chunks (73)...[2Krendering chunks (74)...[2Kcomputing gzip size...
+[2K[2m.svelte-kit/output/client/[0m[32m_app/version.json                       [39m[2m[1m  0.02 kB[0m[0m[2m │ gzip:   0.04 kB[0m
+[2m.svelte-kit/output/client/[0m[32m.vite/manifest.json                     [39m[2m[1m 27.03 kB[0m[0m[2m │ gzip:   2.29 kB[0m
+[2m.svelte-kit/output/client/[0m[35m_app/immutable/assets/ui.C4S_2Sxr.css   [39m[2m[1m  5.61 kB[0m[0m[2m │ gzip:   1.33 kB[0m
+[2m.svelte-kit/output/client/[0m[35m_app/immutable/assets/0.DMWjPEW1.css    [39m[2m[1m 82.56 kB[0m[0m[2m │ gzip:  14.78 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/chunks/B6QrTML2.js       [39m[2m[1m  0.00 kB[0m[0m[2m │ gzip:   0.02 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/chunks/B8dTMP6I.js       [39m[2m[1m  0.00 kB[0m[0m[2m │ gzip:   0.02 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/chunks/BuM21n_K.js       [39m[2m[1m  0.02 kB[0m[0m[2m │ gzip:   0.04 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/chunks/D-M6y91_.js       [39m[2m[1m  0.06 kB[0m[0m[2m │ gzip:   0.08 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/entry/start.CdOT_loA.js  [39m[2m[1m  0.08 kB[0m[0m[2m │ gzip:   0.09 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/62.RDjqISIf.js     [39m[2m[1m  0.17 kB[0m[0m[2m │ gzip:   0.16 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/36.CN4bpFC0.js     [39m[2m[1m  0.21 kB[0m[0m[2m │ gzip:   0.15 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/3.DtIdaRsb.js      [39m[2m[1m  0.27 kB[0m[0m[2m │ gzip:   0.21 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/61.fmJWxl0G.js     [39m[2m[1m  0.29 kB[0m[0m[2m │ gzip:   0.22 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/60.Dj31Q1GI.js     [39m[2m[1m  0.73 kB[0m[0m[2m │ gzip:   0.47 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/chunks/Bbjscr30.js       [39m[2m[1m  1.20 kB[0m[0m[2m │ gzip:   0.68 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/26.BNU3UFek.js     [39m[2m[1m  1.44 kB[0m[0m[2m │ gzip:   0.80 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/58.CukBoU8g.js     [39m[2m[1m  1.54 kB[0m[0m[2m │ gzip:   0.82 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/46._mrkjRAC.js     [39m[2m[1m  1.56 kB[0m[0m[2m │ gzip:   0.83 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/57.CYRiML99.js     [39m[2m[1m  1.62 kB[0m[0m[2m │ gzip:   0.89 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/1.28kleAlz.js      [39m[2m[1m  1.68 kB[0m[0m[2m │ gzip:   0.81 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/14.DoXyUy9h.js     [39m[2m[1m  1.74 kB[0m[0m[2m │ gzip:   0.95 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/59.B7pX95-S.js     [39m[2m[1m  1.74 kB[0m[0m[2m │ gzip:   0.96 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/chunks/BKn2i3vm.js       [39m[2m[1m  1.76 kB[0m[0m[2m │ gzip:   0.86 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/34.CLdG4tJ_.js     [39m[2m[1m  1.78 kB[0m[0m[2m │ gzip:   0.98 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/2.Dr-RrBmN.js      [39m[2m[1m  1.89 kB[0m[0m[2m │ gzip:   0.94 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/25.Bz9Qx8f5.js     [39m[2m[1m  1.90 kB[0m[0m[2m │ gzip:   0.92 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/44.3GJox835.js     [39m[2m[1m  1.96 kB[0m[0m[2m │ gzip:   0.97 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/12.D8Ixi06T.js     [39m[2m[1m  2.01 kB[0m[0m[2m │ gzip:   0.99 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/29.DO2fEswc.js     [39m[2m[1m  2.04 kB[0m[0m[2m │ gzip:   1.08 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/9.CAdjmSct.js      [39m[2m[1m  2.27 kB[0m[0m[2m │ gzip:   1.06 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/56.CU6KXBka.js     [39m[2m[1m  2.29 kB[0m[0m[2m │ gzip:   1.06 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/0.CGVvhsJN.js      [39m[2m[1m  2.40 kB[0m[0m[2m │ gzip:   0.99 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/51.B-5plwC6.js     [39m[2m[1m  2.70 kB[0m[0m[2m │ gzip:   1.33 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/39.Dhh9DNYW.js     [39m[2m[1m  2.76 kB[0m[0m[2m │ gzip:   1.37 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/15.Bz2_d0Om.js     [39m[2m[1m  2.84 kB[0m[0m[2m │ gzip:   1.28 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/16.BTqr7kPW.js     [39m[2m[1m  2.87 kB[0m[0m[2m │ gzip:   1.30 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/47.BzeLjcwQ.js     [39m[2m[1m  2.98 kB[0m[0m[2m │ gzip:   1.53 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/41.CXNF-BL6.js     [39m[2m[1m  3.03 kB[0m[0m[2m │ gzip:   1.36 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/40.B4t1-aJp.js     [39m[2m[1m  3.25 kB[0m[0m[2m │ gzip:   1.41 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/37.DtPvQVcP.js     [39m[2m[1m  3.35 kB[0m[0m[2m │ gzip:   1.55 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/50.hAvs-Gk1.js     [39m[2m[1m  3.45 kB[0m[0m[2m │ gzip:   1.53 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/48.I_Ichusq.js     [39m[2m[1m  3.62 kB[0m[0m[2m │ gzip:   1.73 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/7.2DCz5fVI.js      [39m[2m[1m  3.63 kB[0m[0m[2m │ gzip:   1.70 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/4.Dz9xxLdP.js      [39m[2m[1m  3.70 kB[0m[0m[2m │ gzip:   1.28 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/45.CbgfFV2v.js     [39m[2m[1m  4.59 kB[0m[0m[2m │ gzip:   1.91 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/19.Dj97QK_J.js     [39m[2m[1m  4.62 kB[0m[0m[2m │ gzip:   1.84 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/10.jbxYgHbB.js     [39m[2m[1m  4.64 kB[0m[0m[2m │ gzip:   2.05 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/24.GGZsy98B.js     [39m[2m[1m  4.69 kB[0m[0m[2m │ gzip:   2.13 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/43.uD6EIXpH.js     [39m[2m[1m  4.93 kB[0m[0m[2m │ gzip:   2.02 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/31.BITgHqpe.js     [39m[2m[1m  5.11 kB[0m[0m[2m │ gzip:   2.05 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/23.oECi2zHg.js     [39m[2m[1m  5.20 kB[0m[0m[2m │ gzip:   1.93 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/6.DHFn564b.js      [39m[2m[1m  5.38 kB[0m[0m[2m │ gzip:   2.27 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/33.DjfwaZ-n.js     [39m[2m[1m  5.81 kB[0m[0m[2m │ gzip:   2.45 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/32.CPFof1PZ.js     [39m[2m[1m  6.30 kB[0m[0m[2m │ gzip:   2.72 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/55.CRrTfuW8.js     [39m[2m[1m  6.35 kB[0m[0m[2m │ gzip:   2.36 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/35.ByI2J1kg.js     [39m[2m[1m  6.53 kB[0m[0m[2m │ gzip:   2.46 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/5.DlWTEuxG.js      [39m[2m[1m  6.56 kB[0m[0m[2m │ gzip:   2.73 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/13.CfxARCS4.js     [39m[2m[1m  6.90 kB[0m[0m[2m │ gzip:   2.77 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/22.cKOgy34y.js     [39m[2m[1m  7.19 kB[0m[0m[2m │ gzip:   2.54 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/49.CEamkeQ9.js     [39m[2m[1m  7.48 kB[0m[0m[2m │ gzip:   2.77 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/30.Chz_JTg8.js     [39m[2m[1m  8.53 kB[0m[0m[2m │ gzip:   3.17 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/42.6uunvEkp.js     [39m[2m[1m 10.59 kB[0m[0m[2m │ gzip:   3.17 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/11.DGNMAA3Z.js     [39m[2m[1m 10.62 kB[0m[0m[2m │ gzip:   3.69 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/17.C4KGdNZs.js     [39m[2m[1m 10.82 kB[0m[0m[2m │ gzip:   3.92 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/20.C0FAZcEQ.js     [39m[2m[1m 11.46 kB[0m[0m[2m │ gzip:   3.20 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/54._Ho4WGeK.js     [39m[2m[1m 11.91 kB[0m[0m[2m │ gzip:   3.85 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/18.TiVKmXEi.js     [39m[2m[1m 12.57 kB[0m[0m[2m │ gzip:   3.53 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/entry/app.meY09P7R.js    [39m[2m[1m 12.64 kB[0m[0m[2m │ gzip:   3.07 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/21.BPQlbHjZ.js     [39m[2m[1m 12.76 kB[0m[0m[2m │ gzip:   3.69 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/27.Dmzvj6fQ.js     [39m[2m[1m 13.01 kB[0m[0m[2m │ gzip:   4.25 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/53.CDFw9JHW.js     [39m[2m[1m 13.88 kB[0m[0m[2m │ gzip:   4.89 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/52.BmOFKiQV.js     [39m[2m[1m 14.71 kB[0m[0m[2m │ gzip:   4.86 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/38.B5JaI7-m.js     [39m[2m[1m 22.66 kB[0m[0m[2m │ gzip:   6.66 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/nodes/8.Dd-fqnNL.js      [39m[2m[1m 25.15 kB[0m[0m[2m │ gzip:   6.97 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/chunks/eJSsGive.js       [39m[2m[1m 33.56 kB[0m[0m[2m │ gzip:  12.75 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/chunks/M_ZtJwrg.js       [39m[2m[1m 51.05 kB[0m[0m[2m │ gzip:  19.53 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/chunks/DtQzF7JU.js       [39m[2m[1m 89.23 kB[0m[0m[2m │ gzip:  24.94 kB[0m
+[2m.svelte-kit/output/client/[0m[36m_app/immutable/chunks/C60SWbWB.js       [39m[2m[1m421.51 kB[0m[0m[2m │ gzip: 140.60 kB[0m
+
+[2K[1G[33m[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+  - vite-plugin-sveltekit-guard (75%)
+  - vite-plugin-svelte:compile (16%)
+  - vite-plugin-sveltekit-virtual-modules (4%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[32m✓ built in 5.38s[39m
+`config.kit.csrf.checkOrigin` has been deprecated in favour of `csrf.trustedOrigins`. It will be removed in a future version
+computing gzip size...
+[2K[2m.svelte-kit/output/server/[0m[32m.vite/manifest.json                                                                          [39m[2m[1m   55.85 kB[0m[0m[2m │ gzip:     4.02 kB[0m
+[2m.svelte-kit/output/server/[0m[35m_app/immutable/assets/ui.C4S_2Sxr.css                                                        [39m[2m[1m    5.61 kB[0m[0m[2m │ gzip:     1.33 kB[0m
+[2m.svelte-kit/output/server/[0m[35m_app/immutable/assets/_layout.tfahkffa.css                                                   [39m[2m[1m   82.31 kB[0m[0m[2m │ gzip:    14.75 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/navigation.js                                                                         [39m[2m[1m    0.03 kB[0m[0m[2m │ gzip:     0.05 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/database2.js                                                                          [39m[2m[1m    0.07 kB[0m[0m[2m │ gzip:     0.08 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/get-settings.js                                                                       [39m[2m[1m    0.08 kB[0m[0m[2m │ gzip:     0.08 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/approve-character.js                                                                  [39m[2m[1m    0.14 kB[0m[0m[2m │ gzip:     0.10 kB[0m
+[2m.svelte-kit/output/server/[0m[36mremote-entry.js                                                                              [39m[2m[1m    0.16 kB[0m[0m[2m │ gzip:     0.12 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/_page.server.ts.js                                           [39m[2m[1m    0.19 kB[0m[0m[2m │ gzip:     0.16 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/demo/playwright/_page.svelte.js                                                [39m[2m[1m    0.21 kB[0m[0m[2m │ gzip:     0.17 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/endpoints/api/auth/_...auth_/_server.ts.js                                           [39m[2m[1m    0.24 kB[0m[0m[2m │ gzip:     0.17 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/notifications/_page.svelte.js                                            [39m[2m[1m    0.33 kB[0m[0m[2m │ gzip:     0.21 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(auth)/_layout.svelte.js                                                       [39m[2m[1m    0.33 kB[0m[0m[2m │ gzip:     0.22 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/demo/_page.svelte.js                                                           [39m[2m[1m    0.35 kB[0m[0m[2m │ gzip:     0.23 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/endpoints/api/enrichers/_server.ts.js                                                [39m[2m[1m    0.39 kB[0m[0m[2m │ gzip:     0.27 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/_layout.server.ts.js                                                           [39m[2m[1m    0.40 kB[0m[0m[2m │ gzip:     0.26 kB[0m
+[2m.svelte-kit/output/server/[0m[36minternal.js                                                                                  [39m[2m[1m    0.40 kB[0m[0m[2m │ gzip:     0.19 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/signout/_page.server.ts.js                                                     [39m[2m[1m    0.43 kB[0m[0m[2m │ gzip:     0.24 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/app.js                                                                                [39m[2m[1m    0.44 kB[0m[0m[2m │ gzip:     0.29 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/_page.server.ts.js                                                       [39m[2m[1m    0.45 kB[0m[0m[2m │ gzip:     0.28 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/roles/_page.server.ts.js                                                 [39m[2m[1m    0.51 kB[0m[0m[2m │ gzip:     0.31 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/dms/_page.server.ts.js                                                   [39m[2m[1m    0.52 kB[0m[0m[2m │ gzip:     0.32 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/quests/_page.server.ts.js                                                [39m[2m[1m    0.58 kB[0m[0m[2m │ gzip:     0.35 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/notifications/_page.server.ts.js                                         [39m[2m[1m    0.59 kB[0m[0m[2m │ gzip:     0.32 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/journal/_page.server.ts.js                                               [39m[2m[1m    0.63 kB[0m[0m[2m │ gzip:     0.36 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/users/_page.server.ts.js                                                 [39m[2m[1m    0.68 kB[0m[0m[2m │ gzip:     0.40 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/news/_page.server.ts.js                                                  [39m[2m[1m    0.69 kB[0m[0m[2m │ gzip:     0.39 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(auth)/unauthorized/_page.svelte.js                                            [39m[2m[1m    0.69 kB[0m[0m[2m │ gzip:     0.43 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(auth)/forgot-password/_page.server.ts.js                                      [39m[2m[1m    0.70 kB[0m[0m[2m │ gzip:     0.43 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/endpoints/api/discord/_server.ts.js                                                  [39m[2m[1m    0.85 kB[0m[0m[2m │ gzip:     0.47 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/hooks.server.js                                                                      [39m[2m[1m    0.87 kB[0m[0m[2m │ gzip:     0.43 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_page.server.ts.js                                          [39m[2m[1m    0.92 kB[0m[0m[2m │ gzip:     0.50 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/_page.server.ts.js                                     [39m[2m[1m    0.93 kB[0m[0m[2m │ gzip:     0.51 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/characters/_page.server.ts.js                                            [39m[2m[1m    0.97 kB[0m[0m[2m │ gzip:     0.49 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/endpoints/api/discord/channels/_server.ts.js                                         [39m[2m[1m    1.02 kB[0m[0m[2m │ gzip:     0.55 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(auth)/reset-password/_page.server.ts.js                                       [39m[2m[1m    1.03 kB[0m[0m[2m │ gzip:     0.53 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/paths.js                                                                              [39m[2m[1m    1.06 kB[0m[0m[2m │ gzip:     0.61 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/forms.js                                                                              [39m[2m[1m    1.11 kB[0m[0m[2m │ gzip:     0.61 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/_page.server.ts.js                                                 [39m[2m[1m    1.12 kB[0m[0m[2m │ gzip:     0.54 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/dms/settings/_page.server.ts.js                                          [39m[2m[1m    1.16 kB[0m[0m[2m │ gzip:     0.59 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/settings/_page.server.ts.js                                        [39m[2m[1m    1.18 kB[0m[0m[2m │ gzip:     0.60 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/roles/new/_page.server.ts.js                                             [39m[2m[1m    1.25 kB[0m[0m[2m │ gzip:     0.57 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/characters/settings/_page.server.ts.js                                   [39m[2m[1m    1.27 kB[0m[0m[2m │ gzip:     0.62 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/endpoints/(app)/game-systems/_id_/progression/data/export/_server.ts.js              [39m[2m[1m    1.30 kB[0m[0m[2m │ gzip:     0.70 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/characters/slots/_page.server.ts.js                                      [39m[2m[1m    1.36 kB[0m[0m[2m │ gzip:     0.60 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/quests/settings/_page.server.ts.js                                       [39m[2m[1m    1.38 kB[0m[0m[2m │ gzip:     0.65 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/audit/_page.server.ts.js                                                 [39m[2m[1m    1.40 kB[0m[0m[2m │ gzip:     0.59 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/new/_page.server.ts.js                                      [39m[2m[1m    1.47 kB[0m[0m[2m │ gzip:     0.64 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/roles/new/_page.svelte.js                                                [39m[2m[1m    1.48 kB[0m[0m[2m │ gzip:     0.70 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/dnd5e/classes/_page.server.ts.js                       [39m[2m[1m    1.52 kB[0m[0m[2m │ gzip:     0.70 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(auth)/login/_page.svelte.js                                                   [39m[2m[1m    1.52 kB[0m[0m[2m │ gzip:     0.72 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/settings/_page.server.ts.js                                              [39m[2m[1m    1.53 kB[0m[0m[2m │ gzip:     0.72 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(auth)/forgot-password/_page.svelte.js                                         [39m[2m[1m    1.57 kB[0m[0m[2m │ gzip:     0.72 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/items/_page.server.ts.js                                     [39m[2m[1m    1.58 kB[0m[0m[2m │ gzip:     0.56 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/endpoints/(app)/marketplace/data/export/_server.ts.js                                [39m[2m[1m    1.59 kB[0m[0m[2m │ gzip:     0.82 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/journal/_page.svelte.js                                                  [39m[2m[1m    1.59 kB[0m[0m[2m │ gzip:     0.76 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(auth)/reset-password/_page.svelte.js                                          [39m[2m[1m    1.59 kB[0m[0m[2m │ gzip:     0.72 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/rewards/achievements/_page.server.ts.js                                  [39m[2m[1m    1.70 kB[0m[0m[2m │ gzip:     0.62 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/settings/_page.server.ts.js                                  [39m[2m[1m    1.74 kB[0m[0m[2m │ gzip:     0.72 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/new/_page.svelte.js                                         [39m[2m[1m    1.78 kB[0m[0m[2m │ gzip:     0.75 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/data/import/_page.server.ts.js                               [39m[2m[1m    1.82 kB[0m[0m[2m │ gzip:     0.84 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/items/_id_/_page.server.ts.js                                [39m[2m[1m    1.83 kB[0m[0m[2m │ gzip:     0.69 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/dms/settings/_page.svelte.js                                             [39m[2m[1m    1.87 kB[0m[0m[2m │ gzip:     0.79 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/news/_id_/_page.server.ts.js                                             [39m[2m[1m    1.94 kB[0m[0m[2m │ gzip:     0.78 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/availability/_page.server.ts.js                                          [39m[2m[1m    1.95 kB[0m[0m[2m │ gzip:     0.93 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/chunk.js                                                                              [39m[2m[1m    1.95 kB[0m[0m[2m │ gzip:     0.86 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/environment.js                                                                        [39m[2m[1m    2.03 kB[0m[0m[2m │ gzip:     0.75 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/news/_page.svelte.js                                                     [39m[2m[1m    2.04 kB[0m[0m[2m │ gzip:     0.96 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/transactions/_page.server.ts.js                              [39m[2m[1m    2.05 kB[0m[0m[2m │ gzip:     0.75 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/dnd5e/species/_page.server.ts.js                       [39m[2m[1m    2.15 kB[0m[0m[2m │ gzip:     0.77 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/data/import/_page.svelte.js                                  [39m[2m[1m    2.20 kB[0m[0m[2m │ gzip:     0.97 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/discord/_page.server.ts.js                                               [39m[2m[1m    2.22 kB[0m[0m[2m │ gzip:     0.73 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/dms/_id_/_page.server.ts.js                                              [39m[2m[1m    2.23 kB[0m[0m[2m │ gzip:     0.79 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/roles/_page.svelte.js                                                    [39m[2m[1m    2.23 kB[0m[0m[2m │ gzip:     0.90 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/_page.svelte.js                                                    [39m[2m[1m    2.23 kB[0m[0m[2m │ gzip:     0.87 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/characters/settings/_page.svelte.js                                      [39m[2m[1m    2.23 kB[0m[0m[2m │ gzip:     0.86 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/role-requests/_page.server.ts.js                                         [39m[2m[1m    2.24 kB[0m[0m[2m │ gzip:     0.64 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/roles/_id_/_page.server.ts.js                                            [39m[2m[1m    2.24 kB[0m[0m[2m │ gzip:     0.82 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/dms/_page.svelte.js                                                      [39m[2m[1m    2.28 kB[0m[0m[2m │ gzip:     0.95 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/users/new/_page.server.ts.js                                             [39m[2m[1m    2.30 kB[0m[0m[2m │ gzip:     0.84 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/progression/data/import/_page.server.ts.js             [39m[2m[1m    2.43 kB[0m[0m[2m │ gzip:     0.96 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/_layout.svelte.js                                                        [39m[2m[1m    2.44 kB[0m[0m[2m │ gzip:     0.96 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/settings/_page.svelte.js                                           [39m[2m[1m    2.50 kB[0m[0m[2m │ gzip:     0.84 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/dialect2.js                                                                           [39m[2m[1m    2.53 kB[0m[0m[2m │ gzip:     0.89 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/dialect.js                                                                            [39m[2m[1m    2.53 kB[0m[0m[2m │ gzip:     0.89 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/_id_/regions/_regionId_/locations/_locationId_/_page.server.ts.js  [39m[2m[1m    2.54 kB[0m[0m[2m │ gzip:     0.88 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/_layout.svelte.js                                                              [39m[2m[1m    2.58 kB[0m[0m[2m │ gzip:     1.04 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/rewards/_page.server.ts.js                                               [39m[2m[1m    2.59 kB[0m[0m[2m │ gzip:     0.93 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/progression/_page.server.ts.js                         [39m[2m[1m    2.62 kB[0m[0m[2m │ gzip:     0.74 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/dnd5e/classes/_page.svelte.js                          [39m[2m[1m    2.79 kB[0m[0m[2m │ gzip:     1.03 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/quests/settings/_page.svelte.js                                          [39m[2m[1m    2.96 kB[0m[0m[2m │ gzip:     1.22 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_page.svelte.js                                             [39m[2m[1m    3.02 kB[0m[0m[2m │ gzip:     1.11 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/_page.svelte.js                                        [39m[2m[1m    3.10 kB[0m[0m[2m │ gzip:     1.15 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/rewards/achievements/_page.svelte.js                                     [39m[2m[1m    3.11 kB[0m[0m[2m │ gzip:     1.22 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/rewards/_page.svelte.js                                                  [39m[2m[1m    3.25 kB[0m[0m[2m │ gzip:     1.14 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/users/new/_page.svelte.js                                                [39m[2m[1m    3.34 kB[0m[0m[2m │ gzip:     1.21 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/dnd5e/feats/_page.server.ts.js                         [39m[2m[1m    3.36 kB[0m[0m[2m │ gzip:     0.86 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/dnd5e/backgrounds/_page.server.ts.js                   [39m[2m[1m    3.37 kB[0m[0m[2m │ gzip:     0.89 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/settings/_page.svelte.js                                                 [39m[2m[1m    3.42 kB[0m[0m[2m │ gzip:     1.31 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/_page.svelte.js                                                          [39m[2m[1m    3.46 kB[0m[0m[2m │ gzip:     0.94 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/_id_/marketplace/_page.server.ts.js                                [39m[2m[1m    3.47 kB[0m[0m[2m │ gzip:     0.98 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/journal/_id_/_page.server.ts.js                                          [39m[2m[1m    3.62 kB[0m[0m[2m │ gzip:     0.97 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/endpoints/(app)/game-systems/_id_/data/export/_server.ts.js                          [39m[2m[1m    4.01 kB[0m[0m[2m │ gzip:     1.22 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/users/_page.svelte.js                                                    [39m[2m[1m    4.20 kB[0m[0m[2m │ gzip:     1.43 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/users/_id_/_page.server.ts.js                                            [39m[2m[1m    4.25 kB[0m[0m[2m │ gzip:     1.08 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/bun-sqlite-dialect.js                                                                 [39m[2m[1m    4.26 kB[0m[0m[2m │ gzip:     1.51 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/bun-sqlite-dialect2.js                                                                [39m[2m[1m    4.26 kB[0m[0m[2m │ gzip:     1.51 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/node-sqlite-dialect.js                                                                [39m[2m[1m    4.27 kB[0m[0m[2m │ gzip:     1.50 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/node-sqlite-dialect2.js                                                               [39m[2m[1m    4.27 kB[0m[0m[2m │ gzip:     1.50 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/dnd5e/classes/_classId_/_page.server.ts.js             [39m[2m[1m    4.30 kB[0m[0m[2m │ gzip:     1.03 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/quests/_page.svelte.js                                                   [39m[2m[1m    4.31 kB[0m[0m[2m │ gzip:     1.55 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/index-server.js                                                                       [39m[2m[1m    4.37 kB[0m[0m[2m │ gzip:     1.57 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/_id_/regions/_regionId_/_page.server.ts.js                         [39m[2m[1m    4.38 kB[0m[0m[2m │ gzip:     1.03 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/_error.svelte.js                                                               [39m[2m[1m    4.45 kB[0m[0m[2m │ gzip:     1.69 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/characters/_page.svelte.js                                               [39m[2m[1m    4.49 kB[0m[0m[2m │ gzip:     1.60 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/endpoints/(app)/game-systems/_id_/data/export/dnd5e/_server.ts.js                    [39m[2m[1m    4.50 kB[0m[0m[2m │ gzip:     1.33 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/_id_/_page.server.ts.js                                            [39m[2m[1m    4.65 kB[0m[0m[2m │ gzip:     1.01 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/progression/data/import/_page.svelte.js                [39m[2m[1m    4.73 kB[0m[0m[2m │ gzip:     1.61 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/characters/slots/_page.svelte.js                                         [39m[2m[1m    4.93 kB[0m[0m[2m │ gzip:     1.61 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/items/_id_/_page.svelte.js                                   [39m[2m[1m    4.98 kB[0m[0m[2m │ gzip:     1.51 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/progression/_page.svelte.js                            [39m[2m[1m    5.00 kB[0m[0m[2m │ gzip:     1.52 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/role-requests/_page.svelte.js                                            [39m[2m[1m    5.07 kB[0m[0m[2m │ gzip:     1.63 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/roles/_id_/_page.svelte.js                                               [39m[2m[1m    5.35 kB[0m[0m[2m │ gzip:     1.57 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/_id_/regions/_regionId_/locations/_locationId_/_page.svelte.js     [39m[2m[1m    5.96 kB[0m[0m[2m │ gzip:     1.78 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/news/_id_/_page.svelte.js                                                [39m[2m[1m    6.06 kB[0m[0m[2m │ gzip:     1.90 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/dnd5e/species/_page.svelte.js                          [39m[2m[1m    6.08 kB[0m[0m[2m │ gzip:     1.68 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/exports.js                                                                            [39m[2m[1m    6.13 kB[0m[0m[2m │ gzip:     1.82 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/availability/_page.svelte.js                                             [39m[2m[1m    6.14 kB[0m[0m[2m │ gzip:     2.00 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/settings/_page.svelte.js                                     [39m[2m[1m    6.38 kB[0m[0m[2m │ gzip:     2.14 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/users/_id_/_page.svelte.js                                               [39m[2m[1m    6.45 kB[0m[0m[2m │ gzip:     1.71 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/quests/_id_/_page.server.ts.js                                           [39m[2m[1m    6.48 kB[0m[0m[2m │ gzip:     1.55 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/transactions/_page.svelte.js                                 [39m[2m[1m    6.51 kB[0m[0m[2m │ gzip:     2.02 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/audit/_page.svelte.js                                                    [39m[2m[1m    7.02 kB[0m[0m[2m │ gzip:     2.14 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/rewards/grant/_page.server.ts.js                                         [39m[2m[1m    7.34 kB[0m[0m[2m │ gzip:     1.97 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/dms/_id_/_page.svelte.js                                                 [39m[2m[1m    7.41 kB[0m[0m[2m │ gzip:     2.25 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/routing.js                                                                            [39m[2m[1m    7.82 kB[0m[0m[2m │ gzip:     2.84 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/memory-adapter.js                                                                     [39m[2m[1m    8.49 kB[0m[0m[2m │ gzip:     2.36 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/memory-adapter2.js                                                                    [39m[2m[1m    8.49 kB[0m[0m[2m │ gzip:     2.36 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/rewards/grant/_page.svelte.js                                            [39m[2m[1m    9.63 kB[0m[0m[2m │ gzip:     2.27 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/marketplace/items/_page.svelte.js                                        [39m[2m[1m    9.93 kB[0m[0m[2m │ gzip:     2.69 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/_layout.server.ts.js                                                     [39m[2m[1m   10.08 kB[0m[0m[2m │ gzip:     2.71 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/_id_/regions/_regionId_/_page.svelte.js                            [39m[2m[1m   10.16 kB[0m[0m[2m │ gzip:     2.66 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/dnd5e/backgrounds/_page.svelte.js                      [39m[2m[1m   10.52 kB[0m[0m[2m │ gzip:     2.32 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/journal/_id_/_page.svelte.js                                             [39m[2m[1m   10.68 kB[0m[0m[2m │ gzip:     2.69 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/characters/_id_/_page.server.ts.js                                       [39m[2m[1m   10.79 kB[0m[0m[2m │ gzip:     2.10 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/dnd5e/feats/_page.svelte.js                            [39m[2m[1m   11.17 kB[0m[0m[2m │ gzip:     2.35 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/dnd5e/classes/_classId_/_page.svelte.js                [39m[2m[1m   11.24 kB[0m[0m[2m │ gzip:     2.49 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/data/import/dnd5e/_page.svelte.js                      [39m[2m[1m   11.62 kB[0m[0m[2m │ gzip:     2.89 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/discord/_page.svelte.js                                                  [39m[2m[1m   11.66 kB[0m[0m[2m │ gzip:     2.94 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/_id_/marketplace/_page.svelte.js                                   [39m[2m[1m   12.63 kB[0m[0m[2m │ gzip:     3.17 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/world/_id_/_page.svelte.js                                               [39m[2m[1m   12.69 kB[0m[0m[2m │ gzip:     3.26 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/kysely-adapter2.js                                                                    [39m[2m[1m   13.36 kB[0m[0m[2m │ gzip:     3.07 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/kysely-adapter.js                                                                     [39m[2m[1m   13.36 kB[0m[0m[2m │ gzip:     3.08 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/internal.js                                                                           [39m[2m[1m   21.90 kB[0m[0m[2m │ gzip:     6.57 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/game-systems/_id_/data/import/dnd5e/_page.server.ts.js                   [39m[2m[1m   23.23 kB[0m[0m[2m │ gzip:     2.93 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/auth.js                                                                               [39m[2m[1m   25.16 kB[0m[0m[2m │ gzip:     7.17 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/shared.js                                                                             [39m[2m[1m   25.20 kB[0m[0m[2m │ gzip:     6.74 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/quests/_id_/_page.svelte.js                                              [39m[2m[1m   25.94 kB[0m[0m[2m │ gzip:     5.28 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(app)/characters/_id_/_page.svelte.js                                          [39m[2m[1m   29.61 kB[0m[0m[2m │ gzip:     5.83 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/utils.js                                                                              [39m[2m[1m   30.91 kB[0m[0m[2m │ gzip:     8.79 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/adapter.js                                                                            [39m[2m[1m   45.50 kB[0m[0m[2m │ gzip:     8.62 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/remote.js                                                                             [39m[2m[1m   46.93 kB[0m[0m[2m │ gzip:     9.59 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/client.js                                                                             [39m[2m[1m   48.13 kB[0m[0m[2m │ gzip:    14.02 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/ui.js                                                                                 [39m[2m[1m   93.16 kB[0m[0m[2m │ gzip:    22.51 kB[0m
+[2m.svelte-kit/output/server/[0m[36mindex.js                                                                                     [39m[2m[1m  136.02 kB[0m[0m[2m │ gzip:    34.33 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/dev.js                                                                                [39m[2m[1m  144.72 kB[0m[0m[2m │ gzip:    37.16 kB[0m
+[2m.svelte-kit/output/server/[0m[36mentries/pages/(auth)/login/_page.server.ts.js                                                [39m[2m[1m  159.83 kB[0m[0m[2m │ gzip:    32.95 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/mssql-dialect.js                                                                      [39m[2m[1m  168.03 kB[0m[0m[2m │ gzip:    27.50 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/migrator.js                                                                           [39m[2m[1m  277.33 kB[0m[0m[2m │ gzip:    45.22 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/email.js                                                                              [39m[2m[1m  362.96 kB[0m[0m[2m │ gzip:    82.14 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/rbac.js                                                                               [39m[2m[1m  439.43 kB[0m[0m[2m │ gzip:    89.02 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/error.js                                                                              [39m[2m[1m  486.55 kB[0m[0m[2m │ gzip:    85.23 kB[0m
+[2m.svelte-kit/output/server/[0m[36mchunks/database.js                                                                           [39m[33m[1m6,122.90 kB[0m[39m[2m │ gzip: 2,043.19 kB[0m
+
+[2K[1G[33m[33m[INEFFECTIVE_DYNAMIC_IMPORT] [0m../../shared/database/dbapi/read/platform/get-settings.ts is dynamically imported by ../../shared/database/dbapi/write/characters/update-status.ts but also statically imported by ../../shared/database/dbapi/read/characters/get-slot-info.ts, ../../shared/database/dbapi/read/marketplace/resolve-context.ts, ../../shared/database/dbapi/write/characters/create.ts, ../../shared/database/dbapi/write/quests/create.ts, ../../shared/database/dbapi/write/quests/submit-result.ts, ..., dynamic import will not move module into another chunk.
+[39m
+[2K[1G[33m[33m[INEFFECTIVE_DYNAMIC_IMPORT] [0m../../shared/database/dbapi/write/dnd5e/approve-character.ts is dynamically imported by ../../shared/database/dbapi/write/characters/approve.ts but also statically imported by ../../shared/database/index.ts, dynamic import will not move module into another chunk.
+[39m
+[2K[1G[33m[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+  - vite-plugin-sveltekit-guard (76%)
+  - vite-plugin-sveltekit-virtual-modules (10%)
+  - vite-plugin-svelte:compile (8%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[32m✓ built in 18.11s[39m
+
+Run [1m[36mnpm run preview[22m[39m to preview your production build locally.
+[1m[36m
+> Using @sveltejs/adapter-node[22m[39m
+.svelte-kit/adapter-node/chunks/database.js (4105:0): A comment
+
+"/**
+* Wraps a cipher: validates args, ensures encrypt() can only be called once.
+* Used internally by the exported cipher constructors.
+* Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+* arity (`fn.length === 2`), and tag-bearing constructors are expected to use
+* `args[1]` for optional AAD.
+* @__NO_SIDE_EFFECTS__
+* @param params - Static cipher metadata. See {@link CipherParams}.
+* @param constructor - Cipher constructor.
+* @returns Wrapped constructor with validation.
+*/"
+
+in ".svelte-kit/adapter-node/chunks/database.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+  [32m✔ done[39m

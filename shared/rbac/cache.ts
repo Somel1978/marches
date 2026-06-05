@@ -2,7 +2,7 @@
 
 // Permission Cache 
 // Caches the resolved UserPermissions map per user to avoid a DB query on
-// every request. The interface is designed to be swappable ‚Äî replace the
+// every request. The interface is designed to be swappable --- replace the
 // LruPermissionCache with a RedisPermissionCache when horizontal scaling
 // or cross-process invalidation is needed, without changing any callers.
 //
@@ -19,7 +19,7 @@
 import { LRUCache } from 'lru-cache';
 import type { UserPermissions } from './access.ts';
 
-// ‚Interface  swap this for Redis without changing callers
+// -Interface  swap this for Redis without changing callers
 
 export interface PermissionCacheStore {
     get(userId: string): UserPermissions | undefined;
@@ -56,7 +56,7 @@ class LruPermissionCache implements PermissionCacheStore {
     }
 }
 
-// ‚Singleton replace with RedisPermissionCache when ready
+// -Singleton replace with RedisPermissionCache when ready
 // To switch to Redis:
 //   1. Implement RedisPermissionCache satisfying PermissionCacheStore
 //   2. Replace the line below: export const permissionCache = new RedisPermissionCache(redisClient);

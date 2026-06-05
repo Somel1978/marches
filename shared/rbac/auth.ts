@@ -114,6 +114,11 @@ export function createAuth({
         session: {
             cookieCache: { enabled: true, maxAge: 300 },
         },
+        advanced: {
+            // Force non-secure cookies so they work over HTTP (local IP access)
+            // The __Secure- prefix is only needed for HTTPS but breaks HTTP access
+            useSecureCookies: false,
+        },
         plugins,
     });
 }
