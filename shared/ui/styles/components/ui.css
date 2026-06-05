@@ -134,3 +134,17 @@
   .nav-signout--collapsed { justify-content: center; padding: 0.5rem; }
 
 }
+/* ── Import progress bar (indeterminate) ─────────────────────────── */
+.import-progress-bar {
+  height: 100%;
+  width: 40%;
+  background: var(--brand-accent);
+  border-radius: 99px;
+  animation: import-progress 1.4s ease-in-out infinite;
+}
+
+@keyframes import-progress {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(150%); }
+  100% { transform: translateX(150%); }
+}

@@ -14,6 +14,7 @@
 	let previewRows = $state<any[]>([]);
 	let fileName    = $state('');
 	let parseError  = $state('');
+	let importing   = $state(false);
 
 	const TABS: { key: ImportTab; label: string; action: string; columns: string[] }[] = [
 		{ key: 'classes',         label: 'Classes',          action: '?/importClasses',         columns: ['name','hitDice','canCastSpells','subclassAvailableAtLevel','primaryAbilities','equipmentDescription','description','source','link','sortOrder'] },
@@ -83,11 +84,26 @@
 		<div class="form-success" style="margin-bottom:1rem;">
 			✓ {(form as any).type}: {(form as any).created} created,
 			{(form as any).updated ?? 0} updated
-			{#if (form as any).skipped}, {(form as any).skipped} skipped (class/species not found){/if}.
+			{#if (form as any).skipped}, <strong>{(form as any).skipped} skipped</strong>{/if}.
 		</div>
+		{#if (form as any)?.skipReasons?.length}
+			<div class="form-error" style="margin-bottom:1rem;">
+				<strong>Skip reasons (first {(form as any).skipReasons.length}):</strong>
+				<ul style="margin:0.5rem 0 0;padding-left:1.25rem;font-size:0.8125rem;">
+					{#each (form as any).skipReasons as reason}
+						<li>{reason}</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
 	{/if}
 	{#if (form as any)?.message}
 		<div class="form-error" style="margin-bottom:1rem;">{(form as any).message}</div>
+	{/if}
+	{#if (form as any)?.deleteSuccess}
+		<div class="form-success" style="margin-bottom:1rem;">
+			🗑 Deleted {(form as any).deleted} {(form as any).type}.
+		</div>
 	{/if}
 
 	<!-- Tab selector -->
@@ -162,7 +178,13 @@
 				</div>
 			</div>
 
-			<form method="post" action={activeTabDef.action} use:enhance>
+			<form method="post" action={activeTabDef.action} use:enhance={() => {
+				importing = true;
+				return async ({ update }) => {
+					await update();
+					importing = false;
+				};
+			}}>
 				<input type="hidden" name="json" value={parsedJson} />
 				<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.75rem; padding:0.625rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-md); flex-wrap:wrap">
 					<input type="checkbox" id="allowUpdate" name="allowUpdate" value="true" />
@@ -170,8 +192,54 @@
 						<strong>Update existing records</strong> — if unchecked, duplicate rows are skipped
 					</label>
 				</div>
-				<button type="submit" class="btn btn-primary">Import {activeTabDef.label}</button>
+				{#if importing}
+					<div style="margin-bottom:0.75rem;">
+						<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
+							<span style="font-size:0.875rem;color:var(--text-secondary);">Importing {activeTabDef.label}…</span>
+							<span style="font-size:0.75rem;color:var(--text-muted);">{previewRows.length > 0 ? 'Processing rows' : ''}</span>
+						</div>
+						<div style="height:6px;background:var(--bg-overlay);border-radius:99px;overflow:hidden;">
+							<div class="import-progress-bar"></div>
+						</div>
+					</div>
+				{/if}
+				<button type="submit" class="btn btn-primary" disabled={importing}>
+					{#if importing}⏳ Importing…{:else}Import {activeTabDef.label}{/if}
+				</button>
 			</form>
 		{/if}
+	</div>
+
+	<!-- Danger zone: bulk delete by category -->
+	<div class="card" style="margin-top:1.5rem;border-color:var(--color-danger);">
+		<h3 class="section-title" style="color:var(--color-danger);">⚠ Danger Zone — Delete All Records</h3>
+		<p class="field-hint" style="margin-bottom:1rem;">
+			Permanently deletes all records of the selected type for this game system. Use before re-importing to avoid duplicates.
+			This cannot be undone.
+		</p>
+		<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+			{#each [
+				{ action: '?/deleteSubclassFeatures', label: 'Subclass Features' },
+				{ action: '?/deleteSubclasses',       label: 'Subclasses' },
+				{ action: '?/deleteClassFeatures',    label: 'Class Features' },
+				{ action: '?/deleteClasses',          label: 'Classes' },
+				{ action: '?/deleteSpeciesTraits',    label: 'Species Traits' },
+				{ action: '?/deleteSpecies',          label: 'Species' },
+				{ action: '?/deleteBackgrounds',      label: 'Backgrounds' },
+				{ action: '?/deleteFeats',            label: 'Feats' },
+			] as btn}
+				<form method="post" action={btn.action} use:enhance={({ cancel }) => {
+					if (!confirm(`Delete ALL ${btn.label} for ${system.name}? This cannot be undone.`)) cancel();
+					return async ({ update }) => { await update(); };
+				}}>
+					<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);border-color:var(--color-danger);">
+						🗑 {btn.label}
+					</button>
+				</form>
+			{/each}
+		</div>
+		<p class="field-hint" style="margin-top:0.75rem;">
+			<strong>Recommended deletion order:</strong> Subclass Features → Subclasses → Class Features → Classes
+		</p>
 	</div>
 </div>

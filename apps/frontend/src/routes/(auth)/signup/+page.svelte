@@ -10,7 +10,7 @@
 
 <div class="auth-card card">
 	<h1 class="auth-card__title">Create account</h1>
-	<p class="auth-card__subtitle">Join Marches and start your adventure.</p>
+	<p class="auth-card__subtitle">Join and start your adventure.</p>
 
 	{#if form?.message}
 		<div class="form-error" role="alert">{form.message}</div>

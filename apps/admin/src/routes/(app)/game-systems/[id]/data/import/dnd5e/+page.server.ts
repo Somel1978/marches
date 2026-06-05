@@ -86,9 +86,9 @@ export const actions: Actions = {
 		try {
 			const rows: any[] = JSON.parse(raw);
 			let created = 0; let updated = 0; let skipped = 0;
+			const allClasses = await dnd5e.classes.getAll(params.id);
 			for (const row of rows) {
-				const allClasses = await dnd5e.classes.getAll(params.id);
-				const cls = allClasses.find(c => normalize(c.name) === normalize(row.className));
+				const cls = allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) { skipped++; continue; }
 				// Match on name + level so same-name features at different levels are distinct
 				const existing = cls.features?.find((f: any) =>
@@ -135,9 +135,9 @@ export const actions: Actions = {
 		try {
 			const rows: any[] = JSON.parse(raw);
 			let created = 0; let updated = 0; let skipped = 0;
+			const allClasses = await dnd5e.classes.getAll(params.id);
 			for (const row of rows) {
-				const allClasses = await dnd5e.classes.getAll(params.id);
-				const cls = allClasses.find(c => normalize(c.name) === normalize(row.className));
+				const cls = allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) { skipped++; continue; }
 				const existing = cls.subclasses?.find((s: any) =>
 					normalize(s.name).toLowerCase() === normalize(row.name).toLowerCase()
@@ -185,12 +185,20 @@ export const actions: Actions = {
 		try {
 			const rows: any[] = JSON.parse(raw);
 			let created = 0; let updated = 0; let skipped = 0;
+			const skipReasons: string[] = [];
+			// Fetch all classes once outside the loop (N+1 fix)
+			const allClasses = await dnd5e.classes.getAll(params.id);
 			for (const row of rows) {
-				const allClasses = await dnd5e.classes.getAll(params.id);
-				const cls = allClasses.find(c => normalize(c.name) === normalize(row.className));
-				if (!cls) { skipped++; continue; }
-				const sub = cls.subclasses?.find((s: any) => normalize(s.name) === normalize(row.subclassName));
-				if (!sub) { skipped++; continue; }
+				const cls = allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
+				if (!cls) {
+					skipReasons.push(`Class not found: '${row.className}'`);
+					skipped++; continue;
+				}
+				const sub = cls.subclasses?.find((s: any) => normalize(s.name).toLowerCase() === normalize(row.subclassName).toLowerCase());
+				if (!sub) {
+					skipReasons.push(`Subclass not found: '${row.subclassName}' (class: '${row.className}')`);
+					skipped++; continue;
+				}
 				const existing = sub.features?.find((f: any) =>
 					f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
 				);
@@ -213,7 +221,9 @@ export const actions: Actions = {
 					created++;
 				}
 			}
-			return { success: true, created, updated, skipped, type: 'subclass features' };
+			// Deduplicate skip reasons for the response
+			const uniqueReasons = [...new Set(skipReasons)].slice(0, 20);
+			return { success: true, created, updated, skipped, type: 'subclass features', skipReasons: uniqueReasons };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
 			const msg = isUnique
@@ -232,37 +242,36 @@ export const actions: Actions = {
 		const allowUpdate = data.get('allowUpdate') === 'true';
 		if (!raw) return fail(400, { message: 'No data provided.' });
 		try {
+			const { db } = await import('@core/database');
 			const rows: any[] = JSON.parse(raw);
 			let created = 0; let updated = 0; let skipped = 0;
-			const all = await dnd5e.species.getAll(params.id);
+			const skipReasons: string[] = [];
 			for (const row of rows) {
-				const existing = all.find(s => normalize(s.name).toLowerCase() === normalize(row.name).toLowerCase());
+				const name = normalize(row.name);
+				if (!name) { skipReasons.push('Empty name'); skipped++; continue; }
+				// Use upsert keyed on @@unique([gameSystemId, name]) to avoid race conditions
+				const updateData = {
+					description: row.description || null,
+					source:      row.source      || null,
+					link:        row.link        || null,
+					isSubrace:   boolVal(row.isSubrace),
+					isLegacy:    boolVal(row.isLegacy),
+					sortOrder:   Number(row.sortOrder) || 0,
+				};
+				const existing = await db.dnd5eSpecies.findFirst({
+					where: { gameSystemId: params.id, name: { equals: name, mode: 'insensitive' } },
+				});
 				if (existing) {
-					if (!allowUpdate) { skipped++; continue; }
-					await dnd5e.species.update(existing.id, {
-						description: row.description || null,
-						source:      row.source      || null,
-						link:        row.link        || null,
-						isSubrace:   boolVal(row.isSubrace),
-						isLegacy:    boolVal(row.isLegacy),
-						sortOrder:   Number(row.sortOrder) || 0,
-					}, locals.user!.id);
+					if (!allowUpdate) { skipReasons.push(`Already exists (tick Update to overwrite): '${name}'`); skipped++; continue; }
+					await db.dnd5eSpecies.update({ where: { id: existing.id }, data: updateData });
 					updated++;
 				} else {
-					await dnd5e.species.create({
-						gameSystemId: params.id,
-						name:         row.name,
-						description:  row.description || undefined,
-						source:       row.source      || undefined,
-						link:         row.link        || undefined,
-						isSubrace:    boolVal(row.isSubrace),
-						isLegacy:     boolVal(row.isLegacy),
-						sortOrder:    Number(row.sortOrder) || 0,
-					}, locals.user!.id);
+					await db.dnd5eSpecies.create({ data: { gameSystemId: params.id, name, ...updateData } });
 					created++;
 				}
 			}
-			return { success: true, created, updated, skipped, type: 'species' };
+			const uniqueReasons = [...new Set(skipReasons)].slice(0, 20);
+			return { success: true, created, updated, skipped, type: 'species', skipReasons: uniqueReasons };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
 			const msg = isUnique
@@ -282,31 +291,40 @@ export const actions: Actions = {
 		const allowUpdate = data.get('allowUpdate') === 'true';
 		if (!raw) return fail(400, { message: 'No data provided.' });
 		try {
+			const { db } = await import('@core/database');
 			const rows: any[] = JSON.parse(raw);
 			let created = 0; let updated = 0; let skipped = 0;
+			const skipReasons: string[] = [];
+			// Fetch all species once outside the loop (N+1 fix)
+			const allSpecies = await dnd5e.species.getAll(params.id);
 			for (const row of rows) {
-				const allSpecies = await dnd5e.species.getAll(params.id);
+				const traitName = normalize(row.name);
+				if (!traitName) { skipped++; continue; }
 				const sp = allSpecies.find(s => normalize(s.name).toLowerCase() === normalize(row.speciesName).toLowerCase());
-				if (!sp) { skipped++; continue; }
-				const existing = (sp as any).traits?.find((t: any) => normalize(t.name).toLowerCase() === normalize(row.name).toLowerCase());
+				if (!sp) {
+					skipReasons.push(`Species not found: '${row.speciesName}'`);
+					skipped++; continue;
+				}
+				const traitData = {
+					description:   row.description   || null,
+					requiredLevel: toInt(row.requiredLevel, 0) || null,
+				};
+				// Use DB upsert keyed on @@unique([speciesId, name]) — avoids stale in-memory cache issues
+				const existing = await db.dnd5eSpeciesTrait.findFirst({
+					where: { speciesId: sp.id, name: { equals: traitName, mode: 'insensitive' } },
+					select: { id: true },
+				});
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
-					await dnd5e.speciesTraits.update(existing.id, {
-						description:   row.description || null,
-						requiredLevel: toInt(row.requiredLevel, 0) || null,
-					});
+					await db.dnd5eSpeciesTrait.update({ where: { id: existing.id }, data: traitData });
 					updated++;
 				} else {
-					await dnd5e.speciesTraits.create({
-						speciesId:     sp.id,
-						name:          row.name,
-						description:   row.description || undefined,
-						requiredLevel: toInt(row.requiredLevel, 0) || undefined,
-					});
+					await db.dnd5eSpeciesTrait.create({ data: { speciesId: sp.id, name: traitName, ...traitData } });
 					created++;
 				}
 			}
-			return { success: true, created, updated, skipped, type: 'species traits' };
+			const uniqueReasons = [...new Set(skipReasons)].slice(0, 20);
+			return { success: true, created, updated, skipped, type: 'species traits', skipReasons: uniqueReasons };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
 			const msg = isUnique
@@ -418,5 +436,109 @@ export const actions: Actions = {
 				: `Import failed: ${e.message}`;
 			return fail(400, { message: msg });
 		}
+	},
+
+	debugSpeciesTraits: async ({ params, request }) => {
+		const { db } = await import('@core/database');
+		const data = await request.formData();
+		const raw  = data.get('json')?.toString() ?? '';
+		const rows: any[] = raw ? JSON.parse(raw) : [];
+
+		// Get all DB species names for this gameSystem
+		const dbSpecies = await db.dnd5eSpecies.findMany({
+			where: { gameSystemId: params.id },
+			select: { name: true },
+			orderBy: { name: 'asc' },
+		});
+		const dbNames = dbSpecies.map(s => s.name);
+
+		// Get unique speciesNames from uploaded file
+		const fileNames = [...new Set(rows.map((r: any) => r.speciesName))].sort();
+
+		// Find mismatches
+		const dbSet   = new Set(dbNames.map(n => n.toLowerCase().trim()));
+		const missing = fileNames.filter((n: string) => !dbSet.has(n.toLowerCase().trim()));
+
+		return {
+			dbCount:   dbNames.length,
+			fileCount: fileNames.length,
+			missing,
+			dbSample:  dbNames.slice(0, 10),
+			fileSample: fileNames.slice(0, 10),
+		};
+	},
+	// ── Bulk delete by category ──────────────────────────────────────────────
+	deleteClasses: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const { count } = await db.dnd5eClass.deleteMany({ where: { gameSystemId: params.id } });
+		return { deleteSuccess: true, deleted: count, type: 'classes' };
+	},
+
+	deleteClassFeatures: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const classes = await db.dnd5eClass.findMany({ where: { gameSystemId: params.id }, select: { id: true } });
+		const classIds = classes.map(c => c.id);
+		const { count } = await db.dnd5eClassFeature.deleteMany({ where: { classId: { in: classIds } } });
+		return { deleteSuccess: true, deleted: count, type: 'class features' };
+	},
+
+	deleteSubclasses: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const classes = await db.dnd5eClass.findMany({ where: { gameSystemId: params.id }, select: { id: true } });
+		const classIds = classes.map(c => c.id);
+		const { count } = await db.dnd5eSubclass.deleteMany({ where: { classId: { in: classIds } } });
+		return { deleteSuccess: true, deleted: count, type: 'subclasses' };
+	},
+
+	deleteSubclassFeatures: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const classes = await db.dnd5eClass.findMany({ where: { gameSystemId: params.id }, select: { id: true } });
+		const classIds = classes.map(c => c.id);
+		const subs = await db.dnd5eSubclass.findMany({ where: { classId: { in: classIds } }, select: { id: true } });
+		const subIds = subs.map(s => s.id);
+		const { count } = await db.dnd5eSubclassFeature.deleteMany({ where: { subclassId: { in: subIds } } });
+		return { deleteSuccess: true, deleted: count, type: 'subclass features' };
+	},
+
+	deleteSpecies: async ({ params, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const { count } = await db.dnd5eSpecies.deleteMany({ where: { gameSystemId: params.id } });
+		return { deleteSuccess: true, deleted: count, type: 'species' };
+	},
+
+	deleteSpeciesTraits: async ({ params, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const species = await db.dnd5eSpecies.findMany({ where: { gameSystemId: params.id }, select: { id: true } });
+		const ids = species.map(s => s.id);
+		const { count } = await db.dnd5eSpeciesTrait.deleteMany({ where: { speciesId: { in: ids } } });
+		return { deleteSuccess: true, deleted: count, type: 'species traits' };
+	},
+
+	deleteBackgrounds: async ({ params, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const { count } = await db.dnd5eBackground.deleteMany({ where: { gameSystemId: params.id } });
+		return { deleteSuccess: true, deleted: count, type: 'backgrounds' };
+	},
+
+	deleteFeats: async ({ params, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const { count } = await db.dnd5eFeat.deleteMany({ where: { gameSystemId: params.id } });
+		return { deleteSuccess: true, deleted: count, type: 'feats' };
 	},
 };
