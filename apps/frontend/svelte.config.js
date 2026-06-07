@@ -1,19 +1,24 @@
-import adapter from '@sveltejs/adapter-node';
+// apps/frontend/svelte.config.js
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+
+const isProd = process.env.NODE_ENV === 'production';
+
+const { default: adapter } = isProd
+	? await import('@sveltejs/adapter-node')
+	: await import('@sveltejs/adapter-auto');
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	preprocess: vitePreprocess(),
 
 	compilerOptions: {
-		// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
 		runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
 	},
 
 	kit: {
 		adapter: adapter(),
 		csrf: {
-			checkOrigin: false,
+			trustedOrigins: (process.env.TRUSTED_ORIGINS ?? '').split(',').map(o => o.trim()).filter(Boolean),
 		},
 	}
 };

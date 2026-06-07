@@ -2,34 +2,26 @@
 module.exports = {
   apps: [
     {
-      name: 'thebnb-frontend',
+      name: 'dev-frontend',
       script: 'apps/frontend/build/index.js',
-      cwd: '/home/marches/space',
-      node_args: '--env-file=/home/marches/space/.env',
-      env: {
-        PORT: '5173',
-        HOST: '0.0.0.0',
-      },
+      cwd: '/home/marches/dev',
+      node_args: '--env-file=/home/marches/dev/.env',
+      env: { PORT: '5273', HOST: '0.0.0.0' },
     },
     {
-      name: 'thebnb-admin',
+      name: 'dev-admin',
       script: 'apps/admin/build/index.js',
-      cwd: '/home/marches/space',
-      node_args: '--env-file=/home/marches/space/.env',
-      env: {
-        PORT: '5174',
-        HOST: '0.0.0.0',
-      },
+      cwd: '/home/marches/dev',
+      node_args: '--env-file=/home/marches/dev/.env',
+      env: { PORT: '5274', HOST: '0.0.0.0' },
     },
     {
-      name: 'thebnb-discord',
+      name: 'dev-discord',
       script: 'node_modules/.bin/tsx',
-      args: '--env-file=/home/marches/space/.env apps/discord/src/index.ts',
-      cwd: '/home/marches/space',
+      args: '--env-file=/home/marches/dev/.env apps/discord/src/index.ts',
+      cwd: '/home/marches/dev',
       interpreter: 'none',
-      env: {
-        NODE_ENV: 'production',
-      },
+      env: { NODE_ENV: 'development' },
     },
   ],
 };

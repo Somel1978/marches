@@ -11,9 +11,9 @@ export default defineConfig(({ mode }) => {
 	return {
 		plugins: [tailwindcss(), sveltekit()],
 		server: {
-			host:       '0.0.0.0',
-			port: 5173,
-			strictPort: true,
+			host:         '0.0.0.0',
+			port:         parseInt(env.FRONTEND_PORT ?? '5173'),
+			strictPort:   true,
 			allowedHosts: true,
 		},
 		test: {
