@@ -67,6 +67,21 @@ export async function getMarketplaceItems({
     return { items, total, page, perPage, totalPages: Math.ceil(total / perPage) };
 }
 
+
+export async function searchMarketplaceItems(query: string, excludeIds: string[] = [], limit = 20) {
+    if (!query || query.length < 2) return [];
+    const where: any = {
+        name: { contains: query, mode: 'insensitive' },
+        ...(excludeIds.length && { id: { notIn: excludeIds } }),
+    };
+    return db.marketplaceItem.findMany({
+        where,
+        orderBy: { name: 'asc' },
+        take: limit,
+        select: { id: true, name: true, baseItem: true, rarity: true, buyPrice: true, category: true },
+    });
+}
+
 export async function getAllMarketplaceItemsForExport() {
     return db.marketplaceItem.findMany({
         orderBy: [{ category: 'asc' }, { name: 'asc' }],

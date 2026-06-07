@@ -39,6 +39,15 @@
 		</div>
 	{/if}
 
+	<!-- Journals link -->
+	{#if world.id}
+		<div style="margin-bottom:1.5rem;">
+			<a href="/world/{world.slug}/journal" class="btn btn-ghost" style="display:inline-flex; align-items:center; gap:0.5rem;">
+				📖 World Journals
+			</a>
+		</div>
+	{/if}
+
 	<!-- Region cards -->
 	<div class="world-region-grid">
 		{#each regions as region}

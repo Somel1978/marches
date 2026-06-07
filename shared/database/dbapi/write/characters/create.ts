@@ -20,6 +20,7 @@ export async function createCharacter(
         worldId?:      string;
         isGlobal?:     boolean;
         level?:        number;
+        totalXp?:      number;
     },
     actorId?: string,
 ) {
@@ -39,7 +40,8 @@ export async function createCharacter(
                 userId:        input.userId,
                 gameSystemId:  input.gameSystemId,
                 name:          input.name,
-                level:         input.level ?? 0,
+                level:         input.level  ?? 0,
+                totalXp:       input.totalXp ?? 0,
                 avatarUrl:     input.avatarUrl   ?? null,
                 portraitUrl:   input.portraitUrl ?? null,
                 description:   input.description ?? null,

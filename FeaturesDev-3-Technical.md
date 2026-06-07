@@ -1,27 +1,12 @@
 # Marches — Technical Reference
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-06-04 (wizard session)
+> Last updated: 2026-06-03 (session 61-70)
 
 ---
 
 
 ## Critical Technical Decisions
-
-
-### Character Creation Wizard Architecture
-- System selector gate at `/characters/new` — agnostic, lists active game systems
-- D&D 5e wizard at `/characters/new/dnd5e` — 6 steps, single `create` action on final submit
-- Character created `PENDING`/`NEW_CHARACTER` only on final submit — one approval at the end
-- Ability scores saved via `dnd5e.saveAbilityScores` after `createCharacter`
-- Background feat (grantsFeatCategory) saved via `dnd5e.addCharacterFeat` after create
-- All wizard CSS in `@core/ui/styles/components/wizard.css` — no `<style>` in svelte files
-- Name generator in `shared/ui/src/gamesystems/dnd5e/name-generator.ts` — syllable-based, species-keyed
-- Mobile: bottom sheet pattern (`.wizard-sheet`) for species/background/class detail on ≤768px
-- Desktop: sticky two-column drawer (`.wizard-drawer`) for species/background, detail panel for classes
-- Feature timeline: accordion sorted by level, class + subclass features merged, colour-coded by source
-- Point buy: 27-point standard + DM-granted bonus pool (honour system, user-enterable)
-- Breakpoint: `768px` — two-column → single column, drawer → bottom sheet
 
 ### use:enhance + confirm pattern
 `onclick e.preventDefault()` does not work with `use:enhance`. Always use `cancel()`:
@@ -447,3 +432,97 @@ Players connect Discord via **Profile → Connect Discord** → OAuth flow store
 ---
 
 # Marches — Bug Fixes & Session Changelog
+
+---
+
+## Production Deployment
+
+### Stack
+- **Adapter:** `@sveltejs/adapter-node` (both apps)
+- **Process manager:** pm2
+- **Env loading:** Node 22 native `--env-file`
+- **Domain:** `https://www.binderbrew.quest`
+
+### Files
+- `ecosystem.config.js` — pm2 config at monorepo root
+- `shared/rbac/cache.ts` — must be ASCII-only (no unicode chars, Rolldown rejects non-UTF-8)
+
+### ecosystem.config.js
+```js
+module.exports = {
+  apps: [
+    {
+      name: 'thebnb-frontend',
+      script: 'apps/frontend/build/index.js',
+      cwd: '/home/marches/space',
+      node_args: '--env-file=/home/marches/space/.env',
+      env: { PORT: '5173', HOST: '0.0.0.0' },
+    },
+    {
+      name: 'thebnb-admin',
+      script: 'apps/admin/build/index.js',
+      cwd: '/home/marches/space',
+      node_args: '--env-file=/home/marches/space/.env',
+      env: { PORT: '5174', HOST: '0.0.0.0' },
+    },
+    {
+      name: 'thebnb-discord',
+      script: 'node_modules/.bin/tsx',
+      args: '--env-file=/home/marches/space/.env apps/discord/src/index.ts',
+      cwd: '/home/marches/space',
+      interpreter: 'none',
+      env: { NODE_ENV: 'production' },
+    },
+  ],
+};
+```
+
+> **Discord note:** `node_args: '--env-file=...'` is ignored for the discord app because `tsx` is the interpreter (not node directly). The `--env-file` flag must be passed in `args` so tsx receives it.
+
+### Required .env values for production
+```dotenv
+ORIGIN=https://www.binderbrew.quest
+BETTER_AUTH_URL=https://www.binderbrew.quest
+BETTER_AUTH_SECRET=<secret>
+TRUSTED_ORIGINS=https://www.binderbrew.quest,https://admin.binderbrew.quest,http://10.0.0.183:5174,http://10.0.0.183:5173
+FRONTEND_URL=https://www.binderbrew.quest
+DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+```
+
+**Note:** `ORIGIN` must match the production domain exactly — SvelteKit uses it for CSRF protection. All POST requests (login, signup, forms) return 403 if `ORIGIN` doesn't match the incoming request host.
+
+### Deploy workflow
+```bash
+# Standard redeploy after code changes
+git pull
+pnpm install
+pnpm build
+pm2 restart all
+
+# After .env changes (must reload env)
+pm2 delete all
+pm2 start ecosystem.config.js
+pm2 save
+```
+
+### First-time setup
+```bash
+npm install -g pm2
+pnpm install
+pnpm build
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup   # copy and run the printed command for reboot persistence
+```
+
+### Build notes
+- `shared/rbac/cache.ts` must contain only ASCII characters — Rolldown (Vite 8) rejects files with unicode chars (em-dashes etc) with `stream did not contain valid UTF-8`
+- `INEFFECTIVE_DYNAMIC_IMPORT` warnings are harmless — bundling efficiency notices only
+
+### Auth cookie behaviour (HTTP vs HTTPS)
+`useSecureCookies: false` is set in `shared/rbac/auth.ts`. This forces Better Auth to always use the plain `better-auth.session_token` cookie name (no `__Secure-` prefix).
+
+**Why:** `BETTER_AUTH_URL` is the production HTTPS domain. If `useSecureCookies` were derived from `baseURL.startsWith('https://')` it would always be `true` — meaning the cookie gets the `Secure` attribute. Browsers silently reject `Secure` cookies over HTTP, so local IP access (`http://10.0.0.183:5174`) would never set the session cookie.
+
+**Login action:** `apps/admin/src/routes/(auth)/login/+page.server.ts` calls `auth.api.signInEmail()` and manually calls `cookies.set()` with the token. The `sveltekitCookies(getRequestEvent)` plugin handles this automatically over HTTPS in production but does not forward the cookie when called server-side via `auth.api.*` directly. The manual set is the reliable fallback for both environments. The `secure` attribute on `cookies.set` is correctly set based on `url.protocol`.
+- Annotation comment warnings from `database.js` are harmless — third-party dependency issue

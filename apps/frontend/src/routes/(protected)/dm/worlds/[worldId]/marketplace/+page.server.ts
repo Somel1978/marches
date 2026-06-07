@@ -14,17 +14,19 @@ async function assertCanManage(worldId: string, userId: string) {
 	return a?.canManage === true;
 }
 
-export const load: PageServerLoad = async ({ params, parent }) => {
+export const load: PageServerLoad = async ({ params, parent, url }) => {
 	const { canManage, world } = await parent();
 	if (!canManage) throw error(403, 'You do not have management access to this world.');
 
-	const [worldItems, worldSetting, allItems] = await Promise.all([
+	const q = url.searchParams.get('q') ?? '';
+
+	const [worldItems, worldSetting, searchResults] = await Promise.all([
 		marketplace.worldItems.getAll(params.worldId),
 		marketplace.worldSettings.get(params.worldId),
-		marketplace.items.getAll({ page: 1, perPage: 500 }),
+		q.length >= 2 ? marketplace.items.search(q) : Promise.resolve([]),
 	]);
 
-	return { world, worldItems, worldSetting, allItems: allItems.items ?? [] };
+	return { world, worldItems, worldSetting, searchResults, q };
 };
 
 export const actions: Actions = {

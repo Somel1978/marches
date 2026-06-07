@@ -148,3 +148,32 @@
   50%  { transform: translateX(150%); }
   100% { transform: translateX(150%); }
 }
+/* ── Enricher badges ───────────────────────────────────────────── */
+.enricher-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-muted);
+  color: var(--text-primary);
+  transition: background 0.15s, border-color 0.15s;
+}
+a.enricher-badge:hover {
+  background: var(--bg-surface);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.enricher-quest     { border-color: #ef4444; color: #ef4444; }
+.enricher-item      { border-color: #f59e0b; color: #f59e0b; }
+.enricher-character { border-color: #8b5cf6; color: #8b5cf6; }
+.enricher-world     { border-color: #3b82f6; color: #3b82f6; }
+.enricher-region    { border-color: #10b981; color: #10b981; }
+.enricher-location  { border-color: #06b6d4; color: #06b6d4; }
+.enricher-user      { border-color: #6b7280; color: #6b7280; }

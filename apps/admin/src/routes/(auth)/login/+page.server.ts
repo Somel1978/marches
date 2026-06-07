@@ -16,7 +16,7 @@ export const actions: Actions = {
 	signIn: async ({ request, cookies, url }) => {
 		const formData   = await request.formData();
 		const email      = formData.get('email')?.toString()    ?? '';
-		const password   = formData.get('password')?.toString() ?? '';;
+		const password   = formData.get('password')?.toString() ?? '';
 		const redirectTo = url.searchParams.get('redirectTo')   ?? '/';
 
 		if (!email || !password) {
@@ -28,29 +28,24 @@ export const actions: Actions = {
 				body: { email, password },
 			});
 
-			console.log('[login] signInEmail result:', result?.user?.email);
-
-			// sveltekitCookies plugin should handle this automatically,
-			// but as fallback manually set the cookie if we have a token
+			// sveltekitCookies plugin handles this automatically over HTTPS.
+			// Over HTTP (local IP), manually set the plain (non-Secure) cookie
+			// because useSecureCookies:false means Better Auth always uses
+			// the 'better-auth.session_token' name without __Secure- prefix.
 			if (result?.token) {
 				const isSecure = url.protocol === 'https:';
-				const cookieName = isSecure
-					? '__Secure-better-auth.session_token'
-					: 'better-auth.session_token';
-				console.log('[login] setting cookie:', cookieName);
-				cookies.set(cookieName, result.token, {
+				cookies.set('better-auth.session_token', result.token, {
 					path:     '/',
 					httpOnly: true,
 					sameSite: 'lax',
 					secure:   isSecure,
-					maxAge:   60 * 60 * 24 * 7, // 7 days
+					maxAge:   60 * 60 * 24 * 7,
 				});
 			}
 
 		} catch (error) {
 			if (isRedirect(error)) throw error;
 			if (error instanceof APIError) {
-				console.error('[login] APIError:', error.message, error.status);
 				return fail(400, { message: 'Invalid email or password.' });
 			}
 			console.error('[login] unexpected error:', error);

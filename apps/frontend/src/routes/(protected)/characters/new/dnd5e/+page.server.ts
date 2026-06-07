@@ -20,7 +20,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!system) throw error(404, 'D&D 5e game system not available.');
 
 	const systemData   = await dnd5e.getSystemData(system.id);
-	const activeWorlds = (allWorlds as any[]).filter((w: any) => w.isActive && w.acceptsGlobalCharacters);
+	// Show all active worlds — acceptsGlobalCharacters controls whether existing global characters
+	// can sign up for quests, not whether new world-specific characters can be created.
+	const activeWorlds = (allWorlds as any[]).filter((w: any) => w.isActive);
 
 	return { slotInfo, gameSystem: system, systemData, activeWorlds };
 };

@@ -5,20 +5,22 @@ import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { PageServerLoad, Actions } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const can = checkPermission(locals.permissions, { resourceKey: 'Marketplace', action: 'read' });
 	if (!can.allowed) throw error(403, 'Forbidden');
 
 	const world = await worlds.getById(params.id);
 	if (!world) throw error(404, 'World not found');
 
-	const [worldItems, worldSetting, allItems] = await Promise.all([
+	const q = url.searchParams.get('q') ?? '';
+
+	const [worldItems, worldSetting, searchResults] = await Promise.all([
 		marketplace.worldItems.getAll(params.id),
 		marketplace.worldSettings.get(params.id),
-		marketplace.items.getAll({ page: 1, perPage: 500 }),
+		q.length >= 2 ? marketplace.items.search(q) : Promise.resolve([]),
 	]);
 
-	return { world, worldItems, worldSetting, allItems: allItems.items ?? [] };
+	return { world, worldItems, worldSetting, searchResults, q };
 };
 
 export const actions: Actions = {

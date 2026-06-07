@@ -90,6 +90,7 @@ import { upsertWikiPage                              } from './dbapi/write/world
 
 // ── Marketplace ──────────────────────────────────────────────────────────────────
 import { getMarketplaceItems, getMarketplaceItemById, getAllMarketplaceItemsForExport,
+         searchMarketplaceItems,
          getMarketplaceItemByName                         } from './dbapi/read/marketplace/get-items.ts';
 import { resolveMarketplaceContext                        } from './dbapi/read/marketplace/resolve-context.ts';
 import { getMarketplaceTransactions                       } from './dbapi/read/marketplace/get-transactions.ts';
@@ -267,6 +268,7 @@ export const marketplace = {
     items: {
         getAll:          getMarketplaceItems,
         getAllForExport:  getAllMarketplaceItemsForExport,
+        search:          searchMarketplaceItems,
         getById:         getMarketplaceItemById,
         getByName:    getMarketplaceItemByName,
         upsert:       upsertMarketplaceItem,

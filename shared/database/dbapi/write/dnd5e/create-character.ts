@@ -34,6 +34,24 @@ export async function createDnd5eCharacter(
 
     const initialLevel = input.classes.reduce((s, c) => s + c.allocatedLevel, 0);
 
+    // Find the minimum XP required to be at this level from progression thresholds.
+    // Without this, a character created above level 1 would have 0 XP, breaking
+    // level-up detection and all XP-dependent logic.
+    let startingXp = 0;
+    if (initialLevel > 0) {
+        const thresholds = await db.progressionThreshold.findMany({
+            where:   { gameSystemId: input.gameSystemId },
+            orderBy: { xpRequired: 'asc' },
+            select:  { xpRequired: true },
+        });
+        // Level = number of thresholds cleared (same logic as level-check.ts).
+        // To be at initialLevel, the character must have cleared initialLevel thresholds.
+        // Minimum XP = xpRequired of the Nth threshold (0-indexed: initialLevel - 1).
+        if (initialLevel > 0 && thresholds.length >= initialLevel) {
+            startingXp = thresholds[initialLevel - 1].xpRequired;
+        }
+    }
+
     // Create the universal character first
     const character = await createCharacter({
         userId:       input.userId,
@@ -45,6 +63,7 @@ export async function createDnd5eCharacter(
         worldId:      input.worldId,
         isGlobal:     input.isGlobal,
         level:        initialLevel,
+        totalXp:      startingXp,
     }, actorId);
 
     // Create dnd5e-specific data

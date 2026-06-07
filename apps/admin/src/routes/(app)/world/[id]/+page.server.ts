@@ -23,10 +23,11 @@ export const actions: Actions = {
 		const data = await request.formData();
 		try {
 			await worlds.update(params.id, {
-				name:        data.get('name')?.toString().trim()           || undefined,
-				description: data.get('description')?.toString().trim()    || null,
-				mapImageUrl: data.get('mapImageUrl')?.toString().trim()    || null,
-				isActive:    data.get('isActive') === 'true',
+				name:                    data.get('name')?.toString().trim()        || undefined,
+				description:             data.get('description')?.toString().trim() || null,
+				mapImageUrl:             data.get('mapImageUrl')?.toString().trim() || null,
+				isActive:                data.get('isActive') === 'true',
+				acceptsGlobalCharacters: data.get('acceptsGlobalCharacters') !== 'false',
 			}, locals.user!.id);
 			return { worldSuccess: true };
 		} catch (e) {

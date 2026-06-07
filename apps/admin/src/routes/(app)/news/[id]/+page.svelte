@@ -10,7 +10,64 @@
 	let content     = $state('');
 	let showPreview = $state(false);
 
+	// Enricher search popup
+	let enricherQuery   = $state('');
+	let enricherResults = $state<any[]>([]);
+	let enricherVisible = $state(false);
+	let textareaEl      = $state<HTMLTextAreaElement | null>(null);
+	let cursorPos       = $state(0);
+
+	const typeIcon: Record<string, string> = {
+		quest: '⚔️', item: '🎒', character: '🧙', world: '🌍',
+		region: '🗺️', location: '📍', user: '👤',
+	};
+
 	$effect.pre(() => { content = a.content ?? ''; });
+
+	function onContentInput(e: Event) {
+		const ta = e.currentTarget as HTMLTextAreaElement;
+		content   = ta.value;
+		cursorPos = ta.selectionStart ?? 0;
+
+		const before     = ta.value.slice(0, cursorPos);
+		const triggerIdx = before.lastIndexOf('[[');
+		if (triggerIdx >= 0 && !before.slice(triggerIdx).includes(']]')) {
+			const q = before.slice(triggerIdx + 2);
+			if (q.length >= 2) {
+				enricherQuery = q;
+				searchEnrichers(q);
+				enricherVisible = true;
+				return;
+			}
+		}
+		enricherVisible = false;
+	}
+
+	async function searchEnrichers(q: string) {
+		try {
+			const res = await fetch(`/api/enrichers?q=${encodeURIComponent(q)}`);
+			enricherResults = await res.json();
+		} catch { enricherResults = []; }
+	}
+
+	function insertEnricher(item: any) {
+		if (!textareaEl) return;
+		const val        = textareaEl.value;
+		const before     = val.slice(0, cursorPos);
+		const after      = val.slice(cursorPos);
+		const triggerIdx = before.lastIndexOf('[[');
+		const newVal     = before.slice(0, triggerIdx) + `[[${item.type}:${item.id}]]` + after;
+		content          = newVal;
+		enricherVisible  = false;
+		enricherResults  = [];
+		setTimeout(() => {
+			if (textareaEl) {
+				textareaEl.focus();
+				const newPos = triggerIdx + `[[${item.type}:${item.id}]]`.length;
+				textareaEl.setSelectionRange(newPos, newPos);
+			}
+		}, 0);
+	}
 </script>
 
 <div class="page">
@@ -81,13 +138,9 @@
 					<p style="color:var(--text-secondary); margin:0 0 0.5rem;">Standard Markdown is supported (# headings, **bold**, *italic*, etc). Use enrichers to embed live links to platform entities.</p>
 					<p style="font-weight:600; margin:0 0 0.25rem; color:var(--text-secondary);">Enricher syntax — type <code>[[</code> to trigger the search popup:</p>
 					<div style="display:flex; flex-wrap:wrap; gap:0.375rem;">
-						<code style="background:var(--bg-surface); padding:0.125rem 0.375rem; border-radius:var(--radius-sm);">[[quest:id]]</code>
-						<code style="background:var(--bg-surface); padding:0.125rem 0.375rem; border-radius:var(--radius-sm);">[[item:id]]</code>
-						<code style="background:var(--bg-surface); padding:0.125rem 0.375rem; border-radius:var(--radius-sm);">[[character:id]]</code>
-						<code style="background:var(--bg-surface); padding:0.125rem 0.375rem; border-radius:var(--radius-sm);">[[world:id]]</code>
-						<code style="background:var(--bg-surface); padding:0.125rem 0.375rem; border-radius:var(--radius-sm);">[[region:id]]</code>
-						<code style="background:var(--bg-surface); padding:0.125rem 0.375rem; border-radius:var(--radius-sm);">[[location:id]]</code>
-						<code style="background:var(--bg-surface); padding:0.125rem 0.375rem; border-radius:var(--radius-sm);">[[user:id]]</code>
+						{#each ['quest','item','character','world','region','location','user'] as t}
+							<code style="background:var(--bg-surface); padding:0.125rem 0.375rem; border-radius:var(--radius-sm);">[[{t}:id]]</code>
+						{/each}
 					</div>
 					<p style="color:var(--text-muted); margin:0.375rem 0 0; font-size:0.75rem;">Enrichers render as clickable badges in the frontend, linking directly to the referenced entity.</p>
 				</div>
@@ -96,8 +149,31 @@
 						{content || '<em style="color:var(--text-muted)">Nothing to preview</em>'}
 					</div>
 				{:else}
-					<textarea name="content" class="input" rows="18" style="font-family:monospace; font-size:0.875rem;"
-						bind:value={content}></textarea>
+					<div style="position:relative;">
+						<textarea name="content" class="input" rows="18"
+							style="font-family:monospace; font-size:0.875rem;"
+							bind:this={textareaEl}
+							bind:value={content}
+							oninput={onContentInput}></textarea>
+
+						<!-- Enricher popup -->
+						{#if enricherVisible && enricherResults.length}
+							<div style="position:absolute; left:0; bottom:100%; width:100%; max-height:280px; overflow-y:auto; background:var(--bg-surface); border:1px solid var(--border-muted); border-radius:var(--radius-md); box-shadow:var(--shadow-lg); z-index:50;">
+								{#each enricherResults as item}
+									<button type="button"
+										style="display:flex; align-items:center; gap:0.625rem; width:100%; padding:0.5rem 0.75rem; background:none; border:none; cursor:pointer; text-align:left; font-size:0.875rem; flex-wrap:wrap"
+										onmouseenter={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--bg-overlay)'}
+										onmouseleave={(e) => (e.currentTarget as HTMLElement).style.background = 'none'}
+										onclick={() => insertEnricher(item)}>
+										<span style="width:20px; text-align:center;">{typeIcon[item.type] ?? '🔗'}</span>
+										<span style="flex:1; font-weight:500;">{item.label}</span>
+										<span class="badge badge-muted" style="font-size:0.7rem;">{item.type}</span>
+										{#if item.badge}<span class="badge badge-muted" style="font-size:0.7rem;">{item.badge}</span>{/if}
+									</button>
+								{/each}
+							</div>
+						{/if}
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -108,8 +184,8 @@
 			<button type="submit" class="btn btn-primary">Save</button>
 		</div>
 	</form>
-<form id="del-ann-form" method="post" action="?/delete" use:enhance={({ cancel }) => {
-	if (!confirm('Delete this announcement?')) { cancel(); return; }
-	return async ({ result }) => { if (result.type === 'success') goto('/news'); };
-}} style="display:none;"></form>
+	<form id="del-ann-form" method="post" action="?/delete" use:enhance={({ cancel }) => {
+		if (!confirm('Delete this announcement?')) { cancel(); return; }
+		return async ({ result }) => { if (result.type === 'success') goto('/news'); };
+	}} style="display:none;"></form>
 </div>

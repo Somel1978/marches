@@ -21,5 +21,15 @@ module.exports = {
         HOST: '0.0.0.0',
       },
     },
+    {
+      name: 'thebnb-discord',
+      script: 'node_modules/.bin/tsx',
+      args: '--env-file=/home/marches/space/.env apps/discord/src/index.ts',
+      cwd: '/home/marches/space',
+      interpreter: 'none',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
   ],
 };

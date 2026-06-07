@@ -1,7 +1,7 @@
 <!-- apps/admin/src/routes/(app)/world/[id]/marketplace/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -9,28 +9,30 @@
 	const world        = $derived((data as any).world);
 	const worldItems   = $derived((data as any).worldItems ?? []);
 	const worldSetting = $derived((data as any).worldSetting);
-	const allItems     = $derived((data as any).allItems ?? []);
-
-	// Items not yet in this world
-	const availableItems = $derived(
-		allItems.filter((i: any) => !worldItems.some((wi: any) => wi.itemId === i.id))
+	const searchResults = $derived(
+		((data as any).searchResults ?? [])
+			.filter((i: any) => !worldItems.some((wi: any) => wi.itemId === i.id))
 	);
 
-	let addItemId    = $state('');
-	let addItemName  = $state('');
-	let addStock     = $state('');
-	let addPrice     = $state('');
-	let searchQuery  = $state('');
-	let showDropdown = $state(false);
+	let addItemId      = $state('');
+	let addItemName    = $state('');
+	let addStock       = $state('');
+	let addPrice       = $state('');
+	let searchQuery    = $state('');
+	$effect.pre(() => { searchQuery = (data as any).q ?? ''; });
+	let showDropdown   = $state(false);
 	let savingSettings = $state(false);
 
-	const searchResults = $derived(
-		searchQuery.length < 2 ? [] :
-		availableItems.filter((i: any) =>
-			i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			i.baseItem?.toLowerCase().includes(searchQuery.toLowerCase())
-		).slice(0, 15)
-	);
+	let debounceTimer: ReturnType<typeof setTimeout>;
+	function onSearchInput() {
+		addItemId = ''; addItemName = '';
+		showDropdown = true;
+		clearTimeout(debounceTimer);
+		if (searchQuery.length < 2) { goto('?', { replaceState: true, keepFocus: true }); return; }
+		debounceTimer = setTimeout(() => {
+			goto(`?q=${encodeURIComponent(searchQuery)}`, { replaceState: true, keepFocus: true });
+		}, 300);
+	}
 
 	function selectItem(item: any) {
 		addItemId    = item.id;
@@ -203,8 +205,8 @@
 					<label class="label" for="itemSearch">Item</label>
 					<input id="itemSearch" type="text" class="input" placeholder="Search catalogue…"
 						bind:value={searchQuery}
-						oninput={() => { showDropdown = true; addItemId = ''; addItemName = ''; }}
-						onfocus={() => showDropdown = true}
+						oninput={onSearchInput}
+						onfocus={() => { showDropdown = true; }}
 						autocomplete="off" />
 					<input type="hidden" name="itemId" value={addItemId} />
 					{#if showDropdown && searchResults.length > 0}

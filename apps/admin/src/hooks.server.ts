@@ -6,12 +6,7 @@ import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { getUserPermissions } from '@core/rbac';
 
 const handle: Handle = async ({ event, resolve }) => {
-	const allCookies = event.request.headers.get('cookie');
-	console.log('[hooks] incoming cookies:', allCookies ?? '(none)');
-
 	const session = await auth.api.getSession({ headers: event.request.headers });
-
-	console.log('[hooks] session:', session ? session.user.email : '(none)');
 
 	if (session) {
 		event.locals.session     = session.session;

@@ -1,7 +1,8 @@
 <!-- apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/marketplace/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
+	
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
