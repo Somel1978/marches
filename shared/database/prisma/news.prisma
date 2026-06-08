@@ -9,6 +9,15 @@ enum AnnouncementType {
   @@schema("news")
 }
 
+enum ContentVisibility {
+  PUBLIC      // all logged-in users
+  WORLD       // characters in that world only (WorldJournal only)
+  DM_ONLY     // users with an active DMProfile
+  ADMIN_ONLY  // users with admin permission (includes SUPERADMIN)
+
+  @@schema("news")
+}
+
 model Announcement {
   id          String           @id @default(uuid())
   title       String
@@ -27,51 +36,112 @@ model Announcement {
   @@schema("news")
 }
 
-model Journal {
-  id          String           @id @default(uuid())
+// ── World Journal ─────────────────────────────────────────────────────────────
+// Lore and content scoped to a specific world.
+// Written by DMs (via DM hub) and admins (via admin world route).
+
+model WorldJournal {
+  id          String            @id @default(uuid())
+  worldId     String            @map("world_id")
+  world       World             @relation(fields: [worldId], references: [id], onDelete: Cascade)
   title       String
   icon        String?
   description String?
-  sortOrder   Int              @default(0) @map("sort_order")
-  isPublished Boolean          @default(false) @map("is_published")
-  worldIds    String[]         @map("world_ids")
-  roleIds     String[]         @map("role_ids")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt      @map("updated_at")
+  sortOrder   Int               @default(0)     @map("sort_order")
+  isPublished Boolean           @default(false) @map("is_published")
+  visibility  ContentVisibility @default(PUBLIC)
+  createdBy   String            @map("created_by")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt      @map("updated_at")
 
-  sections    JournalSection[]
+  sections    WorldJournalSection[]
 
-  @@map("journals")
+  @@map("world_journals")
   @@schema("news")
 }
 
-model JournalSection {
-  id        String        @id @default(uuid())
-  journalId String        @map("journal_id")
-  journal   Journal       @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  title     String
-  icon      String?
-  sortOrder Int           @default(0) @map("sort_order")
-  createdAt DateTime      @default(now()) @map("created_at")
-  updatedAt DateTime      @updatedAt      @map("updated_at")
+model WorldJournalSection {
+  id         String            @id @default(uuid())
+  journalId  String            @map("journal_id")
+  journal    WorldJournal      @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  title      String
+  icon       String?
+  sortOrder  Int               @default(0) @map("sort_order")
+  visibility ContentVisibility @default(PUBLIC)
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt      @map("updated_at")
 
-  pages     JournalPage[]
+  pages      WorldJournalPage[]
 
-  @@map("journal_sections")
+  @@map("world_journal_sections")
   @@schema("news")
 }
 
-model JournalPage {
-  id        String         @id @default(uuid())
-  sectionId String         @map("section_id")
-  section   JournalSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+model WorldJournalPage {
+  id        String              @id @default(uuid())
+  sectionId String              @map("section_id")
+  section   WorldJournalSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   title     String
-  content   String         @default("")
-  sortOrder Int            @default(0) @map("sort_order")
-  createdBy String         @map("created_by")
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt      @map("updated_at")
+  content   String              @default("")
+  sortOrder Int                 @default(0) @map("sort_order")
+  createdBy String              @map("created_by")
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt      @map("updated_at")
 
-  @@map("journal_pages")
+  @@map("world_journal_pages")
+  @@schema("news")
+}
+
+// ── Platform Wiki ─────────────────────────────────────────────────────────────
+// Global knowledge base written by admins.
+// Visible to all players by default; sections/entries can be gated.
+
+model PlatformWiki {
+  id          String            @id @default(uuid())
+  title       String
+  icon        String?
+  description String?
+  sortOrder   Int               @default(0)     @map("sort_order")
+  isPublished Boolean           @default(false) @map("is_published")
+  visibility  ContentVisibility @default(PUBLIC)
+  createdBy   String            @map("created_by")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt      @map("updated_at")
+
+  sections    PlatformWikiSection[]
+
+  @@map("platform_wikis")
+  @@schema("news")
+}
+
+model PlatformWikiSection {
+  id         String            @id @default(uuid())
+  wikiId     String                @map("wiki_id")
+  wiki       PlatformWiki       @relation(fields: [wikiId], references: [id], onDelete: Cascade)
+  title      String
+  icon       String?
+  sortOrder  Int               @default(0) @map("sort_order")
+  visibility ContentVisibility @default(PUBLIC)
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt      @map("updated_at")
+
+  pages      PlatformWikiPage[]
+
+  @@map("platform_wiki_sections")
+  @@schema("news")
+}
+
+model PlatformWikiPage {
+  id        String      @id @default(uuid())
+  sectionId String      @map("section_id")
+  section   PlatformWikiSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title     String
+  content   String      @default("")
+  sortOrder Int         @default(0) @map("sort_order")
+  createdBy String      @map("created_by")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt      @map("updated_at")
+
+  @@map("platform_wiki_pages")
   @@schema("news")
 }

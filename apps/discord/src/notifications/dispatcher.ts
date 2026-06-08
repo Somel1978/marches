@@ -125,17 +125,30 @@ async function dmAdmins(embed: EmbedBuilder) {
     if (!_client) return;
     const { db } = await import('@core/database');
     const rows = await db.userRole.findMany({
-        where: { role: { permissions: { some: { resourceKey: 'User', canRead: 'ALL' } } } },
-        select: { user: { select: { discordId: true } } },
+        where: {
+            role: {
+                OR: [
+                    { name: 'SUPERADMIN' },
+                    { permissions: { some: { resourceKey: 'User', canRead: 'ALL' } } },
+                ],
+            },
+        },
+        select: { userId: true },
+    });
+    const userIds = [...new Set(rows.map((r: any) => r.userId))];
+    if (!userIds.length) return;
+    const adminUsers = await db.user.findMany({
+        where:  { id: { in: userIds } },
+        select: { discordId: true },
     });
     const seen = new Set<string>();
-    for (const row of rows) {
-        const discordId = (row as any).user?.discordId;
+    for (const u of adminUsers) {
+        const discordId = (u as any).discordId;
         if (!discordId || seen.has(discordId)) continue;
         seen.add(discordId);
         try {
-            const u = await _client.users.fetch(discordId);
-            await u.send({ embeds: [embed] });
+            const du = await _client.users.fetch(discordId);
+            await du.send({ embeds: [embed] });
         } catch (e: any) {
             console.error('[Discord] DM to admin failed:', e?.message ?? e);
         }
@@ -296,20 +309,6 @@ export async function notifyInvite(discordId: string, quest: any) {
 export async function notifyUserRegistered(user: { id: string; name: string; email: string }) {
     if (!_client) return;
 
-    // Find all users who have User/read/ALL permission — any role, not just SUPERADMIN.
-    // This way a custom admin role with user management access also gets notified.
-    const { db } = await import('@core/database');
-    const allAdmins = await db.userRole.findMany({
-        where: {
-            role: {
-                permissions: {
-                    some: { resourceKey: 'User', canRead: 'ALL' },
-                },
-            },
-        },
-        include: { user: { select: { discordId: true } } },
-    });
-
     const embed = new EmbedBuilder()
         .setTitle('🆕 New User Registered')
         .setColor(0x5865F2)
@@ -319,14 +318,5 @@ export async function notifyUserRegistered(user: { id: string; name: string; ema
         )
         .setTimestamp();
 
-    for (const adminRole of allAdmins) {
-        const discordId = (adminRole as any).user?.discordId;
-        if (!discordId) continue;
-        try {
-            const discordUser = await _client.users.fetch(discordId);
-            await discordUser.send({ embeds: [embed] });
-        } catch (e: any) {
-            console.error(`[Discord] Failed to DM admin ${discordId}:`, e?.message ?? e);
-        }
-    }
+    await dmAdmins(embed);
 }

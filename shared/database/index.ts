@@ -45,8 +45,15 @@ import { setSlots, clearDay, clearSlot, adminDeleteSlot } from './dbapi/write/av
 import { getUserAvailability, getAvailableUsersForQuest, getAllAvailability } from './dbapi/read/availability/get-availability.ts';
 
 import { createAnnouncement, updateAnnouncement, deleteAnnouncement } from './dbapi/write/news/announcements.ts';
-import { createJournal, updateJournal, deleteJournal, createSection, updateSection, deleteSection, createPage, updatePage, deletePage } from './dbapi/write/news/journals.ts';
-import { getAnnouncements, getAllAnnouncements, getAnnouncementById, getJournalsForUser, getJournalPage, getAllJournals } from './dbapi/read/news/get-news.ts';
+import { getAnnouncements, getAllAnnouncements, getAnnouncementById } from './dbapi/read/news/get-news.ts';
+import { getWorldJournals, getAllWorldJournals, getWorldJournalPage } from './dbapi/read/news/get-world-journals.ts';
+import { getWikis, getAllWikis, getWikiById, getWikiPageById } from './dbapi/read/news/get-wiki.ts';
+import { createWorldJournal, updateWorldJournal, deleteWorldJournal,
+         createWorldJournalSection, updateWorldJournalSection, deleteWorldJournalSection,
+         createWorldJournalPage, updateWorldJournalPage, deleteWorldJournalPage } from './dbapi/write/news/world-journals.ts';
+import { createWiki, updateWiki, deleteWiki,
+         createWikiSection, updateWikiSection, deleteWikiSection,
+         createWikiPage, updateWikiPage, deleteWikiPage } from './dbapi/write/news/wiki.ts';
 import { resolveEnrichers, searchEnrichablesbyName } from './dbapi/read/news/resolve-enrichers.ts';
 
 import { upsertDiscordServer, deleteDiscordServer, upsertDiscordChannel, deleteDiscordChannel } from './dbapi/write/discord/servers.ts';
@@ -153,7 +160,7 @@ const adapter = new PrismaPg(pool);
 
 export const db =
     globalForPrisma.prisma ??
-    new PrismaClient({ adapter, log: process.env.NODE_ENV === 'development' ? ['query','error','warn'] : ['error'] });
+    new PrismaClient({ adapter, log: ['error'] }); // query logging removed — too noisy in dev
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
 
@@ -373,15 +380,49 @@ export const news = {
         update:    updateAnnouncement,
         delete:    deleteAnnouncement,
     },
+    worldJournals: {
+        getAll:           getAllWorldJournals,
+        getForUser:       getWorldJournals,
+        getPage:          getWorldJournalPage,
+        create:           createWorldJournal,
+        update:           updateWorldJournal,
+        delete:           deleteWorldJournal,
+        createSection:    createWorldJournalSection,
+        updateSection:    updateWorldJournalSection,
+        deleteSection:    deleteWorldJournalSection,
+        createPage:       createWorldJournalPage,
+        updatePage:       updateWorldJournalPage,
+        deletePage:       deleteWorldJournalPage,
+    },
+    wiki: {
+        getAll:           getAllWikis,
+        getForUser:       getWikis,
+        getById:          getWikiById,
+        getPage:          getWikiPageById,
+        create:           createWiki,
+        update:           updateWiki,
+        delete:           deleteWiki,
+        createSection:    createWikiSection,
+        updateSection:    updateWikiSection,
+        deleteSection:    deleteWikiSection,
+        createPage:       createWikiPage,
+        updatePage:       updateWikiPage,
+        deletePage:       deleteWikiPage,
+    },
+    // legacy alias — remove after all routes migrated
     journals: {
-        getAll:        getAllJournals,
-        getForUser:    getJournalsForUser,
-        getPage:       getJournalPage,
-        create:        createJournal,
-        update:        updateJournal,
-        delete:        deleteJournal,
-        createSection, updateSection, deleteSection,
-        createPage,    updatePage,    deletePage,
+        getAll:        getAllWikis,
+        getForUser:    getWikis,
+        getPage:       getWikiPageById,
+        create:        createWiki,
+        update:        updateWiki,
+        delete:        deleteWiki,
+        createSection:    createWikiSection,
+        updateSection:    updateWikiSection,
+        deleteSection:    deleteWikiSection,
+        createPage:       createWikiPage,
+        updatePage:       updateWikiPage,
+        deletePage:       deleteWikiPage,
     },
     enrichers: {
         resolve: resolveEnrichers,

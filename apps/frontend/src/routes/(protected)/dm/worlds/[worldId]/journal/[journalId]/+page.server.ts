@@ -14,38 +14,33 @@ async function assertCanManage(worldId: string, userId: string) {
 	return a?.canManage === true;
 }
 
+const VISIBILITY_OPTIONS = ['PUBLIC', 'WORLD', 'DM_ONLY', 'ADMIN_ONLY'] as const;
+
 export const load: PageServerLoad = async ({ params, parent, url }) => {
 	const { canManage } = await parent();
 	if (!canManage) throw error(403, 'You do not have management access to this world.');
 
-	const allJournals = await news.journals.getAll();
-	const journal = (allJournals as any[]).find((j: any) => j.id === params.journalId);
+	const journals = await news.worldJournals.getAll(params.worldId);
+	const journal  = journals.find(j => j.id === params.journalId);
 	if (!journal) throw error(404, 'Journal not found');
 
-	// Guard: journal must belong to this world
-	if (!(journal.worldIds ?? []).includes(params.worldId)) throw error(403, 'This journal does not belong to your world.');
-
 	const activePageId = url.searchParams.get('page') ?? null;
-	const activePage   = activePageId ? await news.journals.getPage(activePageId) : null;
+	const activePage   = activePageId ? await news.worldJournals.getPage(activePageId) : null;
 
-	return { journal, activePage, canManage };
+	return { journal, activePage, canManage, worldId: params.worldId, visibilityOptions: VISIBILITY_OPTIONS };
 };
 
 export const actions: Actions = {
 	updateJournal: async ({ params, request, locals }) => {
 		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
 		const data        = await request.formData();
-		const title       = data.get('title')?.toString().trim() ?? '';
-		const icon        = data.get('icon')?.toString().trim()  || null;
+		const title       = data.get('title')?.toString().trim()       ?? '';
+		const icon        = data.get('icon')?.toString().trim()        || null;
 		const description = data.get('description')?.toString().trim() || null;
 		const isPublished = data.get('isPublished') === 'true';
+		const visibility  = data.get('visibility')?.toString() as any  ?? 'PUBLIC';
 		try {
-			// Keep worldIds locked to this world
-			await news.journals.update(params.journalId, {
-				title, icon, description, isPublished,
-				worldIds: [params.worldId],
-				roleIds:  [],
-			}, locals.user!.id);
+			await news.worldJournals.update(params.journalId, { title, icon, description, isPublished, visibility }, locals.user!.id);
 			return { success: true, action: 'journal' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -55,56 +50,56 @@ export const actions: Actions = {
 
 	createSection: async ({ params, request, locals }) => {
 		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
-		const data  = await request.formData();
-		const title = data.get('title')?.toString().trim() ?? 'New Section';
-		const icon  = data.get('icon')?.toString().trim()  || undefined;
-		await news.journals.createSection({ journalId: params.journalId, title, icon }, locals.user!.id);
+		const data       = await request.formData();
+		const title      = data.get('title')?.toString().trim()  ?? 'New Section';
+		const icon       = data.get('icon')?.toString().trim()   || undefined;
+		const visibility = data.get('visibility')?.toString() as any ?? 'PUBLIC';
+		await news.worldJournals.createSection({ journalId: params.journalId, title, icon, visibility }, locals.user!.id);
 		return { success: true, action: 'section' };
 	},
 
-	updateSection: async ({ params, request, locals }) => {
+	updateSection: async ({ request, locals, params }) => {
+		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
+		const data       = await request.formData();
+		const id         = data.get('id')?.toString()            ?? '';
+		const title      = data.get('title')?.toString().trim()  ?? '';
+		const icon       = data.get('icon')?.toString().trim()   || null;
+		const sortOrder  = Number(data.get('sortOrder')          ?? 0);
+		const visibility = data.get('visibility')?.toString() as any ?? 'PUBLIC';
+		await news.worldJournals.updateSection(id, { title, icon, sortOrder, visibility }, locals.user!.id);
+		return { success: true, action: 'section' };
+	},
+
+	deleteSection: async ({ request, locals, params }) => {
+		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
+		const id = (await request.formData()).get('id')?.toString() ?? '';
+		await news.worldJournals.deleteSection(id, locals.user!.id);
+		return { success: true, action: 'section' };
+	},
+
+	createPage: async ({ request, locals, params }) => {
 		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
 		const data      = await request.formData();
-		const id        = data.get('id')?.toString() ?? '';
-		const title     = data.get('title')?.toString().trim() ?? '';
-		const icon      = data.get('icon')?.toString().trim() || null;
-		const sortOrder = Number(data.get('sortOrder') ?? 0);
-		await news.journals.updateSection(id, { title, icon, sortOrder });
-		return { success: true, action: 'section' };
-	},
-
-	deleteSection: async ({ params, request, locals }) => {
-		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
-		const data = await request.formData();
-		const id   = data.get('id')?.toString() ?? '';
-		await news.journals.deleteSection(id);
-		return { success: true, action: 'section' };
-	},
-
-	createPage: async ({ params, request, locals }) => {
-		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
-		const data      = await request.formData();
-		const sectionId = data.get('sectionId')?.toString() ?? '';
-		const title     = data.get('title')?.toString().trim() ?? 'New Page';
-		await news.journals.createPage({ sectionId, title }, locals.user!.id);
+		const sectionId = data.get('sectionId')?.toString()     ?? '';
+		const title     = data.get('title')?.toString().trim()  ?? 'New Page';
+		await news.worldJournals.createPage({ sectionId, title }, locals.user!.id);
 		return { success: true, action: 'page' };
 	},
 
-	savePage: async ({ params, request, locals }) => {
+	savePage: async ({ request, locals, params }) => {
 		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
 		const data    = await request.formData();
-		const id      = data.get('id')?.toString() ?? '';
-		const title   = data.get('title')?.toString().trim() ?? '';
+		const id      = data.get('id')?.toString()      ?? '';
+		const title   = data.get('title')?.toString()   ?? '';
 		const content = data.get('content')?.toString() ?? '';
-		await news.journals.updatePage(id, { title, content });
+		await news.worldJournals.updatePage(id, { title, content }, locals.user!.id);
 		return { success: true, action: 'pageSaved' };
 	},
 
-	deletePage: async ({ params, request, locals }) => {
+	deletePage: async ({ request, locals, params }) => {
 		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
-		const data = await request.formData();
-		const id   = data.get('id')?.toString() ?? '';
-		await news.journals.deletePage(id);
+		const id = (await request.formData()).get('id')?.toString() ?? '';
+		await news.worldJournals.deletePage(id, locals.user!.id);
 		return { success: true, action: 'pageDeleted' };
 	},
 };

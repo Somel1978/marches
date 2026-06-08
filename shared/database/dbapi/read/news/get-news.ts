@@ -21,40 +21,17 @@ export async function getAnnouncementById(id: string) {
     return db.announcement.findUnique({ where: { id } });
 }
 
-export async function getJournalsForUser(userRoleIds: string[], worldIds: string[]) {
-    const journals = await db.journal.findMany({
-        where:   { isPublished: true },
-        include: {
-            sections: {
-                orderBy: { sortOrder: 'asc' },
-                include: { pages: { orderBy: { sortOrder: 'asc' }, select: { id: true, title: true, sortOrder: true } } },
-            },
-        },
-        orderBy: { sortOrder: 'asc' },
-    });
-
-    return journals.filter(j => {
-        const worldOk = j.worldIds.length === 0 || j.worldIds.some(w => worldIds.includes(w));
-        const roleOk  = j.roleIds.length  === 0 || j.roleIds.some(r => userRoleIds.includes(r));
-        return worldOk && roleOk;
-    });
+// Deprecated — use getWikis() or getWorldJournals() instead
+export async function getJournalsForUser(_userRoleIds: string[], _worldIds: string[]) {
+    return [];
 }
 
-export async function getJournalPage(id: string) {
-    return db.journalPage.findUnique({
-        where:   { id },
-        include: { section: { include: { journal: true } } },
-    });
+// Deprecated — use getWikiPageById() or getWorldJournalPage() instead
+export async function getJournalPage(_id: string) {
+    return null;
 }
 
+// Deprecated — use getAllWikis() instead
 export async function getAllJournals() {
-    return db.journal.findMany({
-        include: {
-            sections: {
-                orderBy: { sortOrder: 'asc' },
-                include: { pages: { orderBy: { sortOrder: 'asc' } } },
-            },
-        },
-        orderBy: { sortOrder: 'asc' },
-    });
+    return [];
 }

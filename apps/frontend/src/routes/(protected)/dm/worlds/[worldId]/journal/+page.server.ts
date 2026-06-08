@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/journal/+page.server.ts
 import { fail, error, redirect } from '@sveltejs/kit';
-import { news, db } from '@core/database';
+import { news, db, worlds } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -17,23 +17,20 @@ async function assertCanManage(worldId: string, userId: string) {
 export const load: PageServerLoad = async ({ params, parent }) => {
 	const { canManage } = await parent();
 	if (!canManage) throw error(403, 'You do not have management access to this world.');
-
-	const allJournals = await news.journals.getAll();
-	// Filter to journals associated with this world
-	const journals = (allJournals as any[]).filter((j: any) =>
-		j.worldIds?.includes(params.worldId)
-	);
-
-	return { journals, canManage };
+	const [journals, world] = await Promise.all([
+		news.worldJournals.getAll(params.worldId),
+		db.world.findUnique({ where: { id: params.worldId }, select: { id: true, name: true } }),
+	]);
+	return { journals, canManage, world };
 };
 
 export const actions: Actions = {
 	create: async ({ params, locals }) => {
 		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
 		try {
-			const j = await news.journals.create(
-				{ title: 'New Journal', worldIds: [params.worldId] },
-				locals.user!.id
+			const j = await news.worldJournals.create(
+				{ worldId: params.worldId, title: 'New Journal' },
+				locals.user!.id,
 			);
 			redirect(302, `/dm/worlds/${params.worldId}/journal/${j.id}`);
 		} catch (e) {

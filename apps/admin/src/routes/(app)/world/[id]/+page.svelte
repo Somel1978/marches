@@ -35,6 +35,7 @@
 			<span class="badge {data.world.isActive ? 'badge-success' : 'badge-muted'}">{data.world.isActive ? 'Active' : 'Inactive'}</span>
 		</div>
 		<a href="/world/{data.world.id}/marketplace" class="btn btn-ghost btn-sm">🛒 Marketplace</a>
+		<a href="/world/{data.world.id}/journal" class="btn btn-ghost btn-sm">📖 Journal</a>
 	</div>
 
 	{#if form?.message}<div class="form-error">{form.message}</div>{/if}

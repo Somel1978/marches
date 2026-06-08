@@ -66,10 +66,10 @@ async function main() {
             console.error('[Discord] Stack:', e?.stack);
         }
 
-        // Poll notification queue every 10 seconds
+        // Poll notification queue every 30 seconds
         setInterval(() => processQueue(client).catch((e: any) => {
             console.error('[Discord] Queue error:', e?.message ?? e);
-        }), 10_000);
+        }), 30_000);
     });
 
     client.on('error', (e) => console.error('[Discord] Client error:', e?.message ?? e));

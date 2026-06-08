@@ -414,8 +414,8 @@ src/routes/
   (auth)/
     +layout.svelte            Centered auth card layout
     login/                    Email/password login. EMAIL_NOT_VERIFIED → pending message
-    signup/                   Self-registration → PLAYER role + welcome email → /signup/pending
-    signup/pending/           "Awaiting admin activation" page
+    signup/                   Self-registration via Better Auth → verification email → PLAYER role on verify
+    signup/pending/           "Check your email" page (pending verification)
     forgot-password/          Request password reset
     reset-password/           Token validation + set new password
   (protected)/
@@ -457,15 +457,20 @@ All vars live in the **monorepo root `.env`**. All scripts reference `../../.env
 DATABASE_URL="postgresql://user:password@localhost:5432/website_db"
 
 # Auth
-ORIGIN="http://localhost:5174"           # must match admin app URL exactly
 BETTER_AUTH_SECRET="<32+ char random string>"
-BETTER_AUTH_URL="http://localhost:5174"
 
-# Frontend URL — used as base for email verification and reset links
-FRONTEND_URL=http://localhost:5173
+# Comma-separated hostnames for dynamic baseURL resolution (Better Auth 1.5+)
+ALLOWED_HOSTS=10.0.0.183:5173,10.0.0.183:5174,www.example.com,admin.example.com
 
-# Trusted origins for better-auth CORS (comma-separated)
-TRUSTED_ORIGINS=http://localhost:5174,http://localhost:5173
+# Canonical public URL for email verification links
+SITE_URL=https://www.example.com
+
+# Trusted origins for Better Auth CSRF validation
+TRUSTED_ORIGINS=http://localhost:5173,http://localhost:5174
+
+# Port overrides for dev environment
+FRONTEND_PORT=5173
+ADMIN_PORT=5174
 
 # GitHub OAuth (optional — leave empty to disable)
 GITHUB_CLIENT_ID=
@@ -485,7 +490,7 @@ pnpm install
 
 # Set up environment
 cp .env.example .env
-# Edit .env with your DATABASE_URL, BETTER_AUTH_SECRET, ORIGIN, SEED_ADMIN_PASSWORD
+# Edit .env with your DATABASE_URL, BETTER_AUTH_SECRET, ALLOWED_HOSTS, SITE_URL, SEED_ADMIN_PASSWORD
 
 # Push schema to DB and generate Prisma client
 pnpm --filter @core/database db:push
@@ -596,8 +601,8 @@ The lightbox uses only CSS classes (`.lightbox`, `.lightbox__backdrop`, `.lightb
 **Why does email change route through `/change-email` before `/api/auth/verify-email`?**
 Better-auth's `change-email-confirmation` token handler requires an active session cookie to process the change. If the user clicks the link in a different browser or device where they're not logged in, the token is silently ignored. The `/change-email` page server checks for an active session first — if not logged in, redirects to `/login?redirectTo=<link>`. Once logged in, it forwards to `/api/auth/verify-email` with the session cookie present. The `callbackURL` chain is: `changeEmail action → /profile/email-changed → /profile?emailChanged=1` to avoid query string mangling through the redirect chain.
 
-**Why self-registered users get PLAYER role automatically but must be activated by admin?**
-Self-registration is public-facing — anyone can create an account. The PLAYER role provides the minimum permissions needed for the frontend (own User record). `emailVerified: false` blocks login until an admin activates them via `/users/[id]`, providing a human review gate before users can access the platform.
+**Why self-registered users get PLAYER role automatically on email verification?**
+Self-registration is public-facing — anyone can create an account. Better Auth handles email verification (`requireEmailVerification: true`). On verification, the `afterEmailVerification` hook assigns the PLAYER role and notifies admins via Discord DM + in-app notification. Users auto-activate — no manual admin approval step needed.
 
 **Why `pg_trgm` GIN indexes rather than full-text search (`tsvector`)?**
 `pg_trgm` handles the primary use case (substring search on name/email) with no query changes — existing `ILIKE` queries automatically use the index once it exists. Full-text search (`tsvector`) offers better ranking and language-aware stemming but requires query changes and additional schema complexity. `pg_trgm` is the right starting point; full-text search can be layered on specific features (e.g. quest search) if needed later.

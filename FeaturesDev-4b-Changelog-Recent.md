@@ -1,5 +1,28 @@
 # Marches — Changelog (Sessions 21+)
 
+### Session 73b — Approval Notifications, Auth Fixes, Build Fixes (2026-06-08)
+
+**Part 5 — Approval Workflow Notifications ✅**
+- `dispatcher.ts` — added `dmAdmins()` and `dmWorldDMs()` helpers; SUPERADMIN OR User/read/ALL query covers all admin roles; `notifyUserRegistered()` now delegates to `dmAdmins()`; `notifyCharacterPendingApproval()` and `notifyMarketplacePending()` wired to send Discord DMs in addition to channel posts
+- `notifications.ts` — `createNotificationsForAdmins()` updated to use SUPERADMIN OR User/read/ALL query (not hardcoded SUPERADMIN)
+- `shared/rbac/auth.ts` — `afterEmailVerification` hook now calls `notifications.createForAdmins()` + `queueDiscordNotification('USER_REGISTERED')` after role assignment
+- `characters/create.ts` — in-app notifications wired for `CHAR_PENDING_APPROVAL` to admins and world DMs
+- `process-queue.ts` — handles `USER_REGISTERED` type
+- `database/index.ts` — exports `queueDiscordNotification`; Prisma query logging removed (was spamming logs every 30s)
+- `discord/index.ts` — poll interval increased from 10s to 30s
+
+**Part 6 — User Signup Workflow ✅**
+- Auto-activate on email verification — no admin approval gate needed
+- Admin notified via Discord DM + in-app notification when user verifies email
+- `SITE_URL` env var used for canonical origin in verification emails (SvelteKit reserves `PUBLIC_` prefix)
+
+**Bug fixes**
+- `species.ts` — `grantsFeatCategory` and `grantsFeatId` added to `createDnd5eBackground` and `updateDnd5eBackground` type signatures
+- `get-items.ts` — `description` added to `getAllMarketplaceItemsForExport` select
+- `dispatcher.ts` — `DMProfile` has no `user` relation; fixed to query `userId` then look up users separately
+- `auth.ts` — `BETTER_AUTH_SECRET ?? ''` fallback to satisfy TypeScript `string` type
+- `characters/create.ts` — missing `.ts` extension on dispatcher import
+
 ### Session 73 — Dev Environment, ASI Wizard Step, Auth & Build Fixes (2026-06-08)
 
 **Dev Environment**

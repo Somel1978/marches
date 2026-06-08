@@ -25,7 +25,6 @@
 				{ href: '/characters',  label: 'Characters'  },
 				{ href: '/quests',      label: 'Quests'      },
 				{ href: '/world',       label: 'World'       },
-				{ href: '/journal',     label: 'Journal'     },
 				{ href: '/stats',       label: 'Statistics'  },
 			],
 		},
@@ -40,6 +39,7 @@
 			label: 'Community',
 			items: [
 				{ href: '/news',               label: 'News'           },
+				{ href: '/wiki',               label: 'Wiki'           },
 				{ href: '/tools/dndpointbuy',  label: 'Point Buy'      },
 			],
 		},

@@ -6,9 +6,14 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	const journal    = $derived((data as any).journal);
-	const activePage = $derived((data as any).activePage);
-	const world      = $derived((data as any).world);
+	const journal           = $derived((data as any).journal);
+	const activePage        = $derived((data as any).activePage);
+	const worldId           = $derived((data as any).worldId);
+	const visibilityOptions = $derived((data as any).visibilityOptions ?? ['PUBLIC','WORLD','DM_ONLY','ADMIN_ONLY']);
+
+	const visibilityLabel: Record<string,string> = {
+		PUBLIC: '🌐 Public', WORLD: '🌍 World', DM_ONLY: '🎲 DM Only', ADMIN_ONLY: '🔒 Admin Only',
+	};
 
 	let editContent = $state('');
 	let editTitle   = $state('');
@@ -81,7 +86,7 @@
 	}
 </script>
 
-<a href="/dm/worlds/{world?.id}/journal" class="back-link" style="display:inline-block; margin-bottom:0.75rem;">← Journals</a>
+<a href="/dm/worlds/{worldId}/journal" class="back-link" style="display:inline-block; margin-bottom:0.75rem;">← Journals</a>
 
 {#if (form as any)?.success}<div class="form-success" style="margin-bottom:0.75rem;">Saved.</div>{/if}
 
@@ -107,11 +112,23 @@
 						<textarea id="j-desc" name="description" class="input" rows="2">{journal.description ?? ''}</textarea>
 					</div>
 					<div class="field">
-						<label class="label" for="j-pub">Published</label>
-						<select id="j-pub" name="isPublished" class="input input--select">
-							<option value="false" selected={!journal.isPublished}>Draft</option>
-							<option value="true"  selected={journal.isPublished}>Published</option>
-						</select>
+						<div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+							<div class="field" style="flex:1;margin:0;">
+								<label class="label" for="j-pub">Status</label>
+								<select id="j-pub" name="isPublished" class="input input--select">
+									<option value="false" selected={!journal.isPublished}>Draft</option>
+									<option value="true"  selected={journal.isPublished}>Published</option>
+								</select>
+							</div>
+							<div class="field" style="flex:1;margin:0;">
+								<label class="label" for="j-vis">Visibility</label>
+								<select id="j-vis" name="visibility" class="input input--select">
+									{#each visibilityOptions as v}
+										<option value={v} selected={journal.visibility === v}>{visibilityLabel[v] ?? v}</option>
+									{/each}
+								</select>
+							</div>
+						</div>
 					</div>
 				</div>
 				<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">Save settings</button></div>
@@ -129,6 +146,11 @@
 							style="width:36px; text-align:center; font-size:1rem; padding:0.125rem; flex-shrink:0;" placeholder="📂" />
 						<input name="title" type="text" class="input" value={section.title}
 							style="flex:1; font-size:0.875rem; font-weight:600; padding:0.25rem 0.5rem;" required />
+						<select name="visibility" class="input input--select" style="font-size:0.75rem;flex:0 0 130px;">
+							{#each visibilityOptions as v}
+								<option value={v} selected={section.visibility === v}>{visibilityLabel[v] ?? v}</option>
+							{/each}
+						</select>
 						<button type="submit" class="btn btn-ghost btn-sm" style="font-size:0.75rem; padding:0.25rem 0.5rem;">✓</button>
 						<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger); font-size:0.75rem;"
 							onclick={() => {
@@ -143,7 +165,7 @@
 					{#each section.pages ?? [] as pg}
 						<button type="button"
 							style="display:block; width:100%; text-align:left; padding:0.25rem 0.5rem 0.25rem 1.5rem; font-size:0.8125rem; background:{activePage?.id === pg.id ? 'var(--bg-active)' : 'none'}; border:none; border-radius:var(--radius-sm); cursor:pointer; color:{activePage?.id === pg.id ? 'var(--color-accent)' : 'var(--text-secondary)'};"
-							onclick={() => goto(`/dm/worlds/${world?.id}/journal/${journal.id}?page=${pg.id}`)}>
+							onclick={() => goto(`/dm/worlds/${worldId}/journal/${journal.id}?page=${pg.id}`)}>
 							{pg.title}
 						</button>
 					{/each}
@@ -228,7 +250,7 @@
 
 {#if activePage}
 	<form id="del-pg-form" method="post" action="?/deletePage" use:enhance={() => {
-		return async ({ update }) => { goto(`/dm/worlds/${world?.id}/journal/${journal.id}`); await update(); };
+		return async ({ update }) => { goto(`/dm/worlds/${worldId}/journal/${journal.id}`); await update(); };
 	}} style="display:none;">
 		<input type="hidden" name="id" value={activePage.id} />
 	</form>

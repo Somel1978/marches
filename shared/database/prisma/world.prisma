@@ -45,6 +45,7 @@ model World {
 
   regions      Region[]
   dms          WorldDM[]
+  journals     WorldJournal[]
 
   @@map("worlds")
   @@schema("world")

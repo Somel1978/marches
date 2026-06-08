@@ -1,7 +1,7 @@
 // apps/admin/src/routes/(app)/role-requests/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
 import { dms } from '@core/database';
-import { assertListPermission, checkPermission } from '@core/rbac';
+import { assertListPermission, checkPermission, invalidateUserPermissions } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -26,6 +26,9 @@ export const actions: Actions = {
 
 		try {
 			await dms.roleRequests.approve(id, note, locals.user!.id);
+			// Invalidate permission cache for the approved user — looked up by request id
+			const req = await dms.roleRequests.getAll().then(all => all.find((r: any) => r.id === id));
+			if (req?.userId) invalidateUserPermissions(req.userId);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

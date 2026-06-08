@@ -2,6 +2,7 @@
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "@core/database";
 import { roles, notifications, queueDiscordNotification } from "@core/database";
+import { invalidateUserPermissions } from "./access.ts";
 import type { BetterAuthOptions, BetterAuthPlugin } from "better-auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -101,7 +102,6 @@ export function getBaseAuthConfig({
                 },
                 afterEmailVerification: async (user) => {
                     // Assign PLAYER role on first verification.
-                    // This is the correct place — user is confirmed real.
                     try {
                         const allRoles   = await roles.getAll();
                         const playerRole = allRoles.find((r: any) => r.name === 'PLAYER');
@@ -113,10 +113,26 @@ export function getBaseAuthConfig({
                                 await db.userRole.create({
                                     data: { userId: user.id, roleId: playerRole.id },
                                 });
+                                invalidateUserPermissions(user.id);
                             }
                         }
                     } catch (e) {
                         console.error('[auth] afterEmailVerification role assignment failed:', e);
+                    }
+
+                    // Notify admins — in-app + Discord DM queue
+                    try {
+                        await notifications.createForAdmins(
+                            'USER_REGISTERED',
+                            'New user registered',
+                            `${user.name} (${user.email}) has verified their email and joined the platform.`,
+                            `/users/${user.id}`,
+                        );
+                        await queueDiscordNotification('USER_REGISTERED', {
+                            user: { id: user.id, name: user.name, email: user.email },
+                        });
+                    } catch (e) {
+                        console.error('[auth] afterEmailVerification admin notification failed:', e);
                     }
                 },
               }

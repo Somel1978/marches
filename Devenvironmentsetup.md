@@ -376,7 +376,7 @@ Two separate Better Auth instances (admin + frontend) sharing one DB causes cook
 
 ---
 
-## Part 5 — Approval Workflow Notifications
+## Part 5 — Approval Workflow Notifications ✅ Done
 
 ### Problem
 When users, characters, or transactions are submitted for approval, admins and DMs have no real-time notification. They only find out by checking the admin panel manually.
@@ -424,7 +424,7 @@ Add notification preferences to user settings:
 
 ---
 
-## Part 6 — User Signup Workflow Revision (Partially Done)
+## Part 6 — User Signup Workflow Revision ✅ Done
 
 ### Current flow (partially implemented)
 1. ✅ User fills signup form → `auth.handler('/api/auth/sign-up/email')` — Better Auth owns user creation
@@ -432,9 +432,9 @@ Add notification preferences to user settings:
 3. ✅ User clicks link → `emailVerified = true`, PLAYER role assigned in `afterEmailVerification` hook
 4. ✅ User auto-signed in after verification (`autoSignInAfterVerification: true`)
 5. ✅ `/signup/pending` updated to "Check your email" messaging
-6. ⬜ Admin approval step — not yet implemented (users go directly active after email verification)
-7. ⬜ Admin notified when new user signs up
-8. ⬜ User notified when approved
+6. ✅ Admin approval step — removed, users auto-activate on email verification
+7. ✅ Admins notified when a user verifies their email (Discord DM + in-app notification)
+8. ✅ User notification on approval — not needed, auto-activate
 
 ### What was fixed (session 72)
 - `registerUser()` bypass removed from self-signup — Better Auth now owns account creation
@@ -494,12 +494,9 @@ if (session && user.status !== 'ACTIVE') {
 - Discord OAuth linking flow unchanged
 - RBAC/role assignment unchanged — just triggered at a different point
 
-### Remaining implementation
-1. ⬜ Schema — add `UserStatus` enum + `status` field, `db:push`
-2. ✅ Signup route — uses `auth.handler('/api/auth/sign-up/email')`
-3. ✅ `afterEmailVerification` hook — assigns PLAYER role
-4. ⬜ `hooks.server.ts` — enforce `status === 'ACTIVE'` gate
-5. ⬜ Admin user edit — replace `emailVerified` toggle with `status` select (PENDING/ACTIVE/SUSPENDED)
-6. ⬜ Approval action — set `status = ACTIVE`, send notification to user
-7. ✅ `/signup/pending` — updated messaging
-8. ⬜ Notifications — wire into Part 5 approval notification system
+### Implementation
+1. ✅ Signup route — uses `auth.handler('/api/auth/sign-up/email')`
+2. ✅ `afterEmailVerification` hook — assigns PLAYER role, notifies admins
+3. ✅ `/signup/pending` — updated messaging ("Check your email")
+4. ✅ Admin notified via Discord DM + in-app notification on verification
+5. ~~Admin approval gate~~ — dropped, users auto-activate on email verification
