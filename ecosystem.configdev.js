@@ -1,4 +1,4 @@
-// ecosystem.config.js
+// ecosystem.configdev.js
 module.exports = {
   apps: [
     {
@@ -24,4 +24,4 @@ module.exports = {
       env: { NODE_ENV: 'development' },
     },
   ],
-};
+}
