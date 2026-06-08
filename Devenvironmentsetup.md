@@ -308,7 +308,7 @@ worldJournals WorldJournal[]
 
 ---
 
-## Part 3 — ASI/Feat Step in Character Creation Wizard
+## Part 3 — ASI/Feat Step in Character Creation Wizard ✅ Done
 
 ### Problem
 When a character is created at a level that grants ASI/Feat slots (e.g. level 4 Fighter gets "Ability Score Improvement"), the wizard skips those choices entirely. The player only sees the ASI picker after the DM approves the character, which is too late and confusing.

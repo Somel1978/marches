@@ -98,6 +98,7 @@ export async function getAllMarketplaceItemsForExport() {
             source:             true,
             imageUrl:           true,
             link:               true,
+            description:        true,
         },
     });
 }

@@ -11,7 +11,7 @@ export const auth = betterAuth({
 		allowedHosts:   env.ALLOWED_HOSTS   ?? '10.0.0.183',
 		publicURL:      env.SITE_URL      ?? 'http://10.0.0.183:5173',
 		trustedOrigins: env.TRUSTED_ORIGINS ?? '',
-		secret:         env.BETTER_AUTH_SECRET,
+		secret:         env.BETTER_AUTH_SECRET ?? '',  // required — set BETTER_AUTH_SECRET in .env
 		emailSender: {
 			sendWelcome:      sendWelcomeEmail,
 			sendVerification: sendVerificationEmail,

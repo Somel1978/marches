@@ -67,6 +67,7 @@ export async function createDnd5eBackground(input: {
     gameSystemId: string; name: string; shortDescription?: string;
     featureName?: string; skillProficiencies?: string; toolProficiencies?: string;
     languages?: string; url?: string; sortOrder?: number;
+    grantsFeatCategory?: string; grantsFeatId?: string;
 }, actorId: string) {
     const b = await db.dnd5eBackground.create({ data: {
         gameSystemId:       input.gameSystemId,
@@ -78,6 +79,8 @@ export async function createDnd5eBackground(input: {
         languages:          input.languages            ?? null,
         url:                input.url                  ?? null,
         sortOrder:          input.sortOrder            ?? 0,
+        grantsFeatCategory: input.grantsFeatCategory  ?? null,
+        grantsFeatId:       input.grantsFeatId         ?? null,
     }});
     await logAudit(db, { actorId, action: 'CREATE', resourceKey: 'GameSystem', resourceId: b.id, after: b });
     return b;
@@ -87,6 +90,7 @@ export async function updateDnd5eBackground(id: string, input: Partial<{
     name: string; shortDescription: string | null; featureName: string | null;
     skillProficiencies: string | null; toolProficiencies: string | null;
     languages: string | null; url: string | null; isAvailable: boolean; sortOrder: number;
+    grantsFeatCategory: string | null; grantsFeatId: string | null;
 }>, actorId: string) {
     const before = await db.dnd5eBackground.findUnique({ where: { id } });
     if (!before) throw new NotFoundError('Dnd5eBackground', id);

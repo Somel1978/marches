@@ -72,6 +72,7 @@ import { createAchievement, updateAchievement, grantAchievement, revokeAchieveme
 import { getAllAchievements, getCharacterAchievements } from './dbapi/read/rewards/get-achievements.ts';
 
 // ── Notifications ────────────────────────────────────────────────────────────────
+import { queueDiscordNotification } from './dbapi/write/discord/dispatcher.ts';
 import { getUnreadNotifications, getNotifications  } from './dbapi/read/notifications/get-notifications.ts';
 import { createNotification, createNotificationsForAdmins, createNotificationsForWorldDMs,
          markNotificationRead, markAllNotificationsRead } from './dbapi/write/notifications/notifications.ts';
@@ -325,6 +326,8 @@ export const worlds = {
         upsert:       upsertWikiPage,
     },
 };
+
+export { queueDiscordNotification };
 
 export const notifications = {
     getUnread:      getUnreadNotifications,

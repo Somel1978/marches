@@ -1,7 +1,7 @@
 // shared/rbac/auth.ts
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "@core/database";
-import { roles } from "@core/database";
+import { roles, notifications, queueDiscordNotification } from "@core/database";
 import type { BetterAuthOptions, BetterAuthPlugin } from "better-auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

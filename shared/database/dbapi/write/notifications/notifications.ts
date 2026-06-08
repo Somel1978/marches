@@ -19,12 +19,17 @@ export async function createNotificationsForAdmins(
     message:   string,
     actionUrl?: string,
 ) {
-    // Find all users with SUPERADMIN role
-    const adminRoles = await db.role.findMany({
-        where: { name: { in: ['SUPERADMIN'] } },
-        include: { userRoles: { select: { userId: true } } },
+    // Find all users who have User/read/ALL permission — any role name.
+    // This supports custom admin roles beyond SUPERADMIN.
+    const userRoles = await db.userRole.findMany({
+        where: {
+            role: {
+                permissions: { some: { resourceKey: 'User', canRead: 'ALL' } },
+            },
+        },
+        select: { userId: true },
     });
-    const adminIds = [...new Set(adminRoles.flatMap(r => r.userRoles.map(ur => ur.userId)))];
+    const adminIds = [...new Set(userRoles.map(ur => ur.userId))];
     if (!adminIds.length) return;
 
     await db.notification.createMany({

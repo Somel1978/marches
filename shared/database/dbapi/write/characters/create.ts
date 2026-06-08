@@ -5,7 +5,7 @@ import { ConflictError, ValidationError } from '@core/errors';
 import { getSlotInfo } from '../../read/characters/get-slot-info.ts';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
 import { createNotificationsForAdmins, createNotificationsForWorldDMs } from '../notifications/notifications.ts';
-import { queueDiscordNotification } from '../discord/dispatcher';
+import { queueDiscordNotification } from '../discord/dispatcher.ts';
 
 // Universal character creation — no system-specific fields
 // For dnd5e characters use dnd5e.createCharacter() instead
@@ -86,6 +86,22 @@ export async function createCharacter(
     }
 
     try {
+        // In-app notifications for admins and world DMs
+        await createNotificationsForAdmins(
+            'CHAR_PENDING_APPROVAL',
+            `Character awaiting approval: ${input.name}`,
+            `${input.name} has been submitted for review.`,
+            `/characters/${character.id}`,
+        ).catch(e => console.error('[notifications] admin notify failed:', e));
+        if (input.worldId) {
+            await createNotificationsForWorldDMs(
+                input.worldId,
+                'CHAR_PENDING_APPROVAL',
+                `Character awaiting approval: ${input.name}`,
+                `${input.name} has been submitted for review.`,
+                `/dm/worlds/${input.worldId}/characters/${character.id}`,
+            ).catch(e => console.error('[notifications] world DM notify failed:', e));
+        }
         await queueDiscordNotification('CHAR_PENDING_APPROVAL', {
             char: { name: character.name, statusReason: 'NEW_CHARACTER', worldId: input.worldId ?? null },
         });

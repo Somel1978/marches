@@ -118,6 +118,64 @@ export async function notifyQuestResult(quest: any, resultChars: any[]) {
 
 // ── Character notifications ───────────────────────────────────────────────────
 
+
+// ── DM helpers ────────────────────────────────────────────────────────────────
+
+async function dmAdmins(embed: EmbedBuilder) {
+    if (!_client) return;
+    const { db } = await import('@core/database');
+    const rows = await db.userRole.findMany({
+        where: { role: { permissions: { some: { resourceKey: 'User', canRead: 'ALL' } } } },
+        select: { user: { select: { discordId: true } } },
+    });
+    const seen = new Set<string>();
+    for (const row of rows) {
+        const discordId = (row as any).user?.discordId;
+        if (!discordId || seen.has(discordId)) continue;
+        seen.add(discordId);
+        try {
+            const u = await _client.users.fetch(discordId);
+            await u.send({ embeds: [embed] });
+        } catch (e: any) {
+            console.error('[Discord] DM to admin failed:', e?.message ?? e);
+        }
+    }
+}
+
+async function dmWorldDMs(worldId: string, embed: EmbedBuilder) {
+    if (!_client) return;
+    const { db } = await import('@core/database');
+    // WorldDM has no relation to DMProfile — join manually
+    const assignments = await db.worldDM.findMany({
+        where:  { worldId, canManage: true },
+        select: { dmProfileId: true },
+    });
+    const profileIds = assignments.map((a: any) => a.dmProfileId);
+    if (!profileIds.length) return;
+    const profiles = await db.dMProfile.findMany({
+        where:  { id: { in: profileIds } },
+        select: { userId: true },
+    });
+    const userIds = profiles.map((p: any) => p.userId);
+    if (!userIds.length) return;
+    const users = await db.user.findMany({
+        where:  { id: { in: userIds } },
+        select: { discordId: true },
+    });
+    const seen = new Set<string>();
+    for (const a of users) {
+        const discordId = (a as any).discordId;
+        if (!discordId || seen.has(discordId)) continue;
+        seen.add(discordId);
+        try {
+            const u = await _client.users.fetch(discordId);
+            await u.send({ embeds: [embed] });
+        } catch (e: any) {
+            console.error('[Discord] DM to world DM failed:', e?.message ?? e);
+        }
+    }
+}
+
 export async function notifyCharacterPendingApproval(char: any) {
     const embed = new EmbedBuilder()
         .setTitle(`📋 Character Awaiting Approval: ${char.name}`)
@@ -127,6 +185,9 @@ export async function notifyCharacterPendingApproval(char: any) {
         .setTimestamp();
     await send('global', 'APPROVALS', embed);
     if (char.worldId) await send(char.worldId, 'APPROVALS', embed);
+    // DM admins and world DMs directly
+    await dmAdmins(embed);
+    if (char.worldId) await dmWorldDMs(char.worldId, embed);
 }
 
 export async function notifyCharacterApproved(char: any) {
@@ -161,6 +222,9 @@ export async function notifyMarketplacePending(char: any, item: any, type: 'BUY'
         .setTimestamp();
     await send('global', 'APPROVALS', embed);
     if (worldId) await send(worldId, 'APPROVALS', embed);
+    // DM world DMs directly (and admins as fallback)
+    if (worldId) await dmWorldDMs(worldId, embed);
+    else await dmAdmins(embed);
 }
 
 export async function notifyItemPurchased(char: any, item: any, worldId?: string) {
@@ -227,4 +291,42 @@ export async function notifyInvite(discordId: string, quest: any) {
         if (quest.scheduledAt) embed.addFields({ name: 'Scheduled', value: new Date(quest.scheduledAt).toLocaleString(), inline: true });
         await user.send({ embeds: [embed] });
     } catch { /* user has DMs disabled */ }
+}
+// ── User registered ───────────────────────────────────────────────────────────
+export async function notifyUserRegistered(user: { id: string; name: string; email: string }) {
+    if (!_client) return;
+
+    // Find all users who have User/read/ALL permission — any role, not just SUPERADMIN.
+    // This way a custom admin role with user management access also gets notified.
+    const { db } = await import('@core/database');
+    const allAdmins = await db.userRole.findMany({
+        where: {
+            role: {
+                permissions: {
+                    some: { resourceKey: 'User', canRead: 'ALL' },
+                },
+            },
+        },
+        include: { user: { select: { discordId: true } } },
+    });
+
+    const embed = new EmbedBuilder()
+        .setTitle('🆕 New User Registered')
+        .setColor(0x5865F2)
+        .addFields(
+            { name: 'Name',  value: user.name,  inline: true },
+            { name: 'Email', value: user.email, inline: true },
+        )
+        .setTimestamp();
+
+    for (const adminRole of allAdmins) {
+        const discordId = (adminRole as any).user?.discordId;
+        if (!discordId) continue;
+        try {
+            const discordUser = await _client.users.fetch(discordId);
+            await discordUser.send({ embeds: [embed] });
+        } catch (e: any) {
+            console.error(`[Discord] Failed to DM admin ${discordId}:`, e?.message ?? e);
+        }
+    }
 }
