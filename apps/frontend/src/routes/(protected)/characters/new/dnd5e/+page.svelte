@@ -2,6 +2,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { browser } from '$app/environment';
+	import { untrack } from 'svelte';
 	import { generateFantasyName } from '@core/ui';
 	import type { PageData, ActionData } from './$types';
 
@@ -10,19 +11,18 @@
 	const sys = $derived((data as any).systemData);
 
 	// ── Steps ────────────────────────────────────────────────────────────────
-	const STEPS = [
+	const BASE_STEPS  = [
 		{ label: 'Identity'  },
 		{ label: 'Species'   },
 		{ label: 'Background'},
 		{ label: 'Scores'    },
 		{ label: 'Classes'   },
-		{ label: 'Review'    },
 	];
+	const REVIEW_STEP = { label: 'Review' };
+	const ASI_STEP    = { label: 'ASI / Feats' };
+
 	let step = $state(0);
-	function next() { if (canAdvance && step < STEPS.length - 1) step++; }
-	function back() { if (step > 0) step--; }
-	function goTo(i: number) { if (i <= step) step = i; }
-	const nextLabel = $derived(step < STEPS.length - 1 ? STEPS[step + 1].label : '');
+	// STEPS, next, back, goTo, nextLabel defined after ASI section (STEPS is derived)
 
 	// ── Step 1: Identity ─────────────────────────────────────────────────────
 	let name        = $state('');
@@ -97,6 +97,18 @@
 	let bonus  = $state<Record<string,number>>({ STRENGTH:0, DEXTERITY:0, CONSTITUTION:0, INTELLIGENCE:0, WISDOM:0, CHARISMA:0 });
 
 	const total      = $derived(Object.fromEntries(STATS.map(st => [st, scores[st] + bonus[st]])) as Record<string,number>);
+
+	// Scores after applying ASI stat bumps — used in review and submitted to server
+	const finalScores = $derived.by(() => {
+		const s = { ...total };
+		for (const c of asiChoices) {
+			if (c.mode === 'stat') {
+				if (c.stat1) s[c.stat1] = (s[c.stat1] ?? 0) + (c.amount1 || 0);
+				if (c.stat2) s[c.stat2] = (s[c.stat2] ?? 0) + (c.amount2 || 0);
+			}
+		}
+		return s;
+	});
 	const spent      = $derived(STATS.reduce((s,st) => s + (POINT_COSTS[scores[st]] ?? 0), 0));
 	const remaining  = $derived(BUDGET - spent);
 	const bonusSpent = $derived(STATS.reduce((s,st) => s + bonus[st], 0));
@@ -221,6 +233,107 @@
 	}
 	const classesValid = $derived(totalLevel >= 1 && classAllocs.every(c => c.classId));
 
+	// ── Step 6: ASI / Feats ──────────────────────────────────────────────────
+	type AsiChoice = {
+		sourceClassId: string;
+		sourceLevel:   number;
+		type:          'asi' | 'epic_boon';
+		canEpicBoon:   boolean;
+		mode:          'stat' | 'feat' | null;
+		stat1:         string;
+		amount1:       number;
+		stat2:         string;
+		amount2:       number;
+		featId:        string;
+		sourceName:    string;
+	};
+
+	// Compute ASI slots client-side — same logic as getCharacterSheet
+	// Both class AND subclass features grant ASI/Epic Boon slots
+	const asiSlots = $derived.by(() => {
+		const slots: Omit<AsiChoice, 'mode'|'stat1'|'amount1'|'stat2'|'amount2'|'featId'>[] = [];
+		const level = classAllocs.reduce((s, c) => s + (c.allocatedLevel || 0), 0);
+		for (const alloc of classAllocs) {
+			const classRef    = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			const subclassRef = classRef?.subclasses?.find((s: any) => s.id === alloc.subclassId);
+			const classFeats  = (classRef?.features    ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel);
+			const subFeats    = (subclassRef?.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel);
+			for (const feat of [...classFeats, ...subFeats]) {
+				const isAsi      = feat.name === 'Ability Score Improvement';
+				const isEpicBoon = feat.name === 'Epic Boon Feat';
+				if (!isAsi && !isEpicBoon) continue;
+				slots.push({
+					sourceClassId: alloc.classId,
+					sourceLevel:   feat.requiredLevel,
+					type:          isEpicBoon ? 'epic_boon' : 'asi',
+					canEpicBoon:   level >= 19,
+					sourceName:    classRef?.name ?? alloc.classId,
+				});
+			}
+		}
+		return slots;
+	});
+
+	// asiChoices: one entry per slot, persisted
+	let asiChoices = $state<AsiChoice[]>([]);
+
+	// Sync asiChoices when slots change.
+	// untrack() reads asiChoices without subscribing to it, preventing a circular dependency.
+	$effect(() => {
+		const slots = asiSlots; // reactive dependency
+		asiChoices = slots.map(slot => {
+			const existing = untrack(() => asiChoices).find(
+				(c: AsiChoice) => c.sourceClassId === slot.sourceClassId && c.sourceLevel === slot.sourceLevel
+			);
+			return existing ?? {
+				...slot,
+				mode: null as null, stat1: '', amount1: 2, stat2: '', amount2: 0, featId: '',
+			};
+		});
+	});
+
+	const hasAsiStep = $derived(asiSlots.length > 0);
+
+	// Dynamic steps — insert ASI step only when there are slots
+	const STEPS = $derived(hasAsiStep
+		? [...BASE_STEPS, ASI_STEP, REVIEW_STEP]
+		: [...BASE_STEPS, REVIEW_STEP]
+	);
+
+	// Navigation — defined here because STEPS is derived above
+	function next()            { if (canAdvance && step < STEPS.length - 1) step++; }
+	function back()            { if (step > 0) step--; }
+	function goTo(i: number)   { if (i <= step) step = i; }
+	const nextLabel = $derived(step < STEPS.length - 1 ? STEPS[step + 1].label : '');
+
+	// Step indices
+	const ASI_STEP_IDX    = $derived(hasAsiStep ? 5 : -1);
+	const REVIEW_STEP_IDX = $derived(hasAsiStep ? 6 : 5);
+
+	// Available feats for ASI feat pick (all available feats)
+	const availableFeats = $derived((sys?.feats ?? []).filter((f: any) => f.isAvailable !== false));
+
+	// Epic Boon feats filtered by category
+	const epicBoonFeats = $derived(
+		(sys?.feats ?? []).filter((f: any) => f.isAvailable !== false &&
+			(f.categories ?? '').split(',').map((s: string) => s.trim().toLowerCase()).includes('epic boon')
+		)
+	);
+
+	// ASI feat ID — the "Ability Score Improvement" feat from systemData
+	const asiFeatId = $derived(
+		(sys?.feats ?? []).find((f: any) => f.name === 'Ability Score Improvement')?.id ?? ''
+	);
+
+	const asiValid = $derived(
+		asiChoices.every(c => {
+			if (c.type === 'epic_boon') return !!c.featId;
+			if (c.mode === 'feat')      return !!c.featId;
+			if (c.mode === 'stat')      return !!c.stat1 && c.amount1 > 0;
+			return false;
+		})
+	);
+
 
 	// ── sessionStorage persistence ───────────────────────────────────────────
 	const STORAGE_KEY = 'wizard_dnd5e';
@@ -232,7 +345,7 @@
 				step, name, avatarUrl, portraitUrl, worldId,
 				speciesId, backgroundId, bgFeatPick,
 				scores, rolled, bonusGranted, bonus,
-				classAllocs,
+				classAllocs, asiChoices,
 			}));
 		} catch (_) {}
 	}
@@ -255,7 +368,8 @@
 			if (s.rolled      !== undefined) rolled       = s.rolled;
 			if (s.bonusGranted!== undefined) bonusGranted = s.bonusGranted;
 			if (s.bonus       !== undefined) bonus        = s.bonus;
-			if (s.classAllocs !== undefined) classAllocs  = s.classAllocs;
+			if (s.classAllocs  !== undefined) classAllocs  = s.classAllocs;
+		if (s.asiChoices   !== undefined) asiChoices   = s.asiChoices;
 		} catch (_) {}
 	}
 
@@ -269,7 +383,7 @@
 	$effect(() => {
 		// Track all state — any change triggers save
 		void [step, name, avatarUrl, portraitUrl, worldId, speciesId, backgroundId,
-			bgFeatPick, scores, rolled, bonusGranted, bonus, classAllocs];
+			bgFeatPick, scores, rolled, bonusGranted, bonus, classAllocs, asiChoices];
 		saveState();
 	});
 
@@ -281,10 +395,14 @@
 			case 2: return !!backgroundId && bgFeatValid;
 			case 3: return scoresValid;
 			case 4: return classesValid;
+			case 5: return !hasAsiStep || asiValid;
 			default: return true;
 		}
 	});
-	const canSubmit = $derived(name.trim().length > 0 && !!speciesId && !!backgroundId && bgFeatValid && scoresValid && classesValid);
+	const canSubmit = $derived(
+		name.trim().length > 0 && !!speciesId && !!backgroundId && bgFeatValid &&
+		scoresValid && classesValid && (!hasAsiStep || asiValid)
+	);
 </script>
 
 <div class="page">
@@ -853,8 +971,114 @@
 			</div>
 		{/if}
 
-	<!-- ════ Step 6: Review ════ -->
-	{:else if step === 5}
+	<!-- ════ Step 6: ASI / Feats ════ -->
+	{:else if step === ASI_STEP_IDX}
+		<div style="display:flex;flex-direction:column;gap:1rem;">
+			<div class="card" style="padding:0.875rem;">
+				<h3 class="section-title" style="margin:0 0 0.25rem;">Ability Score Improvements & Feats</h3>
+				<p style="font-size:0.8125rem;color:var(--text-muted);margin:0 0 1rem;">
+					Your classes grant the following improvements. Choose for each slot.
+				</p>
+				<div style="display:flex;flex-direction:column;gap:1rem;">
+					{#each asiChoices as choice, i}
+						{@const isEpicBoon = choice.type === 'epic_boon'}
+						<div style="padding:0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-muted);">
+							<!-- Slot header -->
+							<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.625rem;flex-wrap:wrap;">
+								<span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">
+									{choice.sourceName} · Lv {choice.sourceLevel}
+								</span>
+								{#if isEpicBoon}
+									<span class="badge badge-accent" style="font-size:0.6875rem;">Epic Boon</span>
+								{:else}
+									<span class="badge badge-muted" style="font-size:0.6875rem;">ASI</span>
+								{/if}
+							</div>
+
+							{#if isEpicBoon}
+								<!-- Epic Boon — must pick epic boon feat -->
+								<div class="field" style="margin:0;">
+									<label class="label" for="asi-epic-{i}">Choose an Epic Boon Feat</label>
+									<select id="asi-epic-{i}" class="input input--select" bind:value={asiChoices[i].featId}
+										onchange={() => asiChoices[i].mode = 'feat'}>
+										<option value="">— Select feat —</option>
+										{#each epicBoonFeats as feat}
+											<option value={feat.id}>{feat.name}</option>
+										{/each}
+									</select>
+								</div>
+							{:else}
+								<!-- ASI — choose mode first -->
+								<div style="display:flex;gap:0.5rem;margin-bottom:0.625rem;flex-wrap:wrap;">
+									<button
+										class="btn btn-sm"
+										class:btn-primary={asiChoices[i].mode === 'stat'}
+										class:btn-ghost={asiChoices[i].mode !== 'stat'}
+										onclick={() => { asiChoices[i].mode = 'stat'; asiChoices[i].featId = ''; }}>
+										+2 / +1+1
+									</button>
+									<button
+										class="btn btn-sm"
+										class:btn-primary={asiChoices[i].mode === 'feat'}
+										class:btn-ghost={asiChoices[i].mode !== 'feat'}
+										onclick={() => { asiChoices[i].mode = 'feat'; asiChoices[i].stat1 = ''; asiChoices[i].stat2 = ''; }}>
+										Take a Feat
+									</button>
+								</div>
+
+								{#if asiChoices[i].mode === 'stat'}
+									<!-- Stat bump UI -->
+									<div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;">
+										<div class="field" style="margin:0;flex:1;min-width:140px;">
+											<label class="label" for="asi-stat1-{i}">Stat</label>
+											<select id="asi-stat1-{i}" class="input input--select" bind:value={asiChoices[i].stat1}>
+												<option value="">— Choose stat —</option>
+												{#each STATS as st}<option value={st}>{STAT_LABEL[st]}</option>{/each}
+											</select>
+										</div>
+										<div class="field" style="margin:0;flex:0 0 80px;">
+											<label class="label" for="asi-amount1-{i}">Amount</label>
+											<select id="asi-amount1-{i}" class="input input--select" bind:value={asiChoices[i].amount1}
+												onchange={() => { if (asiChoices[i].amount1 === 2) { asiChoices[i].stat2 = ''; asiChoices[i].amount2 = 0; } else { asiChoices[i].amount2 = 1; } }}>
+												<option value={2}>+2</option>
+												<option value={1}>+1</option>
+											</select>
+										</div>
+										{#if asiChoices[i].amount1 === 1}
+											<div class="field" style="margin:0;flex:1;min-width:140px;">
+												<label class="label" for="asi-stat2-{i}">Second Stat (+1)</label>
+												<select id="asi-stat2-{i}" class="input input--select" bind:value={asiChoices[i].stat2}>
+													<option value="">— Choose stat —</option>
+													{#each STATS as st}
+														{#if st !== asiChoices[i].stat1}
+															<option value={st}>{STAT_LABEL[st]}</option>
+														{/if}
+													{/each}
+												</select>
+											</div>
+										{/if}
+									</div>
+								{:else if asiChoices[i].mode === 'feat'}
+									<!-- Feat pick UI -->
+									<div class="field" style="margin:0;">
+										<label class="label" for="asi-feat-{i}">Choose a Feat</label>
+										<select id="asi-feat-{i}" class="input input--select" bind:value={asiChoices[i].featId}>
+											<option value="">— Select feat —</option>
+											{#each availableFeats as feat}
+												<option value={feat.id}>{feat.name}</option>
+											{/each}
+										</select>
+									</div>
+								{/if}
+							{/if}
+						</div>
+					{/each}
+				</div>
+			</div>
+		</div>
+
+	<!-- ════ Step 6/7: Review ════ -->
+	{:else if step === REVIEW_STEP_IDX}
 		<div class="card">
 			<div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem;">
 				{#if avatarUrl}
@@ -874,10 +1098,14 @@
 			<h4 class="section-title">Ability Scores</h4>
 			<div class="wizard-review-stats" style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;text-align:center;margin-bottom:1rem;">
 				{#each STATS as st}
+					{@const base = total[st]}
+					{@const final = finalScores[st]}
+					{@const bump = final - base}
 					<div class="wizard-stat-box" style="padding:0.5rem;">
 						<p class="wizard-stat-box__label">{STAT_LABEL[st]}</p>
-						<p class="wizard-stat-box__value" style="font-size:1.375rem;">{total[st]}</p>
-						<p class="wizard-stat-box__mod">{mod(total[st])}</p>
+						<p class="wizard-stat-box__value" style="font-size:1.375rem;">{final}</p>
+						{#if bump > 0}<p style="font-size:0.6875rem;color:var(--color-success);margin:0;">+{bump} ASI</p>{/if}
+						<p class="wizard-stat-box__mod">{mod(final)}</p>
 					</div>
 				{/each}
 			</div>
@@ -910,12 +1138,31 @@
 				{/if}
 			{/if}
 
+			{#if hasAsiStep && asiChoices.length}
+				<h4 class="section-title">ASI / Feats</h4>
+				<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
+					{#each asiChoices as c}
+						<div style="font-size:0.8125rem;padding:0.25rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);">
+							<span class="table__muted">{c.sourceName} Lv {c.sourceLevel}:</span>
+							{#if c.mode === 'feat' || c.type === 'epic_boon'}
+								{(sys?.feats??[]).find((f:any)=>f.id===c.featId)?.name ?? '—'}
+							{:else if c.mode === 'stat'}
+								{STAT_LABEL[c.stat1] ?? '—'} +{c.amount1}{c.stat2 ? `, ${STAT_LABEL[c.stat2]} +${c.amount2}` : ''}
+							{:else}
+								<span style="color:var(--color-warning);">Not chosen</span>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{/if}
+
 			{#if !canSubmit}
 				<div class="form-error" style="margin-bottom:1rem;">
 					{#if !scoresValid&&!rolled}Point buy not fully spent ({remaining} remaining). {/if}
 					{#if totalLevel<1}At least one class required. {/if}
 					{#if !classAllocs.every(c=>c.classId)}All class rows need a class. {/if}
 					{#if !bgFeatValid}Background feat selection required. {/if}
+					{#if hasAsiStep && !asiValid}All ASI/Feat slots must be completed. {/if}
 				</div>
 			{:else}
 				<p style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:1rem;">Submitting creates your character pending approval.</p>
@@ -930,13 +1177,24 @@
 				<input type="hidden" name="speciesId"     value={speciesId} />
 				<input type="hidden" name="backgroundId"  value={backgroundId} />
 				{#if bgFeatPick}<input type="hidden" name="bgFeatPick" value={bgFeatPick} />{/if}
+				{#each asiChoices as c, i}
+					<input type="hidden" name="asi_sourceClassId" value={c.sourceClassId} />
+					<input type="hidden" name="asi_sourceLevel"   value={c.sourceLevel} />
+					<input type="hidden" name="asi_type"          value={c.type} />
+					<input type="hidden" name="asi_mode"          value={c.mode ?? ''} />
+					<input type="hidden" name="asi_stat1"         value={c.stat1 ?? ''} />
+					<input type="hidden" name="asi_amount1"       value={c.amount1 ?? ''} />
+					<input type="hidden" name="asi_stat2"         value={c.stat2 ?? ''} />
+					<input type="hidden" name="asi_amount2"       value={c.amount2 ?? ''} />
+					<input type="hidden" name="asi_featId"        value={c.featId ?? ''} />
+				{/each}
 				{#each classAllocs as a}
 					<input type="hidden" name="classId"        value={a.classId} />
 					<input type="hidden" name="subclassId"     value={a.subclassId} />
 					<input type="hidden" name="allocatedLevel" value={a.allocatedLevel} />
 				{/each}
 				{#each STATS as st}
-					<input type="hidden" name="score_{st}" value={total[st]} />
+					<input type="hidden" name="score_{st}" value={finalScores[st]} />
 				{/each}
 				<button type="submit" class="btn btn-primary" disabled={!canSubmit}>Create Character</button>
 			</form>

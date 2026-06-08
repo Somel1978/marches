@@ -351,7 +351,7 @@ In `+page.server.ts` create action, after `dnd5e.createCharacter()`:
 
 ---
 
-## Part 4 — Better Auth Architecture Review (Deferred)
+## Part 4 — Better Auth Architecture Review (Partially Done)
 
 ### Problem
 Two separate Better Auth instances (admin + frontend) sharing one DB causes cookie/session inconsistencies. Current workarounds (`useSecureCookies: false`, manual `cookies.set()`) are hacks.
@@ -362,8 +362,17 @@ Two separate Better Auth instances (admin + frontend) sharing one DB causes cook
 - **Option C (recommended short term)** — Keep two instances, fix `useSecureCookies` properly with request-aware logic, document the two-instance architecture
 - **Option D** — Replace admin auth with simpler JWT/iron-session — adds heterogeneity, not worth it
 
-### Action
-Revisit after dev environment is stable. Start with Option C cleanup, migrate to Option A when bandwidth allows.
+### What was implemented (session 72)
+- Option C implemented and improved with Better Auth 1.5 features
+- `shared/rbac/auth.ts` now exports `getBaseAuthConfig()` — plain config object, no pre-built instance
+- Each app calls `betterAuth()` itself with app-specific plugins
+- `baseURL: { allowedHosts, fallback: SITE_URL }` — dynamic per-request resolution (Better Auth 1.5)
+- `useSecureCookies: false` — correct for HTTP-internal Cloudflare Tunnel setup
+- `trustedProxyHeaders: true` — set but Cloudflare Tunnel does not forward headers through adapter-node
+- Login actions use `auth.handler(new Request(...))` + forward `Set-Cookie` headers
+
+### Remaining
+- Option A (single auth instance) — still a future consideration if cross-app session sharing becomes needed
 
 ---
 
@@ -415,22 +424,23 @@ Add notification preferences to user settings:
 
 ---
 
-## Part 6 — User Signup Workflow Revision
+## Part 6 — User Signup Workflow Revision (Partially Done)
 
-### Current flow (broken)
-1. User fills signup form → `registerUser()` creates user with `emailVerified: false`
-2. User lands on `/signup/pending` — a dead end with no feedback
-3. Admin manually finds the user in `/admin/users`, sets `emailVerified: true` to "approve"
-4. No notification sent to admin that approval is needed
-5. No notification sent to user when approved
-6. No enforcement gate — `emailVerified` is checked nowhere in the auth flow, so technically a user could log in immediately after signup
+### Current flow (partially implemented)
+1. ✅ User fills signup form → `auth.handler('/api/auth/sign-up/email')` — Better Auth owns user creation
+2. ✅ Better Auth sends verification email automatically (`sendOnSignUp: true`)
+3. ✅ User clicks link → `emailVerified = true`, PLAYER role assigned in `afterEmailVerification` hook
+4. ✅ User auto-signed in after verification (`autoSignInAfterVerification: true`)
+5. ✅ `/signup/pending` updated to "Check your email" messaging
+6. ⬜ Admin approval step — not yet implemented (users go directly active after email verification)
+7. ⬜ Admin notified when new user signs up
+8. ⬜ User notified when approved
 
-### Core problems
-- `registerUser()` bypasses Better Auth entirely — creates the user directly in DB using `hashPassword` from `better-auth/crypto`, completely outside the auth system
-- `emailVerified` is being repurposed as an **admin approval flag**, not actual email verification — these are two different concerns conflated into one field
-- No `isActive` or `status` field — no clean way to distinguish pending/approved/banned
-- No notifications in either direction
-- The pending page is a dead end — user has no feedback loop
+### What was fixed (session 72)
+- `registerUser()` bypass removed from self-signup — Better Auth now owns account creation
+- Verification email uses correct public domain via `SITE_URL` env var (`PUBLIC_` prefix is reserved by SvelteKit for client-side, was silently `undefined`)
+- PLAYER role assignment moved to `afterEmailVerification` hook
+- Pending page updated with correct messaging
 
 ### Proposed clean workflow
 
@@ -484,12 +494,12 @@ if (session && user.status !== 'ACTIVE') {
 - Discord OAuth linking flow unchanged
 - RBAC/role assignment unchanged — just triggered at a different point
 
-### Implementation order
-1. Schema — add `UserStatus` enum + `status` field, `db:push`
-2. Signup route — switch to `auth.api.signUpEmail()`, remove `registerUser()` call
-3. `afterEmailVerification` hook in `createAuth()` — set `status = PENDING`, assign PLAYER role, notify admins
-4. `hooks.server.ts` — enforce `status === 'ACTIVE'` gate
-5. Admin user edit — replace `emailVerified` toggle with `status` select (PENDING/ACTIVE/SUSPENDED)
-6. Approval action — set `status = ACTIVE`, send notification to user
-7. `/signup/pending` — better UX, clear two-step message (verify email → await approval)
-8. Notifications — wire into Part 5 approval notification system
+### Remaining implementation
+1. ⬜ Schema — add `UserStatus` enum + `status` field, `db:push`
+2. ✅ Signup route — uses `auth.handler('/api/auth/sign-up/email')`
+3. ✅ `afterEmailVerification` hook — assigns PLAYER role
+4. ⬜ `hooks.server.ts` — enforce `status === 'ACTIVE'` gate
+5. ⬜ Admin user edit — replace `emailVerified` toggle with `status` select (PENDING/ACTIVE/SUSPENDED)
+6. ⬜ Approval action — set `status = ACTIVE`, send notification to user
+7. ✅ `/signup/pending` — updated messaging
+8. ⬜ Notifications — wire into Part 5 approval notification system

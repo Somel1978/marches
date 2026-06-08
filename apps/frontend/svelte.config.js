@@ -13,7 +13,7 @@ const config = {
 	kit: {
 		adapter: adapter(),
 		// CSRF is handled by Better Auth's trustedOrigins — no need for SvelteKit's check.
-		csrf: { checkOrigin: false },
+		csrf: { trustedOrigins: [] },
 	}
 };
 

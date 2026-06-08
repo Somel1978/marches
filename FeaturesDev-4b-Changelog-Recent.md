@@ -1,5 +1,34 @@
 # Marches — Changelog (Sessions 21+)
 
+### Session 73 — Dev Environment, ASI Wizard Step, Auth & Build Fixes (2026-06-08)
+
+**Dev Environment**
+- `vite.config.ts` — ports read from `FRONTEND_PORT`/`ADMIN_PORT` env vars (defaults 5173/5174); dev uses 5273/5274
+- `svelte.config.js` — always uses `adapter-node`; `csrf: { trustedOrigins: [] }` replacing deprecated `checkOrigin: false`
+- `pnpm-workspace.yaml` — `pnpm.overrides` / `peerDependencyRules` moved from `package.json` (pnpm 11 no longer reads from package.json)
+- `BODY_SIZE_LIMIT=10M` env var needed for large data imports (adapter-node default is 512KB)
+
+**Better Auth 1.5 + Signup rebuild**
+- Upgraded `better-auth` to `~1.5.0`; `@better-auth/cli` stays at `~1.4.22`
+- `shared/rbac/auth.ts` — exports `getBaseAuthConfig()` returning plain `BetterAuthOptions`; removed `createAuth()`, `frontendURL`, `rebaseUrl`, `rebaseChangeEmailUrl`
+- `baseURL: { allowedHosts, fallback: SITE_URL }` — dynamic per-request resolution (Better Auth 1.5)
+- `useSecureCookies: false` + `trustedProxyHeaders: true`; CSRF handled by Better Auth via `trustedOrigins`
+- Both app `auth.ts` files call `betterAuth()` themselves; login actions use `auth.handler()` + forward `Set-Cookie` headers
+- Signup uses `auth.handler('/api/auth/sign-up/email')` with `SITE_URL` as canonical origin
+- PLAYER role assigned in `afterEmailVerification` hook
+- `SITE_URL` env var — `PUBLIC_` prefix reserved by SvelteKit for client-side; was silently `undefined` server-side
+- Pending page updated to "Check your email" messaging
+
+**Part 3 — ASI/Feat Step in Character Creation Wizard**
+- `dnd5e/+page.svelte` — dynamic `STEPS` array (ASI step inserted only when slots exist); ASI slots computed client-side from class + subclass features matching `getCharacterSheet` logic; `untrack()` prevents circular `$effect` dependency on `asiChoices`; `finalScores` derived adds ASI stat bumps to review display and form submission; a11y `for`/`id` pairs on all ASI labels
+- `dnd5e/+page.server.ts` — ASI choices parsed as parallel arrays; stat-mode saves "Ability Score Improvement" feat with stat/amount fields; feat-mode saves chosen feat; `asiFeatId` looked up once before loop
+- `shared/database/dbapi/write/characters/create.ts` — added `totalXp` parameter
+- `shared/database/dbapi/write/dnd5e/create-character.ts` — starting XP calculated from progression thresholds at creation time (`thresholds[initialLevel - 1].xpRequired`)
+
+**Bug fixes**
+- World filter in character wizard — `acceptsGlobalCharacters` removed from filter; all active worlds shown
+- `searchMarketplaceItems` dbapi function added; world marketplace pages use `?q=` server-side search instead of API routes
+
 ### Session 72 — Auth Refactor, Dev Environment, Signup Rebuild (2026-06-08)
 
 **Dev environment setup**

@@ -83,6 +83,46 @@ export const actions: Actions = {
 				});
 			}
 
+			// Save ASI / Feat choices from the ASI step
+			// Each slot is submitted as parallel arrays of asi_* fields
+			const asiSourceClassIds = data.getAll('asi_sourceClassId').map(v => v.toString());
+			const asiSourceLevels   = data.getAll('asi_sourceLevel').map(v => Number(v));
+			const asiTypes          = data.getAll('asi_type').map(v => v.toString());
+			const asiModes          = data.getAll('asi_mode').map(v => v.toString());
+			const asiStat1s         = data.getAll('asi_stat1').map(v => v.toString());
+			const asiAmount1s       = data.getAll('asi_amount1').map(v => Number(v));
+			const asiStat2s         = data.getAll('asi_stat2').map(v => v.toString());
+			const asiAmount2s       = data.getAll('asi_amount2').map(v => Number(v));
+			const asiFeatIds        = data.getAll('asi_featId').map(v => v.toString());
+
+			// Look up ASI feat ID once if any stat-mode choices exist
+			let asiFeatId: string | null = null;
+			if (asiModes.some(m => m === 'stat')) {
+				const systemData = await dnd5e.getSystemData(gameSystemId);
+				asiFeatId = (systemData.feats as any[]).find(f => f.name === 'Ability Score Improvement')?.id ?? null;
+			}
+
+			for (let i = 0; i < asiSourceClassIds.length; i++) {
+				const sourceClassId = asiSourceClassIds[i];
+				const sourceLevel   = asiSourceLevels[i];
+				const type          = asiTypes[i];
+				const mode          = asiModes[i];
+				const featId        = asiFeatIds[i];
+
+				if (type === 'epic_boon' || mode === 'feat') {
+					if (!featId) continue;
+					await dnd5e.addCharacterFeat(character.id, featId, { sourceClassId, sourceLevel });
+				} else if (mode === 'stat' && asiFeatId) {
+					const stat1   = asiStat1s[i]  || undefined;
+					const amount1 = asiAmount1s[i] || undefined;
+					const stat2   = asiStat2s[i]  || undefined;
+					const amount2 = asiAmount2s[i] || undefined;
+					await dnd5e.addCharacterFeat(character.id, asiFeatId, {
+						sourceClassId, sourceLevel, stat1, amount1, stat2, amount2,
+					});
+				}
+			}
+
 			redirect(302, '/characters');
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
