@@ -1,5 +1,39 @@
 # Marches — Changelog (Sessions 21+)
 
+### Session 72 — Auth Refactor, Dev Environment, Signup Rebuild (2026-06-08)
+
+**Dev environment setup**
+- Cloned repo to `/home/marches/dev`, separate `marches_dev` PostgreSQL database
+- Dev ports: frontend 5273, admin 5274 — set via `FRONTEND_PORT`/`ADMIN_PORT` env vars read by `vite.config.ts`
+- `ecosystem.config.js` — added `dev-frontend`, `dev-admin`, `dev-discord` pm2 processes
+- `svelte.config.js` — always uses `adapter-node` (no adapter-auto switching); `csrf: { checkOrigin: false }`
+- Build: `pnpm build` (no `NODE_ENV=production` needed, adapter-node works for both)
+
+**Better Auth refactor (1.4.22 → 1.5.6)**
+- Upgraded `better-auth` to `~1.5.0` across all packages (`@better-auth/cli` stays at 1.4.22 — no 1.5.x release)
+- `shared/rbac/auth.ts` — now exports `getBaseAuthConfig()` returning plain `BetterAuthOptions`, not a pre-built instance. Each app calls `betterAuth()` itself.
+- Removed `createAuth()`, `frontendURL`, `rebaseUrl`, `rebaseChangeEmailUrl` — all dead code with `allowedHosts`
+- `baseURL: { allowedHosts: [...], fallback: SITE_URL }` — Better Auth 1.5 dynamic baseURL per-request
+- `advanced: { useSecureCookies: false, trustedProxyHeaders: true }` — correct for HTTP-internal Cloudflare Tunnel
+- CSRF: SvelteKit `csrf: { checkOrigin: false }`, Better Auth handles via `trustedOrigins`
+- Login actions — both apps use `auth.handler(new Request(...))` and forward `Set-Cookie` headers
+
+**Signup rebuild**
+- Replaced `registerUser()` bypass with `auth.handler('/api/auth/sign-up/email')` — Better Auth owns user creation
+- `sendOnSignUp: true` — verification email sent automatically by Better Auth
+- `autoSignInAfterVerification: true` — user auto-signed in after clicking verification link
+- PLAYER role assigned in `afterEmailVerification` hook — correct place, after email confirmed
+- `SITE_URL` env var — canonical public URL for verification email links. `PUBLIC_URL` doesn't work — SvelteKit reserves `PUBLIC_` prefix for client-side env. Renamed to `SITE_URL`
+- Pending page updated: "Check your email" instead of "awaiting admin activation"
+- Cloudflare Tunnel does not forward `x-forwarded-host` through adapter-node — `SITE_URL` is the reliable solution
+
+**Env vars — deprecated/renamed**
+- `ORIGIN` → no longer needed (SvelteKit CSRF disabled)
+- `BETTER_AUTH_URL` → replaced by `ALLOWED_HOSTS`
+- `FRONTEND_URL` → replaced by `SITE_URL`
+- `PUBLIC_URL` → renamed to `SITE_URL` (SvelteKit prefix conflict)
+- New: `ALLOWED_HOSTS`, `SITE_URL`, `FRONTEND_PORT`, `ADMIN_PORT`
+
 ### Session 71 — Production Build, Auth Cookie & Bug Fixes (2026-06-05)
 
 **Production Build (adapter-node)**

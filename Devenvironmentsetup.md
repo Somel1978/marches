@@ -52,11 +52,12 @@ cp /home/marches/space/.env /home/marches/dev/.env
 Edit `/home/marches/dev/.env` — change these values:
 ```env
 DATABASE_URL="postgresql://[User]:[Password]@localhost:5432/marches_dev"
-ORIGIN=http://10.0.0.183:5273
-BETTER_AUTH_URL=http://10.0.0.183:5273
+# ORIGIN and BETTER_AUTH_URL are no longer used — replaced by ALLOWED_HOSTS
 BETTER_AUTH_SECRET=[can reuse same secret]
 TRUSTED_ORIGINS=http://10.0.0.183:5273,http://10.0.0.183:5274
-FRONTEND_URL=http://10.0.0.183:5273
+SITE_URL=http://10.0.0.183:5273
+FRONTEND_PORT=5273
+ADMIN_PORT=5274
 ```
 
 ### Step 5 — Install, push schema, seed

@@ -479,17 +479,55 @@ module.exports = {
 
 > **Discord note:** `node_args: '--env-file=...'` is ignored for the discord app because `tsx` is the interpreter (not node directly). The `--env-file` flag must be passed in `args` so tsx receives it.
 
-### Required .env values for production
+### Required .env values (single file, all environments)
+One `.env` file at the monorepo root, shared by all apps and loaded via `--env-file`. Dev and prod differ only in the values.
+
 ```dotenv
-ORIGIN=https://www.binderbrew.quest
-BETTER_AUTH_URL=https://www.binderbrew.quest
-BETTER_AUTH_SECRET=<secret>
-TRUSTED_ORIGINS=https://www.binderbrew.quest,https://admin.binderbrew.quest,http://10.0.0.183:5174,http://10.0.0.183:5173
-FRONTEND_URL=https://www.binderbrew.quest
+# ── Database ────────────────────────────────────────────
 DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+
+# ── Better Auth ─────────────────────────────────────────
+BETTER_AUTH_SECRET=<secret>
+
+# Comma-separated hostnames (no protocol/port) Better Auth 1.5 accepts.
+# Used for dynamic baseURL resolution per-request via allowedHosts.
+# Include all IPs and domains users may access the apps from.
+ALLOWED_HOSTS=10.0.0.183:5273,10.0.0.183:5274,www.binderbrew.quest,admin.binderbrew.quest
+
+# Comma-separated full origins for Better Auth CSRF trusted origins validation.
+TRUSTED_ORIGINS=http://10.0.0.183:5273,http://10.0.0.183:5274,https://www.binderbrew.quest,https://admin.binderbrew.quest
+
+# Canonical public URL used as fallback for email verification links.
+# Must NOT start with PUBLIC_ — SvelteKit reserves that prefix for client-side env vars.
+# In dev: URL of the dev tunnel. In prod: primary public domain.
+SITE_URL=https://www.binderbrew.quest
+
+# ── Ports (used by vite.config.ts for dev server) ──────
+FRONTEND_PORT=5173
+ADMIN_PORT=5174
+
+# ── Admin account seeding ───────────────────────────────
+SEED_ADMIN_PASSWORD=<password>
+
+# ── GitHub OAuth (optional) ─────────────────────────────
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
 ```
 
-**Note:** `ORIGIN` must match the production domain exactly — SvelteKit uses it for CSRF protection. All POST requests (login, signup, forms) return 403 if `ORIGIN` doesn't match the incoming request host.
+**Dev `.env` differences:**
+```dotenv
+ALLOWED_HOSTS=10.0.0.183:5273,10.0.0.183:5274,dev.binderbrew.quest,dev.admin.binderbrew.quest
+TRUSTED_ORIGINS=http://10.0.0.183:5273,http://10.0.0.183:5274
+SITE_URL=https://dev.binderbrew.quest
+FRONTEND_PORT=5273
+ADMIN_PORT=5274
+```
+
+**Deprecated/removed env vars:**
+- `ORIGIN` — was used for SvelteKit CSRF, now disabled (`csrf: { checkOrigin: false }`). Better Auth handles CSRF via `TRUSTED_ORIGINS`.
+- `BETTER_AUTH_URL` — replaced by `ALLOWED_HOSTS` dynamic baseURL (Better Auth 1.5+).
+- `FRONTEND_URL` — replaced by `SITE_URL`. `frontendURL` removed from auth config entirely.
+- `PUBLIC_URL` — SvelteKit reserves `PUBLIC_` prefix for client-side env vars, so it was silently `undefined` server-side. Renamed to `SITE_URL`.
 
 ### Deploy workflow
 ```bash
@@ -519,10 +557,21 @@ pm2 startup   # copy and run the printed command for reboot persistence
 - `shared/rbac/cache.ts` must contain only ASCII characters — Rolldown (Vite 8) rejects files with unicode chars (em-dashes etc) with `stream did not contain valid UTF-8`
 - `INEFFECTIVE_DYNAMIC_IMPORT` warnings are harmless — bundling efficiency notices only
 
-### Auth cookie behaviour (HTTP vs HTTPS)
-`useSecureCookies: false` is set in `shared/rbac/auth.ts`. This forces Better Auth to always use the plain `better-auth.session_token` cookie name (no `__Secure-` prefix).
+### Auth architecture (Better Auth 1.5)
 
-**Why:** `BETTER_AUTH_URL` is the production HTTPS domain. If `useSecureCookies` were derived from `baseURL.startsWith('https://')` it would always be `true` — meaning the cookie gets the `Secure` attribute. Browsers silently reject `Secure` cookies over HTTP, so local IP access (`http://10.0.0.183:5174`) would never set the session cookie.
+**Shared config factory** — `shared/rbac/auth.ts` exports `getBaseAuthConfig()` returning a plain `BetterAuthOptions` object. Each app calls `betterAuth({ ...getBaseAuthConfig(...), })` itself. The shared package never instantiates Better Auth — each app owns its instance.
 
-**Login action:** `apps/admin/src/routes/(auth)/login/+page.server.ts` calls `auth.api.signInEmail()` and manually calls `cookies.set()` with the token. The `sveltekitCookies(getRequestEvent)` plugin handles this automatically over HTTPS in production but does not forward the cookie when called server-side via `auth.api.*` directly. The manual set is the reliable fallback for both environments. The `secure` attribute on `cookies.set` is correctly set based on `url.protocol`.
+**Dynamic baseURL** — `baseURL: { allowedHosts: [...], fallback: SITE_URL }` (Better Auth 1.5+). Better Auth resolves the baseURL per-request from the `host` header. `fallback` is used when the host cannot be determined (e.g. email client tracking redirects).
+
+**Cookie behaviour** — `useSecureCookies: false`. Traffic is HTTP internally (Cloudflare Tunnel handles HTTPS externally). This is correct — not a workaround. Cookies use plain `better-auth.session_token` name without `__Secure-` prefix.
+
+**CSRF** — SvelteKit's built-in CSRF check is disabled (`csrf: { checkOrigin: false }`). Better Auth handles CSRF validation via `trustedOrigins`.
+
+**Login actions** — both apps use `auth.handler(new Request('/api/auth/sign-in/email', ...))` and forward the `Set-Cookie` headers from Better Auth's response to the browser. This is more reliable than `auth.api.signInEmail()` + manual `cookies.set()`.
+
+**Signup** — uses `auth.handler(new Request('/api/auth/sign-up/email', ...))` with `publicOrigin` derived from `SITE_URL` env var (not `url.origin` which is always the internal IP behind Cloudflare Tunnel). Verification email URL uses the correct public domain.
+
+**Email verification** — `sendOnSignUp: true`, `autoSignInAfterVerification: true`. PLAYER role assigned in `afterEmailVerification` hook — the correct place after the user confirms their email is real.
+
+**Cloudflare Tunnel note** — `x-forwarded-host` and `x-forwarded-proto` are NOT forwarded by Cloudflare Tunnel through adapter-node. The `host` header is always the internal IP. Solution: read `SITE_URL` from env for all public-facing URL construction. `trustedProxyHeaders: true` is set but not relied upon.
 - Annotation comment warnings from `database.js` are harmless — third-party dependency issue

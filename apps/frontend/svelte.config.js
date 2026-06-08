@@ -1,11 +1,6 @@
 // apps/frontend/svelte.config.js
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-
-const isProd = process.env.NODE_ENV === 'production';
-
-const { default: adapter } = isProd
-	? await import('@sveltejs/adapter-node')
-	: await import('@sveltejs/adapter-auto');
+import adapter from '@sveltejs/adapter-node';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -17,9 +12,8 @@ const config = {
 
 	kit: {
 		adapter: adapter(),
-		csrf: {
-			trustedOrigins: (process.env.TRUSTED_ORIGINS ?? '').split(',').map(o => o.trim()).filter(Boolean),
-		},
+		// CSRF is handled by Better Auth's trustedOrigins — no need for SvelteKit's check.
+		csrf: { checkOrigin: false },
 	}
 };
 
