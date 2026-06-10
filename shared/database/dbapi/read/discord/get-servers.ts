@@ -34,3 +34,11 @@ export async function getPendingNotifications(take = 20) {
 export async function markNotificationProcessed(id: string) {
     return db.discordNotificationQueue.update({ where: { id }, data: { processed: true } });
 }
+export async function getChannelsForType(scope: string, type: string) {
+    // Returns ALL channels of this type for this scope — there may be multiple servers
+    const servers = await db.discordServer.findMany({
+        where:   { scope },
+        include: { channels: { where: { type: type as any } } },
+    });
+    return servers.flatMap(s => s.channels);
+}

@@ -42,6 +42,10 @@ async function main() {
             console.log(`[Discord] Configured servers in DB: ${allServers.length}`);
 
             if (allServers.length) {
+                // Clear global commands first to avoid duplicates with guild commands
+                await rest.put(Routes.applicationCommands(clientId), { body: [] });
+                console.log('[Discord] Cleared global commands.');
+
                 for (const server of allServers) {
                     console.log(`[Discord] Registering commands for guild: ${server.name} (${server.guildId})`);
                     try {

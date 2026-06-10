@@ -22,6 +22,16 @@ export const commands = [
             .addStringOption(o => o.setName('character').setDescription('Character name').setRequired(true)),
     },
 
+    // ── Tavern ───────────────────────────────────────────────────────────────────
+    {
+        data: new SlashCommandBuilder()
+            .setName('tavern')
+            .setDescription('Post a message to the Tavern from Discord')
+            .addStringOption(o => o.setName('message').setDescription('Your message').setRequired(true))
+            .addStringOption(o => o.setName('channel').setDescription('Channel: global or a world name. Defaults to this server world').setRequired(false))
+            .addStringOption(o => o.setName('character').setDescription('Post as this character name (optional)').setRequired(false)),
+    },
+
     // ── Characters ────────────────────────────────────────────────────────────
     {
         data: new SlashCommandBuilder()

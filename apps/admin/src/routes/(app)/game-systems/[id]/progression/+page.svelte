@@ -24,6 +24,17 @@
 		</div>
 	</div>
 
+	<!-- Warning if no thresholds configured -->
+	{#if !thresholds.length}
+		<div style="padding:0.75rem 1rem;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.4);border-radius:var(--radius-md);margin-bottom:1rem;display:flex;gap:0.75rem;align-items:flex-start;">
+			<span style="font-size:1.25rem;flex-shrink:0;">⚠️</span>
+			<div>
+				<p style="font-weight:700;margin:0 0 0.25rem;color:#ca8a04;">No progression thresholds configured</p>
+				<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0;">Characters cannot gain XP, level up, or be created above level 1 until at least one threshold is added. Add thresholds below before activating this game system.</p>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Existing thresholds -->
 	<div class="card" style="margin-bottom:1rem;">
 		<h3 class="section-title">Thresholds ({thresholds.length})</h3>

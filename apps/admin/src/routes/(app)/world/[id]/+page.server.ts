@@ -1,6 +1,6 @@
 // apps/admin/src/routes/(app)/world/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { worlds, dms } from '@core/database';
+import { worlds, dms, tavern } from '@core/database';
 import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -13,7 +13,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		dms.profiles.getAll(),
 	]);
 	if (!world) throw error(404, 'World not found');
-	return { world, allDMs };
+	// Ensure tavern channel exists — creates it for worlds that pre-date the tavern feature
+	await tavern.channels.ensureWorld(params.id, world.name);
+	const tavernChannel = await tavern.channels.getByWorldId(params.id);
+	return { world, allDMs, tavernChannel };
 };
 
 export const actions: Actions = {
@@ -117,5 +120,20 @@ export const actions: Actions = {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;
 		}
+	},
+
+	updateTavernChannel: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'World', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data      = await request.formData();
+		const isPrivate = data.get('isPrivate') === 'true';
+		const channel   = await tavern.channels.getByWorldId(params.id);
+		if (!channel) {
+			const world = await worlds.getById(params.id);
+			await tavern.channels.ensureWorld(params.id, world?.name ?? 'World');
+		}
+		const ch = await tavern.channels.getByWorldId(params.id);
+		if (ch) await tavern.channels.update(ch.id, { isPrivate });
+		return { tavernSuccess: true };
 	},
 };

@@ -10,7 +10,7 @@
 	const worlds   = $derived((data as any).allWorlds ?? []);
 	const settings = $derived((data as any).settings  ?? {});
 
-	const CHANNEL_TYPES = ['ANNOUNCEMENTS', 'QUESTS', 'MARKET', 'CHARACTERS', 'APPROVALS'];
+	const CHANNEL_TYPES = ['ANNOUNCEMENTS', 'QUESTS', 'MARKET', 'CHARACTERS', 'APPROVALS', 'TAVERN'];
 
 	let botGuilds       = $state<{ id: string; name: string }[]>([]);
 	let guildsLoading   = $state(false);

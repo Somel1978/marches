@@ -23,4 +23,5 @@ export { default as ConfirmModal } from './components/ui/ConfirmModal.svelte';
 export { default as Dnd5eCharacterSheet }    from './src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte';
 export { default as Dnd5eCharacterCreation } from './src/gamesystems/dnd5e/Dnd5eCharacterCreation.svelte';
 export { default as Dnd5eAsiFeatsPanel }    from './src/gamesystems/dnd5e/Dnd5eAsiFeatsPanel.svelte';
+export { default as Dnd5eCharacterCard }     from './src/gamesystems/dnd5e/Dnd5eCharacterCard.svelte';
 export { generateFantasyName }               from './src/gamesystems/dnd5e/name-generator.ts';

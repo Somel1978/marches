@@ -10,6 +10,7 @@ import { handleItemCommand }       from './commands/item.js';
 import { handleBuyItemCommand }    from './commands/buyitem.js';
 import { handleSellItemCommand }    from './commands/sellitem.js';
 import { handleCancelSignupCommand } from './commands/cancelsignup.js';
+import { handleTavernCommand }       from './commands/tavern.js';
 
 // Channel type required per command
 const COMMAND_CHANNEL: Record<string, string> = {
@@ -73,6 +74,7 @@ export async function handleInteraction(interaction: Interaction) {
     if (cmd === 'buyitem')       return handleBuyItemCommand(interaction, server, linkedUser, ephemeral);
     if (cmd === 'sellitem')       return handleSellItemCommand(interaction, server, linkedUser, ephemeral);
     if (cmd === 'cancelsignup')   return handleCancelSignupCommand(interaction, server, linkedUser, ephemeral);
+    if (cmd === 'tavern')          return handleTavernCommand(interaction as any);
 }
 
 async function getUserByDiscordId(discordId: string) {

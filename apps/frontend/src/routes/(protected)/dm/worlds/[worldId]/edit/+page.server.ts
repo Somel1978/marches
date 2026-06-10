@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/edit/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { worlds, db } from '@core/database';
+import { worlds, db, tavern } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -17,7 +17,8 @@ async function assertCanManage(worldId: string, userId: string) {
 export const load: PageServerLoad = async ({ params, parent }) => {
 	const { canManage } = await parent();
 	if (!canManage) throw error(403, 'You do not have management access to this world.');
-	return {};
+	const tavernChannel = await tavern.channels.getByWorldId(params.worldId);
+	return { tavernChannel };
 };
 
 export const actions: Actions = {
@@ -74,5 +75,15 @@ export const actions: Actions = {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;
 		}
+	},
+
+
+	updateTavernChannel: async ({ params, request, locals }) => {
+		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
+		const data      = await request.formData();
+		const isPrivate = data.get('isPrivate') === 'true';
+		const ch = await tavern.channels.getByWorldId(params.worldId);
+		if (ch) await tavern.channels.update(ch.id, { isPrivate });
+		return { tavernSuccess: true };
 	},
 };

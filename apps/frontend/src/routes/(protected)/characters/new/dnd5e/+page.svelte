@@ -293,6 +293,8 @@
 	});
 
 	const hasAsiStep = $derived(asiSlots.length > 0);
+	let asiFeatSearch = $state<string[]>([]);
+	$effect(() => { asiFeatSearch = asiSlots.map(() => ''); });
 
 	// Dynamic steps — insert ASI step only when there are slots
 	const STEPS = $derived(hasAsiStep
@@ -905,6 +907,7 @@
 						</div>
 						<div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.5rem;">
 							<span style="font-size:0.8125rem;color:var(--text-muted);">Total: <strong style="color:var(--brand-accent);">{totalLevel}</strong></span>
+							<span style="font-size:0.75rem;color:var(--text-muted);">← Select another class to multiclass</span>
 						</div>
 					</div>
 				{/if}
@@ -996,16 +999,31 @@
 							</div>
 
 							{#if isEpicBoon}
-								<!-- Epic Boon — must pick epic boon feat -->
-								<div class="field" style="margin:0;">
-									<label class="label" for="asi-epic-{i}">Choose an Epic Boon Feat</label>
-									<select id="asi-epic-{i}" class="input input--select" bind:value={asiChoices[i].featId}
-										onchange={() => asiChoices[i].mode = 'feat'}>
-										<option value="">— Select feat —</option>
-										{#each epicBoonFeats as feat}
-											<option value={feat.id}>{feat.name}</option>
-										{/each}
-									</select>
+								<!-- Epic Boon — search + card picker -->
+								{@const epicSearch = asiFeatSearch[i] ?? ''}
+								{@const epicFiltered = epicBoonFeats.filter((f: any) => !epicSearch || f.name.toLowerCase().includes(epicSearch.toLowerCase()))}
+								{@const epicPicked = epicBoonFeats.find((f: any) => f.id === asiChoices[i].featId)}
+								<div style="margin:0;">
+									<p style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin:0 0 0.375rem;">Choose an Epic Boon Feat</p>
+									{#if epicPicked}
+										<div style="padding:0.5rem 0.625rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
+											<span style="font-weight:700;font-size:0.875rem;">{epicPicked.name}</span>
+											<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;" onclick={() => { asiChoices[i].featId = ''; }}>Change</button>
+										</div>
+									{:else}
+										<input type="text" class="input" placeholder="Search epic boon feats…" style="margin-bottom:0.375rem;font-size:0.8125rem;"
+											value={epicSearch} oninput={(e) => { const v = (e.target as HTMLInputElement).value; asiFeatSearch = asiFeatSearch.map((s,j) => j===i?v:s); }} />
+										<div style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:0.25rem;">
+											{#each epicFiltered as feat}
+												<button type="button"
+													style="text-align:left;padding:0.5rem 0.625rem;background:var(--bg-overlay);border:1px solid var(--border-muted);border-radius:var(--radius-sm);cursor:pointer;"
+													onclick={() => { asiChoices[i].featId = feat.id; asiChoices[i].mode = 'feat'; }}>
+													<p style="font-weight:700;font-size:0.8125rem;margin:0 0 0.125rem;">{feat.name}</p>
+													{#if feat.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{feat.description.slice(0,120)}{feat.description.length>120?'…':''}</p>{/if}
+												</button>
+											{/each}
+										</div>
+									{/if}
 								</div>
 							{:else}
 								<!-- ASI — choose mode first -->
@@ -1059,15 +1077,33 @@
 										{/if}
 									</div>
 								{:else if asiChoices[i].mode === 'feat'}
-									<!-- Feat pick UI -->
-									<div class="field" style="margin:0;">
-										<label class="label" for="asi-feat-{i}">Choose a Feat</label>
-										<select id="asi-feat-{i}" class="input input--select" bind:value={asiChoices[i].featId}>
-											<option value="">— Select feat —</option>
-											{#each availableFeats as feat}
-												<option value={feat.id}>{feat.name}</option>
-											{/each}
-										</select>
+									<!-- Feat search + card picker -->
+									{@const featSearch = asiFeatSearch[i] ?? ''}
+									{@const featFiltered = availableFeats.filter((f: any) => !featSearch || f.name.toLowerCase().includes(featSearch.toLowerCase()))}
+									{@const featPicked = availableFeats.find((f: any) => f.id === asiChoices[i].featId)}
+									<div style="margin:0;">
+										{#if featPicked}
+											<div style="padding:0.5rem 0.625rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
+												<div>
+													<p style="font-weight:700;font-size:0.875rem;margin:0 0 0.125rem;">{featPicked.name}</p>
+													{#if featPicked.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{featPicked.description.slice(0,120)}{featPicked.description.length>120?'…':''}</p>{/if}
+												</div>
+												<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;flex-shrink:0;" onclick={() => { asiChoices[i].featId = ''; }}>Change</button>
+											</div>
+										{:else}
+											<input type="text" class="input" placeholder="Search feats…" style="margin-bottom:0.375rem;font-size:0.8125rem;"
+												value={featSearch} oninput={(e) => { const v = (e.target as HTMLInputElement).value; asiFeatSearch = asiFeatSearch.map((s,j) => j===i?v:s); }} />
+											<div style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:0.25rem;">
+												{#each featFiltered as feat}
+													<button type="button"
+														style="text-align:left;padding:0.5rem 0.625rem;background:var(--bg-overlay);border:1px solid var(--border-muted);border-radius:var(--radius-sm);cursor:pointer;"
+														onclick={() => { asiChoices[i].featId = feat.id; }}>
+														<p style="font-weight:700;font-size:0.8125rem;margin:0 0 0.125rem;">{feat.name}</p>
+														{#if feat.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{feat.description.slice(0,120)}{feat.description.length>120?'…':''}</p>{/if}
+													</button>
+												{/each}
+											</div>
+										{/if}
 									</div>
 								{/if}
 							{/if}

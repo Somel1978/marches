@@ -119,6 +119,16 @@
 				<div class="field">
 					<label class="label" for="portraitUrl">Portrait URL <span class="optional">(optional)</span></label>
 					<input id="portraitUrl" name="portraitUrl" type="url" class="input" value={data.character.portraitUrl ?? ''} placeholder="https://..." />
+					<div class="field">
+						<label class="label" for="isPrivate">Public profile</label>
+						<select id="isPrivate" name="isPrivate" class="input input--select">
+							<option value="false" selected={!(data.character as any).isPrivate}>🌐 Visible — show full character card</option>
+							<option value="true"  selected={(data.character as any).isPrivate}>🔒 Private — show name and portrait only</option>
+						</select>
+					</div>
+					<div style="margin-top:0.25rem;">
+						<a href="/characters/public/{data.character.id}" class="btn btn-ghost btn-sm" target="_blank">👁 View public profile</a>
+					</div>
 				</div>
 			</div>
 			<div class="form-actions">

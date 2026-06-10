@@ -46,6 +46,7 @@ model World {
   regions      Region[]
   dms          WorldDM[]
   journals     WorldJournal[]
+  tavernChannel TavernChannel?
 
   @@map("worlds")
   @@schema("world")

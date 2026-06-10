@@ -38,9 +38,11 @@
 		{
 			label: 'Community',
 			items: [
-				{ href: '/news',               label: 'News'           },
-				{ href: '/wiki',               label: 'Wiki'           },
-				{ href: '/tools/dndpointbuy',  label: 'Point Buy'      },
+				{ href: '/news',                   label: 'News'           },
+				{ href: '/wiki',                   label: 'Wiki'           },
+				{ href: '/tavern',                 label: 'Tavern'         },
+				{ href: '/characters/public',      label: 'Characters'     },
+				{ href: '/tools/dndpointbuy',      label: 'Point Buy'      },
 			],
 		},
 	];

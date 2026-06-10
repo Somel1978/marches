@@ -6,22 +6,17 @@ let _client: Client | null = null;
 
 export function setClient(client: Client) { _client = client; }
 
-async function getChannel(scope: string, type: string): Promise<TextChannel | null> {
-    if (!_client) return null;
-    const ch = await discord.channels.getForType(scope, type);
-    if (!ch) return null;
-    try {
-        const channel = await _client.channels.fetch(ch.channelId);
-        return channel instanceof TextChannel ? channel : null;
-    } catch (e: any) {
-        console.error(`[Discord] Failed to fetch channel ${ch.channelId}:`, e?.message ?? e);
-        return null;
-    }
-}
-
 async function send(scope: string, type: string, embed: EmbedBuilder) {
-    const channel = await getChannel(scope, type);
-    if (channel) await channel.send({ embeds: [embed] });
+    if (!_client) return;
+    const channels = await discord.channels.getAllForType(scope, type);
+    for (const ch of channels) {
+        try {
+            const channel = await _client.channels.fetch(ch.channelId);
+            if (channel instanceof TextChannel) await channel.send({ embeds: [embed] });
+        } catch (e: any) {
+            console.error(`[Discord] Failed to send to channel ${ch.channelId}:`, e?.message ?? e);
+        }
+    }
 }
 
 async function getSettings() {
@@ -319,4 +314,30 @@ export async function notifyUserRegistered(user: { id: string; name: string; ema
         .setTimestamp();
 
     await dmAdmins(embed);
+}
+
+// ── Tavern message mirror ─────────────────────────────────────────────────────
+export async function notifyTavernMessage(p: {
+    channelId:     string;
+    worldId?:      string;
+    authorName:    string;
+    authorType:    string;
+    characterName?: string;
+    content:       string;
+}) {
+    if (!_client) return;
+
+    const typeEmoji: Record<string, string> = { CHARACTER: '🧙', DM: '🎲', ADMIN: '⚙️' };
+    const emoji    = typeEmoji[p.authorType] ?? '💬';
+    const name     = p.characterName ? `${p.characterName} (${p.authorName})` : p.authorName;
+
+    const embed = new EmbedBuilder()
+        .setAuthor({ name: `${emoji} ${name}` })
+        .setDescription(p.content.slice(0, 2000))
+        .setColor(0x5865F2)
+        .setTimestamp();
+
+    // Send to world channel if worldId exists, otherwise global TAVERN channel
+    const channelType = p.worldId ? p.worldId : 'global';
+    await send(channelType, 'TAVERN', embed);
 }
