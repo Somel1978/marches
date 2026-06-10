@@ -2,6 +2,7 @@
 
 enum DiscordChannelType {
   ANNOUNCEMENTS
+  TAVERN
   QUESTS
   MARKET
   CHARACTERS

@@ -57,7 +57,7 @@ import { createWiki, updateWiki, deleteWiki,
 import { resolveEnrichers, searchEnrichablesbyName } from './dbapi/read/news/resolve-enrichers.ts';
 
 import { upsertDiscordServer, deleteDiscordServer, upsertDiscordChannel, deleteDiscordChannel } from './dbapi/write/discord/servers.ts';
-import { getAllDiscordServers, getDiscordServerByScope, getChannelForType, getPendingNotifications, markNotificationProcessed } from './dbapi/read/discord/get-servers.ts';
+import { getAllDiscordServers, getDiscordServerByScope, getChannelForType, getChannelsForType, getPendingNotifications, markNotificationProcessed } from './dbapi/read/discord/get-servers.ts';
 
 
 import { getDnd5eCharacterSheet } from './dbapi/read/dnd5e/get-character-sheet.ts';
@@ -80,6 +80,8 @@ import { getAllAchievements, getCharacterAchievements } from './dbapi/read/rewar
 
 // ── Notifications ────────────────────────────────────────────────────────────────
 import { queueDiscordNotification } from './dbapi/write/discord/dispatcher.ts';
+import { getTavernChannels, getTavernChannel, getTavernChannelByWorldId, getGlobalTavernChannel, getTavernMessages } from './dbapi/read/tavern/get-channels.ts';
+import { sendTavernMessage, deleteTavernMessage, ensureGlobalTavernChannel, ensureWorldTavernChannel, updateTavernChannel } from './dbapi/write/tavern/messages.ts';
 import { getUnreadNotifications, getNotifications  } from './dbapi/read/notifications/get-notifications.ts';
 import { createNotification, createNotificationsForAdmins, createNotificationsForWorldDMs,
          markNotificationRead, markAllNotificationsRead } from './dbapi/write/notifications/notifications.ts';
@@ -140,6 +142,7 @@ import { updateDMProfile, revokeDMRole          } from './dbapi/write/dms/dm-pro
 import { getAllCharacters                         } from './dbapi/read/characters/get-all.ts';
 import { getCharacterById, getCharactersByUserId } from './dbapi/read/characters/get-by-id.ts';
 import { getSlotInfo, getAllSlotInfo             } from './dbapi/read/characters/get-slot-info.ts';
+import { getPublicCharacters, getPublicCharacterById } from './dbapi/read/characters/get-public.ts';
 import { getCharacterTransactions                } from './dbapi/read/characters/get-transactions.ts';
 import { getCharacterInventory                   } from './dbapi/read/characters/get-inventory.ts';
 import { removeFromInventory, addToInventory      } from './dbapi/write/characters/inventory.ts';
@@ -227,6 +230,8 @@ export const characters = {
     getByUserId:   getCharactersByUserId,
     getSlotInfo,
     getAllSlotInfo,
+    getPublic:     getPublicCharacters,
+    getPublicById: getPublicCharacterById,
     getTransactions:  getCharacterTransactions,
     getInventory:     getCharacterInventory,
     addInventory:     addToInventory,
@@ -336,6 +341,23 @@ export const worlds = {
 
 export { queueDiscordNotification };
 
+export const tavern = {
+    channels: {
+        getAll:           getTavernChannels,
+        getById:          getTavernChannel,
+        getByWorldId:     getTavernChannelByWorldId,
+        getGlobal:        getGlobalTavernChannel,
+        ensureGlobal:     ensureGlobalTavernChannel,
+        ensureWorld:      ensureWorldTavernChannel,
+        update:           updateTavernChannel,
+    },
+    messages: {
+        get:     getTavernMessages,
+        send:    sendTavernMessage,
+        delete:  deleteTavernMessage,
+    },
+};
+
 export const notifications = {
     getUnread:      getUnreadNotifications,
     getAll:         getNotifications,
@@ -442,7 +464,8 @@ export const discord = {
         markProcessed: markNotificationProcessed,
     },
     channels: {
-        getForType: getChannelForType,
+        getForType:    getChannelForType,
+        getAllForType:  getChannelsForType,
         upsert:     upsertDiscordChannel,
         delete:     deleteDiscordChannel,
     },

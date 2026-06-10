@@ -16,6 +16,10 @@ export async function createWorld(
         const world = await tx.world.create({
             data: { name: input.name, slug, description: input.description ?? null, mapImageUrl: input.mapImageUrl ?? null },
         });
+        // Auto-create Tavern channel for this world
+        await tx.tavernChannel.create({
+            data: { worldId: world.id, name: world.name },
+        });
         await logAudit(tx, { actorId, action: 'CREATE', resourceKey: 'World', resourceId: world.id, after: world });
         return world;
     });

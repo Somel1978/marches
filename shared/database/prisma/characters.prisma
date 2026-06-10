@@ -64,6 +64,7 @@ model Character {
   level        Int                     @default(0)          // universal level — written by system on create/approve/level-change
   avatarUrl    String?                 @map("avatar_url")
   portraitUrl  String?                 @map("portrait_url")
+  isPrivate    Boolean                 @default(false) @map("is_private")
   status       CharacterStatus         @default(PENDING)
   statusReason CharacterStatusReason?  @map("status_reason")
   statusChangedAt DateTime?            @map("status_changed_at")

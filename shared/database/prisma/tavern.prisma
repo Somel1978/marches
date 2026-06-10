@@ -1,0 +1,47 @@
+/* shared/database/prisma/tavern.prisma */
+
+enum TavernAuthorType {
+  CHARACTER  // posting as a character
+  DM         // posting as a DM (has DMProfile + manages a world)
+  ADMIN      // posting as platform admin
+
+  @@schema("tavern")
+}
+
+model TavernChannel {
+  id          String   @id @default(uuid())
+  // null = global channel; worldId = world-specific channel
+  worldId     String?  @unique @map("world_id")
+  world       World?   @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  name        String   // "Global" or world name
+  isActive    Boolean  @default(true)  @map("is_active")
+  isPrivate   Boolean  @default(false) @map("is_private")  // if true, only world members can see/post
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  messages    TavernMessage[]
+
+  @@map("tavern_channels")
+  @@schema("tavern")
+}
+
+model TavernMessage {
+  id            String           @id @default(uuid())
+  channelId     String           @map("channel_id")
+  channel       TavernChannel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  authorType    TavernAuthorType
+  authorId      String           @map("author_id")    // userId
+  authorName    String           @map("author_name")  // display name at time of post
+  authorAvatar  String?          @map("author_avatar")
+  // If posting as character
+  characterId   String?          @map("character_id")
+  characterName String?          @map("character_name")
+  // Content
+  content       String           // markdown + enrichers
+  isDeleted     Boolean          @default(false) @map("is_deleted")
+  deletedBy     String?          @map("deleted_by")
+  deletedAt     DateTime?        @map("deleted_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  @@map("tavern_messages")
+  @@schema("tavern")
+}

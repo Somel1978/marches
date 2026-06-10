@@ -9,6 +9,7 @@ export async function updateCharacterFreeFields(
     input: {
         name?:        string;
         avatarUrl?:   string | null;
+    isPrivate?:  boolean;
         portraitUrl?: string | null;
         description?: string | null;
     },

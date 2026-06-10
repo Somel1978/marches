@@ -317,4 +317,27 @@
 		{/if}
 	</div>
 	</div>
+
+	<!-- Tavern Channel Settings -->
+	{#if (data as any).tavernChannel}
+		<div class="card" style="margin-top:1rem;">
+			<h3 class="section-title">🍺 Tavern Channel</h3>
+			<form method="post" action="?/updateTavernChannel" use:enhance>
+				<div class="field">
+					<label class="label" for="tc-private">Channel visibility</label>
+					<select id="tc-private" name="isPrivate" class="input input--select">
+						<option value="false" selected={!(data as any).tavernChannel.isPrivate}>
+							🌐 Public — visible to all logged-in users
+						</option>
+						<option value="true" selected={(data as any).tavernChannel.isPrivate}>
+							🔒 Private — only visible to world members
+						</option>
+					</select>
+				</div>
+				<div class="form-actions">
+					<button type="submit" class="btn btn-primary btn-sm">Save</button>
+				</div>
+			</form>
+		</div>
+	{/if}
 </div>

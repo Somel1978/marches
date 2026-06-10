@@ -41,7 +41,7 @@ export async function resolveEnrichers(content: string): Promise<{ content: stri
             }
             case 'character': {
                 const rows = await db.character.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, totalXp: true } });
-                for (const r of rows) resolved[`character:${r.id}`] = { raw: `[[character:${r.id}]]`, type, id: r.id, label: r.name, href: `/characters/${r.id}` };
+                for (const r of rows) resolved[`character:${r.id}`] = { raw: `[[character:${r.id}]]`, type, id: r.id, label: r.name, href: `/characters/public/${r.id}` };
                 break;
             }
             case 'world': {
