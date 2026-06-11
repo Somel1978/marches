@@ -18,9 +18,11 @@
 	let addItemName  = $state('');
 	let addStock     = $state('');
 	let addPrice     = $state('');
-	let searchQuery        = $state((data as any).q ?? '');
+	let searchQuery  = $state('');
 	let searchDebounce: ReturnType<typeof setTimeout>;
 	let showDropdown = $state(false);
+
+	$effect.pre(() => { searchQuery = (data as any).q ?? ''; });
 	let savingSettings = $state(false);
 
 	function selectItem(item: any) {
