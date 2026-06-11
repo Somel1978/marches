@@ -281,8 +281,10 @@
 	// untrack() reads asiChoices without subscribing to it, preventing a circular dependency.
 	$effect(() => {
 		const slots = asiSlots; // reactive dependency
-		asiChoices = slots.map(slot => {
+		asiChoices = slots.map((slot, i) => {
 			const existing = untrack(() => asiChoices).find(
+				(c: AsiChoice) => c.sourceClassId === slot.sourceClassId && c.sourceLevel === slot.sourceLevel && (c as any).slotIndex === i
+			) ?? untrack(() => asiChoices).find(
 				(c: AsiChoice) => c.sourceClassId === slot.sourceClassId && c.sourceLevel === slot.sourceLevel
 			);
 			return existing ?? {

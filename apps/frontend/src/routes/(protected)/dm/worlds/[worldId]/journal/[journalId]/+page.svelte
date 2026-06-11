@@ -15,9 +15,10 @@
 		PUBLIC: '🌐 Public', WORLD: '🌍 World', DM_ONLY: '🎲 DM Only', ADMIN_ONLY: '🔒 Admin Only',
 	};
 
-	let editContent = $state('');
-	let editTitle   = $state('');
-	let showPreview = $state(false);
+	let editContent   = $state('');
+	let editTitle     = $state('');
+	let showPreview   = $state(false);
+	let currentPageId = $state<string | null>(null);
 
 	let enricherQuery   = $state('');
 	let enricherResults = $state<any[]>([]);
@@ -25,10 +26,13 @@
 	let textareaEl      = $state<HTMLTextAreaElement | null>(null);
 	let cursorPos       = $state(0);
 
+	// Only reset editor when switching to a DIFFERENT page, not on every reload
 	$effect.pre(() => {
-		if (activePage) {
-			editContent = activePage.content ?? '';
-			editTitle   = activePage.title   ?? '';
+		if (activePage && activePage.id !== currentPageId) {
+			editContent   = activePage.content ?? '';
+			editTitle     = activePage.title   ?? '';
+			currentPageId = activePage.id;
+			showPreview   = false;
 		}
 	});
 
@@ -82,7 +86,15 @@
 	};
 
 	function e_reload() {
-		return async ({ update }: any) => { await update(); await invalidateAll(); };
+		return async ({ result, update }: any) => {
+			await update();
+			// After createPage, navigate to the new page
+			if (result?.type === 'success' && result?.data?.newPageId) {
+				goto(`/dm/worlds/${worldId}/journal/${journal.id}?page=${result.data.newPageId}`);
+			} else {
+				await invalidateAll();
+			}
+		};
 	}
 </script>
 
@@ -186,7 +198,12 @@
 	<div>
 		{#if activePage}
 			<div class="card">
-				<form method="post" action="?/savePage" use:enhance>
+				<form method="post" action="?/savePage" use:enhance={() => {
+					return async ({ update }: any) => {
+						await update({ reset: false }); // don't reset form fields
+						// stay on same page — don't invalidateAll which resets editor
+					};
+				}}>
 					<input type="hidden" name="id" value={activePage.id} />
 					<div class="fields">
 						<div class="field">
@@ -201,13 +218,13 @@
 								</button>
 							</div>
 							{#if showPreview}
-								<div class="prose" style="min-height:400px; padding:1rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
-									{editContent || '<em style="color:var(--text-muted)">Nothing to preview</em>'}
+								<div class="prose" style="min-height:400px; padding:1rem; background:var(--bg-overlay); border-radius:var(--radius-md); color:var(--text-primary); white-space:pre-wrap; font-family:monospace; font-size:0.875rem;">
+									{editContent || 'Nothing to preview'}
 								</div>
 							{:else}
 								<div style="position:relative;">
 									<textarea id="pg-content" name="content" class="input" rows="22"
-										style="font-family:monospace; font-size:0.875rem;"
+										style="font-family:monospace; font-size:0.875rem; color:var(--text-primary);"
 										bind:this={textareaEl}
 										bind:value={editContent}
 										oninput={onContentInput}></textarea>

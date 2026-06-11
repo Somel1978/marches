@@ -82,8 +82,8 @@ export const actions: Actions = {
 		const data      = await request.formData();
 		const sectionId = data.get('sectionId')?.toString()     ?? '';
 		const title     = data.get('title')?.toString().trim()  ?? 'New Page';
-		await news.worldJournals.createPage({ sectionId, title }, locals.user!.id);
-		return { success: true, action: 'page' };
+		const newPage = await news.worldJournals.createPage({ sectionId, title }, locals.user!.id);
+		return { success: true, action: 'page', newPageId: (newPage as any).id ?? null };
 	},
 
 	savePage: async ({ request, locals, params }) => {

@@ -10,27 +10,18 @@
 	const world        = $derived((data as any).world);
 	const worldItems   = $derived((data as any).worldItems ?? []);
 	const worldSetting = $derived((data as any).worldSetting);
-	const allItems     = $derived((data as any).allItems ?? []);
-
-	const availableItems = $derived(
-		allItems.filter((i: any) => !worldItems.some((wi: any) => wi.itemId === i.id))
+	const filteredResults = $derived(
+		((data as any).searchResults ?? []).filter((i: any) => !worldItems.some((wi: any) => wi.itemId === i.id))
 	);
 
 	let addItemId    = $state('');
 	let addItemName  = $state('');
 	let addStock     = $state('');
 	let addPrice     = $state('');
-	let searchQuery  = $state('');
+	let searchQuery        = $state((data as any).q ?? '');
+	let searchDebounce: ReturnType<typeof setTimeout>;
 	let showDropdown = $state(false);
 	let savingSettings = $state(false);
-
-	const searchResults = $derived(
-		searchQuery.length < 2 ? [] :
-		availableItems.filter((i: any) =>
-			i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			i.baseItem?.toLowerCase().includes(searchQuery.toLowerCase())
-		).slice(0, 15)
-	);
 
 	function selectItem(item: any) {
 		addItemId    = item.id;
@@ -193,13 +184,19 @@
 				<label class="label" for="itemSearch">Item</label>
 				<input id="itemSearch" type="text" class="input" placeholder="Search catalogue…"
 					bind:value={searchQuery}
-					oninput={() => { showDropdown = true; addItemId = ''; addItemName = ''; }}
+					oninput={() => {
+						showDropdown = true; addItemId = ''; addItemName = '';
+						clearTimeout(searchDebounce);
+						searchDebounce = setTimeout(() => {
+							if (searchQuery.length >= 2) goto(`?q=${encodeURIComponent(searchQuery)}`, { replaceState: true, keepFocus: true, noScroll: true });
+						}, 300);
+					}}
 					onfocus={() => showDropdown = true}
 					autocomplete="off" />
 				<input type="hidden" name="itemId" value={addItemId} />
-				{#if showDropdown && searchResults.length > 0}
+				{#if showDropdown && filteredResults.length > 0}
 					<div style="position:absolute; top:100%; left:0; right:0; background:var(--bg-surface); border:1px solid var(--border-muted); border-radius:var(--radius-md); z-index:50; max-height:240px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
-						{#each searchResults as item}
+						{#each filteredResults as item}
 							<button type="button"
 								style="display:block; width:100%; text-align:left; padding:0.5rem 0.75rem; background:none; border:none; cursor:pointer; font-size:0.875rem; border-bottom:1px solid var(--border-muted);"
 								onmousedown={() => selectItem(item)}>
@@ -231,7 +228,7 @@
 			</div>
 			<button type="submit" class="btn btn-primary btn-sm" disabled={!addItemId}>Add</button>
 		</div>
-		{#if !addItemId && searchQuery.length >= 2 && searchResults.length === 0}
+		{#if !addItemId && searchQuery.length >= 2 && filteredResults.length === 0}
 			<p class="field-hint" style="color:var(--color-danger); margin-top:0.25rem;">No items found matching "{searchQuery}"</p>
 		{/if}
 	</form>

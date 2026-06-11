@@ -136,34 +136,34 @@
 
 	let slots = $state<Record<string,SlotState>>({});
 
-	function sk(slot:any) { return `${slot.sourceClassId}_${slot.sourceLevel}`; }
+	function sk(slot:any, i?:number) { return `${slot.sourceClassId}_${slot.sourceLevel}_${i ?? slot.slotIndex ?? 0}`; }
 
 	// Initialise slot state for any new slots — run once, add missing keys only
 	$effect(() => {
 		const asiSlots = charSheet?.asiSlots ?? [];
 		const current  = untrack(() => slots);
-		const newSlots = asiSlots.filter((s: any) => !(sk(s) in current));
+		const newSlots = asiSlots.filter((s: any, i: number) => !(sk(s, i) in current));
 		if (newSlots.length === 0) return; // nothing to add — avoid infinite loop
 		const next = { ...current };
-		for (const slot of newSlots) {
-			const k = sk(slot);
+		for (const [idx, slot] of newSlots.entries()) {
+			const k = sk(slot, asiSlots.indexOf(slot));
 			const defaultMode = (slot.type === 'background_feat' || slot.type === 'epic_boon') ? 'feat' : 'asi';
 			next[k] = {open:false,mode:defaultMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',saving:false};
 		}
 		slots = next;
 	});
 
-	function ss(slot:any): SlotState {
+	function ss(slot:any, i?:number): SlotState {
 			const fallbackMode = (slot.type === 'background_feat' || slot.type === 'epic_boon') ? 'feat' : 'asi';
-		return slots[sk(slot)] ?? {open:false,mode:fallbackMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',saving:false};
+		return slots[sk(slot,i)] ?? {open:false,mode:fallbackMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',saving:false};
 	}
-	function updateSlot(slot:any, patch: Partial<SlotState>) {
-		const k = sk(slot);
-		slots = {...slots, [k]: {...ss(slot), ...patch}};
+	function updateSlot(slot:any, patch: Partial<SlotState>, i?:number) {
+		const k = sk(slot, i);
+		slots = {...slots, [k]: {...ss(slot, i), ...patch}};
 	}
 
-	function filteredFeats(slot:any) {
-		const q = ss(slot).featSearch.toLowerCase();
+	function filteredFeats(slot:any, i?:number) {
+		const q = ss(slot, i).featSearch.toLowerCase();
 		return (systemData?.feats ?? []).filter((f:any) => {
 			if (f.name === 'Ability Score Improvement') return false;
 			if (slot.type === 'epic_boon') return f.isEpicBoon;
@@ -179,8 +179,8 @@
 		);
 	}
 
-	async function saveSlot(slot:any) {
-		const s = ss(slot);
+	async function saveSlot(slot:any, i?:number) {
+		const s = ss(slot, i);
 		const asiFeat = systemData?.feats?.find((f:any)=>f.name==='Ability Score Improvement');
 		let opts: any = { sourceClassId: slot.sourceClassId, sourceLevel: slot.sourceLevel };
 
@@ -195,9 +195,9 @@
 			opts = {...opts, featId: asiFeat.id, stat1: s.asi2a, amount1: 1, stat2: s.asi2b, amount2: 1};
 		} else return;
 
-		updateSlot(slot, {saving:true});
+		updateSlot(slot, {saving:true}, i);
 		await onSaveSlot?.(opts);
-		updateSlot(slot, {saving:false, open:false, featPick:'', asiStat:'', asi2a:'', asi2b:'', featSearch:''});
+		updateSlot(slot, {saving:false, open:false, featPick:'', asiStat:'', asi2a:'', asi2b:'', featSearch:''}, i);
 	}
 </script>
 
@@ -432,10 +432,10 @@
 	{#if charSheet.asiSlots?.length}
 	<div class="card">
 		<h3 class="section-title">Ability Score Improvements & Feats</h3>
-		{#each charSheet.asiSlots as slot}
+		{#each charSheet.asiSlots as slot, slotIdx}
 			{@const r        = slot.resolved}
 			{@const cf       = r ? chosenFeats.find((c:any)=>c.id===r.charFeatId) : null}
-			{@const s        = ss(slot)}
+			{@const s        = ss(slot, slotIdx)}
 			{@const isLocked = slot.type === 'background_feat' && !!slot.grantsFeatId && !canManage}
 
 			<div style="padding:0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);border-left:3px solid {!r?'var(--color-warning)':'var(--color-success)'};margin-bottom:0.5rem;">
@@ -464,7 +464,7 @@
 								{#if slot.type === 'background_feat' && slot.grantsFeatId && !canManage}
 									<span style="font-size:0.75rem;color:var(--text-muted);">🔒 Background grant</span>
 								{:else}
-									<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot,{open:true})}>Edit</button>
+									<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot, {open:true}, slotIdx)}>Edit</button>
 								{/if}
 								{#if r.charFeatId}
 									<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => onRemoveFeat?.(cf?.id??r.charFeatId)}>Remove</button>
@@ -496,7 +496,7 @@
 								{#each [['asi','+2 One Stat'],['asi2','+1/+1 Two Stats'],['feat','Choose Feat']] as [val,label]}
 									<button
 										style="padding:0.25rem 0.75rem;border-radius:99px;border:1px solid {s.mode===val?'var(--brand-accent)':'var(--border-base)'};background:{s.mode===val?'rgba(184,115,74,0.15)':'transparent'};color:{s.mode===val?'var(--brand-accent)':'var(--text-secondary)'};font-size:0.75rem;font-weight:600;cursor:pointer;"
-										onclick={() => updateSlot(slot,{mode:val})}>
+										onclick={() => updateSlot(slot, {mode:val}, slotIdx)}>
 										{label}
 									</button>
 								{/each}
@@ -508,49 +508,49 @@
 								<span style="font-size:0.8125rem;color:var(--text-muted);">+2 to</span>
 								<select class="input input--select" style="width:160px;"
 									value={s.asiStat}
-									onchange={(e) => updateSlot(slot,{asiStat:(e.target as HTMLSelectElement).value})}>
+									onchange={(e) => updateSlot(slot, {asiStat:(e.target as HTMLSelectElement).value}, slotIdx)}>
 									<option value="">Select stat…</option>
 									{#each FEAT_STATS as fs}<option value={fs}>{FEAT_STAT_LABEL[fs]}</option>{/each}
 								</select>
-								<button class="btn btn-primary btn-sm" disabled={!s.asiStat||s.saving} onclick={() => saveSlot(slot)}>
+								<button class="btn btn-primary btn-sm" disabled={!s.asiStat||s.saving} onclick={() => saveSlot(slot, slotIdx)}>
 									{s.saving ? '…' : 'Confirm'}
 								</button>
-								{#if r}<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot,{open:false})}>Cancel</button>{/if}
+								{#if r}<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot, {open:false}, slotIdx)}>Cancel</button>{/if}
 							</div>
 
 						{:else if s.mode === 'asi2'}
 							<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
 								<select class="input input--select" style="width:145px;"
 									value={s.asi2a}
-									onchange={(e) => updateSlot(slot,{asi2a:(e.target as HTMLSelectElement).value})}>
+									onchange={(e) => updateSlot(slot, {asi2a:(e.target as HTMLSelectElement).value}, slotIdx)}>
 									<option value="">First stat…</option>
 									{#each FEAT_STATS as fs}<option value={fs} disabled={fs===s.asi2b}>{fs}</option>{/each}
 								</select>
 								<span style="color:var(--text-muted);">/ +1</span>
 								<select class="input input--select" style="width:145px;"
 									value={s.asi2b}
-									onchange={(e) => updateSlot(slot,{asi2b:(e.target as HTMLSelectElement).value})}>
+									onchange={(e) => updateSlot(slot, {asi2b:(e.target as HTMLSelectElement).value}, slotIdx)}>
 									<option value="">Second stat…</option>
 									{#each FEAT_STATS as fs}<option value={fs} disabled={fs===s.asi2a}>{fs}</option>{/each}
 								</select>
-								<button class="btn btn-primary btn-sm" disabled={!s.asi2a||!s.asi2b||s.saving} onclick={() => saveSlot(slot)}>
+								<button class="btn btn-primary btn-sm" disabled={!s.asi2a||!s.asi2b||s.saving} onclick={() => saveSlot(slot, slotIdx)}>
 									{s.saving ? '…' : 'Confirm'}
 								</button>
-								{#if r}<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot,{open:false})}>Cancel</button>{/if}
+								{#if r}<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot, {open:false}, slotIdx)}>Cancel</button>{/if}
 							</div>
 
 						{:else}
 							<!-- Feat picker -->
 							<input type="text" class="input" placeholder="Search feats…" style="margin-bottom:0.5rem;"
 								value={s.featSearch}
-								oninput={(e) => updateSlot(slot,{featSearch:(e.target as HTMLInputElement).value})} />
+								oninput={(e) => updateSlot(slot, {featSearch:(e.target as HTMLInputElement).value}, slotIdx)} />
 							<div style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:0.25rem;">
-								{#each filteredFeats(slot) as feat}
+								{#each filteredFeats(slot, slotIdx) as feat}
 									{@const taken = !feat.repeatable && chosenFeats.some((cf2:any)=>cf2.featId===feat.id)}
 									<label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.5rem;background:{s.featPick===feat.id?'rgba(184,115,74,0.12)':'var(--bg-muted)'};border-radius:var(--radius-sm);cursor:{taken?'not-allowed':'pointer'};opacity:{taken?0.5:1};border:1px solid {s.featPick===feat.id?'var(--brand-accent)':'transparent'};">
 										<input type="radio" name="feat-{sk(slot)}" value={feat.id}
 											checked={s.featPick===feat.id}
-											onchange={() => updateSlot(slot,{featPick:feat.id})}
+											onchange={() => updateSlot(slot, {featPick:feat.id}, slotIdx)}
 											disabled={taken}
 											style="margin-top:2px;accent-color:var(--brand-accent);" />
 										<div>
@@ -569,10 +569,10 @@
 								{/each}
 							</div>
 							<div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-								<button class="btn btn-primary btn-sm" disabled={!s.featPick||s.saving} onclick={() => saveSlot(slot)}>
+								<button class="btn btn-primary btn-sm" disabled={!s.featPick||s.saving} onclick={() => saveSlot(slot, slotIdx)}>
 									{s.saving ? 'Saving…' : 'Choose Feat'}
 								</button>
-								{#if r}<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot,{open:false})}>Cancel</button>{/if}
+								{#if r}<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot, {open:false}, slotIdx)}>Cancel</button>{/if}
 							</div>
 						{/if}
 					</div>

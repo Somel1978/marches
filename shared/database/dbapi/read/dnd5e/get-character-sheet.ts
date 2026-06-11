@@ -72,6 +72,7 @@ export async function getDnd5eCharacterSheet(characterId: string) {
 
             const resolved = findSlotResolution(cc.classId, feat.requiredLevel, chosenFeats, usedFeatRowIds);
             asiSlots.push({
+                slotIndex:    asiSlots.length,
                 type:         isEpicBoon ? 'epic_boon' : 'asi',
                 sourceClass:  cc.classRef?.name ?? cc.classId,
                 sourceClassId: cc.classId,
