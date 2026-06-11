@@ -6,7 +6,6 @@ export async function checkAndClearRest(characterId: string) {
     const character = await db.character.findUnique({ where: { id: characterId } });
     if (!character) return;
     if (character.status !== 'RESTING') return;
-    if (character.statusReason !== 'QUEST_REST') return;
     if (!character.restUntil) return;
     if (new Date() < character.restUntil) return;
 
@@ -36,8 +35,9 @@ export async function checkAndClearRest(characterId: string) {
 
 export async function clearAllExpiredRest(): Promise<number> {
     const now = new Date();
+    // Clear all RESTING characters whose restUntil has passed — regardless of statusReason
     const resting = await db.character.findMany({
-        where: { status: 'RESTING', statusReason: 'QUEST_REST', restUntil: { lte: now } },
+        where: { status: 'RESTING', restUntil: { lte: now } },
         select: { id: true },
     });
     await Promise.all(resting.map(c => checkAndClearRest(c.id)));

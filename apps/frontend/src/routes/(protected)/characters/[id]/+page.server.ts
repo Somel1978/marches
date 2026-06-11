@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/characters/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { characters, achievements, gameSystems, marketplace, platform, worlds } from '@core/database';
+import { characters, db, achievements, gameSystems, marketplace, platform, worlds } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import { loadDnd5eCharacterData } from './_loaders/dnd5e.server.ts';
 import { dnd5eActions } from './_sheets/dnd5e.actions.server.ts';
@@ -13,13 +13,17 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	await characters.checkRest(params.id);
 
-	const [transactions, gameSystem, inventory, pendingTx, settings, charAchievements] = await Promise.all([
+	const [transactions, gameSystem, inventory, pendingTx, settings, charAchievements, boostTxs] = await Promise.all([
 		characters.getTransactions(params.id, 10),
 		gameSystems.getById(character.gameSystemId),
 		characters.getInventory(params.id),
 		marketplace.transactions.getAll({ characterId: params.id, status: 'PENDING' }),
 		platform.getSettingsMap(),
 		achievements.getForCharacter(params.id),
+		db.characterTransaction.findMany({
+			where:   { characterId: params.id, sourceType: 'REWARD', note: { contains: 'Token boost' } },
+			select:  { type: true, delta: true, note: true },
+		}),
 	]);
 
 	const pendingBuys   = pendingTx.items.filter((t: any) => t.type === 'BUY');
@@ -55,7 +59,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	return {
-		character, charAchievements, transactions, gameSystem, progressionThresholds,
+		character, charAchievements, transactions, boostTxs, gameSystem, progressionThresholds,
 		inventory: inventoryWithSellPrice, pendingBuys, pendingSells, sellPct: globalSellPct, worldName,
 		...systemSpecific,
 	};

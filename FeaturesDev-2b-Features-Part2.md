@@ -186,3 +186,151 @@ stock, availability, sell%, levelRestrictions. All workflows call this, no dupli
 
 
 ---
+---
+
+### 23. Tavern Social Space ✅
+
+**Schema:** `tavern.prisma`
+```
+TavernAuthorType enum: CHARACTER | DM | ADMIN
+TavernChannel: id, worldId? (unique, Cascade), name, isActive, isPrivate, createdAt
+TavernMessage: id, channelId, authorType, authorId, authorName, authorAvatar?,
+               characterId?, characterName?, content, isDeleted (soft), deletedBy?, deletedAt?, createdAt
+```
+
+**Auto-create:** `createWorld()` creates `TavernChannel` automatically. `ensureWorld()` backfills on admin world page load and `/tavern` page load.
+
+**Privacy:** `isPrivate=true` hides channel from non-world-members. Admins/DMs see all channels.
+
+**Cap:** 200 messages stored, 100 shown in UI. Oldest deleted on insert.
+
+**Author types:** CHARACTER (picks from active characters), DM (has DMProfile), ADMIN (admin permission)
+
+**Discord:**
+- Platform → Discord: `notifyTavernMessage` sends to TAVERN channel; `getAllForType` (findMany) sends to ALL matching servers
+- Discord → Platform: `/tavern message channel character` slash command
+- Global commands cleared before guild registration (prevents duplicates)
+
+**CSS:** `shared/ui/styles/components/tavern.css`
+
+---
+
+### 24. Character Public Directory ✅
+
+**Schema:** `Character.isPrivate Boolean @default(false)`
+
+**Card system:** `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterCard.svelte` — read-only card.
+- Uses `charSheet.abilityScores` array with `STAT_MAP` (`STRENGTH→str` etc, field is `baseScore`)
+- Uses `charSheet.enrichedClasses` for features
+- Uses `charSheet.chosenFeats` for feats
+- Inventory loaded separately via `characters.getInventory()`
+- No HP/AC/speed (not tracked in dnd5e schema)
+- Future systems: add `_cards/[System]CardSection.svelte` wrapper
+
+**Routes:**
+- `/characters/public` — searchable directory (by character name or player name)
+- `/characters/public/[id]` — full profile; private shows portrait+name only
+
+**CSS:** `shared/ui/styles/components/char-card.css`
+
+**Enricher:** `character:id` now links to `/characters/public/[id]`
+
+---
+
+### 25. Part 2 — Journal/Wiki Refactor ✅
+
+**Schema:** `news.prisma`
+- `ContentVisibility` enum: PUBLIC | WORLD | DM_ONLY | ADMIN_ONLY
+- `WorldJournal` / `WorldJournalSection` / `WorldJournalPage` — per-world journals with visibility
+- `PlatformWiki` / `PlatformWikiSection` / `PlatformWikiPage` — platform-wide wiki
+  (renamed from Wiki to avoid clash with `WikiPage` in world.prisma)
+
+**Visibility filtering:** `getWorldJournalsForUser(worldId, UserContext)` — filters by isDM/isAdmin/worldMembership
+
+**Routes:**
+- Admin: `/wiki` (list+editor), `/world/[id]/journal` (list+editor)
+- Frontend: `/wiki` (reader), `/world/[slug]/journal/[id]` (reader)
+- DM Hub: `/dm/worlds/[worldId]/journal` (list+editor with visibility selects)
+- Old `/journal` routes deleted from disk
+
+**Admin nav:** `resourceKey: 'Journal'`, `label: 'Wiki'`, `href: '/wiki'`
+
+---
+
+### 26. Discord Availability Commands ✅
+
+**Commands:**
+- `/setavailable start_date start_time end_date end_time [scope]`
+- `/unsetavailable start_date start_time end_date end_time`
+
+**Date formats:** YYYY-MM-DD or DD/MM/YYYY  
+**Time format:** HH:MM 24h (end time exclusive — 17:00–18:00 books slots 34+35 only)  
+**Scope:** `global` (default) or world name (partial match)
+
+**Files:** `apps/discord/src/commands/availability.ts`
+
+---
+
+### 27. DM Hub World Dashboard — Player Availability ✅
+
+**Behaviour:**
+- `/dm` root — shows all players' availability (no world filter)
+- `/dm/worlds/[worldId]` dashboard — shows:
+  - WORLD-scoped slots targeting this world (always)
+  - GLOBAL-scoped slots only if `world.acceptsGlobalCharacters = true` AND user has chars in world
+- Character visibility: `acceptsGlobal` → all active chars; else → world chars only
+- Day picker with prev/next navigation
+- Character level shown as `Lv X` badge (sum of `classes.allocatedLevel`)
+
+---
+
+### 28. Token Store ✅
+
+**Schema:** `token-store.prisma` (schema: `tokenstore`)
+
+```
+TokenStoreRewardType: XP_BOOST | GOLD_BOOST | MANUAL (display: Quest XP Boost / Quest GP Boost)
+TokenStoreRewardDirection: RETROSPECTIVE | FUTURE | BOTH
+TokenStoreScope: GLOBAL | WORLD
+TokenStoreTransactionStatus: PENDING | APPROVED | REJECTED | REVOKED
+
+TokenStoreItem:
+  name, description, imageUrl, tokenCost, gameSystemId? (null=universal),
+  scope, worldId? (if WORLD), rewardType, rewardValue (Json: { percent, direction }),
+  isActive, stock?, createdBy
+
+TokenStoreTransaction:
+  itemId, characterId, itemSnapshot (Json), status, tokenCostAtTransaction,
+  requestedBy, reviewedBy?, reviewNote?, worldId?
+```
+
+**Purchase flow (same as marketplace):**
+1. Player buys with tokens → tokens deducted immediately → status PENDING
+2. Admin or canManage DM approves → boost applied → status APPROVED
+3. Reject → tokens refunded → status REJECTED
+4. Revoke (admin only) → boost reversed + tokens refunded → warns on level-down/negative gold
+
+**Boost application — `apply-boosts.ts`:**
+- Per-quest per-boost pattern — one `CharacterTransaction` per quest per boost
+- `sourceType='QUEST'`, `sourceId=questId` → quest deletion auto-reverts boosts
+- Delete+recreate on each application — fully idempotent, safe to recalculate
+- Base XP scan excludes `note: contains 'boost:'` to prevent feedback loops
+- `applyBoostPerQuest(tx, characterId, stTxId, item, direction)` — retrospective
+- `applyFutureBoostForQuest(tx, characterId, questId, xpGranted, goldGranted, worldId)` — called at quest approval
+
+**World scoping:**
+- GLOBAL boost: applies to all quests regardless of world
+- WORLD boost: only quests in that world (via `quest.regionId → region.worldId`)
+
+**Game system restriction:** `gameSystemId = null` = universal; otherwise must match character's game system
+
+**`↻ Recalc` button:** Re-runs retrospective calculation for approved boosts — fills missing per-quest transactions, corrects none
+
+**Routes:**
+- Admin: `/token-store` list, `/token-store/items/new`, `/token-store/items/[id]`, `/token-store/transactions` (approve/reject/revoke/recalc), data import/export
+- DM Hub: `/dm/worlds/[worldId]/token-store` — approve/reject/recalc for world characters
+- Frontend: `/token-store` (browse, filtered by character system+world), `/token-store/[id]` (purchase)
+
+**Character sheet:** `+X from boosts` shown under XP and GP stat cards
+
+**Discord:** `TOKEN_STORE_PENDING` notification via APPROVALS channel

@@ -59,6 +59,7 @@
 	});
 
 	const selectedWorld   = $derived(_allWorlds.find((w: any) => w.id === selectedWorldId));
+	const worldsWithRegions = $derived((_allWorlds as any[]).filter((w: any) => w.regions?.length > 0));
 	const regionOptions   = $derived((selectedWorld?.regions ?? []) as any[]);
 	const questRatings  = $derived(((data as any).questRatings ?? []) as any[]);
 	const ratingsAvg    = $derived(

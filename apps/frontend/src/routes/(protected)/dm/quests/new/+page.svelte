@@ -18,6 +18,7 @@
 	let selectedRegionId   = $state('');
 	let selectedLocationId = $state('');
 	const selectedWorld   = $derived(_allWorlds.find((w: any) => w.id === selectedWorldId));
+	const worldsWithRegions = $derived((_allWorlds as any[]).filter((w: any) => w.regions?.length > 0));
 	const regionOptions   = $derived((selectedWorld?.regions ?? []) as any[]);
 	const locationOptions = $derived(
 		regionOptions.find((r: any) => r.id === selectedRegionId)?.locations ?? [] as any[]
@@ -167,18 +168,18 @@
 					bind:value={selectedWorldId}
 					onchange={() => { selectedRegionId = ''; selectedLocationId = ''; }}>
 					<option value="">No world</option>
-					{#each _allWorlds as w}
+					{#each worldsWithRegions as w}
 						<option value={w.id}>{w.name}</option>
 					{/each}
 				</select>
 			</div>
-			{#if regionOptions.length}
+			{#if selectedWorldId && regionOptions.length}
 				<div class="field">
 					<label class="label" for="q-region">Region</label>
 					<select id="q-region" name="regionId" class="input input--select"
 						bind:value={selectedRegionId}
 						onchange={() => selectedLocationId = ''}>
-						<option value="">None</option>
+						<option value="">— Select region —</option>
 						{#each regionOptions as r}
 							<option value={r.id}>{r.name}</option>
 						{/each}

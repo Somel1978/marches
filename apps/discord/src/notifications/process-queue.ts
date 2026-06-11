@@ -8,6 +8,7 @@ import {
     notifyItemPurchased, notifyItemSold, notifyMarketplacePending,
     notifyCharacterApproved, notifyCharacterRejected, notifyCharacterPendingApproval,
     notifyTavernMessage,
+    notifyTokenStorePending,
     notifyUserRegistered,
 } from './dispatcher.js';
 
@@ -25,6 +26,7 @@ export async function processQueue(client: Client) {
                 case 'QUEST_RESULT_PENDING':    await notifyQuestResultPending(p);                                                 break;
                 case 'QUEST_RESULT':            await notifyQuestResult({ id: p.questId, title: p.questTitle, worldId: p.worldId }, p.chars); break;
                 // Character
+                case 'TOKEN_STORE_PENDING':      await notifyTokenStorePending(p);                                              break;
                 case 'TAVERN_MESSAGE':           await notifyTavernMessage(p);                                               break;
                 case 'USER_REGISTERED':          await notifyUserRegistered(p.user);                                            break;
                 case 'CHAR_PENDING_APPROVAL':   await notifyCharacterPendingApproval(p.char);                                     break;

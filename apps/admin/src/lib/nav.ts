@@ -91,6 +91,18 @@ export const NAV_ITEMS: NavItemDef[] = [
         ],
     },
     {
+        resourceKey: 'MarketplaceItem',
+        label:       'Token Store',
+        href:        '/token-store',
+        icon:        `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
+        activeMatch: (pathname: string) => pathname.startsWith('/token-store'),
+        children: [
+            { label: 'Items',        href: '/token-store' },
+            { label: 'Transactions', href: '/token-store/transactions' },
+            { label: 'Import',       href: '/token-store/data/import' },
+        ],
+    },
+    {
         resourceKey: 'Announcement',
         label:       'News',
         href:        '/news',

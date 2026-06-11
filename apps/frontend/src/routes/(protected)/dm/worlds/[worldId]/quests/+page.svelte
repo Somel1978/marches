@@ -100,8 +100,6 @@
 									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Reject</button>
 								</form>
 							</div>
-						{:else if (quest.status === 'PENDING_APPROVAL' || quest.status === 'PENDING_RESULT_APPROVAL')}
-							<span class="badge badge-warning">Awaiting approval</span>
 						{:else}
 							<a href="/dm/quests/{quest.id}" class="btn btn-ghost btn-sm">Manage</a>
 						{/if}

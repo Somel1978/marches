@@ -5,6 +5,7 @@ import { createNotificationsForAdmins, createNotification } from '../notificatio
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import { queueDiscordNotification } from '../discord/dispatcher';
+import { applyFutureBoostForQuest } from '../token-store/apply-boosts.ts';
 
 export async function submitQuestResult(
     questId: string,
@@ -79,6 +80,14 @@ export async function submitQuestResult(
             })),
         });
 
+        // Transition quest to PENDING_RESULT_APPROVAL so DMs can see it in the approval queue
+        if (quest.status !== 'PENDING_RESULT_APPROVAL') {
+            await tx.quest.update({
+                where: { id: questId },
+                data:  { status: 'PENDING_RESULT_APPROVAL' },
+            });
+        }
+
         await logAudit(tx, {
             actorId,
             action:      'CREATE',
@@ -94,9 +103,16 @@ export async function submitQuestResult(
 export async function approveQuestResult(resultId: string, actorId: string) {
     const result = await db.questResult.findUnique({
         where:   { id: resultId },
-        include: { characters: true, quest: { select: { title: true, dmProfileId: true } } },
+        include: { characters: true, quest: { select: { title: true, dmProfileId: true, regionId: true } } },
     });
     if (!result) throw new NotFoundError('QuestResult', resultId);
+
+    // Get worldId for boost world-scoping
+    const questRegionId = (result as any).quest?.regionId ?? null;
+    const questRegion   = questRegionId
+        ? await db.region.findUnique({ where: { id: questRegionId }, select: { worldId: true } })
+        : null;
+    const questWorldId = questRegion?.worldId ?? null;
     if (result.status !== 'PENDING_APPROVAL') throw new ValidationError('Result is not pending approval.');
 
     // Recalculate per-player rewards from CURRENT QuestReward records
@@ -200,6 +216,8 @@ export async function approveQuestResult(resultId: string, actorId: string) {
                 note: `Quest reward: ${result.quest?.title ?? 'Quest'}`, createdBy: actorId,
             }});
 
+            // Apply FUTURE/BOTH token store boosts per quest (sourceType=QUEST so deletions auto-revert)
+            await applyFutureBoostForQuest(tx, rc.characterId, result.questId, xpToGrant, goldToGrant, questWorldId);
             // Update QuestResultCharacter with final awarded amounts
             await tx.questResultCharacter.update({
                 where: { id: rc.id },

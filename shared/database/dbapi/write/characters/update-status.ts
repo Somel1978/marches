@@ -3,6 +3,7 @@ import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { createNotification } from '../notifications/notifications.ts';
 import { NotFoundError } from '@core/errors';
+import { getSettingsMap } from '../../read/platform/get-settings.ts';
 import type { CharacterStatus, CharacterStatusReason } from '@prisma/client';
 
 export async function updateCharacterStatus(
@@ -70,7 +71,6 @@ export async function updateCharacterStatus(
 }
 
 async function getRestUntil(): Promise<Date> {
-    const { getSettingsMap } = await import('../../read/platform/get-settings.ts');
     const settings  = await getSettingsMap();
     const restDays  = Number(settings['character.restDays'] ?? 7);
     const restUntil = new Date();

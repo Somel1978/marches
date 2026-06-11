@@ -13,6 +13,10 @@
 	const totalLevel  = $derived((data.character as any).level ?? 0);
 	const thresholds  = $derived((data as any).progressionThresholds ?? []);
 	const earnedLevel = $derived(thresholds.filter((t: any) => data.character.totalXp >= t.xpRequired).length);
+	// Sum XP/Gold that came from token store boosts
+	const boostTxs  = $derived((data as any).boostTxs ?? []);
+	const boostXp   = $derived((boostTxs as any[]).filter((t: any) => t.type === 'XP'   && (t.delta ?? 0) > 0).reduce((s: number, t: any) => s + t.delta, 0));
+	const boostGold = $derived((boostTxs as any[]).filter((t: any) => t.type === 'GOLD' && (t.delta ?? 0) > 0).reduce((s: number, t: any) => s + t.delta, 0));
 	const isLevelUp   = $derived(data.character.statusReason === 'LEVEL_UP_PENDING');
 	const isLevelDown = $derived(data.character.statusReason === 'LEVEL_DOWN_PENDING');
 	const canEdit     = $derived(['ACTIVE','RESTING','REJECTED'].includes(data.character.status) || isLevelUp || isLevelDown);
@@ -93,8 +97,16 @@
 			</div>
 		{/if}
 		<div class="dashboard__stats">
-			<div class="stat-card"><span class="stat-value">{data.character.totalXp.toLocaleString()}</span><span class="stat-label">XP</span></div>
-			<div class="stat-card"><span class="stat-value">{data.character.totalGold.toLocaleString()}</span><span class="stat-label">Gold</span></div>
+			<div class="stat-card">
+				<span class="stat-value">{data.character.totalXp.toLocaleString()}</span>
+				<span class="stat-label">XP</span>
+				{#if boostXp > 0}<span style="font-size:0.625rem;color:var(--color-accent);display:block;">+{boostXp.toLocaleString()} from boosts</span>{/if}
+			</div>
+			<div class="stat-card">
+				<span class="stat-value">{data.character.totalGold.toLocaleString()}</span>
+				<span class="stat-label">Gold</span>
+				{#if boostGold > 0}<span style="font-size:0.625rem;color:var(--color-accent);display:block;">+{boostGold.toLocaleString()} from boosts</span>{/if}
+			</div>
 			<div class="stat-card"><span class="stat-value">{data.character.totalTokens.toLocaleString()}</span><span class="stat-label">Tokens</span></div>
 			<div class="stat-card"><span class="stat-value">{totalLevel}</span><span class="stat-label">Level</span></div>
 		</div>
@@ -291,7 +303,7 @@
 										<span class="table__muted">{tx.fromValue} → {tx.toValue}</span>
 									{/if}
 								</td>
-								<td class="table__muted col-hide-mobile">{tx.note ?? '—'}</td>
+								<td class="table__muted col-hide-mobile">{tx.note ?? '—'}{#if (tx as any).worldName}<span class="badge badge-muted" style="margin-left:0.375rem;font-size:0.6875rem;">{(tx as any).worldName}</span>{/if}</td>
 								<td class="table__muted">{formatDate(tx.createdAt)}</td>
 							</tr>
 						{/each}

@@ -32,6 +32,28 @@ export const commands = [
             .addStringOption(o => o.setName('character').setDescription('Post as this character name (optional)').setRequired(false)),
     },
 
+    // ── Availability ──────────────────────────────────────────────────────────
+    {
+        data: new SlashCommandBuilder()
+            .setName('setavailable')
+            .setDescription('Set your availability for quests')
+            .addStringOption(o => o.setName('start_date').setDescription('Start date (YYYY-MM-DD or DD/MM/YYYY)').setRequired(true))
+            .addStringOption(o => o.setName('start_time').setDescription('Start time (HH:MM, 24h)').setRequired(true))
+            .addStringOption(o => o.setName('end_date').setDescription('End date (YYYY-MM-DD or DD/MM/YYYY)').setRequired(true))
+            .addStringOption(o => o.setName('end_time').setDescription('End time (HH:MM, 24h)').setRequired(true))
+            .addStringOption(o => o.setName('scope').setDescription('global or a world name (default: global)').setRequired(false)),
+    },
+
+    {
+        data: new SlashCommandBuilder()
+            .setName('unsetavailable')
+            .setDescription('Remove your availability for a time range')
+            .addStringOption(o => o.setName('start_date').setDescription('Start date (YYYY-MM-DD or DD/MM/YYYY)').setRequired(true))
+            .addStringOption(o => o.setName('start_time').setDescription('Start time (HH:MM, 24h)').setRequired(true))
+            .addStringOption(o => o.setName('end_date').setDescription('End date (YYYY-MM-DD or DD/MM/YYYY)').setRequired(true))
+            .addStringOption(o => o.setName('end_time').setDescription('End time (HH:MM, 24h)').setRequired(true)),
+    },
+
     // ── Characters ────────────────────────────────────────────────────────────
     {
         data: new SlashCommandBuilder()

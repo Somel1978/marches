@@ -33,6 +33,10 @@ export async function clearSlot(userId: string, date: Date, slot: number) {
     return db.availabilitySlot.deleteMany({ where: { userId, date, slot } });
 }
 
+export async function clearSlots(userId: string, date: Date, slots: number[]) {
+    return db.availabilitySlot.deleteMany({ where: { userId, date, slot: { in: slots } } });
+}
+
 export async function adminDeleteSlot(id: string, actorId: string) {
     const s = await db.availabilitySlot.findUnique({ where: { id } });
     if (!s) return;

@@ -13,6 +13,7 @@
 	const charSheet     = $derived((data as any).charSheet);
 	const systemData    = $derived((data as any).systemData);
 	const isPending     = $derived(char.status === 'PENDING');
+	const isResting     = $derived(char.status === 'RESTING');
 	const isEditPending = $derived(char.statusReason === 'EDIT_PENDING');
 	const isLevelUp     = $derived(char.statusReason === 'LEVEL_UP_PENDING');
 	const isLevelDown   = $derived(char.statusReason === 'LEVEL_DOWN_PENDING');
@@ -36,6 +37,7 @@
 {#if form?.message}<div class="form-error">{(form as any).message}</div>{/if}
 {#if (form as any)?.approveSuccess}<div class="form-success">Character approved.</div>{/if}
 {#if (form as any)?.rejectSuccess}<div class="form-success">Character rejected.</div>{/if}
+{#if (form as any)?.statusSuccess}<div class="form-success">Character status updated.</div>{/if}
 
 <!-- Pending banner -->
 {#if needsReview && canManage}
@@ -84,6 +86,29 @@
 		</div>
 	</div>
 </div>
+
+<!-- Status management (canManage DMs) -->
+{#if canManage && (isResting || char.status === 'ACTIVE')}
+	<div class="card" style="margin-bottom:1rem;">
+		<h3 class="section-title" style="margin-bottom:0.75rem;">Status Management</h3>
+		<div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+			<span>Current: <strong>{char.status}</strong>{#if char.restUntil} (until {new Date(char.restUntil).toLocaleDateString()}){/if}</span>
+			{#if isResting}
+				<form method="post" action="?/updateStatus" use:enhance>
+					<input type="hidden" name="status" value="ACTIVE" />
+					<input type="hidden" name="note" value="Manually cleared by DM" />
+					<button type="submit" class="btn btn-primary btn-sm">Clear Rest → Active</button>
+				</form>
+			{:else if char.status === 'ACTIVE'}
+				<form method="post" action="?/updateStatus" use:enhance>
+					<input type="hidden" name="status" value="RESTING" />
+					<input type="hidden" name="note" value="Set to resting by DM" />
+					<button type="submit" class="btn btn-ghost btn-sm">Set Resting</button>
+				</form>
+			{/if}
+		</div>
+	</div>
+{/if}
 
 <!-- dnd5e sheet -->
 {#if isDnd5e && charSheet}

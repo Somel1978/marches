@@ -65,6 +65,21 @@ export const actions: Actions = {
 		}
 	},
 
+	updateStatus: async ({ params, request, locals }) => {
+		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
+		const data   = await request.formData();
+		const status = data.get('status')?.toString();
+		const note   = data.get('note')?.toString() || undefined;
+		if (!status) return fail(400, { message: 'Status is required.' });
+		try {
+			await characters.updateStatus(params.charId, status as any, null, note, locals.user!.id);
+			return { statusSuccess: true };
+		} catch (e: any) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
 	// ── dnd5e direct-save actions (canManage DMs only) ───────────────────────
 	updateSheet:       dmDnd5eActions.updateSheet,
 	addFeat:           dmDnd5eActions.addFeat,

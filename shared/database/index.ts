@@ -41,7 +41,7 @@ import { createProgressionThreshold, updateProgressionThreshold, deleteProgressi
 
 import { getPlatformStats, getPublicStats, getUserStats } from './dbapi/read/stats/get-stats.ts';
 
-import { setSlots, clearDay, clearSlot, adminDeleteSlot } from './dbapi/write/availability/slots.ts';
+import { setSlots, clearDay, clearSlot, clearSlots, adminDeleteSlot } from './dbapi/write/availability/slots.ts';
 import { getUserAvailability, getAvailableUsersForQuest, getAllAvailability } from './dbapi/read/availability/get-availability.ts';
 
 import { createAnnouncement, updateAnnouncement, deleteAnnouncement } from './dbapi/write/news/announcements.ts';
@@ -80,6 +80,9 @@ import { getAllAchievements, getCharacterAchievements } from './dbapi/read/rewar
 
 // ── Notifications ────────────────────────────────────────────────────────────────
 import { queueDiscordNotification } from './dbapi/write/discord/dispatcher.ts';
+import { getTokenStoreItems, getTokenStoreItemById, getAllTokenStoreItemsForExport, getTokenStoreTransactions, getTokenStoreTransactionById, getActiveBoostsForCharacter } from './dbapi/read/token-store/get-items.ts';
+import { createTokenStoreItem, updateTokenStoreItem, deleteTokenStoreItem, importTokenStoreItems } from './dbapi/write/token-store/items.ts';
+import { createTokenStorePurchase, approveTokenStorePurchase, rejectTokenStorePurchase, revokeTokenStorePurchase, recalculateTokenStoreBoost } from './dbapi/write/token-store/transactions.ts';
 import { getTavernChannels, getTavernChannel, getTavernChannelByWorldId, getGlobalTavernChannel, getTavernMessages } from './dbapi/read/tavern/get-channels.ts';
 import { sendTavernMessage, deleteTavernMessage, ensureGlobalTavernChannel, ensureWorldTavernChannel, updateTavernChannel } from './dbapi/write/tavern/messages.ts';
 import { getUnreadNotifications, getNotifications  } from './dbapi/read/notifications/get-notifications.ts';
@@ -341,6 +344,28 @@ export const worlds = {
 
 export { queueDiscordNotification };
 
+export const tokenStore = {
+    items: {
+        getAll:         getTokenStoreItems,
+        getById:        getTokenStoreItemById,
+        getAllForExport: getAllTokenStoreItemsForExport,
+        create:         createTokenStoreItem,
+        update:         updateTokenStoreItem,
+        delete:         deleteTokenStoreItem,
+        import:         importTokenStoreItems,
+    },
+    transactions: {
+        getAll:    getTokenStoreTransactions,
+        getById:   getTokenStoreTransactionById,
+        purchase:  createTokenStorePurchase,
+        approve:   approveTokenStorePurchase,
+        reject:    rejectTokenStorePurchase,
+        revoke:       revokeTokenStorePurchase,
+        recalculate:  recalculateTokenStoreBoost,
+        getBoosts:    getActiveBoostsForCharacter,
+    },
+};
+
 export const tavern = {
     channels: {
         getAll:           getTavernChannels,
@@ -387,6 +412,7 @@ export const availability = {
     setSlots,
     clearDay,
     clearSlot,
+    clearSlots,
     adminDelete:    adminDeleteSlot,
     getForUser:     getUserAvailability,
     getForQuest:    getAvailableUsersForQuest,

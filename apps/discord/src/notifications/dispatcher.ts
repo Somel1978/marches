@@ -31,7 +31,7 @@ export async function notifyQuestPublished(quest: any) {
     const embed = new EmbedBuilder()
         .setTitle(`⚔ New Quest: ${quest.title}`)
         .setColor(0x6366f1)
-        .setDescription(quest.description?.slice(0, 200) ?? '')
+        .setDescription(quest.description?.slice(0, 200) || null)
         .addFields(
             { name: 'Level',   value: `${quest.minLevel}–${quest.maxLevel}`, inline: true },
             { name: 'Players', value: `0/${quest.maxCapacity}`,              inline: true },
@@ -51,7 +51,7 @@ export async function notifyQuestStarted(quest: any) {
     const embed = new EmbedBuilder()
         .setTitle(`⚔ Quest Started: ${quest.title}`)
         .setColor(0x6366f1)
-        .setDescription('This quest is now in progress. Good luck adventurers!')
+        .setDescription(('This quest is now in progress. Good luck adventurers!') || null)
         .setURL(`${siteUrl}/quests/${quest.id}`)
         .setTimestamp();
     await send('global', 'QUESTS', embed);
@@ -64,7 +64,7 @@ export async function notifyQuestPendingApproval(quest: any) {
     const embed = new EmbedBuilder()
         .setTitle(`📋 Quest Awaiting Approval: ${quest.title}`)
         .setColor(0xf59e0b)
-        .setDescription(`Submitted by **${quest.dmName ?? 'DM'}** — needs review before publishing.`)
+        .setDescription((`Submitted by **${quest.dmName ?? 'DM'}** — needs review before publishing.`) || null)
         .addFields(
             { name: 'Level', value: `${quest.minLevel}–${quest.maxLevel}`, inline: true },
             { name: 'XP',    value: quest.missionXp?.toLocaleString() ?? '0', inline: true },
@@ -81,7 +81,7 @@ export async function notifyQuestResultPending(quest: any) {
     const embed = new EmbedBuilder()
         .setTitle(`📋 Quest Result Awaiting Approval: ${quest.title}`)
         .setColor(0xf59e0b)
-        .setDescription('Quest result has been submitted and needs review.')
+        .setDescription(('Quest result has been submitted and needs review.') || null)
         .setURL(`${siteUrl}/quests/${quest.id}`)
         .setTimestamp();
     await send('global', 'APPROVALS', embed);
@@ -94,7 +94,7 @@ export async function notifyQuestResult(quest: any, resultChars: any[]) {
     const embed = new EmbedBuilder()
         .setTitle(`✅ Quest Completed: ${quest.title ?? 'Unknown Quest'}`)
         .setColor(0x22c55e)
-        .setDescription('Rewards have been distributed!')
+        .setDescription(('Rewards have been distributed!') || null)
         .addFields(
             resultChars
                 .filter(rc => rc.characterName)
@@ -188,7 +188,7 @@ export async function notifyCharacterPendingApproval(char: any) {
     const embed = new EmbedBuilder()
         .setTitle(`📋 Character Awaiting Approval: ${char.name}`)
         .setColor(0xf59e0b)
-        .setDescription(`**${char.name}** has been submitted for review.`)
+        .setDescription((`**${char.name}** has been submitted for review.`) || null)
         .addFields({ name: 'Reason', value: char.statusReason?.replace(/_/g, ' ') ?? 'New character', inline: true })
         .setTimestamp();
     await send('global', 'APPROVALS', embed);
@@ -202,7 +202,7 @@ export async function notifyCharacterApproved(char: any) {
     const embed = new EmbedBuilder()
         .setTitle('🧙 Character Approved')
         .setColor(0x8b5cf6)
-        .setDescription(`**${char.name}** has been approved and is now active!`)
+        .setDescription((`**${char.name}** has been approved and is now active!`) || null)
         .setTimestamp();
     await send('global', 'CHARACTERS', embed);
     if (char.worldId) await send(char.worldId, 'CHARACTERS', embed);
@@ -212,7 +212,7 @@ export async function notifyCharacterRejected(char: any, note: string) {
     const embed = new EmbedBuilder()
         .setTitle('❌ Character Rejected')
         .setColor(0xef4444)
-        .setDescription(`**${char.name}** was rejected.`)
+        .setDescription((`**${char.name}** was rejected.`) || null)
         .addFields({ name: 'Reason', value: note, inline: false })
         .setTimestamp();
     await send('global', 'CHARACTERS', embed);
@@ -225,7 +225,7 @@ export async function notifyMarketplacePending(char: any, item: any, type: 'BUY'
     const embed = new EmbedBuilder()
         .setTitle(`📋 Marketplace ${type === 'BUY' ? 'Purchase' : 'Sale'} Pending`)
         .setColor(0xf59e0b)
-        .setDescription(`**${char.name}** wants to ${type === 'BUY' ? 'buy' : 'sell'} **${item.name}** — awaiting approval.`)
+        .setDescription((`**${char.name}** wants to ${type === 'BUY' ? 'buy' : 'sell'} **${item.name}** — awaiting approval.`) || null)
         .addFields({ name: 'Value', value: `${item.price?.toLocaleString() ?? '?'} GP`, inline: true })
         .setTimestamp();
     await send('global', 'APPROVALS', embed);
@@ -239,7 +239,7 @@ export async function notifyItemPurchased(char: any, item: any, worldId?: string
     const embed = new EmbedBuilder()
         .setTitle('🛒 Purchase Approved')
         .setColor(0x22c55e)
-        .setDescription(`**${char.name}** purchased **${item.name}**`)
+        .setDescription((`**${char.name}** purchased **${item.name}**`) || null)
         .addFields({ name: 'Price', value: `${item.buyPrice?.toLocaleString() ?? '?'} GP`, inline: true })
         .setTimestamp();
     await send('global', 'MARKET', embed);
@@ -250,7 +250,7 @@ export async function notifyItemSold(char: any, item: any, price: number, worldI
     const embed = new EmbedBuilder()
         .setTitle('💰 Sale Approved')
         .setColor(0x22c55e)
-        .setDescription(`**${char.name}** sold **${item.name}**`)
+        .setDescription((`**${char.name}** sold **${item.name}**`) || null)
         .addFields({ name: 'Received', value: `${price.toLocaleString()} GP`, inline: true })
         .setTimestamp();
     await send('global', 'MARKET', embed);
@@ -267,7 +267,7 @@ export async function notifyAnnouncement(announcement: any) {
             announcement.type === 'WARNING' ? 0xf59e0b :
             announcement.type === 'STATUS'  ? 0x22c55e : 0x9ca3af
         )
-        .setDescription(announcement.content.slice(0, 400))
+        .setDescription((announcement.content.slice(0, 400) || null))
         .addFields({ name: 'Type', value: announcement.type, inline: true })
         .setTimestamp();
 
@@ -289,7 +289,7 @@ export async function notifyInvite(discordId: string, quest: any) {
         const embed = new EmbedBuilder()
             .setTitle(`⚔ Quest Invite: ${quest.title}`)
             .setColor(0xf59e0b)
-            .setDescription(`You've been invited to join **${quest.title}**. Visit the quest page to sign up.`)
+            .setDescription((`You've been invited to join **${quest.title}**. Visit the quest page to sign up.`) || null)
             .addFields(
                 { name: 'Level', value: `${quest.minLevel}–${quest.maxLevel}`, inline: true },
                 { name: 'XP',   value: quest.missionXp.toLocaleString(),       inline: true },
@@ -333,11 +333,22 @@ export async function notifyTavernMessage(p: {
 
     const embed = new EmbedBuilder()
         .setAuthor({ name: `${emoji} ${name}` })
-        .setDescription(p.content.slice(0, 2000))
+        .setDescription((p.content.slice(0, 2000) || null))
         .setColor(0x5865F2)
         .setTimestamp();
 
     // Send to world channel if worldId exists, otherwise global TAVERN channel
     const channelType = p.worldId ? p.worldId : 'global';
     await send(channelType, 'TAVERN', embed);
+}
+
+// ── Token store pending ───────────────────────────────────────────────────────
+export async function notifyTokenStorePending(p: { char: { name: string }; item: { name: string; tokenCost: number }; worldId?: string | null }) {
+    if (!_client) return;
+    const embed = new EmbedBuilder()
+        .setTitle('🪙 Token Store Purchase Pending')
+        .setDescription((`**${p.char.name}** wants to purchase **${p.item.name}** for ${p.item.tokenCost} tokens.`) || null)
+        .setColor(0xF59E0B)
+        .setTimestamp();
+    await send(p.worldId ?? 'global', 'APPROVALS', embed);
 }

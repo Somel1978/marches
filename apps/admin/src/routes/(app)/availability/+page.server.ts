@@ -25,7 +25,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const charMap: Record<string, any[]> = {};
 	for (const c of allChars) {
 		if (!charMap[c.userId]) charMap[c.userId] = [];
-		charMap[c.userId].push(c);
+		const totalLevel = ((c as any).classes ?? []).reduce((s: number, cl: any) => s + (cl.allocatedLevel ?? 0), 0);
+		charMap[c.userId].push({ ...(c as any), totalLevel });
 	}
 
 	// Group by slot (0-47) → list of { userId, userName, scope, worldIds, chars[] }

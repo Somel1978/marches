@@ -1,7 +1,7 @@
 <!-- apps/frontend/src/routes/(protected)/tavern/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { browser } from '$app/environment';
 	import { renderMarkdown } from '@core/ui';
@@ -21,6 +21,7 @@
 	let characterId = $state('');
 	let messageText = $state('');
 	let sending          = $state(false);
+	let drawerOpen       = $state(false);
 	let messagesEl       = $state<HTMLDivElement | null>(null);
 	let textareaEl       = $state<HTMLTextAreaElement | null>(null);
 	let enricherVisible  = $state(false);
@@ -98,7 +99,7 @@
 	$effect(() => {
 		if (!browser) return;
 		let interval: ReturnType<typeof setInterval>;
-		const start = () => { interval = setInterval(() => { if (!document.hidden) invalidateAll(); }, 5000); };
+		const start = () => { interval = setInterval(() => { if (!document.hidden) invalidate('app:tavern'); }, 5000); };
 		const stop  = () => clearInterval(interval);
 		start();
 		document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
@@ -107,6 +108,7 @@
 
 	function switchChannel(id: string) {
 		goto(`/tavern?channel=${id}`);
+		drawerOpen = false;
 	}
 
 	const globalChannel = $derived(channels.find((c: any) => !c.worldId));
@@ -174,10 +176,12 @@
 </script>
 
 <div class="tavern-layout">
-	<!-- Channel sidebar -->
-	<aside class="tavern-sidebar">
-		<p class="tavern-sidebar__label">🍺 Tavern</p>
+	<!-- Mobile drawer backdrop -->
+	<div class="tavern-drawer-backdrop {drawerOpen ? 'tavern-drawer-backdrop--open' : ''}"
+		onclick={() => drawerOpen = false} role="presentation"></div>
 
+	{#snippet channelList()}
+		<p class="tavern-sidebar__label">🍺 Tavern</p>
 		{#if globalChannel}
 			<button
 				class="tavern-channel-btn {activeChannel?.id === globalChannel.id ? 'tavern-channel-btn--active' : ''}"
@@ -185,7 +189,6 @@
 				🌍 Global
 			</button>
 		{/if}
-
 		{#if worldChannels.length}
 			<p class="tavern-sidebar__group">Worlds</p>
 			{#each worldChannels as ch}
@@ -197,12 +200,23 @@
 				</button>
 			{/each}
 		{/if}
+	{/snippet}
+
+	<!-- Mobile sidebar drawer -->
+	<aside class="tavern-sidebar tavern-sidebar--mobile {drawerOpen ? 'tavern-sidebar--open' : ''}">
+		{@render channelList()}
+	</aside>
+
+	<!-- Desktop sidebar -->
+	<aside class="tavern-sidebar">
+		{@render channelList()}
 	</aside>
 
 	<!-- Main chat area -->
 	<div class="tavern-main">
 		<!-- Channel header -->
 		<div class="tavern-header">
+			<button type="button" class="tavern-header__menu-btn" onclick={() => drawerOpen = !drawerOpen} aria-label="Channels">☰</button>
 			<span class="tavern-header__title">
 				{activeChannel?.worldId ? '🌐' : '🌍'} {activeChannel?.name ?? 'Select a channel'}
 			</span>
@@ -243,7 +257,7 @@
 							<span class="tavern-msg__time">{formatTime(msg.createdAt)}</span>
 							{#if isAdmin}
 								<form method="post" action="?/delete" use:enhance={() => {
-									return async ({ update }) => { await update(); await invalidateAll(); };
+									return async ({ update }) => { await update(); await invalidate('app:tavern'); };
 								}} style="display:inline;">
 									<input type="hidden" name="id" value={msg.id} />
 									<button type="submit" class="tavern-msg__delete" title="Delete message">✕</button>
@@ -265,7 +279,7 @@
 						messageText = '';
 						sending = false;
 						await update();
-						await invalidateAll();
+						await invalidate('app:tavern');
 					};
 				}}
 				class="tavern-composer">

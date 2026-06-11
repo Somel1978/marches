@@ -1,7 +1,7 @@
 // apps/frontend/src/routes/(auth)/signup/+page.server.ts
 import { fail, redirect } from '@sveltejs/kit';
 import { auth } from '$lib/server/auth';
-import { env } from '$env/dynamic/private';
+const env = process.env as Record<string, string | undefined>;
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals }) => {

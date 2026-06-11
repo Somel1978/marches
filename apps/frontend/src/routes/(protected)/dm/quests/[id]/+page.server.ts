@@ -25,13 +25,15 @@ async function checkCanApprove(questId: string, userId: string) {
 	if (!quest) return null;
 	const profile = await dms.profiles.getByUserId(userId);
 	if (!profile) return null;
-	// Cannot approve own quest
-	if ((quest as any).dmProfileId === profile.id) return null;
-	// Must have canManage on the quest's world
-	const worldId = (quest as any).worldId;
+	// Get worldId via region
+	const regionId = (quest as any).regionId;
+	if (!regionId) return null;
+	const region = await db.region.findUnique({ where: { id: regionId }, select: { worldId: true } });
+	const worldId = region?.worldId ?? null;
 	if (!worldId) return null;
+	// Must have canManage on this world — canManage DMs CAN approve their own quests
 	const assignment = await db.worldDM.findUnique({
-		where: { worldId_dmProfileId: { worldId, dmProfileId: profile.id } },
+		where:  { worldId_dmProfileId: { worldId, dmProfileId: profile.id } },
 		select: { canManage: true },
 	});
 	if (!assignment?.canManage) return null;

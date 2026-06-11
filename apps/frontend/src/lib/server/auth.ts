@@ -3,7 +3,7 @@ import { betterAuth } from 'better-auth';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getBaseAuthConfig } from '@core/rbac';
 import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail, sendEmailChangeEmail } from '@core/email';
-import { env } from '$env/dynamic/private';
+const env = process.env as Record<string, string | undefined>;
 import { getRequestEvent } from '$app/server';
 
 export const auth = betterAuth({

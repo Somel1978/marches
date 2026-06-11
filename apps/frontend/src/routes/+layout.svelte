@@ -33,6 +33,7 @@
 			items: [
 				{ href: '/availability', label: 'Availability' },
 				{ href: '/marketplace',  label: 'Marketplace'  },
+				{ href: '/token-store',  label: 'Token Store'  },
 			],
 		},
 		{

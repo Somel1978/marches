@@ -1,0 +1,78 @@
+/* shared/database/prisma/token-store.prisma */
+
+// ── Token Store (schema: tokenstore, order: 12) ───────────────────────────────
+
+enum TokenStoreRewardType {
+  XP_BOOST    // % bonus on XP transactions
+  GOLD_BOOST  // % bonus on GOLD transactions
+  MANUAL      // no automatic effect — admin/DM handles manually
+
+  @@schema("tokenstore")
+}
+
+enum TokenStoreRewardDirection {
+  RETROSPECTIVE  // apply to past transactions
+  FUTURE         // apply to future quest grants
+  BOTH           // apply to both
+
+  @@schema("tokenstore")
+}
+
+enum TokenStoreScope {
+  GLOBAL  // available to all characters
+  WORLD   // locked to a specific world
+
+  @@schema("tokenstore")
+}
+
+enum TokenStoreTransactionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVOKED
+
+  @@schema("tokenstore")
+}
+
+model TokenStoreItem {
+  id           String               @id @default(uuid())
+  name         String               @unique
+  description  String?
+  imageUrl     String?              @map("image_url")
+  tokenCost    Int                  @map("token_cost")
+  gameSystemId String?              @map("game_system_id")  // null = universal
+  scope        TokenStoreScope      @default(GLOBAL)
+  worldId      String?              @map("world_id")        // required if scope = WORLD
+  rewardType   TokenStoreRewardType @map("reward_type")
+  rewardValue  Json                 @map("reward_value")    // { percent: Int, direction: TokenStoreRewardDirection }
+  isActive     Boolean              @default(true)          @map("is_active")
+  stock        Int?                                         // null = unlimited
+  createdBy    String               @map("created_by")
+  createdAt    DateTime             @default(now())         @map("created_at")
+  updatedAt    DateTime             @updatedAt              @map("updated_at")
+
+  transactions TokenStoreTransaction[]
+
+  @@map("token_store_items")
+  @@schema("tokenstore")
+}
+
+model TokenStoreTransaction {
+  id                          String                      @id @default(uuid())
+  itemId                      String                      @map("item_id")
+  item                        TokenStoreItem              @relation(fields: [itemId], references: [id])
+  characterId                 String                      @map("character_id")
+  itemSnapshot                Json                        @map("item_snapshot")      // full item at time of purchase
+  status                      TokenStoreTransactionStatus @default(PENDING)
+  tokenCostAtTransaction      Int                         @map("token_cost_at_transaction")
+  requestedBy                 String                      @map("requested_by")       // userId
+  reviewedBy                  String?                     @map("reviewed_by")
+  reviewNote                  String?                     @map("review_note")
+  rewardCharacterTxId         String?                     @map("reward_character_tx_id")  // CharacterTransaction.id created on approval
+  worldId                     String?                     @map("world_id")
+  createdAt                   DateTime                    @default(now())            @map("created_at")
+  updatedAt                   DateTime                    @updatedAt                 @map("updated_at")
+
+  @@map("token_store_transactions")
+  @@schema("tokenstore")
+}

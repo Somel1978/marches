@@ -4,6 +4,7 @@ import { logAudit } from '../audit/log.ts';
 import { createNotification } from '../notifications/notifications.ts';
 import { queueDiscordNotification } from '../discord/dispatcher';
 import { NotFoundError, ValidationError } from '@core/errors';
+import { approveDnd5eCharacter, rejectDnd5eCharacter } from '../dnd5e/approve-character.ts';
 
 // Universal character approval — handles status transition, audit, notifications only.
 // System-specific pending changes (e.g. dnd5e classes/species/background) must be
@@ -145,7 +146,6 @@ export async function dispatchApproveCharacter(id: string, actorId: string) {
     const slug = gs?.slug ?? '';
 
     if (slug === 'dnd5e') {
-        const { approveDnd5eCharacter } = await import('../dnd5e/approve-character.ts');
         return approveDnd5eCharacter(id, actorId);
     }
 
@@ -161,7 +161,6 @@ export async function dispatchRejectCharacter(id: string, note: string, actorId:
     const slug = gs?.slug ?? '';
 
     if (slug === 'dnd5e') {
-        const { rejectDnd5eCharacter } = await import('../dnd5e/approve-character.ts');
         return rejectDnd5eCharacter(id, note, actorId);
     }
 

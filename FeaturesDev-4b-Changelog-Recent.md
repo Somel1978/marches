@@ -449,3 +449,60 @@
 **Deploy workflow**
 - Code changes: `git pull && pnpm install && pnpm build && pm2 restart all`
 - Env changes: `pm2 delete all && pm2 start ecosystem.config.js && pm2 save`
+
+### Session 6 (2026-06-10 to 2026-06-11)
+
+**Token Store**
+- New marketplace where players spend tokens on reward items
+- `token-store.prisma` — `TokenStoreItem`, `TokenStoreTransaction`, enums for type/direction/scope/status
+- Per-quest per-boost application via `apply-boosts.ts` — delete+recreate pattern, fully idempotent
+- Boost txs use `sourceType='QUEST'`, `sourceId=questId` → quest deletion auto-reverts boosts
+- `↻ Recalc` button on approved transactions in admin and DM hub
+- Reward types: Quest XP Boost, Quest GP Boost, Manual
+- Admin: list, new/edit item, transactions (approve/reject/revoke/recalc), import/export
+- DM Hub: `/dm/worlds/[worldId]/token-store` — approve/reject/recalc for world characters
+- Frontend: browse + purchase pages, filtered by character system+world
+- Character sheet: `+X from boosts` under XP and GP stat cards
+- Discord: `TOKEN_STORE_PENDING` notification via APPROVALS channel
+
+**Tavern fixes**
+- Mobile layout: drawer sidebar, ☰ menu button, fixed double sidebar on desktop
+- Enricher autocomplete wired correctly with `bind:this` and `oninput`
+- Image thumbnails: 150px, click to open full size
+- Polling changed from `invalidateAll()` to `invalidate('app:tavern')` — major perf improvement
+
+**Character Public Directory fixes**
+- `Dnd5eCharacterCard` ability scores — field is `baseScore` not `value`
+- World name badge on quest transactions in recent activity
+
+**Quest fixes**
+- `canManage` DMs can approve/reject their own quests (both workflows removed self-approval guard)
+- `submitQuestResult` now transitions quest to `PENDING_RESULT_APPROVAL`
+- Quest world selector only shows worlds with active regions (silent save fix)
+- Duplicate status badge removed from DM hub quest list
+
+**DM Hub improvements**
+- Character status management: `canManage` DMs can toggle RESTING ↔ ACTIVE
+- `clearAllExpiredRest` clears all chars with expired `restUntil` regardless of `statusReason`
+- Token Store tab added to world layout nav
+- Player availability section on world dashboard with day picker
+  - WORLD-scoped slots for this world always shown
+  - GLOBAL slots shown if `world.acceptsGlobalCharacters = true` AND user has chars in world
+  - Character levels shown correctly
+
+**Discord availability commands**
+- `/setavailable start_date start_time end_date end_time [scope]`
+- `/unsetavailable start_date start_time end_date end_time`
+- End time exclusive, accepts YYYY-MM-DD or DD/MM/YYYY, 24h HH:MM
+
+**Performance**
+- `getCharacterTransactions` — 2 queries instead of 3
+- Character page `boostTxs` moved into `Promise.all`
+- Admin token store list shows game system name instead of UUID
+
+**Bug fixes**
+- `getCharacterTransactions` — invalid `region` select on Quest model fixed
+- Dynamic imports in `approve.ts` → static imports (removes INEFFECTIVE_DYNAMIC_IMPORT warnings)
+- Discord `setDescription('')` → `|| null` guards everywhere
+- Token store transaction character names enriched (no UUID display)
+- Admin availability character levels fixed (was always `?`)
