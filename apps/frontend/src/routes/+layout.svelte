@@ -25,6 +25,7 @@
 				{ href: '/characters',  label: 'Characters'  },
 				{ href: '/quests',      label: 'Quests'      },
 				{ href: '/world',       label: 'World'       },
+				{ href: '/npcs',        label: 'NPCs'        },
 				{ href: '/stats',       label: 'Statistics'  },
 			],
 		},

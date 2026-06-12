@@ -15,6 +15,8 @@
 		{ href: `/dm/worlds/${world.id}/quests`,     label: 'Quests'      },
 		{ href: `/dm/worlds/${world.id}/characters`, label: 'Characters'  },
 		{ href: `/dm/worlds/${world.id}/transactions`, label: 'Transactions' },
+		{ href: `/dm/worlds/${world.id}/factions`,   label: 'Factions'    },
+		{ href: `/dm/worlds/${world.id}/npcs`,       label: 'NPCs'        },
 	]);
 
 	// Tabs only visible when canManage = true

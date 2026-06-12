@@ -89,9 +89,19 @@ import { getUnreadNotifications, getNotifications  } from './dbapi/read/notifica
 import { createNotification, createNotificationsForAdmins, createNotificationsForWorldDMs,
          markNotificationRead, markAllNotificationsRead } from './dbapi/write/notifications/notifications.ts';
 
+// ── Factions & NPCs ──────────────────────────────────────────────────────────────
+import { getFactionsByWorld, getFactionById, getFactionBySlug, getFactionRenownForCharacter } from './dbapi/read/factions/get-factions.ts';
+import { getNpcsByWorld, getPublicNpcs, getNpcById } from './dbapi/read/factions/get-npcs.ts';
+import { createFaction, updateFaction, deleteFaction,
+         createFactionRank, updateFactionRank, deleteFactionRank,
+         addFactionTerritory, removeFactionTerritory,
+         setFactionRelation, removeFactionRelation,
+         addFactionQuest, removeFactionQuest } from './dbapi/write/factions/factions.ts';
+import { setFactionRenown, removeFactionRenown } from './dbapi/write/factions/renown.ts';
+import { createNpc, updateNpc, deleteNpc, addNpcQuest, removeNpcQuest } from './dbapi/write/factions/npcs.ts';
+
 // ── World ────────────────────────────────────────────────────────────────────────
-import { getAllWorlds, getWorldBySlug, getWorldById, getWorldsByDMProfile  } from './dbapi/read/world/get-worlds.ts';
-import { getRegionBySlug, getRegionById,
+import { getAllWorlds, getWorldBySlug, getWorldById, getWorldsByDMProfile  } from './dbapi/read/world/get-worlds.ts';import { getRegionBySlug, getRegionById,
          getLocationBySlug                           } from './dbapi/read/world/get-regions.ts';
 import { getWikiPage                                 } from './dbapi/read/world/get-wiki.ts';
 import { createWorld, updateWorld, createRegion,
@@ -343,6 +353,49 @@ export const worlds = {
 };
 
 export { queueDiscordNotification };
+
+export const factions = {
+    getByWorld: getFactionsByWorld,
+    getById:    getFactionById,
+    getBySlug:  getFactionBySlug,
+    create:     createFaction,
+    update:     updateFaction,
+    delete:     deleteFaction,
+    ranks: {
+        create: createFactionRank,
+        update: updateFactionRank,
+        delete: deleteFactionRank,
+    },
+    territories: {
+        add:    addFactionTerritory,
+        remove: removeFactionTerritory,
+    },
+    relations: {
+        set:    setFactionRelation,
+        remove: removeFactionRelation,
+    },
+    renown: {
+        getForCharacter: getFactionRenownForCharacter,
+        set:             setFactionRenown,
+        remove:          removeFactionRenown,
+    },
+    questLinks: {
+        add:    addFactionQuest,
+        remove: removeFactionQuest,
+    },
+    npcs: {
+        getByWorld: getNpcsByWorld,
+        getPublic:  getPublicNpcs,
+        getById:    getNpcById,
+        create:     createNpc,
+        update:     updateNpc,
+        delete:     deleteNpc,
+        questLinks: {
+            add:    addNpcQuest,
+            remove: removeNpcQuest,
+        },
+    },
+};
 
 export const tokenStore = {
     items: {

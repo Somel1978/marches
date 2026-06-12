@@ -21,5 +21,6 @@ datasource db {
   // 10 world feature
   // 11 tavern feature
   // 12 token store feature
-  schemas    = ["platform", "users", "auth", "audit", "gamesystem", "dnd5e", "characters", "dms", "quests", "marketplace", "world", "rewards", "stats", "availability", "news", "discord", "tavern", "tokenstore"]
+  // 13 factions feature (factions, NPCs, per-character renown)
+  schemas    = ["platform", "users", "auth", "audit", "gamesystem", "dnd5e", "characters", "dms", "quests", "marketplace", "world", "rewards", "stats", "availability", "news", "discord", "tavern", "tokenstore", "factions"]
 }

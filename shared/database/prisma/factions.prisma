@@ -1,0 +1,195 @@
+/* shared/database/prisma/factions.prisma */
+
+// ── Factions & NPCs (schema: factions, order: 13) ────────────────────────────
+// Per-world renown system. Factions belong to a world; renown is tracked
+// per CHARACTER per faction (-10 hostile .. 0 neutral .. +10 favored).
+// No FactionRenown row = neutral (0).
+// Cross-schema references (Region, Location, Quest, Character) are plain
+// String IDs resolved at app level — same pattern as Quest.regionId.
+
+enum FactionPowerTier {
+  LOCAL
+  REGIONAL
+  WORLD
+
+  @@schema("factions")
+}
+
+enum FactionRelationType {
+  RIVAL
+  ALLY
+
+  @@schema("factions")
+}
+
+enum TerritoryEntityType {
+  REGION
+  LOCATION
+
+  @@schema("factions")
+}
+
+enum NpcStatus {
+  ALIVE
+  DEAD
+  MISSING
+  IMPRISONED
+  EXILED
+
+  @@schema("factions")
+}
+
+model Faction {
+  id             String           @id @default(uuid())
+  worldId        String           @map("world_id")
+  world          World            @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  name           String
+  slug           String
+  designation    String?          // secondary designation / codename
+  heraldryUrl    String?          @map("heraldry_url")
+  primaryColors  String?          @map("primary_colors") // e.g. "Crimson & Gold"
+  motto          String?
+  powerTier      FactionPowerTier @default(LOCAL) @map("power_tier")
+  lore           String?          // markdown
+  ideals         String?          // markdown
+  taboos         String?          // markdown
+  inductionHooks String?          @map("induction_hooks") // markdown — induction & hooks
+  secrets        String?          // markdown — DM/admin only, never shown to players
+  bounties       String?          // markdown — free-text quests/bounties
+  isVisible      Boolean          @default(true) @map("is_visible") // false = hidden from players
+  createdBy      String           @map("created_by")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt      @map("updated_at")
+
+  ranks         FactionRank[]
+  territories   FactionTerritory[]
+  renown        FactionRenown[]
+  npcs          Npc[]
+  quests        FactionQuest[]
+  relationsFrom FactionRelation[] @relation("FactionRelFrom")
+  relationsTo   FactionRelation[] @relation("FactionRelTo")
+
+  @@unique([worldId, slug])
+  @@map("factions")
+  @@schema("factions")
+}
+
+model FactionRank {
+  id             String  @id @default(uuid())
+  factionId      String  @map("faction_id")
+  faction        Faction @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  name           String
+  level          Int     @default(1)              // hierarchy tier — 1 = lowest
+  description    String?
+  renownRequired Int?    @map("renown_required")  // renown gate for progression, null = none
+
+  npcs Npc[]
+
+  @@unique([factionId, name])
+  @@map("faction_ranks")
+  @@schema("factions")
+}
+
+model FactionTerritory {
+  id         String              @id @default(uuid())
+  factionId  String              @map("faction_id")
+  faction    Faction             @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  entityType TerritoryEntityType @map("entity_type")
+  entityId   String              @map("entity_id") // world.Region or world.Location — app-level
+  notes      String?             // influence notes
+
+  @@unique([factionId, entityType, entityId])
+  @@map("faction_territories")
+  @@schema("factions")
+}
+
+model FactionRelation {
+  id              String              @id @default(uuid())
+  factionId       String              @map("faction_id")
+  faction         Faction             @relation("FactionRelFrom", fields: [factionId], references: [id], onDelete: Cascade)
+  targetFactionId String              @map("target_faction_id")
+  target          Faction             @relation("FactionRelTo", fields: [targetFactionId], references: [id], onDelete: Cascade)
+  type            FactionRelationType
+  notes           String?
+
+  @@unique([factionId, targetFactionId])
+  @@map("faction_relations")
+  @@schema("factions")
+}
+
+model FactionRenown {
+  id          String   @id @default(uuid())
+  factionId   String   @map("faction_id")
+  faction     Faction  @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  characterId String   @map("character_id") // characters.Character — app-level. No row = neutral (0).
+  value       Int      @default(0)          // -10 (hostile) .. 0 (neutral) .. +10 (favored), clamped in dbapi
+  note        String?
+  updatedBy   String   @map("updated_by")   // userId of DM/admin who set it
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt      @map("updated_at")
+
+  @@unique([factionId, characterId])
+  @@index([characterId])
+  @@map("faction_renown")
+  @@schema("factions")
+}
+
+model FactionQuest {
+  id        String   @id @default(uuid())
+  factionId String   @map("faction_id")
+  faction   Faction  @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  questId   String   @map("quest_id") // quests.Quest — app-level
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([factionId, questId])
+  @@map("faction_quests")
+  @@schema("factions")
+}
+
+model Npc {
+  id              String       @id @default(uuid())
+  worldId         String       @map("world_id")
+  world           World        @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  locationId      String?      @map("location_id") // world.Location — app-level, null = no fixed location
+  factionId       String?      @map("faction_id")  // NPCs are not restricted to a faction
+  faction         Faction?     @relation(fields: [factionId], references: [id], onDelete: SetNull)
+  rankId          String?      @map("rank_id")
+  rank            FactionRank? @relation(fields: [rankId], references: [id], onDelete: SetNull)
+  name            String
+  aliases         String?      // titles / street names — e.g. "Silas 'The Crow' Vane"
+  imageUrl        String?      @map("image_url")
+  factionRole     String?      @map("faction_role")     // Quartermaster, Fixer, Assassin, ...
+  renownThreshold Int?         @map("renown_threshold") // min character renown to get a meeting, null = none
+  statBlock       String?      @map("stat_block")       // markdown — link to image stat block or manual
+  mannerisms      String?      // performance notes — voice, tics
+  ideals          String?
+  bonds           String?
+  flaws           String?
+  motivation      String?      // what do they want right now
+  services        String?      // services provided
+  secrets         String?      // personal secrets — DM/admin only
+  bounties        String?      // markdown — free-text quests/bounties
+  status          NpcStatus    @default(ALIVE)
+  isVisible       Boolean      @default(false) @map("is_visible") // true = players can see in NPC directory
+  createdBy       String       @map("created_by")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt      @map("updated_at")
+
+  quests NpcQuest[]
+
+  @@index([worldId, isVisible])
+  @@map("npcs")
+  @@schema("factions")
+}
+
+model NpcQuest {
+  id        String   @id @default(uuid())
+  npcId     String   @map("npc_id")
+  npc       Npc      @relation(fields: [npcId], references: [id], onDelete: Cascade)
+  questId   String   @map("quest_id") // quests.Quest — app-level
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([npcId, questId])
+  @@map("npc_quests")
+  @@schema("factions")
+}

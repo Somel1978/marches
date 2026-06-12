@@ -76,4 +76,30 @@
 			<p class="table__empty">No regions available yet.</p>
 		{/each}
 	</div>
+
+	<!-- Factions -->
+	{#if (data as any).factions?.length}
+		<h3 class="section-title" style="margin-top:2rem;">🛡 Factions</h3>
+		<div class="faction-grid" style="margin-top:0.75rem;">
+			{#each (data as any).factions as faction}
+				<a href="/world/{world.slug}/factions/{faction.slug}" class="faction-card">
+					<div class="faction-card__top">
+						{#if faction.heraldryUrl}
+							<img src={faction.heraldryUrl} alt={faction.name} class="faction-card__heraldry" />
+						{:else}
+							<div class="faction-card__heraldry faction-card__heraldry--placeholder">🛡</div>
+						{/if}
+						<div>
+							<div class="faction-card__name">{faction.name}</div>
+							{#if faction.designation}<div style="font-size:0.8rem; opacity:0.7;">{faction.designation}</div>{/if}
+						</div>
+					</div>
+					{#if faction.motto}<div class="faction-card__motto">“{faction.motto}”</div>{/if}
+					<div class="faction-card__meta">
+						<span class="badge badge-tier--{faction.powerTier}">{faction.powerTier === 'LOCAL' ? 'Local' : faction.powerTier === 'REGIONAL' ? 'Regional' : 'World'}</span>
+					</div>
+				</a>
+			{/each}
+		</div>
+	{/if}
 </div>

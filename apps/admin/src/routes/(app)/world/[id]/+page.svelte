@@ -36,6 +36,8 @@
 		</div>
 		<a href="/world/{data.world.id}/marketplace" class="btn btn-ghost btn-sm">🛒 Marketplace</a>
 		<a href="/world/{data.world.id}/journal" class="btn btn-ghost btn-sm">📖 Journal</a>
+		<a href="/world/{data.world.id}/factions" class="btn btn-ghost btn-sm">🛡 Factions</a>
+		<a href="/world/{data.world.id}/npcs" class="btn btn-ghost btn-sm">👤 NPCs</a>
 	</div>
 
 	{#if form?.message}<div class="form-error">{form.message}</div>{/if}

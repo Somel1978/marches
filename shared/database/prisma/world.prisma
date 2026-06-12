@@ -47,6 +47,8 @@ model World {
   dms          WorldDM[]
   journals     WorldJournal[]
   tavernChannel TavernChannel?
+  factions     Faction[]
+  npcs         Npc[]
 
   @@map("worlds")
   @@schema("world")
