@@ -24,7 +24,7 @@
 		{ key: 'species',         label: 'Species',          action: '?/importSpecies',         columns: ['name','description','source','link','isSubrace','isLegacy','sortOrder'] },
 		{ key: 'speciesTraits',   label: 'Species Traits',   action: '?/importSpeciesTraits',   columns: ['speciesName','name','description','requiredLevel'] },
 		{ key: 'backgrounds',     label: 'Backgrounds',      action: '?/importBackgrounds',     columns: ['name','shortDescription','featureName','grantsFeatCategory','grantsFeatId','skillProficiencies','toolProficiencies','languages','url','sortOrder'] },
-		{ key: 'feats',           label: 'Feats',            action: '?/importFeats',           columns: ['name','description','snippet','repeatable','categories','prerequisites','detailsUrl','isEpicBoon','sortOrder'] },
+		{ key: 'feats',           label: 'Feats',            action: '?/importFeats',           columns: ['name','description','snippet','repeatable','categories','prerequisites','detailsUrl','isEpicBoon','asiAmount','asiStatFixed','asiStatChoices','sortOrder'] },
 	];
 
 	const activeTabDef = $derived(TABS.find(t => t.key === activeTab)!);

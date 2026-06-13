@@ -51,12 +51,11 @@
 							<td>
 								{#if s.slug === DND5E_SLUG}
 									<div style="display:flex; gap:0.375rem; flex-wrap:wrap;">
-										<a href="/game-systems/{s.id}/dnd5e/classes"          class="btn btn-ghost btn-sm">Classes</a>
-										<a href="/game-systems/{s.id}/dnd5e/species"          class="btn btn-ghost btn-sm">Species</a>
-										<a href="/game-systems/{s.id}/dnd5e/backgrounds"      class="btn btn-ghost btn-sm">Backgrounds</a>
-										<a href="/game-systems/{s.id}/dnd5e/feats"          class="btn btn-ghost btn-sm">Feats</a>
-										<a href="/game-systems/{s.id}/data/import/dnd5e"      class="btn btn-ghost btn-sm">↑ Import</a>
-										<a href="/game-systems/{s.id}/data/export/dnd5e?type=classes" class="btn btn-ghost btn-sm" download>↓ Export</a>
+										<a href="/game-systems/{s.id}/dnd5e/classes"     class="btn btn-ghost btn-sm">Classes</a>
+										<a href="/game-systems/{s.id}/dnd5e/species"     class="btn btn-ghost btn-sm">Species</a>
+										<a href="/game-systems/{s.id}/dnd5e/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
+										<a href="/game-systems/{s.id}/dnd5e/feats"       class="btn btn-ghost btn-sm">Feats</a>
+										<a href="/game-systems/{s.id}/data/import/dnd5e" class="btn btn-ghost btn-sm">↑ Import</a>
 									</div>
 								{:else}
 									<span class="table__muted" style="font-size:0.8125rem;">Schema not yet implemented</span>

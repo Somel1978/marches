@@ -94,7 +94,20 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
 
         case 'feats': {
             const all = await dnd5e.feats.getAll(systemId);
-            rows = all.map(f => ({ name: f.name, description: f.description ?? '', snippet: f.snippet ?? '', repeatable: f.repeatable, categories: f.categories ?? '', prerequisites: f.prerequisites ?? '', detailsUrl: f.detailsUrl ?? '', isEpicBoon: f.isEpicBoon, sortOrder: f.sortOrder }));
+            rows = all.map(f => ({
+                name:           f.name,
+                description:    f.description    ?? '',
+                snippet:        f.snippet         ?? '',
+                repeatable:     f.repeatable,
+                categories:     f.categories      ?? '',
+                prerequisites:  f.prerequisites   ?? '',
+                detailsUrl:     f.detailsUrl       ?? '',
+                isEpicBoon:     f.isEpicBoon,
+                asiAmount:      f.asiAmount        ?? '',
+                asiStatFixed:   f.asiStatFixed     ?? '',
+                asiStatChoices: f.asiStatChoices   ?? '',
+                sortOrder:      f.sortOrder,
+            }));
             break;
         }
 

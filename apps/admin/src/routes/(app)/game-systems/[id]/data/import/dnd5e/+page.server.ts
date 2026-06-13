@@ -351,28 +351,34 @@ export const actions: Actions = {
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.feats.update(existing.id, {
-						description:   row.description   || null,
-						snippet:       row.snippet        || null,
-						repeatable:    String(row.repeatable).toLowerCase() === 'true',
-						categories:    row.categories     || null,
-						prerequisites: row.prerequisites  || null,
-						detailsUrl:    row.detailsUrl      || null,
-						isEpicBoon:    String(row.isEpicBoon).toLowerCase() === 'true',
-						sortOrder:     Number(row.sortOrder) || 0,
+						description:    row.description   || null,
+						snippet:        row.snippet        || null,
+						repeatable:     String(row.repeatable).toLowerCase() === 'true',
+						categories:     row.categories     || null,
+						prerequisites:  row.prerequisites  || null,
+						detailsUrl:     row.detailsUrl      || null,
+						isEpicBoon:     String(row.isEpicBoon).toLowerCase() === 'true',
+						asiAmount:      row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : null,
+						asiStatFixed:   row.asiStatFixed   || null,
+						asiStatChoices: row.asiStatChoices || null,
+						sortOrder:      Number(row.sortOrder) || 0,
 					}, locals.user!.id);
 					updated++;
 				} else {
 					await dnd5e.feats.create({
-						gameSystemId:  params.id,
-						name:          row.name,
-						description:   row.description   || undefined,
-						snippet:       row.snippet        || undefined,
-						repeatable:    String(row.repeatable).toLowerCase() === 'true',
-						categories:    row.categories     || undefined,
-						prerequisites: row.prerequisites  || undefined,
-						detailsUrl:    row.detailsUrl      || undefined,
-						isEpicBoon:    String(row.isEpicBoon).toLowerCase() === 'true',
-						sortOrder:     Number(row.sortOrder) || 0,
+						gameSystemId:   params.id,
+						name:           row.name,
+						description:    row.description   || undefined,
+						snippet:        row.snippet        || undefined,
+						repeatable:     String(row.repeatable).toLowerCase() === 'true',
+						categories:     row.categories     || undefined,
+						prerequisites:  row.prerequisites  || undefined,
+						detailsUrl:     row.detailsUrl      || undefined,
+						isEpicBoon:     String(row.isEpicBoon).toLowerCase() === 'true',
+						asiAmount:      row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : undefined,
+						asiStatFixed:   row.asiStatFixed   || undefined,
+						asiStatChoices: row.asiStatChoices || undefined,
+						sortOrder:      Number(row.sortOrder) || 0,
 					}, locals.user!.id);
 					created++;
 				}

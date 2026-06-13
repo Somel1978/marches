@@ -93,6 +93,29 @@
 							</select>
 						</div>
 					</div>
+					<div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+						<div class="field" style="flex:0 0 110px;">
+							<label class="label" for="new-asi-amount">ASI grant</label>
+							<select id="new-asi-amount" name="asiAmount" class="input input--select">
+								<option value="">None</option>
+								<option value="1">+1</option>
+								<option value="2">+2</option>
+							</select>
+						</div>
+						<div class="field" style="flex:1 1 180px;">
+							<label class="label" for="new-asi-fixed">Fixed stat <span style="font-weight:400;opacity:0.65;">(empty = player picks)</span></label>
+							<select id="new-asi-fixed" name="asiStatFixed" class="input input--select">
+								<option value="">— Player picks —</option>
+								{#each ['STRENGTH','DEXTERITY','CONSTITUTION','INTELLIGENCE','WISDOM','CHARISMA'] as st}
+									<option value={st}>{st.charAt(0)+st.slice(1).toLowerCase()}</option>
+								{/each}
+							</select>
+						</div>
+						<div class="field" style="flex:2 1 220px;">
+							<label class="label" for="new-asi-choices">Allowed choices <span style="font-weight:400;opacity:0.65;">(comma-sep, empty = any)</span></label>
+							<input id="new-asi-choices" name="asiStatChoices" type="text" class="input" placeholder="STRENGTH,DEXTERITY" />
+						</div>
+					</div>
 				</div>
 				<div class="form-actions">
 					<button type="button" class="btn btn-ghost btn-sm" onclick={() => showCreate = false}>Cancel</button>
@@ -124,6 +147,7 @@
 					<div style="display:flex; align-items:center; gap:0.375rem; flex-shrink:0; flex-wrap:wrap;">
 						{#if feat.isEpicBoon}<span class="badge badge-warning" style="font-size:0.75rem;">Epic</span>{/if}
 						{#if feat.repeatable}<span class="badge badge-accent" style="font-size:0.75rem;">Rep.</span>{/if}
+						{#if feat.asiAmount}<span class="badge badge-accent" style="font-size:0.75rem;">+{feat.asiAmount} {feat.asiStatFixed ? feat.asiStatFixed.slice(0,3) : 'stat'}</span>{/if}
 						{#if feat.isAvailable}<span class="badge badge-success" style="font-size:0.75rem;">✓</span>{:else}<span class="badge badge-muted" style="font-size:0.75rem;">—</span>{/if}
 					</div>
 					<div onclick={(e) => e.stopPropagation()} role="presentation" style="flex-shrink:0;">
@@ -193,6 +217,29 @@
 												<option value="true"  selected={feat.isAvailable}>Yes</option>
 												<option value="false" selected={!feat.isAvailable}>No</option>
 											</select>
+										</div>
+									</div>
+									<div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+										<div class="field" style="flex:0 0 110px;">
+											<label class="label" for="easi-amount-{feat.id}">ASI grant</label>
+											<select id="easi-amount-{feat.id}" name="asiAmount" class="input input--select">
+												<option value="" selected={!feat.asiAmount}>None</option>
+												<option value="1" selected={feat.asiAmount === 1}>+1</option>
+												<option value="2" selected={feat.asiAmount === 2}>+2</option>
+											</select>
+										</div>
+										<div class="field" style="flex:1 1 180px;">
+											<label class="label" for="easi-fixed-{feat.id}">Fixed stat <span style="font-weight:400;opacity:0.65;">(empty = player picks)</span></label>
+											<select id="easi-fixed-{feat.id}" name="asiStatFixed" class="input input--select">
+												<option value="" selected={!feat.asiStatFixed}>— Player picks —</option>
+												{#each ['STRENGTH','DEXTERITY','CONSTITUTION','INTELLIGENCE','WISDOM','CHARISMA'] as st}
+													<option value={st} selected={feat.asiStatFixed === st}>{st.charAt(0)+st.slice(1).toLowerCase()}</option>
+												{/each}
+											</select>
+										</div>
+										<div class="field" style="flex:2 1 220px;">
+											<label class="label" for="easi-choices-{feat.id}">Allowed choices <span style="font-weight:400;opacity:0.65;">(comma-sep, empty = any)</span></label>
+											<input id="easi-choices-{feat.id}" name="asiStatChoices" type="text" class="input" value={feat.asiStatChoices ?? ''} placeholder="STRENGTH,DEXTERITY" />
 										</div>
 									</div>
 								</div>

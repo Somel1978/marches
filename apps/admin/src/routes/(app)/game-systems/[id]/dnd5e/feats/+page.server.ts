@@ -32,6 +32,9 @@ export const actions: Actions = {
 				isEpicBoon:    data.get('isEpicBoon') === 'true',
 				isAvailable:   data.get('isAvailable') !== 'false',
 				sortOrder:     Number(data.get('sortOrder') ?? 0),
+				asiAmount:     data.get('asiAmount') ? Number(data.get('asiAmount')) : null,
+				asiStatFixed:  data.get('asiStatFixed')?.toString()  || null,
+				asiStatChoices: data.get('asiStatChoices')?.toString() || null,
 			}, locals.user!.id);
 			return { success: true };
 		} catch (e) {
@@ -58,6 +61,9 @@ export const actions: Actions = {
 				isEpicBoon:    data.get('isEpicBoon') === 'true',
 				isAvailable:   data.get('isAvailable') !== 'false',
 				sortOrder:     Number(data.get('sortOrder') ?? 0),
+				asiAmount:     data.get('asiAmount') ? Number(data.get('asiAmount')) : null,
+				asiStatFixed:  data.get('asiStatFixed')?.toString()  || null,
+				asiStatChoices: data.get('asiStatChoices')?.toString() || null,
 			}, locals.user!.id);
 			return { success: true };
 		} catch (e) {

@@ -177,6 +177,9 @@ model Dnd5eFeat {
   detailsUrl    String?  @map("details_url")
   isAvailable   Boolean  @default(true)  @map("is_available")
   isEpicBoon    Boolean  @default(false) @map("is_epic_boon")
+  asiAmount     Int?     @map("asi_amount")       // null = no grant; 1 = +1; 2 = +2
+  asiStatFixed  String?  @map("asi_stat_fixed")   // e.g. "CONSTITUTION" — null means player picks
+  asiStatChoices String? @map("asi_stat_choices") // comma-sep subset e.g. "STRENGTH,DEXTERITY"; null = any stat
   sortOrder     Int      @default(0)     @map("sort_order")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt      @map("updated_at")
