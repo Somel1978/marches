@@ -115,6 +115,7 @@
 	<DmDnd5eSheetSection
 		{charSheet}
 		{systemData}
+		scoreAudit={(data as any).scoreAudit ?? []}
 		{canManage}
 		{isLevelUp}
 		{isLevelDown}

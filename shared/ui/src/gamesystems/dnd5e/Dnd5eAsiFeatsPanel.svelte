@@ -1,6 +1,5 @@
 <!-- shared/ui/src/gamesystems/dnd5e/Dnd5eAsiFeatsPanel.svelte -->
 <script lang="ts">
-	import { isAsiFeatureName } from '../../dnd5e-feature-names.ts';
 	let {
 		asiSlots       = [],
 		availableFeats = [],
@@ -27,6 +26,7 @@
 	let editing     = $state<Record<string, boolean>>({});
 
 	function slotKey(slot: any) { return `${slot.sourceClassId}_${slot.sourceLevel}`; }
+	import { isAsiFeatureName } from './feature-names.ts';
 	let featGrantedStat = $state<Record<string, string>>({});
 	let asi3Stat1   = $state<Record<string, string>>({});
 	let asi3Stat2   = $state<Record<string, string>>({});

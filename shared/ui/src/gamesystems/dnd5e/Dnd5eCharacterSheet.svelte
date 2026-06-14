@@ -5,31 +5,35 @@
 	let {
 		charSheet,
 		systemData,
-		canEdit        = false,
-		isLevelUp      = false,
-		isLevelDown    = false,
-		availableLevel = 0,
+		scoreAudit             = [],
+		canEdit                = false,
+		isLevelUp              = false,
+		isLevelDown            = false,
+		availableLevel         = 0,
 		onSaveAbilityScores,
 		onSubmitChanges,
 		onSubmitLevelUp,
 		onSaveSlot,
 		onRemoveFeat,
-		canManage = false,
+		onManualScoreAdjust,
+		canManage              = false,
 		editBlockedReason,
 	}: {
-		charSheet?:            any;
-		systemData?:           any;
-		canEdit?:              boolean;
-		isLevelUp?:            boolean;
-		isLevelDown?:          boolean;
-		availableLevel?:       number;
-		onSaveAbilityScores?:  (scores: Record<string,number>) => Promise<void>;
-		onSubmitChanges?:      (d: { speciesId:string; backgroundId:string; classes:any[] }) => Promise<void>;
-		onSubmitLevelUp?:      (classes: any[]) => Promise<void>;
-		onSaveSlot?:           (opts: any) => Promise<void>;
-		onRemoveFeat?:         (id: string) => Promise<void>;
-		canManage?:            boolean;  // admin/DM — can override locked background feat slots
-		editBlockedReason?:    string;   // shown when canEdit=false to explain why
+		charSheet?:                any;
+		systemData?:               any;
+		scoreAudit?:               any[];
+		canEdit?:                  boolean;
+		isLevelUp?:                boolean;
+		isLevelDown?:              boolean;
+		availableLevel?:           number;
+		onSaveAbilityScores?:      (scores: Record<string,number>) => Promise<void>;
+		onSubmitChanges?:          (d: { speciesId:string; backgroundId:string; classes:any[] }) => Promise<void>;
+		onSubmitLevelUp?:          (classes: any[]) => Promise<void>;
+		onSaveSlot?:               (opts: any) => Promise<void>;
+		onRemoveFeat?:             (id: string) => Promise<void>;
+		onManualScoreAdjust?:      (stat: string, delta: number, note: string) => Promise<void>;
+		canManage?:                boolean;
+		editBlockedReason?:        string;
 	} = $props();
 
 	// ── Constants ────────────────────────────────────────────────────────────
@@ -65,7 +69,35 @@
 
 	// ── Ability scores edit ──────────────────────────────────────────────────
 	let editScores = $state(false);
-	let scoreVals  = $state<Record<string,number>>({});
+	let scoreVals       = $state<Record<string,number>>({});
+	let auditOpenStat   = $state<string|null>(null);  // which stat's audit panel is open
+	let manualStat      = $state('');
+	let manualDelta     = $state(0);
+	let manualNote      = $state('');
+	let savingManual    = $state(false);
+
+	// Audit entries grouped by stat for quick lookup
+	const auditByStat = $derived.by(() => {
+		const map: Record<string, any[]> = {};
+		for (const e of (scoreAudit ?? [])) {
+			if (!map[e.stat]) map[e.stat] = [];
+			map[e.stat].push(e);
+		}
+		return map;
+	});
+
+	const SOURCE_LABEL: Record<string,string> = {
+		INITIAL: 'Base', ASI: 'ASI', FEAT: 'Feat', MANUAL: 'DM Adjustment',
+	};
+
+	async function saveManualAdjust() {
+		if (!manualStat || !manualDelta || !manualNote.trim()) return;
+		savingManual = true;
+		try {
+			await onManualScoreAdjust?.(manualStat, manualDelta, manualNote.trim());
+			manualStat = ''; manualDelta = 0; manualNote = '';
+		} finally { savingManual = false; }
+	}
 	let savingScores = $state(false);
 
 	function openScores() {
@@ -132,7 +164,7 @@
 	}
 
 	// ── ASI/Feat slots ───────────────────────────────────────────────────────
-	type SlotState = { open:boolean; mode:string; asiStat:string; asi2a:string; asi2b:string; featSearch:string; featPick:string; saving:boolean; };
+	type SlotState = { open:boolean; mode:string; asiStat:string; asi2a:string; asi2b:string; featSearch:string; featPick:string; featGrantedStat:string; saving:boolean; };
 
 	let slots = $state<Record<string,SlotState>>({});
 
@@ -148,14 +180,14 @@
 		for (const [idx, slot] of newSlots.entries()) {
 			const k = sk(slot, asiSlots.indexOf(slot));
 			const defaultMode = (slot.type === 'background_feat' || slot.type === 'epic_boon') ? 'feat' : 'asi';
-			next[k] = {open:false,mode:defaultMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',saving:false};
+			next[k] = {open:false,mode:defaultMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',featGrantedStat:'',saving:false};
 		}
 		slots = next;
 	});
 
 	function ss(slot:any, i?:number): SlotState {
 			const fallbackMode = (slot.type === 'background_feat' || slot.type === 'epic_boon') ? 'feat' : 'asi';
-		return slots[sk(slot,i)] ?? {open:false,mode:fallbackMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',saving:false};
+		return slots[sk(slot,i)] ?? {open:false,mode:fallbackMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',featGrantedStat:'',saving:false};
 	}
 	function updateSlot(slot:any, patch: Partial<SlotState>, i?:number) {
 		const k = sk(slot, i);
@@ -186,7 +218,13 @@
 
 		if (s.mode === 'feat') {
 			if (!s.featPick) return;
+			const featDef   = (systemData?.feats ?? []).find((f:any) => f.id === s.featPick);
+			const asiAmount = featDef?.asiAmount ?? null;
+			const asiFixed  = featDef?.asiStatFixed ?? null;
+			const chosenStat = asiFixed || s.featGrantedStat || undefined;
+			if (asiAmount && !chosenStat) return; // need stat choice first
 			opts.featId = s.featPick;
+			if (asiAmount && chosenStat) { opts.stat1 = chosenStat; opts.amount1 = asiAmount; }
 		} else if (s.mode === 'asi') {
 			if (!s.asiStat || !asiFeat) return;
 			opts = {...opts, featId: asiFeat.id, stat1: s.asiStat, amount1: 2};
@@ -197,7 +235,7 @@
 
 		updateSlot(slot, {saving:true}, i);
 		await onSaveSlot?.(opts);
-		updateSlot(slot, {saving:false, open:false, featPick:'', asiStat:'', asi2a:'', asi2b:'', featSearch:''}, i);
+		updateSlot(slot, {saving:false, open:false, featPick:'', featGrantedStat:'', asiStat:'', asi2a:'', asi2b:'', featSearch:''}, i);
 	}
 </script>
 
@@ -225,20 +263,83 @@
 			{#if !hasScores}
 				<p style="font-size:0.875rem;color:var(--text-muted);margin:0;">Not set yet.{canEdit?' Click Set.':''}</p>
 			{:else}
+				<!-- Score boxes — click to toggle breakdown -->
 				<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;text-align:center;">
 					{#each STATS as s}
-						{@const v     = score(s)}
-						{@const bonus = asiBonus[s] ?? 0}
-						<div style="padding:0.75rem 0.5rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-muted);">
+						{@const v       = score(s)}
+						{@const entries = auditByStat[s] ?? []}
+						{@const isOpen  = auditOpenStat === s}
+						<button
+							onclick={() => auditOpenStat = isOpen ? null : s}
+							style="width:100%;padding:0.75rem 0.5rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid {isOpen?'var(--brand-accent)':'var(--border-muted)'};cursor:{entries.length?'pointer':'default'};text-align:center;">
 							<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.25rem;">{STAT_LABEL[s]}</p>
 							<p style="font-size:1.75rem;font-weight:800;line-height:1;margin:0;">{v}</p>
 							<p style="font-size:0.875rem;font-weight:600;color:var(--brand-accent);margin:0.125rem 0 0;">{mod(v)}</p>
-							{#if bonus > 0}
-								<p style="font-size:0.6875rem;color:var(--color-success);font-weight:600;margin:0.25rem 0 0;">+{bonus} ASI</p>
+							{#if entries.length}
+								<p style="font-size:0.6rem;color:var(--text-muted);margin:0.25rem 0 0;">{entries.length} change{entries.length===1?'':'s'} ▾</p>
 							{/if}
-						</div>
+						</button>
 					{/each}
 				</div>
+
+				<!-- Breakdown panel — shown when a stat is clicked -->
+				{#if auditOpenStat}
+					{@const entries = auditByStat[auditOpenStat] ?? []}
+					<div style="margin-top:0.75rem;padding:0.75rem;background:var(--bg-muted);border-radius:var(--radius-md);border:1px solid var(--border-muted);">
+						<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--brand-accent);margin:0 0 0.5rem;">{STAT_NAME[auditOpenStat]} — Score History</p>
+						{#if entries.length === 0}
+							<p style="font-size:0.8125rem;color:var(--text-muted);margin:0;">No history recorded yet.</p>
+						{:else}
+							<div style="display:flex;flex-direction:column;gap:0.25rem;">
+								{#each entries as e}
+									<div style="display:flex;align-items:center;justify-content:space-between;padding:0.375rem 0.5rem;background:var(--bg-overlay);border-radius:var(--radius-sm);">
+										<div style="display:flex;align-items:center;gap:0.5rem;">
+											<span style="font-size:0.6875rem;padding:0.0625rem 0.375rem;border-radius:99px;font-weight:600;background:{e.source==='INITIAL'?'var(--bg-overlay)':e.source==='MANUAL'?'rgba(239,68,68,0.15)':'rgba(34,197,94,0.15)'};color:{e.source==='INITIAL'?'var(--text-muted)':e.source==='MANUAL'?'var(--color-danger)':'var(--color-success)'};">
+												{SOURCE_LABEL[e.source] ?? e.source}
+											</span>
+											<span style="font-size:0.8125rem;color:var(--text-secondary);">{e.note ?? ''}</span>
+										</div>
+										<div style="display:flex;align-items:center;gap:0.5rem;">
+											<span style="font-size:0.875rem;font-weight:700;color:{e.delta>0?'var(--color-success)':e.delta<0?'var(--color-danger)':'var(--text-muted)'};">
+												{e.delta>0?'+':''}{e.delta}
+											</span>
+											<span style="font-size:0.6875rem;color:var(--text-muted);">{new Date(e.createdAt).toLocaleDateString()}</span>
+										</div>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				{/if}
+
+				<!-- DM manual adjustment form -->
+				{#if canManage && onManualScoreAdjust}
+					<div style="margin-top:0.75rem;padding:0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-muted);">
+						<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.5rem;">DM Manual Adjustment</p>
+						<div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;">
+							<div class="field" style="margin:0;flex:1;min-width:120px;">
+								<label class="label" for="manual-stat">Stat</label>
+								<select id="manual-stat" class="input input--select" bind:value={manualStat}>
+									<option value="">Select…</option>
+									{#each STATS as s}<option value={s}>{STAT_NAME[s]}</option>{/each}
+								</select>
+							</div>
+							<div class="field" style="margin:0;flex:0 0 80px;">
+								<label class="label" for="manual-delta">Delta</label>
+								<input id="manual-delta" type="number" class="input" bind:value={manualDelta} placeholder="+1 or -1" />
+							</div>
+							<div class="field" style="margin:0;flex:2;min-width:160px;">
+								<label class="label" for="manual-note">Reason</label>
+								<input id="manual-note" type="text" class="input" bind:value={manualNote} placeholder="e.g. Potion of ability score" />
+							</div>
+							<button class="btn btn-primary btn-sm" style="flex-shrink:0;"
+								disabled={!manualStat||!manualDelta||!manualNote.trim()||savingManual}
+								onclick={saveManualAdjust}>
+								{savingManual ? 'Saving…' : 'Apply'}
+							</button>
+						</div>
+					</div>
+				{/if}
 			{/if}
 		{:else}
 			<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:0.75rem;">
@@ -550,7 +651,7 @@
 									<label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.5rem;background:{s.featPick===feat.id?'rgba(184,115,74,0.12)':'var(--bg-muted)'};border-radius:var(--radius-sm);cursor:{taken?'not-allowed':'pointer'};opacity:{taken?0.5:1};border:1px solid {s.featPick===feat.id?'var(--brand-accent)':'transparent'};">
 										<input type="radio" name="feat-{sk(slot)}" value={feat.id}
 											checked={s.featPick===feat.id}
-											onchange={() => updateSlot(slot, {featPick:feat.id}, slotIdx)}
+											onchange={() => updateSlot(slot, {featPick:feat.id, featGrantedStat: feat.asiStatFixed ?? ''}, slotIdx)}
 											disabled={taken}
 											style="margin-top:2px;accent-color:var(--brand-accent);" />
 										<div>
@@ -558,6 +659,7 @@
 												<span style="font-size:0.875rem;font-weight:600;">{feat.name}</span>
 												{#if feat.isEpicBoon}<span class="badge badge-warning" style="font-size:0.6875rem;">Epic Boon</span>{/if}
 												{#if feat.repeatable}<span class="badge badge-muted" style="font-size:0.6875rem;">Repeatable</span>{/if}
+												{#if feat.asiAmount}<span style="font-size:0.6875rem;padding:0.0625rem 0.375rem;background:rgba(34,197,94,0.15);color:var(--color-success);border-radius:99px;">+{feat.asiAmount} {feat.asiStatFixed ?? 'stat'}</span>{/if}
 												{#if taken}<span style="font-size:0.6875rem;color:var(--text-muted);">Already taken</span>{/if}
 											</div>
 											{#if feat.snippet}<p style="margin:0.125rem 0 0;font-size:0.8125rem;color:var(--text-secondary);">{feat.snippet}</p>{/if}
@@ -568,12 +670,33 @@
 									<p style="color:var(--text-muted);font-size:0.875rem;padding:0.5rem;">No feats match.</p>
 								{/each}
 							</div>
-							<div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-								<button class="btn btn-primary btn-sm" disabled={!s.featPick||s.saving} onclick={() => saveSlot(slot, slotIdx)}>
-									{s.saving ? 'Saving…' : 'Choose Feat'}
-								</button>
-								{#if r}<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot, {open:false}, slotIdx)}>Cancel</button>{/if}
-							</div>
+							{#if s.featPick}
+								{@const selFeat = (systemData?.feats ?? []).find((f:any) => f.id === s.featPick)}
+								{#if selFeat?.asiAmount && !selFeat?.asiStatFixed}
+									{@const choices = selFeat.asiStatChoices ? selFeat.asiStatChoices.split(',').map((s2:string) => s2.trim()) : FEAT_STATS}
+									<div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);border:1px solid var(--border-muted);">
+										<span style="font-size:0.8125rem;color:var(--text-secondary);white-space:nowrap;">+{selFeat.asiAmount} to</span>
+										<select class="input input--select" style="flex:1;"
+											value={s.featGrantedStat}
+											onchange={(e) => updateSlot(slot, {featGrantedStat:(e.target as HTMLSelectElement).value}, slotIdx)}>
+											<option value="">— Choose stat —</option>
+											{#each choices as st}<option value={st}>{FEAT_STAT_LABEL[st] ?? st}</option>{/each}
+										</select>
+									</div>
+								{:else if selFeat?.asiAmount && selFeat?.asiStatFixed}
+									<p style="font-size:0.8125rem;color:var(--color-success);margin:0.375rem 0 0;">✓ Grants +{selFeat.asiAmount} {FEAT_STAT_LABEL[selFeat.asiStatFixed] ?? selFeat.asiStatFixed} automatically</p>
+								{/if}
+							{/if}
+							{#if true}
+								{@const selFeat2 = s.featPick ? (systemData?.feats ?? []).find((f:any) => f.id === s.featPick) : null}
+								{@const needsStat = selFeat2?.asiAmount && !selFeat2?.asiStatFixed && !s.featGrantedStat}
+								<div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+									<button class="btn btn-primary btn-sm" disabled={!s.featPick||!!needsStat||s.saving} onclick={() => saveSlot(slot, slotIdx)}>
+										{s.saving ? 'Saving…' : 'Choose Feat'}
+									</button>
+									{#if r}<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot, {open:false}, slotIdx)}>Cancel</button>{/if}
+								</div>
+							{/if}
 						{/if}
 					</div>
 				{/if}

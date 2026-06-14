@@ -82,7 +82,24 @@ export const dmDnd5eActions = {
 			scores[stat] = Number(data.get(stat) ?? 8);
 		}
 		try {
-			await dnd5e.saveAbilityScores(params.charId, scores);
+			await dnd5e.saveAbilityScores(params.charId, scores, locals.user!.id);
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	manualScoreAdjust: async ({ params, request, locals }: any) => {
+		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
+		const { dnd5e } = await import('@core/database');
+		const data  = await request.formData();
+		const stat  = data.get('stat')?.toString() ?? '';
+		const delta = Number(data.get('delta') ?? 0);
+		const note  = data.get('note')?.toString().trim() ?? 'DM adjustment';
+		if (!stat || !delta) return fail(400, { message: 'Stat and delta required.' });
+		try {
+			await dnd5e.manualScoreAdjustment(params.charId, stat, delta, note, locals.user!.id);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

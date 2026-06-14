@@ -7,9 +7,11 @@
 	let {
 		charSheet,
 		systemData,
+		scoreAudit = [],
 	}: {
-		charSheet?:  any;
-		systemData?: any;
+		charSheet?:   any;
+		systemData?:  any;
+		scoreAudit?:  any[];
 	} = $props();
 
 	async function post(name: string, entries: [string, string][]) {
@@ -62,11 +64,16 @@
 	async function handleRemoveFeat(id: string) {
 		await post('removeFeat', [['id', id]]);
 	}
+
+	async function handleManualScoreAdjust(stat: string, delta: number, note: string) {
+		await post('manualScoreAdjust', [['stat', stat], ['delta', String(delta)], ['note', note]]);
+	}
 </script>
 
 <Dnd5eCharacterSheet
 	{charSheet}
 	{systemData}
+	{scoreAudit}
 	canEdit={true}
 	canManage={true}
 	onSaveAbilityScores={handleSaveAbilityScores}
@@ -74,4 +81,5 @@
 	onSubmitLevelUp={handleSubmitLevelUp}
 	onSaveSlot={handleSaveSlot}
 	onRemoveFeat={handleRemoveFeat}
+	onManualScoreAdjust={handleManualScoreAdjust}
 />

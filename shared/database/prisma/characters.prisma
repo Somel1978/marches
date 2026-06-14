@@ -79,8 +79,9 @@ model Character {
   updatedAt    DateTime                @updatedAt      @map("updated_at")
 
   classes      Dnd5eCharacterClass[]
-  feats         Dnd5eCharacterFeat[]
-  abilityScores Dnd5eAbilityScore[]
+  feats              Dnd5eCharacterFeat[]
+  abilityScores      Dnd5eAbilityScore[]
+  scoreAuditEntries  Dnd5eScoreAuditEntry[]
   transactions  CharacterTransaction[]
   inventory    CharacterInventory[]
   dnd5eSheet   Dnd5eCharacterSheet?

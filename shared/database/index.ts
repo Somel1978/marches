@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
-export { isAsiFeatureName, isEpicBoonFeatureName } from './dbapi/dnd5e-feature-names.ts';
+export { isAsiFeatureName, isEpicBoonFeatureName } from './dbapi/read/dnd5e/feature-names.ts';
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 import { getAll    as getAllUsers  } from './dbapi/read/users/get-all.ts';
@@ -67,6 +67,8 @@ import { getDnd5eFeats, getAllDnd5eFeats, getDnd5eFeatById } from './dbapi/read/
 import { createDnd5eFeat, updateDnd5eFeat, deleteDnd5eFeat } from './dbapi/write/dnd5e/feats.ts';
 import { saveDnd5eAbilityScores, applyDnd5eAsiStatBump } from './dbapi/write/dnd5e/update-ability-scores.ts';
 import { addDnd5eCharacterFeat, removeDnd5eCharacterFeat } from './dbapi/write/dnd5e/update-character-feats.ts';
+import { addScoreAuditEntry, addScoreAuditEntries, applyManualScoreAdjustment } from './dbapi/write/dnd5e/score-audit.ts';
+import { getScoreAuditForCharacter, getScoreAuditForStat } from './dbapi/read/dnd5e/get-score-audit.ts';
 import { enrichDnd5eSignups } from './dbapi/read/dnd5e/enrich-signups.ts';
 import { getDnd5eClasses, getAllDnd5eClasses, getDnd5eClassById, getDnd5eSpecies, getAllDnd5eSpecies, getDnd5eBackgrounds, getAllDnd5eBackgrounds, getDnd5eSystemData, invalidateDnd5eSystemDataCache } from './dbapi/read/dnd5e/get-classes.ts';
 import { createDnd5eClass, updateDnd5eClass, deleteDnd5eClass, createClassFeature, updateClassFeature, deleteClassFeature, createDnd5eSubclass, updateDnd5eSubclass, deleteDnd5eSubclass, createSubclassFeature, updateSubclassFeature, deleteSubclassFeature } from './dbapi/write/dnd5e/classes.ts';
@@ -607,10 +609,15 @@ export const dnd5e = {
         update:         updateDnd5eFeat,
         delete:         deleteDnd5eFeat,
     },
-    saveAbilityScores:   saveDnd5eAbilityScores,
-    applyAsiStatBump:    applyDnd5eAsiStatBump,
-    addCharacterFeat:    addDnd5eCharacterFeat,
-    removeCharacterFeat: removeDnd5eCharacterFeat,
+    saveAbilityScores:        saveDnd5eAbilityScores,
+    applyAsiStatBump:         applyDnd5eAsiStatBump,
+    addCharacterFeat:         addDnd5eCharacterFeat,
+    removeCharacterFeat:      removeDnd5eCharacterFeat,
+    addScoreAuditEntry:       addScoreAuditEntry,
+    addScoreAuditEntries:     addScoreAuditEntries,
+    manualScoreAdjustment:    applyManualScoreAdjustment,
+    getScoreAudit:            getScoreAuditForCharacter,
+    getScoreAuditForStat:     getScoreAuditForStat,
     createCharacter:     createDnd5eCharacter,
     approveCharacter:    approveDnd5eCharacter,
     rejectCharacter:     rejectDnd5eCharacter,

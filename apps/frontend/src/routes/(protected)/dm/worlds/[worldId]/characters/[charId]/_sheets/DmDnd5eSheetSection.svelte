@@ -8,6 +8,7 @@
 	let {
 		charSheet,
 		systemData,
+		scoreAudit     = [],
 		canManage      = false,
 		isLevelUp      = false,
 		isLevelDown    = false,
@@ -15,6 +16,7 @@
 	}: {
 		charSheet?:      any;
 		systemData?:     any;
+		scoreAudit?:     any[];
 		canManage?:      boolean;
 		isLevelUp?:      boolean;
 		isLevelDown?:    boolean;
@@ -31,7 +33,6 @@
 		return result;
 	}
 
-	// DM direct saves — no approval needed
 	async function handleSaveAbilityScores(scores: Record<string, number>) {
 		await post('saveAbilityScores', Object.entries(scores).map(([k, v]) => [k, String(v)]));
 	}
@@ -50,7 +51,6 @@
 	}
 
 	async function handleSubmitLevelUp(classes: any[]) {
-		// DMs can directly update level allocation
 		const entries: [string, string][] = classes.flatMap(c => [
 			['classId',        c.classId]           as [string, string],
 			['subclassId',     c.subclassId ?? '']  as [string, string],
@@ -73,11 +73,16 @@
 	async function handleRemoveFeat(id: string) {
 		await post('removeFeat', [['id', id]]);
 	}
+
+	async function handleManualScoreAdjust(stat: string, delta: number, note: string) {
+		await post('manualScoreAdjust', [['stat', stat], ['delta', String(delta)], ['note', note]]);
+	}
 </script>
 
 <Dnd5eCharacterSheet
 	{charSheet}
 	{systemData}
+	{scoreAudit}
 	canEdit={canManage}
 	{isLevelUp}
 	{isLevelDown}
@@ -88,4 +93,5 @@
 	onSubmitLevelUp={canManage ? handleSubmitLevelUp : undefined}
 	onSaveSlot={canManage ? handleSaveSlot : undefined}
 	onRemoveFeat={canManage ? handleRemoveFeat : undefined}
+	onManualScoreAdjust={canManage ? handleManualScoreAdjust : undefined}
 />

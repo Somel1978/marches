@@ -158,8 +158,9 @@ export const actions: Actions = {
 	},
 
 	// ── dnd5e direct-save actions ────────────────────────────────────────────
-	updateSheet:       adminDnd5eActions.updateSheet,
-	addFeat:           adminDnd5eActions.addFeat,
-	removeFeat:        adminDnd5eActions.removeFeat,
-	saveAbilityScores: adminDnd5eActions.saveAbilityScores,
+	updateSheet:        adminDnd5eActions.updateSheet,
+	addFeat:            adminDnd5eActions.addFeat,
+	removeFeat:         adminDnd5eActions.removeFeat,
+	saveAbilityScores:  adminDnd5eActions.saveAbilityScores,
+	manualScoreAdjust:  adminDnd5eActions.manualScoreAdjust,
 };

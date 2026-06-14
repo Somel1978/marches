@@ -32,7 +32,25 @@ Set in root `+layout.server.ts` via `dms.profiles.getByUserId()`.
 Use `$effect.pre()`, not inline initialization, for `$state` vars derived from `data`.
 
 ### `{@const}` placement
-Must be immediate child of `{#if}`, `{#each}`, `{:else}`, etc. — never top-level or inside a plain `<div>`.
+Must be immediate child of `{#if}`, `{#each}`, `{:else}`, etc. — never top-level or inside a plain `<div>`. Workaround: wrap the `<div>` in `{#if true}` to create a valid block child.
+
+### Score audit trail pattern
+`Dnd5eScoreAuditEntry` records every delta to a character's ability scores. Rules:
+- Every entry has a real non-zero delta — no zero-delta entries
+- Entries are immutable — never edited or deleted
+- Removal/swap creates new negative-delta entries (not deletes of old entries)
+- `baseScore` on `Dnd5eAbilityScore` remains the source of truth — audit entries explain how it got there
+- `actorId` tracked on all entries for attribution
+- Sources: `INITIAL` (first set by player), `ASI` (standard ASI feat), `FEAT` (feat-granted ASI), `MANUAL` (DM adjustment)
+
+### Feat ASI grant — stat caching pattern
+`AsiChoice` in the wizard stores `featAsiAmount?` and `featAsiFixed?` cached from the feat definition when the feat is selected. `finalScores` uses `c.stat1`/`c.amount1` (set at selection time and on dropdown change) rather than looking up `sys.feats` at render time, avoiding reactivity timing issues with `$derived.by` and `restoreState` from sessionStorage.
+
+### feature-names.ts dual location
+`isAsiFeatureName`/`isEpicBoonFeatureName`/`normalizeFeatureName` must exist in two places because `@core/database` must not depend on `@core/ui`:
+- `shared/ui/src/gamesystems/dnd5e/feature-names.ts` — for Svelte components importing from `@core/ui`
+- `shared/database/dbapi/read/dnd5e/feature-names.ts` — for server files importing from `@core/database`
+Keep both in sync. Never put this file in the root of `dbapi/`.
 
 ### Cross-schema Prisma relations
 `CharacterClass.classId/subclassId` are plain `String` — cross-schema FK resolved at app level.
@@ -166,7 +184,13 @@ dnd5e.subclassFeatures.{create, update, delete}
 dnd5e.species.{getAll, getActive, create, update, delete}
 dnd5e.speciesTraits.{create, update, delete}
 dnd5e.backgrounds.{getAll, getActive, create, update, delete}
-dnd5e.getSystemData(gameSystemId)
+dnd5e.getSystemData(gameSystemId)     — cached 5 min; call invalidateSystemCache after imports
+dnd5e.invalidateSystemCache(gameSystemId?)
+dnd5e.getScoreAudit(characterId)
+dnd5e.getScoreAuditForStat(characterId, stat)
+dnd5e.addScoreAuditEntry(entry)
+dnd5e.addScoreAuditEntries(entries[])
+dnd5e.manualScoreAdjustment(characterId, stat, delta, note, actorId?)
 characters.{getAll, getById, getByUserId, getSlotInfo, getAllSlotInfo,
             getInventory, addInventory, removeInventory, getTransactions,
             create, update, updateFreeFields, submitChanges,

@@ -506,3 +506,39 @@
 - Discord `setDescription('')` → `|| null` guards everywhere
 - Token store transaction character names enriched (no UUID display)
 - Admin availability character levels fixed (was always `?`)
+
+### Session 74 — Feat ASI Grants, Score Audit Trail, Standard Array (2026-06-14)
+
+**Feat ASI Grant System**
+- `shared/ui/src/gamesystems/dnd5e/feature-names.ts` + `shared/database/dbapi/read/dnd5e/feature-names.ts` — NEW: `isAsiFeatureName`, `isEpicBoonFeatureName`, `normalizeFeatureName`. Exported from both `@core/ui` and `@core/database` index files. Correct locations per code structure (not root dbapi).
+- `update-character-feats.ts` — slot-based save now looks up and reverses old feat's stat bump BEFORE deleting the row (fix for scores not decreasing on feat change/removal). Stat bump fires for ANY feat with `stat1/amount1`, not just ASI feat by name. `removeDnd5eCharacterFeat` accepts `actorId`.
+- `Dnd5eAsiFeatsPanel.svelte` — ASI badge shown on feats with `asiAmount`; stat picker appears after feat selection (inside `{#if true}` block to satisfy `{@const}` placement rules); Confirm button disabled until stat chosen when required.
+- `Dnd5eCharacterSheet.svelte` — `featGrantedStat` added to `SlotState`; ASI badge in feat list; stat picker after feat selection; `saveSlot` passes `stat1/amount1` for feat-granted ASI; Choose Feat disabled when stat required but not chosen.
+- Wizard `+page.svelte` — `AsiChoice` gains `featGrantedStat?`, `featAsiAmount?`, `featAsiFixed?` cached fields. `finalScores` now uses `stat1/amount1` for both stat and feat mode (no `sys.feats` lookup at render time). `$effect` backfills `stat1/amount1` from `sys.feats` after data loads for restored sessions. `asi_stat1` hidden input simplified to always use `c.stat1`.
+- Wizard `+page.server.ts` — loads `systemFeats` for both stat and feat modes; passes `stat1/amount1` for feat-granted ASI; inline `isAsiFeatureName` check (no broken import).
+
+**Score Audit Trail**
+- Schema: `ScoreEntrySource` enum (`INITIAL/ASI/FEAT/MANUAL`) and `Dnd5eScoreAuditEntry` model added to `dnd5e.prisma`. Back-relation `scoreAuditEntries` added to `Character` in `characters.prisma`. **Requires `db:push && db:generate`.**
+- `shared/database/dbapi/write/dnd5e/score-audit.ts` — NEW: `addScoreAuditEntry`, `addScoreAuditEntries`, `applyManualScoreAdjustment`.
+- `shared/database/dbapi/read/dnd5e/get-score-audit.ts` — NEW: `getScoreAuditForCharacter`, `getScoreAuditForStat`.
+- `update-ability-scores.ts` — rewritten: writes `INITIAL` audit entries on first score save; `MANUAL` delta entries on edits; `applyDnd5eAsiStatBump` accepts `source/note/sourceId/actorId` opts and writes audit entries.
+- `update-character-feats.ts` — `reverseStatBump` helper writes negative-delta audit entries for all removals/swaps. `addDnd5eCharacterFeat` writes `FEAT` or `ASI` audit entries with note "X added". `removeDnd5eCharacterFeat` writes "X removed" entries.
+- `database/index.ts` — exposes `addScoreAuditEntry`, `addScoreAuditEntries`, `manualScoreAdjustment`, `getScoreAudit`, `getScoreAuditForStat`, `invalidateSystemCache` on `dnd5e` namespace.
+
+**Score Audit UI**
+- `Dnd5eCharacterSheet.svelte` — `scoreAudit` and `onManualScoreAdjust` props added. Stat boxes are now clickable — opens inline breakdown panel showing all audit entries for that stat (source badge colour-coded, note, signed delta, date). DM manual adjustment form (stat selector, delta input, reason text, Apply button) shown when `canManage && onManualScoreAdjust`. `auditByStat` derived groups entries by stat. `SOURCE_LABEL` maps enum values to display strings.
+- All loaders updated to load `scoreAudit` in parallel: player `_loaders/dnd5e.server.ts`, DM hub `_loaders/dnd5e.server.ts`, admin `_loaders/dnd5e.server.ts`.
+- DM hub: `manualScoreAdjust` action added to `_sheets/dnd5e.actions.server.ts` and `+page.server.ts`. `DmDnd5eSheetSection` passes `scoreAudit` and `onManualScoreAdjust`. `+page.svelte` passes `scoreAudit`.
+- Admin: `manualScoreAdjust` action added to `_sheets/dnd5e.actions.server.ts` and `+page.server.ts`. `AdminDnd5eSheetSection` passes `scoreAudit` and `onManualScoreAdjust`. `+page.svelte` passes `scoreAudit`.
+- Player: `Dnd5eSheetSection` gains `scoreAudit` prop, passes to `CharacterSheet`. `characters/[id]/+page.svelte` passes `scoreAudit`. Player `dnd5e.actions.server.ts` now passes `actorId` to `addCharacterFeat`, `removeCharacterFeat`, `saveAbilityScores`.
+
+**Performance**
+- `characters/[id]/+page.server.ts` — fully parallelised: `checkRest`, world queries, marketplace, and system data all in single `Promise.all`.
+- `get-classes.ts` — 5-minute in-memory cache on `getDnd5eSystemData` with `invalidateDnd5eSystemDataCache(gameSystemId?)`. Cache invalidated after every successful admin import action.
+- Admin import `+page.server.ts` — `dnd5e.invalidateSystemCache(params.id)` called before every import success return.
+
+**Standard Array**
+- Wizard `+page.svelte` — Standard Array mode added. Values `[8, 10, 12, 13, 14, 15]` shown as pool with strikethrough on used values. Per-stat dropdown replaces +/− buttons; only available (unassigned) values selectable. `scoresValid` requires all 6 assigned. `standardArray` persisted in sessionStorage.
+
+**Bug Fixes**
+- Wizard cancel ✕ button — was `<a href="/characters/new">` (no state clear, caused 405 POST errors on the index page which has no actions). Now calls `clearState()` then `goto('/characters')`. `goto` imported from `$app/navigation`.

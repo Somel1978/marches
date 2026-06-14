@@ -234,3 +234,28 @@ model Dnd5eAbilityScore {
   @@map("ability_scores")
   @@schema("dnd5e")
 }
+
+enum ScoreEntrySource {
+  INITIAL  // base scores set by player (point buy / rolled / standard array)
+  ASI      // standard Ability Score Improvement feat (+2 or +1/+1)
+  FEAT     // feat-granted ASI (Athlete, Resilient, etc.)
+  MANUAL   // DM manual adjustment
+
+  @@schema("dnd5e")
+}
+
+model Dnd5eScoreAuditEntry {
+  id          String           @id @default(uuid())
+  characterId String           @map("character_id")
+  character   Character        @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  stat        Dnd5eAbilityStat
+  delta       Int              // positive = increase, negative = decrease
+  source      ScoreEntrySource
+  note        String?          // human-readable: "Athlete feat added", "War Caster removed, Resilient added"
+  sourceId    String?          @map("source_id")   // charFeatId for programmatic linking
+  actorId     String?          @map("actor_id")    // userId who made the change
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@map("score_audit_entries")
+  @@schema("dnd5e")
+}

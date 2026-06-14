@@ -41,7 +41,7 @@ export const adminDnd5eActions = {
 		const amount2       = data.get('amount2') ? Number(data.get('amount2')) : undefined;
 		if (!featId) return fail(400, { message: 'Feat ID required.' });
 		try {
-			await dnd5e.addCharacterFeat(params.id, featId, { sourceClassId, sourceLevel, stat1, amount1, stat2, amount2 });
+			await dnd5e.addCharacterFeat(params.id, featId, { sourceClassId, sourceLevel, stat1, amount1, stat2, amount2, actorId: locals.user!.id });
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -57,7 +57,7 @@ export const adminDnd5eActions = {
 		const id   = data.get('id')?.toString() ?? '';
 		if (!id) return fail(400, { message: 'ID required.' });
 		try {
-			await dnd5e.removeCharacterFeat(id);
+			await dnd5e.removeCharacterFeat(id, locals.user!.id);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -75,7 +75,25 @@ export const adminDnd5eActions = {
 			scores[stat] = Number(data.get(stat) ?? 8);
 		}
 		try {
-			await dnd5e.saveAbilityScores(params.id, scores);
+			await dnd5e.saveAbilityScores(params.id, scores, locals.user!.id);
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	manualScoreAdjust: async ({ params, request, locals }: any) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { dnd5e } = await import('@core/database');
+		const data  = await request.formData();
+		const stat  = data.get('stat')?.toString() ?? '';
+		const delta = Number(data.get('delta') ?? 0);
+		const note  = data.get('note')?.toString().trim() ?? 'Admin adjustment';
+		if (!stat || !delta) return fail(400, { message: 'Stat and delta required.' });
+		try {
+			await dnd5e.manualScoreAdjustment(params.id, stat, delta, note, locals.user!.id);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

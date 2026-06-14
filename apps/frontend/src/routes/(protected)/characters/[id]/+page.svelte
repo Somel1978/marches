@@ -196,6 +196,7 @@
 		<Dnd5eSheetSection
 			charSheet={(data as any).charSheet}
 			systemData={(data as any).systemData}
+			scoreAudit={(data as any).scoreAudit ?? []}
 			character={data.character}
 			{canEdit}
 			{isLevelUp}

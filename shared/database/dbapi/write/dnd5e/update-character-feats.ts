@@ -2,6 +2,37 @@
 import { db } from '../../../index.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import { applyDnd5eAsiStatBump } from './update-ability-scores.ts';
+import { addScoreAuditEntries } from './score-audit.ts';
+
+// Helper: reverse a stat bump and write audit entries for the reversal
+async function reverseStatBump(
+    characterId: string,
+    asiStat1: string | null,
+    asiAmount1: number | null,
+    asiStat2: string | null,
+    asiAmount2: number | null,
+    note: string,
+    sourceId?: string,
+    actorId?: string,
+    source: 'ASI' | 'FEAT' = 'ASI',
+) {
+    const entries: any[] = [];
+    if (asiStat1 && asiAmount1) {
+        await db.dnd5eAbilityScore.updateMany({
+            where: { characterId, stat: asiStat1 as any },
+            data:  { baseScore: { decrement: asiAmount1 } },
+        });
+        entries.push({ characterId, stat: asiStat1, delta: -asiAmount1, source, note, sourceId, actorId });
+    }
+    if (asiStat2 && asiAmount2) {
+        await db.dnd5eAbilityScore.updateMany({
+            where: { characterId, stat: asiStat2 as any },
+            data:  { baseScore: { decrement: asiAmount2 } },
+        });
+        entries.push({ characterId, stat: asiStat2, delta: -asiAmount2, source, note, sourceId, actorId });
+    }
+    if (entries.length) await addScoreAuditEntries(entries);
+}
 
 export async function addDnd5eCharacterFeat(
     characterId: string,
@@ -9,13 +40,13 @@ export async function addDnd5eCharacterFeat(
     options?: {
         sourceClassId?: string;
         sourceLevel?:   number;
-        // For ASI feat only:
-        stat1?: string;
-        amount1?: number;
-        stat2?: string;
-        amount2?: number;
-        stat3?: string;
-        amount3?: number;
+        stat1?:         string;
+        amount1?:       number;
+        stat2?:         string;
+        amount2?:       number;
+        stat3?:         string;
+        amount3?:       number;
+        actorId?:       string;
     }
 ) {
     const feat = await db.dnd5eFeat.findUnique({ where: { id: featId } });
@@ -23,17 +54,31 @@ export async function addDnd5eCharacterFeat(
     if (!feat.isAvailable) throw new ValidationError('This feat is not available.');
 
     if (options?.sourceClassId && options?.sourceLevel) {
-        // Slot-based save: delete existing row for this exact slot, then create fresh
+        // Slot-based save: reverse any existing stat bump for this slot before replacing
+        const existing = await db.dnd5eCharacterFeat.findFirst({
+            where:   { characterId, sourceClassId: options.sourceClassId, sourceLevel: options.sourceLevel },
+            include: { feat: true },
+        });
+        if (existing) {
+            const e    = existing as any;
+            const isAsiSource = e.feat?.name?.trim() === 'Ability Score Improvement' ? 'ASI' : 'FEAT';
+            await reverseStatBump(
+                characterId,
+                e.asiStat1, e.asiAmount1,
+                e.asiStat2, e.asiAmount2,
+                `${e.feat?.name ?? 'Previous feat'} removed`,
+                e.id,
+                options.actorId,
+                isAsiSource,
+            );
+        }
         await db.dnd5eCharacterFeat.deleteMany({
             where: { characterId, sourceClassId: options.sourceClassId, sourceLevel: options.sourceLevel }
         });
-        // Also clean up any orphan rows for the same featId (accumulated from failed saves)
         await db.dnd5eCharacterFeat.deleteMany({
             where: { characterId, featId, sourceClassId: null }
         });
-        // Fall through to create fresh row
     } else if (!feat.repeatable) {
-        // No slot context, non-repeatable: check not already taken globally
         const existing = await db.dnd5eCharacterFeat.findFirst({ where: { characterId, featId } });
         if (existing) throw new ValidationError(`Feat "${feat.name}" has already been taken and is not repeatable.`);
     }
@@ -45,16 +90,16 @@ export async function addDnd5eCharacterFeat(
             featId,
             sourceClassId: options?.sourceClassId ?? null,
             sourceLevel:   options?.sourceLevel   ?? null,
-            asiStat1:      options?.stat1          ?? null,
-            asiAmount1:    options?.amount1        ?? null,
-            asiStat2:      options?.stat2          ?? null,
-            asiAmount2:    options?.amount2        ?? null,
+            asiStat1:      options?.stat1         ?? null,
+            asiAmount1:    options?.amount1       ?? null,
+            asiStat2:      options?.stat2         ?? null,
+            asiAmount2:    options?.amount2       ?? null,
         }
     });
 
-    // Apply stat bump — for the ASI feat AND for any feat that grants an ASI
-    // (feat-granted ASI is stored identically in asiStat1/asiAmount1)
+    // Apply stat bump with audit entry
     if (options?.stat1 && options?.amount1) {
+        const isAsiSource = feat.name?.trim() === 'Ability Score Improvement' ? 'ASI' : 'FEAT';
         await applyDnd5eAsiStatBump(
             characterId,
             options.stat1 as any,
@@ -63,30 +108,33 @@ export async function addDnd5eCharacterFeat(
             options.amount2,
             options.stat3 as any,
             options.amount3,
+            {
+                note:     `${feat.name} added`,
+                sourceId: record.id,
+                actorId:  options.actorId,
+                source:   isAsiSource,
+            }
         );
     }
 
     return record;
 }
 
-export async function removeDnd5eCharacterFeat(id: string) {
+export async function removeDnd5eCharacterFeat(id: string, actorId?: string) {
     const row = await db.dnd5eCharacterFeat.findUnique({ where: { id }, include: { feat: true } });
     if (!row) throw new NotFoundError('Dnd5eCharacterFeat', id);
 
-    // Reverse any stored stat bump (works for ASI feat and feat-granted ASI alike)
     const r = row as any;
-    if (r.asiStat1 && r.asiAmount1) {
-        await db.dnd5eAbilityScore.updateMany({
-            where: { characterId: r.characterId, stat: r.asiStat1 },
-            data:  { baseScore: { decrement: r.asiAmount1 } },
-        });
-    }
-    if (r.asiStat2 && r.asiAmount2) {
-        await db.dnd5eAbilityScore.updateMany({
-            where: { characterId: r.characterId, stat: r.asiStat2 },
-            data:  { baseScore: { decrement: r.asiAmount2 } },
-        });
-    }
+    const isAsiSource = r.feat?.name?.trim() === 'Ability Score Improvement' ? 'ASI' : 'FEAT';
+    await reverseStatBump(
+        r.characterId,
+        r.asiStat1, r.asiAmount1,
+        r.asiStat2, r.asiAmount2,
+        `${r.feat?.name ?? 'Feat'} removed`,
+        id,
+        actorId,
+        isAsiSource,
+    );
 
     return db.dnd5eCharacterFeat.delete({ where: { id } });
 }

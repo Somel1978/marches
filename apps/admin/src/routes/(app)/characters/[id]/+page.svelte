@@ -405,6 +405,7 @@
 			<AdminDnd5eSheetSection
 				charSheet={charSheet}
 				systemData={(data as any).systemData}
+				scoreAudit={(data as any).scoreAudit ?? []}
 			/>
 		{:else}
 			<p class="table__empty">Game system data not available.</p>

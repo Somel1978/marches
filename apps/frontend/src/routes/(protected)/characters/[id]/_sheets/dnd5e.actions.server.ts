@@ -78,7 +78,7 @@ export const dnd5eActions = {
 		const amount2       = data.get('amount2') ? Number(data.get('amount2')) : undefined;
 		if (!featId) return fail(400, { message: 'Feat ID required.' });
 		try {
-			await dnd5e.addCharacterFeat(params.id, featId, { sourceClassId, sourceLevel, stat1, amount1, stat2, amount2 });
+			await dnd5e.addCharacterFeat(params.id, featId, { sourceClassId, sourceLevel, stat1, amount1, stat2, amount2, actorId: locals.user!.id });
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -86,13 +86,13 @@ export const dnd5eActions = {
 		}
 	},
 
-	removeFeat: async ({ params, request }: any) => {
+	removeFeat: async ({ params, request, locals }: any) => {
 		const { dnd5e } = await import('@core/database');
 		const data = await request.formData();
 		const id   = data.get('id')?.toString() ?? '';
 		if (!id) return fail(400, { message: 'ID required.' });
 		try {
-			await dnd5e.removeCharacterFeat(id);
+			await dnd5e.removeCharacterFeat(id, locals.user!.id);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -100,7 +100,7 @@ export const dnd5eActions = {
 		}
 	},
 
-	saveAbilityScores: async ({ params, request }: any) => {
+	saveAbilityScores: async ({ params, request, locals }: any) => {
 		const { dnd5e } = await import('@core/database');
 		const data = await request.formData();
 		const scores = {
@@ -112,7 +112,7 @@ export const dnd5eActions = {
 			CHARISMA:     Number(data.get('CHARISMA')     ?? 8),
 		};
 		try {
-			await dnd5e.saveAbilityScores(params.id, scores);
+			await dnd5e.saveAbilityScores(params.id, scores, locals.user!.id);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

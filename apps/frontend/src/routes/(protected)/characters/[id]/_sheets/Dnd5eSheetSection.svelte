@@ -8,6 +8,7 @@
 	let {
 		charSheet,
 		systemData,
+		scoreAudit     = [],
 		character,
 		canEdit        = false,
 		isLevelUp      = false,
@@ -16,6 +17,7 @@
 	}: {
 		charSheet?:      any;
 		systemData?:     any;
+		scoreAudit?:     any[];
 		character?:      any;
 		canEdit?:        boolean;
 		isLevelUp?:      boolean;
@@ -89,6 +91,7 @@
 <Dnd5eCharacterSheet
 	{charSheet}
 	{systemData}
+	{scoreAudit}
 	{canEdit}
 	{editBlockedReason}
 	{isLevelUp}
