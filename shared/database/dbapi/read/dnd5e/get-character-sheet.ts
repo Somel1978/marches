@@ -1,5 +1,6 @@
 // shared/database/dbapi/read/dnd5e/get-character-sheet.ts
 import { db } from '../../../index.ts';
+import { isAsiFeatureName, isEpicBoonFeatureName } from './feature-names.ts';
 
 export async function getDnd5eCharacterSheet(characterId: string) {
     const [sheet, classes, chosenFeats, abilityScores] = await Promise.all([
@@ -66,8 +67,8 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         // ASI and Epic Boon slots come only from class features, not subclass features
         const allFeatures = cc.classFeatures ?? [];
         for (const feat of allFeatures) {
-            const isAsi      = feat.name === 'Ability Score Improvement';
-            const isEpicBoon = feat.name === 'Epic Boon Feat';
+            const isAsi      = isAsiFeatureName(feat.name);
+            const isEpicBoon = isEpicBoonFeatureName(feat.name);
             if (!isAsi && !isEpicBoon) continue;
 
             const resolved = findSlotResolution(cc.classId, feat.requiredLevel, chosenFeats, usedFeatRowIds);
@@ -83,7 +84,6 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         }
     }
 
-    // Background feat slots — grantsFeatCategory (player picks) or grantsFeatId (auto-granted, locked)
     const backgroundSlots: any[] = [];
     if (backgroundRecord) {
         const bg = backgroundRecord as any;
@@ -145,7 +145,7 @@ function findSlotResolution(sourceClassId: string, sourceLevel: number, chosenFe
     );
     function resolve(row: any) {
         const featName = row.feat?.name ?? null;
-        const isAsi    = featName === 'Ability Score Improvement';
+        const isAsi    = isAsiFeatureName(featName);
         return {
             kind:      isAsi ? 'asi' : 'feat',
             charFeatId: row.id,

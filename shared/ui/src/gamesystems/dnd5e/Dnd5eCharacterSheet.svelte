@@ -198,13 +198,15 @@
 		const q = ss(slot, i).featSearch.toLowerCase();
 		return (systemData?.feats ?? []).filter((f:any) => {
 			if (f.name === 'Ability Score Improvement') return false;
-			if (slot.type === 'epic_boon') return f.isEpicBoon;
+			if (!f.isAvailable) return false;
+			// Epic boon feats can only appear in epic_boon slots or level 19+ ASI slots
+			if (f.isEpicBoon && slot.type !== 'epic_boon' && !slot.canEpicBoon) return false;
+			if (slot.type === 'epic_boon') return true;
 			if (slot.type === 'background_feat') {
 				if (slot.grantsFeatId && !canManage) return f.id === slot.grantsFeatId;
-				if (slot.featCategory) return f.isAvailable !== false &&
-					(f.categories ?? '').split(',').map((s:string) => s.trim()).includes(slot.featCategory);
+				if (slot.featCategory) return (f.categories ?? '').split(',').map((s:string) => s.trim()).includes(slot.featCategory);
 			}
-			return f.isAvailable !== false;
+			return true;
 		}).filter((f:any) => !q ||
 			f.name.toLowerCase().includes(q) ||
 			(f.snippet??'').toLowerCase().includes(q)
@@ -533,6 +535,14 @@
 	{#if charSheet.asiSlots?.length}
 	<div class="card">
 		<h3 class="section-title">Ability Score Improvements & Feats</h3>
+		{#if charSheet.asiSlots.some((s:any) => s.canEpicBoon) && !charSheet.asiSlots.some((s:any) => s.type === 'epic_boon')}
+			<div style="display:flex;align-items:center;gap:0.625rem;padding:0.625rem 0.875rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-md);margin-bottom:0.75rem;">
+				<span style="font-size:1rem;">⭐</span>
+				<p style="font-size:0.8125rem;color:var(--brand-accent);font-weight:600;margin:0;">
+					At level 19+ this character qualifies for an <strong>Epic Boon</strong> — select "Choose Feat / Epic Boon" on any slot to allocate it.
+				</p>
+			</div>
+		{/if}
 		{#each charSheet.asiSlots as slot, slotIdx}
 			{@const r        = slot.resolved}
 			{@const cf       = r ? chosenFeats.find((c:any)=>c.id===r.charFeatId) : null}
@@ -594,7 +604,7 @@
 						<!-- Mode tabs — ASI only; background_feat goes straight to feat picker -->
 						{#if slot.type !== 'epic_boon' && slot.type !== 'background_feat'}
 							<div style="display:flex;gap:0.375rem;margin-bottom:0.75rem;flex-wrap:wrap;">
-								{#each [['asi','+2 One Stat'],['asi2','+1/+1 Two Stats'],['feat','Choose Feat']] as [val,label]}
+								{#each [['asi','+2 One Stat'],['asi2','+1/+1 Two Stats'],['feat', slot.canEpicBoon ? 'Choose Feat / Epic Boon' : 'Choose Feat']] as [val,label]}
 									<button
 										style="padding:0.25rem 0.75rem;border-radius:99px;border:1px solid {s.mode===val?'var(--brand-accent)':'var(--border-base)'};background:{s.mode===val?'rgba(184,115,74,0.15)':'transparent'};color:{s.mode===val?'var(--brand-accent)':'var(--text-secondary)'};font-size:0.75rem;font-weight:600;cursor:pointer;"
 										onclick={() => updateSlot(slot, {mode:val}, slotIdx)}>

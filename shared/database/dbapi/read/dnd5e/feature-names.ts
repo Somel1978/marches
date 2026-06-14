@@ -14,5 +14,6 @@ export function isAsiFeatureName(name: string | null | undefined): boolean {
 }
 
 export function isEpicBoonFeatureName(name: string | null | undefined): boolean {
-    return normalizeFeatureName(name) === 'epic boon feat';
+    const n = normalizeFeatureName(name);
+    return n === 'epic boon' || n === 'epic boon feat';
 }
