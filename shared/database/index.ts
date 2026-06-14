@@ -3,6 +3,8 @@ import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
+export { isAsiFeatureName, isEpicBoonFeatureName } from './dbapi/dnd5e-feature-names.ts';
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 import { getAll    as getAllUsers  } from './dbapi/read/users/get-all.ts';
 import { getById as getUserById, getUserByDiscordId, getUserRoleIds } from './dbapi/read/users/get-by-id.ts';
@@ -66,7 +68,7 @@ import { createDnd5eFeat, updateDnd5eFeat, deleteDnd5eFeat } from './dbapi/write
 import { saveDnd5eAbilityScores, applyDnd5eAsiStatBump } from './dbapi/write/dnd5e/update-ability-scores.ts';
 import { addDnd5eCharacterFeat, removeDnd5eCharacterFeat } from './dbapi/write/dnd5e/update-character-feats.ts';
 import { enrichDnd5eSignups } from './dbapi/read/dnd5e/enrich-signups.ts';
-import { getDnd5eClasses, getAllDnd5eClasses, getDnd5eClassById, getDnd5eSpecies, getAllDnd5eSpecies, getDnd5eBackgrounds, getAllDnd5eBackgrounds, getDnd5eSystemData } from './dbapi/read/dnd5e/get-classes.ts';
+import { getDnd5eClasses, getAllDnd5eClasses, getDnd5eClassById, getDnd5eSpecies, getAllDnd5eSpecies, getDnd5eBackgrounds, getAllDnd5eBackgrounds, getDnd5eSystemData, invalidateDnd5eSystemDataCache } from './dbapi/read/dnd5e/get-classes.ts';
 import { createDnd5eClass, updateDnd5eClass, deleteDnd5eClass, createClassFeature, updateClassFeature, deleteClassFeature, createDnd5eSubclass, updateDnd5eSubclass, deleteDnd5eSubclass, createSubclassFeature, updateSubclassFeature, deleteSubclassFeature } from './dbapi/write/dnd5e/classes.ts';
 import { createDnd5eSpecies, updateDnd5eSpecies, deleteDnd5eSpecies, createSpeciesTrait, updateSpeciesTrait, deleteSpeciesTrait, createDnd5eBackground, updateDnd5eBackground, deleteDnd5eBackground } from './dbapi/write/dnd5e/species.ts';
 import { createDnd5eCharacter } from './dbapi/write/dnd5e/create-character.ts';
@@ -594,6 +596,7 @@ export const dnd5e = {
         delete:    deleteDnd5eBackground,
     },
     getSystemData:       getDnd5eSystemData,
+    invalidateSystemCache: invalidateDnd5eSystemDataCache,
     getCharacterSheet:   getDnd5eCharacterSheet,
     enrichSignups:       enrichDnd5eSignups,
     feats: {

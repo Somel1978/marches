@@ -3,6 +3,7 @@
 import { fail, redirect, error } from '@sveltejs/kit';
 import { dnd5e, characters, gameSystems, worlds } from '@core/database';
 import { isMarchesError } from '@core/errors';
+import { isAsiFeatureName } from '@core/database';
 import type { Actions, PageServerLoad } from './$types';
 
 const STATS = ['STRENGTH','DEXTERITY','CONSTITUTION','INTELLIGENCE','WISDOM','CHARISMA'] as const;
@@ -97,9 +98,11 @@ export const actions: Actions = {
 
 			// Look up ASI feat ID once if any stat-mode choices exist
 			let asiFeatId: string | null = null;
-			if (asiModes.some(m => m === 'stat')) {
+			let systemFeats: any[] = [];
+			if (asiModes.some(m => m === 'stat') || asiFeatIds.some(id => id)) {
 				const systemData = await dnd5e.getSystemData(gameSystemId);
-				asiFeatId = (systemData.feats as any[]).find(f => f.name === 'Ability Score Improvement')?.id ?? null;
+				systemFeats = systemData.feats as any[];
+				asiFeatId = systemFeats.find(f => isAsiFeatureName(f.name))?.id ?? null;
 			}
 
 			for (let i = 0; i < asiSourceClassIds.length; i++) {
@@ -111,7 +114,15 @@ export const actions: Actions = {
 
 				if (type === 'epic_boon' || mode === 'feat') {
 					if (!featId) continue;
-					await dnd5e.addCharacterFeat(character.id, featId, { sourceClassId, sourceLevel });
+					// Check if this feat grants an ASI — pass the chosen stat/amount if so
+					const featDef   = systemFeats.find((f: any) => f.id === featId);
+					const asiAmount = featDef?.asiAmount ?? null;
+					const stat1     = asiStat1s[i]  || undefined;
+					const amount1   = asiAmount ? (stat1 ? asiAmount : undefined) : undefined;
+					await dnd5e.addCharacterFeat(character.id, featId, {
+						sourceClassId, sourceLevel,
+						...(amount1 && stat1 ? { stat1, amount1 } : {}),
+					});
 				} else if (mode === 'stat' && asiFeatId) {
 					const stat1   = asiStat1s[i]  || undefined;
 					const amount1 = asiAmount1s[i] || undefined;

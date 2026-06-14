@@ -3,8 +3,6 @@ import { db } from '../../../index.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import { applyDnd5eAsiStatBump } from './update-ability-scores.ts';
 
-const ASI_FEAT_NAME = 'Ability Score Improvement';
-
 export async function addDnd5eCharacterFeat(
     characterId: string,
     featId: string,
@@ -24,9 +22,6 @@ export async function addDnd5eCharacterFeat(
     if (!feat) throw new NotFoundError('Dnd5eFeat', featId);
     if (!feat.isAvailable) throw new ValidationError('This feat is not available.');
 
-    // ASI feat is inherently repeatable (one per slot)
-    const isAsiFeat = feat.name === ASI_FEAT_NAME;
-
     if (options?.sourceClassId && options?.sourceLevel) {
         // Slot-based save: delete existing row for this exact slot, then create fresh
         await db.dnd5eCharacterFeat.deleteMany({
@@ -37,7 +32,7 @@ export async function addDnd5eCharacterFeat(
             where: { characterId, featId, sourceClassId: null }
         });
         // Fall through to create fresh row
-    } else if (!isAsiFeat && !feat.repeatable) {
+    } else if (!feat.repeatable) {
         // No slot context, non-repeatable: check not already taken globally
         const existing = await db.dnd5eCharacterFeat.findFirst({ where: { characterId, featId } });
         if (existing) throw new ValidationError(`Feat "${feat.name}" has already been taken and is not repeatable.`);
@@ -57,8 +52,9 @@ export async function addDnd5eCharacterFeat(
         }
     });
 
-    // If ASI feat — apply stat bump
-    if (feat.name === ASI_FEAT_NAME && options?.stat1 && options?.amount1) {
+    // Apply stat bump — for the ASI feat AND for any feat that grants an ASI
+    // (feat-granted ASI is stored identically in asiStat1/asiAmount1)
+    if (options?.stat1 && options?.amount1) {
         await applyDnd5eAsiStatBump(
             characterId,
             options.stat1 as any,
@@ -77,21 +73,19 @@ export async function removeDnd5eCharacterFeat(id: string) {
     const row = await db.dnd5eCharacterFeat.findUnique({ where: { id }, include: { feat: true } });
     if (!row) throw new NotFoundError('Dnd5eCharacterFeat', id);
 
-    // If ASI feat — reverse the stat bump using stored stat/amount values
-    if ((row as any).feat?.name === ASI_FEAT_NAME) {
-        const r = row as any;
-        if (r.asiStat1 && r.asiAmount1) {
-            await db.dnd5eAbilityScore.updateMany({
-                where: { characterId: r.characterId, stat: r.asiStat1 },
-                data:  { baseScore: { decrement: r.asiAmount1 } },
-            });
-        }
-        if (r.asiStat2 && r.asiAmount2) {
-            await db.dnd5eAbilityScore.updateMany({
-                where: { characterId: r.characterId, stat: r.asiStat2 },
-                data:  { baseScore: { decrement: r.asiAmount2 } },
-            });
-        }
+    // Reverse any stored stat bump (works for ASI feat and feat-granted ASI alike)
+    const r = row as any;
+    if (r.asiStat1 && r.asiAmount1) {
+        await db.dnd5eAbilityScore.updateMany({
+            where: { characterId: r.characterId, stat: r.asiStat1 },
+            data:  { baseScore: { decrement: r.asiAmount1 } },
+        });
+    }
+    if (r.asiStat2 && r.asiAmount2) {
+        await db.dnd5eAbilityScore.updateMany({
+            where: { characterId: r.characterId, stat: r.asiStat2 },
+            data:  { baseScore: { decrement: r.asiAmount2 } },
+        });
     }
 
     return db.dnd5eCharacterFeat.delete({ where: { id } });

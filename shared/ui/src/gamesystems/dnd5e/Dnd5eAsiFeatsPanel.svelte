@@ -1,5 +1,6 @@
 <!-- shared/ui/src/gamesystems/dnd5e/Dnd5eAsiFeatsPanel.svelte -->
 <script lang="ts">
+	import { isAsiFeatureName } from '../../dnd5e-feature-names.ts';
 	let {
 		asiSlots       = [],
 		availableFeats = [],
@@ -26,6 +27,7 @@
 	let editing     = $state<Record<string, boolean>>({});
 
 	function slotKey(slot: any) { return `${slot.sourceClassId}_${slot.sourceLevel}`; }
+	let featGrantedStat = $state<Record<string, string>>({});
 	let asi3Stat1   = $state<Record<string, string>>({});
 	let asi3Stat2   = $state<Record<string, string>>({});
 	let asi3Stat3   = $state<Record<string, string>>({});
@@ -49,29 +51,35 @@
 		const opts = { sourceClassId: slot.sourceClassId, sourceLevel: slot.sourceLevel };
 
 		if (m === 'feat' && featPick[key]) {
-			// Regular feat or ASI feat — check if selected feat is "Ability Score Improvement"
 			const selectedFeat = availableFeats.find((f: any) => f.id === featPick[key]);
-			if (selectedFeat?.name === 'Ability Score Improvement') {
-				// ASI feat — need stat selection first (handled by mode switching to asi/asi2)
+			if (isAsiFeatureName(selectedFeat?.name)) {
 				return;
 			}
-			onAddFeat?.(featPick[key], opts);
+			// Feat-granted ASI: pass stat1/amount1 if the feat grants one
+			const asiAmount = selectedFeat?.asiAmount ?? null;
+			const asiFixed  = selectedFeat?.asiStatFixed ?? null;
+			const chosenStat = asiFixed || featGrantedStat[key] || undefined;
+			if (asiAmount && !chosenStat) return; // need stat choice first
+			onAddFeat?.(featPick[key], {
+				...opts,
+				...(asiAmount && chosenStat ? { stat1: chosenStat, amount1: asiAmount } : {}),
+			});
 			editing[key] = false;
 		} else if (m === 'asi' && asiStat[key]) {
 			// Find the ASI feat in catalog
-			const asiFeat = availableFeats.find((f: any) => f.name === 'Ability Score Improvement');
+			const asiFeat = availableFeats.find((f: any) => isAsiFeatureName(f.name));
 			if (asiFeat) {
 				onAddFeat?.(asiFeat.id, { ...opts, stat1: asiStat[key], amount1: 2 });
 			}
 			editing[key] = false;
 		} else if (m === 'asi2' && asi2Stat1[key] && asi2Stat2[key]) {
-			const asiFeat = availableFeats.find((f: any) => f.name === 'Ability Score Improvement');
+			const asiFeat = availableFeats.find((f: any) => isAsiFeatureName(f.name));
 			if (asiFeat) {
 				onAddFeat?.(asiFeat.id, { ...opts, stat1: asi2Stat1[key], amount1: 1, stat2: asi2Stat2[key], amount2: 1 });
 			}
 			editing[key] = false;
 		} else if (m === 'asi3' && asi3Stat1[key] && asi3Stat2[key] && asi3Stat3[key]) {
-			const asiFeat = availableFeats.find((f: any) => f.name === 'Ability Score Improvement');
+			const asiFeat = availableFeats.find((f: any) => isAsiFeatureName(f.name));
 			if (asiFeat) {
 				onAddFeat?.(asiFeat.id, { ...opts, stat1: asi3Stat1[key], amount1: 1, stat2: asi3Stat2[key], amount2: 1, stat3: asi3Stat3[key], amount3: 1 });
 			}
@@ -219,12 +227,14 @@
 									<label style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.5rem; background:{featPick[key] === feat.id ? 'rgba(184,115,74,0.12)' : 'var(--bg-muted)'}; border-radius:var(--radius-sm); cursor:{alreadyTaken ? 'not-allowed' : 'pointer'}; opacity:{alreadyTaken ? 0.5 : 1}; border:1px solid {featPick[key] === feat.id ? 'var(--brand-accent)' : 'transparent'};">
 										<input type="radio" name="feat-{key}" value={feat.id}
 											bind:group={featPick[key]} disabled={alreadyTaken}
+											onchange={() => { featGrantedStat[key] = feat.asiStatFixed ?? ''; }}
 											style="margin-top:2px; accent-color:var(--brand-accent);" />
 										<div>
 											<div style="display:flex; align-items:center; gap:0.375rem; flex-wrap:wrap;">
 												<span style="font-size:0.875rem; font-weight:600;">{feat.name}</span>
 												{#if feat.isEpicBoon}<span style="font-size:0.6875rem; padding:0.0625rem 0.375rem; background:var(--color-warning); color:#fff; border-radius:99px;">Epic Boon</span>{/if}
 												{#if feat.repeatable}<span style="font-size:0.6875rem; padding:0.0625rem 0.375rem; background:var(--bg-overlay); color:var(--text-muted); border-radius:99px;">Repeatable</span>{/if}
+												{#if feat.asiAmount}<span style="font-size:0.6875rem; padding:0.0625rem 0.375rem; background:rgba(34,197,94,0.15); color:var(--color-success); border-radius:99px;">+{feat.asiAmount} {feat.asiStatFixed ?? 'stat'}</span>{/if}
 												{#if alreadyTaken}<span style="font-size:0.6875rem; color:var(--text-muted);">Already taken</span>{/if}
 											</div>
 											{#if feat.snippet}<p style="margin:0.125rem 0 0; font-size:0.8125rem; color:var(--text-secondary);">{feat.snippet}</p>{/if}
@@ -235,13 +245,32 @@
 									<p style="color:var(--text-muted); font-size:0.875rem; padding:0.5rem;">No feats match.</p>
 								{/each}
 							</div>
-							<div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-								<button onclick={() => saveSlot(slot)} disabled={!featPick[key]}
-									style="padding:0.375rem 1rem; background:var(--brand-accent); color:#fff; border:none; border-radius:var(--radius-sm); font-size:0.8125rem; font-weight:600; cursor:pointer; opacity:{featPick[key] ? 1 : 0.4};">
-									Choose Feat
-								</button>
-								{#if r}<button onclick={() => { editing[key] = false; }} style="padding:0.375rem 0.75rem; background:none; border:1px solid var(--border-base); border-radius:var(--radius-sm); font-size:0.8125rem; cursor:pointer; color:var(--text-muted);">Cancel</button>{/if}
-							</div>
+							{#if featPick[key]}
+								{@const selFeat = availableFeats.find((f: any) => f.id === featPick[key])}
+								{#if selFeat?.asiAmount && !selFeat?.asiStatFixed}
+									{@const choices = selFeat.asiStatChoices ? selFeat.asiStatChoices.split(',').map((s: string) => s.trim()) : STATS}
+									<div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; padding:0.5rem 0.625rem; background:var(--bg-overlay); border-radius:var(--radius-sm); border:1px solid var(--border-muted);">
+										<span style="font-size:0.8125rem; color:var(--text-secondary); white-space:nowrap;">+{selFeat.asiAmount} to</span>
+										<select class="input input--select" style="flex:1;" bind:value={featGrantedStat[key]}>
+											<option value="">— Choose stat —</option>
+											{#each choices as st}<option value={st}>{st.charAt(0)+st.slice(1).toLowerCase()}</option>{/each}
+										</select>
+									</div>
+								{:else if selFeat?.asiAmount && selFeat?.asiStatFixed}
+									<p style="font-size:0.8125rem; color:var(--color-success); margin:0.375rem 0 0;">✓ Grants +{selFeat.asiAmount} {selFeat.asiStatFixed.charAt(0)+selFeat.asiStatFixed.slice(1).toLowerCase()} automatically</p>
+								{/if}
+							{/if}
+							{#if true}
+								{@const selFeat2 = featPick[key] ? availableFeats.find((f: any) => f.id === featPick[key]) : null}
+								{@const needsStat = selFeat2?.asiAmount && !selFeat2?.asiStatFixed && !featGrantedStat[key]}
+								<div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+									<button onclick={() => saveSlot(slot)} disabled={!featPick[key] || !!needsStat}
+										style="padding:0.375rem 1rem; background:var(--brand-accent); color:#fff; border:none; border-radius:var(--radius-sm); font-size:0.8125rem; font-weight:600; cursor:pointer; opacity:{featPick[key] && !needsStat ? 1 : 0.4};">
+										Choose Feat
+									</button>
+									{#if r}<button onclick={() => { editing[key] = false; }} style="padding:0.375rem 0.75rem; background:none; border:1px solid var(--border-base); border-radius:var(--radius-sm); font-size:0.8125rem; cursor:pointer; color:var(--text-muted);">Cancel</button>{/if}
+								</div>
+							{/if}
 						</div>
 					{/if}
 				{/if}

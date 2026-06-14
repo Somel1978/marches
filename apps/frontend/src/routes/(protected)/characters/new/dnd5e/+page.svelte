@@ -3,7 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { browser } from '$app/environment';
 	import { untrack } from 'svelte';
-	import { generateFantasyName } from '@core/ui';
+	import { generateFantasyName, isAsiFeatureName, isEpicBoonFeatureName } from '@core/ui';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -246,6 +246,7 @@
 		amount2:       number;
 		featId:        string;
 		sourceName:    string;
+		featGrantedStat?: string; // stat chosen for feat-granted ASI
 	};
 
 	// Compute ASI slots client-side — same logic as getCharacterSheet
@@ -259,8 +260,8 @@
 			const classFeats  = (classRef?.features    ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel);
 			const subFeats    = (subclassRef?.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel);
 			for (const feat of [...classFeats, ...subFeats]) {
-				const isAsi      = feat.name === 'Ability Score Improvement';
-				const isEpicBoon = feat.name === 'Epic Boon Feat';
+				const isAsi      = isAsiFeatureName(feat.name);
+				const isEpicBoon = isEpicBoonFeatureName(feat.name);
 				if (!isAsi && !isEpicBoon) continue;
 				slots.push({
 					sourceClassId: alloc.classId,
@@ -289,7 +290,7 @@
 			);
 			return existing ?? {
 				...slot,
-				mode: null as null, stat1: '', amount1: 2, stat2: '', amount2: 0, featId: '',
+				mode: null as null, stat1: '', amount1: 2, stat2: '', amount2: 0, featId: '', featGrantedStat: '',
 			};
 		});
 	});
@@ -326,13 +327,19 @@
 
 	// ASI feat ID — the "Ability Score Improvement" feat from systemData
 	const asiFeatId = $derived(
-		(sys?.feats ?? []).find((f: any) => f.name === 'Ability Score Improvement')?.id ?? ''
+		(sys?.feats ?? []).find((f: any) => isAsiFeatureName(f.name))?.id ?? ''
 	);
 
 	const asiValid = $derived(
 		asiChoices.every(c => {
 			if (c.type === 'epic_boon') return !!c.featId;
-			if (c.mode === 'feat')      return !!c.featId;
+			if (c.mode === 'feat') {
+				if (!c.featId) return false;
+				const featDef = (sys?.feats ?? []).find((f: any) => f.id === c.featId);
+				// If feat grants ASI and no fixed stat, player must choose one
+				if (featDef?.asiAmount && !featDef.asiStatFixed && !c.featGrantedStat) return false;
+				return true;
+			}
 			if (c.mode === 'stat')      return !!c.stat1 && c.amount1 > 0;
 			return false;
 		})
@@ -1010,7 +1017,7 @@
 									{#if epicPicked}
 										<div style="padding:0.5rem 0.625rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
 											<span style="font-weight:700;font-size:0.875rem;">{epicPicked.name}</span>
-											<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;" onclick={() => { asiChoices[i].featId = ''; }}>Change</button>
+											<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;" onclick={() => { asiChoices[i].featId = ''; asiChoices[i].featGrantedStat = ''; }}>Change</button>
 										</div>
 									{:else}
 										<input type="text" class="input" placeholder="Search epic boon feats…" style="margin-bottom:0.375rem;font-size:0.8125rem;"
@@ -1092,6 +1099,18 @@
 												</div>
 												<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;flex-shrink:0;" onclick={() => { asiChoices[i].featId = ''; }}>Change</button>
 											</div>
+										{#if featPicked && featPicked.asiAmount && !featPicked.asiStatFixed}
+											{@const choices = featPicked.asiStatChoices ? featPicked.asiStatChoices.split(',').map((s: string) => s.trim()) : STATS}
+											<div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.375rem;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);border:1px solid var(--border-muted);">
+												<span style="font-size:0.8125rem;color:var(--text-secondary);white-space:nowrap;">+{featPicked.asiAmount} to</span>
+												<select class="input input--select" style="flex:1;" bind:value={asiChoices[i].featGrantedStat}>
+													<option value="">— Choose stat —</option>
+													{#each choices as st}<option value={st}>{STAT_LABEL[st] ?? st}</option>{/each}
+												</select>
+											</div>
+										{:else if featPicked && featPicked.asiAmount && featPicked.asiStatFixed}
+											<p style="font-size:0.8125rem;color:var(--color-success);margin:0.375rem 0 0;">✓ Grants +{featPicked.asiAmount} {STAT_LABEL[featPicked.asiStatFixed] ?? featPicked.asiStatFixed} automatically</p>
+										{/if}
 										{:else}
 											<input type="text" class="input" placeholder="Search feats…" style="margin-bottom:0.375rem;font-size:0.8125rem;"
 												value={featSearch} oninput={(e) => { const v = (e.target as HTMLInputElement).value; asiFeatSearch = asiFeatSearch.map((s,j) => j===i?v:s); }} />
@@ -1099,8 +1118,9 @@
 												{#each featFiltered as feat}
 													<button type="button"
 														style="text-align:left;padding:0.5rem 0.625rem;background:var(--bg-overlay);border:1px solid var(--border-muted);border-radius:var(--radius-sm);cursor:pointer;"
-														onclick={() => { asiChoices[i].featId = feat.id; }}>
+														onclick={() => { asiChoices[i].featId = feat.id; asiChoices[i].featGrantedStat = feat.asiStatFixed ?? ''; }}>
 														<p style="font-weight:700;font-size:0.8125rem;margin:0 0 0.125rem;">{feat.name}</p>
+														{#if feat.asiAmount}<p style="font-size:0.7rem;color:var(--color-success);margin:0 0 0.0625rem;">+{feat.asiAmount} {feat.asiStatFixed ? (STAT_LABEL[feat.asiStatFixed] ?? feat.asiStatFixed) : 'stat (your choice)'}</p>{/if}
 														{#if feat.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{feat.description.slice(0,120)}{feat.description.length>120?'…':''}</p>{/if}
 													</button>
 												{/each}
@@ -1220,7 +1240,7 @@
 					<input type="hidden" name="asi_sourceLevel"   value={c.sourceLevel} />
 					<input type="hidden" name="asi_type"          value={c.type} />
 					<input type="hidden" name="asi_mode"          value={c.mode ?? ''} />
-					<input type="hidden" name="asi_stat1"         value={c.stat1 ?? ''} />
+					<input type="hidden" name="asi_stat1"         value={c.mode === 'feat' ? (c.featGrantedStat ?? '') : (c.stat1 ?? '')} />
 					<input type="hidden" name="asi_amount1"       value={c.amount1 ?? ''} />
 					<input type="hidden" name="asi_stat2"         value={c.stat2 ?? ''} />
 					<input type="hidden" name="asi_amount2"       value={c.amount2 ?? ''} />

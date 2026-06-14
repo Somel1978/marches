@@ -11,11 +11,25 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	if (!character) throw error(404, 'Character not found.');
 	if (character.userId !== locals.user!.id) throw error(403, 'Forbidden');
 
-	await characters.checkRest(params.id);
+	const worldId    = (character as any).worldId ?? null;
+	const slug       = (character as any).gameSystemSlug ?? '';
+	const gameSystemId = character.gameSystemId;
 
-	const [transactions, gameSystem, inventory, pendingTx, settings, charAchievements, boostTxs] = await Promise.all([
+	const [
+		, // checkRest — side effect only
+		transactions,
+		gameSystem,
+		inventory,
+		pendingTx,
+		settings,
+		charAchievements,
+		boostTxs,
+		worldBundle,
+		systemSpecificData,
+	] = await Promise.all([
+		characters.checkRest(params.id),
 		characters.getTransactions(params.id, 10),
-		gameSystems.getById(character.gameSystemId),
+		gameSystems.getById(gameSystemId),
 		characters.getInventory(params.id),
 		marketplace.transactions.getAll({ characterId: params.id, status: 'PENDING' }),
 		platform.getSettingsMap(),
@@ -24,25 +38,32 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			where:   { characterId: params.id, sourceType: 'REWARD', note: { contains: 'Token boost' } },
 			select:  { type: true, delta: true, note: true },
 		}),
+		// World name + marketplace settings in one shot
+		worldId ? Promise.all([
+			worlds.getById(worldId),
+			marketplace.worldSettings.get(worldId),
+			marketplace.worldItems.getAll(worldId),
+		]) : Promise.resolve(null),
+		// System-specific data (cached) — start immediately, don't wait for first batch
+		(character as any).gameSystemSlug === 'dnd5e' || true
+			? loadDnd5eCharacterData(params.id, gameSystemId)
+			: Promise.resolve({}),
 	]);
+
+	// Unpack world bundle
+	const worldName    = worldBundle ? (worldBundle[0] as any)?.name ?? null : null;
+	const worldSetting = worldBundle ? worldBundle[1] : null;
+	const worldItems   = worldBundle ? (worldBundle[2] as any[]) : [];
 
 	const pendingBuys   = pendingTx.items.filter((t: any) => t.type === 'BUY');
 	const pendingSells  = pendingTx.items.filter((t: any) => t.type === 'SELL');
 	const globalSellPct = Number(settings['marketplace.sellPricePercent'] ?? 50);
-	const worldId       = (character as any).worldId ?? null;
-	const worldName     = worldId ? await worlds.getById(worldId).then((w: any) => w?.name ?? null) : null;
 	const progressionThresholds = (gameSystem as any)?.progressionThresholds ?? [];
 
 	let worldSellPct = globalSellPct;
 	let worldItemMap: Record<string, any> = {};
-	if (worldId) {
-		const [worldSetting, worldItems] = await Promise.all([
-			marketplace.worldSettings.get(worldId),
-			marketplace.worldItems.getAll(worldId),
-		]);
-		if (worldSetting?.sellPricePercent != null) worldSellPct = worldSetting.sellPricePercent;
-		for (const wi of (worldItems as any[])) worldItemMap[wi.itemId] = wi;
-	}
+	if (worldSetting?.sellPricePercent != null) worldSellPct = worldSetting.sellPricePercent;
+	for (const wi of worldItems) worldItemMap[wi.itemId] = wi;
 
 	const inventoryWithSellPrice = (inventory as any[]).map((slot: any) => {
 		if (!slot.itemId || slot.livePrice == null) return { ...slot, effectiveSellPrice: null };
@@ -51,12 +72,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		return { ...slot, effectiveSellPrice: Math.floor(effectivePrice * worldSellPct / 100) };
 	});
 
-	// Load system-specific data conditionally
-	const slug = (gameSystem as any)?.slug ?? '';
-	let systemSpecific: Record<string, any> = {};
-	if (slug === 'dnd5e') {
-		systemSpecific = await loadDnd5eCharacterData(params.id, character.gameSystemId);
-	}
+	// Only include dnd5e data when appropriate
+	const systemSpecific = (gameSystem as any)?.slug === 'dnd5e' ? systemSpecificData : {};
 
 	return {
 		character, charAchievements, transactions, boostTxs, gameSystem, progressionThresholds,
