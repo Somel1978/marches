@@ -53,6 +53,20 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
+	updateFeature: async ({ request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const id   = data.get('id')?.toString() ?? '';
+		await dnd5e.classFeatures.update(id, {
+			name:          data.get('name')?.toString().trim()        ?? '',
+			description:   data.get('description')?.toString().trim() || null,
+			requiredLevel: Number(data.get('requiredLevel') ?? 1),
+			url:           data.get('url')?.toString().trim()         || null,
+		});
+		return { success: true, action: 'feature' };
+	},
+
 	addSubclass: async ({ params, request, locals }) => {
 		const data = await request.formData();
 		const name = data.get('name')?.toString().trim() ?? '';
@@ -81,6 +95,20 @@ export const actions: Actions = {
 		const data = await request.formData();
 		await dnd5e.subclassFeatures.delete(data.get('id')?.toString() ?? '');
 		return { success: true };
+	},
+
+	updateSubclassFeature: async ({ request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const id   = data.get('id')?.toString() ?? '';
+		await dnd5e.subclassFeatures.update(id, {
+			name:          data.get('name')?.toString().trim()        ?? '',
+			description:   data.get('description')?.toString().trim() || null,
+			requiredLevel: Number(data.get('requiredLevel') ?? 1),
+			url:           data.get('url')?.toString().trim()         || null,
+		});
+		return { success: true, action: 'subclassFeature' };
 	},
 
 	deleteClass: async ({ params, locals }) => {

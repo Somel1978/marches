@@ -47,4 +47,19 @@ export const actions: Actions = {
 		await discord.servers.delete(id);
 		return { success: true };
 	},
+
+	syncCommands: async ({ locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'System', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { execSync } = await import('child_process');
+		try {
+			execSync('pnpm --filter @apps/discord register', {
+				cwd:   process.cwd(),
+				stdio: 'pipe',
+			});
+			return { success: true, action: 'sync' };
+		} catch (e: any) {
+			return fail(500, { message: e?.stderr?.toString() || 'Command sync failed.' });
+		}
+	},
 };

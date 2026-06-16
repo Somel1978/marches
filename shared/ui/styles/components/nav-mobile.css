@@ -1,5 +1,20 @@
 /* shared/ui/styles/components/nav-mobile.css */
 
+.nav-mobile-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .nav-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    background: rgba(0,0,0,0.4);
+  }
+}
+
+
 @layer components {
   .nav-bar__hamburger {
     display: none;

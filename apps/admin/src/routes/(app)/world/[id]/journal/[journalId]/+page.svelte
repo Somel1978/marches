@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/world/[id]/journal/[journalId]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { goto, invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -73,6 +74,15 @@
 	const visibilityLabel: Record<string, string> = {
 		PUBLIC: '🌐 Public', WORLD: '🌍 World', DM_ONLY: '🎲 DM Only', ADMIN_ONLY: '🔒 Admin Only',
 	};
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -146,7 +156,7 @@
 							<button type="submit" class="btn btn-ghost btn-sm" style="font-size:0.75rem;padding:0.25rem 0.5rem;">✓</button>
 							<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);font-size:0.75rem;"
 								onclick={() => {
-									if (!confirm('Delete section and all pages?')) return;
+									askConfirm('Confirm', 'Delete section and all pages?', () => { });
 									(document.getElementById(`del-sec-${section.id}`) as HTMLFormElement)?.requestSubmit();
 								}}>✕</button>
 						</form>
@@ -230,7 +240,7 @@
 						</div>
 						<div class="form-actions">
 							<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"
-								onclick={() => { if (!confirm('Delete this page?')) return; (document.getElementById('del-pg-form') as HTMLFormElement)?.requestSubmit(); }}>
+								onclick={() => { askConfirm('Confirm', 'Delete this page?', () => { }); (document.getElementById('del-pg-form') as HTMLFormElement)?.requestSubmit(); }}>
 								Delete page
 							</button>
 							<button type="submit" class="btn btn-primary">Save page</button>
@@ -252,3 +262,12 @@
 		<input type="hidden" name="id" value={activePage.id} />
 	</form>
 {/if}
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

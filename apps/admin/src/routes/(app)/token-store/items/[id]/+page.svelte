@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/token-store/items/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import type { PageData, ActionData } from './$types';
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const item      = $derived((data as any).item);
@@ -10,6 +11,15 @@
 	let rewardType = $state('MANUAL');
 	$effect.pre(() => { scope = (item as any)?.scope ?? 'GLOBAL'; rewardType = (item as any)?.rewardType ?? 'MANUAL'; });
 	const rv       = $derived((item as any)?.rewardValue ?? {});
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -82,8 +92,17 @@
 
 	<form method="post" action="?/delete" use:enhance style="margin-top:1rem;">
 		<button type="submit" class="btn btn-danger btn-sm"
-			onclick={(e) => { if (!confirm('Delete this item?')) e.preventDefault(); }}>
+			onclick={(ev) => askConfirm('Confirm', 'Delete this item?', () => { (ev.currentTarget as HTMLElement)?.closest('form')?.requestSubmit(); })}>
 			Delete Item
 		</button>
 	</form>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/users/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -14,6 +15,15 @@
 	let deleting       = $state(false);
 	let showPassword   = $state(false);
 	let lightboxOpen   = $state(false);
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -34,7 +44,7 @@
 				method="post"
 				action="?/deleteUser"
 				use:enhance={() => {
-					if (!confirm(`Delete ${data.user.name}? This cannot be undone.`)) return () => {};
+					askConfirm('Confirm', 'Delete ${data.user.name}? This cannot be undone.', () => { });
 					deleting = true;
 					return async ({ update }) => { deleting = false; await update(); };
 				}}
@@ -206,3 +216,12 @@
 		</div>
 	</div>
 {/if}
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

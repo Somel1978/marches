@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/role-requests/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -18,6 +19,15 @@
 
 	const pending  = $derived(data.requests.filter((r: any) => r.status === 'PENDING'));
 	const resolved = $derived(data.requests.filter((r: any) => r.status !== 'PENDING'));
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -63,7 +73,7 @@
 										<button type="submit" class="btn btn-primary btn-sm">Approve</button>
 									</form>
 									<form method="post" action="?/delete"
-										use:enhance={({ cancel }) => { if (!confirm('Delete this request?')) { cancel(); return; } return async ({ update }) => { await update(); await invalidateAll(); }; }}>
+										use:enhance={({ cancel }) => { askConfirm('Confirm', 'Delete this request?', () => { cancel(); }); return; return async ({ update }) => { await update(); await invalidateAll(); }; }}>
 										<input type="hidden" name="id" value={req.id} />
 										<button type="submit" class="btn btn-ghost btn-sm btn-icon"
 											aria-label="Delete">
@@ -125,3 +135,12 @@
 		</div>
 	{/if}
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

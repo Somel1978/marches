@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/game-systems/[id]/data/import/dnd5e/+page.svelte -->
 <script lang="ts">
 	import * as XLSX from 'xlsx';
+	import { ConfirmModal } from '@core/ui';
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 
@@ -64,6 +65,15 @@
 		previewRows = [];
 		fileName    = '';
 		parseError  = '';
+	}
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
 	}
 </script>
 
@@ -229,7 +239,7 @@
 				{ action: '?/deleteFeats',            label: 'Feats' },
 			] as btn}
 				<form method="post" action={btn.action} use:enhance={({ cancel }) => {
-					if (!confirm(`Delete ALL ${btn.label} for ${system.name}? This cannot be undone.`)) cancel();
+					askConfirm('Confirm', 'Delete ALL ${btn.label} for ${system.name}? This cannot be undone.', () => { cancel(); }); return;
 					return async ({ update }) => { await update(); };
 				}}>
 					<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);border-color:var(--color-danger);">
@@ -243,3 +253,12 @@
 		</p>
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

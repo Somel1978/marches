@@ -100,7 +100,7 @@ export async function getQuestResultWithCharacters(questId: string) {
         ...result,
         characters: result.characters.map(c => ({
             ...c,
-            characterName: charMap[c.characterId] ?? c.characterId,
+            characterName: charMap[c.characterId] ?? 'Deleted Character',
         })),
     };
 }

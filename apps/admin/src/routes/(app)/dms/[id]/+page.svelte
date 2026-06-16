@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/dms/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -10,6 +11,15 @@
 	const preferredIds = $derived(
 		data.profile.preferredSystems.map((s: any) => s.gameSystemId)
 	);
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -106,7 +116,7 @@
 			</p>
 			<form method="post" action="?/revoke"
 				use:enhance={({ cancel }) => {
-					if (!window.confirm('Revoke DM role? This deactivates the profile and removes the DM role.')) { cancel(); return; }
+					askConfirm('Confirm', 'Revoke DM role? This deactivates the profile and removes the DM role.', () => { cancel(); }); return;
 					return async ({ update }) => { await update(); await invalidateAll(); };
 				}}>
 				<button type="submit" class="btn btn-danger btn-sm">Revoke DM role</button>
@@ -142,3 +152,12 @@
 		<div class="card"><p class="table__empty">No ratings yet.</p></div>
 	{/if}
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

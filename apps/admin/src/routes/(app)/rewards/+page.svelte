@@ -1,10 +1,20 @@
 <!-- apps/admin/src/routes/(app)/rewards/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
 	function e_reload() { return async ({ update }: any) => { await update(); await invalidateAll(); }; }
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -58,7 +68,7 @@
 									<input type="hidden" name="characterId"   value={g.characterId} />
 									<input type="hidden" name="achievementId" value={g.achievementId} />
 									<button type="submit" class="btn btn-ghost btn-sm"
-										onclick={(e) => { if (!window.confirm('Revoke this achievement?')) e.preventDefault(); }}>
+										onclick={(ev) => askConfirm('Confirm', 'Revoke this achievement?', () => { (ev.currentTarget as HTMLElement)?.closest('form')?.requestSubmit(); })}>
 										Revoke
 									</button>
 								</form>
@@ -73,3 +83,12 @@
 		{/if}
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/news/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { goto } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -67,6 +68,15 @@
 				textareaEl.setSelectionRange(newPos, newPos);
 			}
 		}, 0);
+	}
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
 	}
 </script>
 
@@ -185,7 +195,16 @@
 		</div>
 	</form>
 	<form id="del-ann-form" method="post" action="?/delete" use:enhance={({ cancel }) => {
-		if (!confirm('Delete this announcement?')) { cancel(); return; }
+		askConfirm('Confirm', 'Delete this announcement?', () => { cancel(); }); return;
 		return async ({ result }) => { if (result.type === 'success') goto('/news'); };
 	}} style="display:none;"></form>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

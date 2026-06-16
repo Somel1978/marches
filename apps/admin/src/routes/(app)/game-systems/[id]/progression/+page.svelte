@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/game-systems/[id]/progression/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData } from './$types';
 
@@ -9,6 +10,15 @@
 	const thresholds = $derived((system?.progressionThresholds ?? []).slice().sort((a: any, b: any) => a.xpRequired - b.xpRequired));
 
 	let editing = $state<string | null>(null);
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -78,7 +88,7 @@
 									<button type="button" class="btn btn-ghost btn-sm" onclick={() => editing = t.id}>Edit</button>
 									<form method="post" action="?/delete"
 										use:enhance={({ cancel }) => {
-											if (!confirm(`Delete "${t.label}"?`)) cancel();
+											askConfirm('Confirm', `Delete "${t.label}"?`, () => { cancel(); }); return;
 											return async ({ update }) => { await update(); await invalidateAll(); };
 										}} style="margin:0;">
 										<input type="hidden" name="id" value={t.id} />
@@ -119,3 +129,12 @@
 		</form>
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

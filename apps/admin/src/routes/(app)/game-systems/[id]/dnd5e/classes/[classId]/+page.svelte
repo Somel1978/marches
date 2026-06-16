@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/classes/[classId]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { goto, invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -9,7 +10,18 @@
 	const cls       = $derived((data as any).classData);
 
 	let expandedSubclass = $state<string | null>(null);
+	let editingFeature   = $state<string | null>(null);
+	let editingSubFeat   = $state<string | null>(null);
 	let deleteForm = $state<HTMLFormElement | undefined>();
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -85,7 +97,7 @@
 				</div>
 				<div class="form-actions">
 					<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"
-						onclick={() => { if (confirm('Delete this class and all its data?')) deleteForm?.requestSubmit(); }}>
+						onclick={() => { askConfirm('Confirm', 'Delete this class and all its data?', () => { deleteForm?.requestSubmit(); }); }}>
 						Delete class
 					</button>
 					<button type="submit" class="btn btn-primary">Save</button>
@@ -103,16 +115,48 @@
 			{#if cls.features?.length}
 				<div style="display:flex; flex-direction:column; gap:0.375rem; margin-bottom:0.75rem;">
 					{#each cls.features as f}
-						<div style="display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0.75rem; background:var(--bg-overlay); border-radius:var(--radius-md); flex-wrap:wrap">
-							<span class="badge badge-muted">Lv {f.requiredLevel}</span>
-							<span style="flex:1; font-weight:500;">{f.name}</span>
-							{#if f.url}<a href={f.url} target="_blank" class="btn btn-ghost btn-sm" style="font-size:0.75rem;">↗</a>{/if}
-							<form method="post" action="?/deleteFeature" use:enhance={() => {
-								return async ({ update }) => { await update(); await invalidateAll(); };
-							}} style="margin:0;">
-								<input type="hidden" name="id" value={f.id} />
-								<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕</button>
-							</form>
+						<div style="background:var(--bg-overlay); border-radius:var(--radius-md); overflow:hidden;">
+							<div style="display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0.75rem; flex-wrap:wrap">
+								<span class="badge badge-muted">Lv {f.requiredLevel}</span>
+								<span style="flex:1; font-weight:500;">{f.name}</span>
+								{#if f.url}<a href={f.url} target="_blank" class="btn btn-ghost btn-sm" style="font-size:0.75rem;">↗</a>{/if}
+								<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;"
+									onclick={() => editingFeature = editingFeature === f.id ? null : f.id}>
+									{editingFeature === f.id ? 'Cancel' : 'Edit'}
+								</button>
+								<form method="post" action="?/deleteFeature" use:enhance={() => {
+									return async ({ update }) => { await update(); await invalidateAll(); };
+								}} style="margin:0;">
+									<input type="hidden" name="id" value={f.id} />
+									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕</button>
+								</form>
+							</div>
+							{#if editingFeature === f.id}
+								<form method="post" action="?/updateFeature" use:enhance={() => {
+									return async ({ update }) => { await update(); await invalidateAll(); editingFeature = null; };
+								}} style="padding:0.625rem 0.75rem; border-top:1px solid var(--border-muted); background:var(--bg-muted);">
+									<input type="hidden" name="id" value={f.id} />
+									<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end;">
+										<div class="field" style="flex:0 0 60px; margin:0;">
+											<label class="label" for="ef-lv-{f.id}">Level</label>
+											<input id="ef-lv-{f.id}" name="requiredLevel" type="number" class="input" min="1" max="20" value={f.requiredLevel} required />
+										</div>
+										<div class="field" style="flex:1 1 160px; margin:0;">
+											<label class="label" for="ef-name-{f.id}">Name</label>
+											<input id="ef-name-{f.id}" name="name" type="text" class="input" value={f.name} required />
+										</div>
+										<div class="field" style="flex:2 1 200px; margin:0;">
+											<label class="label" for="ef-desc-{f.id}">Description</label>
+											<input id="ef-desc-{f.id}" name="description" type="text" class="input" value={f.description ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 160px; margin:0;">
+											<label class="label" for="ef-url-{f.id}">URL</label>
+											<input id="ef-url-{f.id}" name="url" type="url" class="input" value={f.url ?? ''} />
+										</div>
+										<button type="submit" class="btn btn-primary btn-sm" style="flex-shrink:0;">Save</button>
+									</div>
+								</form>
+							{/if}
 						</div>
 					{/each}
 				</div>
@@ -150,7 +194,7 @@
 							<span class="badge badge-muted" style="margin-left:0.5rem;">{sub.features?.length ?? 0} features</span>
 						</button>
 						<form method="post" action="?/deleteSubclass" use:enhance={({ cancel }) => {
-							if (!confirm(`Delete subclass "${sub.name}"?`)) cancel();
+							askConfirm('Confirm', `Delete subclass "${sub.name}"?`, () => { cancel(); }); return;
 							return async ({ update }) => { await update(); await invalidateAll(); };
 						}} style="margin:0;">
 							<input type="hidden" name="id" value={sub.id} />
@@ -164,15 +208,43 @@
 							{#if sub.features?.length}
 								<div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.5rem;">
 									{#each sub.features as sf}
-										<div style="display:flex; align-items:center; gap:0.5rem; padding:0.375rem 0.5rem; background:var(--bg-surface); border-radius:var(--radius-sm); flex-wrap:wrap">
-											<span class="badge badge-muted">Lv {sf.requiredLevel}</span>
-											<span style="flex:1; font-size:0.8125rem;">{sf.name}</span>
-											<form method="post" action="?/deleteSubclassFeature" use:enhance={() => {
-												return async ({ update }) => { await update(); await invalidateAll(); };
-											}} style="margin:0;">
-												<input type="hidden" name="id" value={sf.id} />
-												<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger); font-size:0.75rem;">✕</button>
-											</form>
+										<div style="background:var(--bg-surface); border-radius:var(--radius-sm); overflow:hidden;">
+											<div style="display:flex; align-items:center; gap:0.5rem; padding:0.375rem 0.5rem; flex-wrap:wrap">
+												<span class="badge badge-muted">Lv {sf.requiredLevel}</span>
+												<span style="flex:1; font-size:0.8125rem;">{sf.name}</span>
+												<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;"
+													onclick={() => editingSubFeat = editingSubFeat === sf.id ? null : sf.id}>
+													{editingSubFeat === sf.id ? 'Cancel' : 'Edit'}
+												</button>
+												<form method="post" action="?/deleteSubclassFeature" use:enhance={() => {
+													return async ({ update }) => { await update(); await invalidateAll(); };
+												}} style="margin:0;">
+													<input type="hidden" name="id" value={sf.id} />
+													<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger); font-size:0.75rem;">✕</button>
+												</form>
+											</div>
+											{#if editingSubFeat === sf.id}
+												<form method="post" action="?/updateSubclassFeature" use:enhance={() => {
+													return async ({ update }) => { await update(); await invalidateAll(); editingSubFeat = null; };
+												}} style="padding:0.5rem 0.625rem; border-top:1px solid var(--border-muted); background:var(--bg-muted);">
+													<input type="hidden" name="id" value={sf.id} />
+													<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end;">
+														<div class="field" style="flex:0 0 60px; margin:0;">
+															<label class="label" for="sf-lv-{sf.id}">Level</label>
+															<input id="sf-lv-{sf.id}" name="requiredLevel" type="number" class="input" min="1" max="20" value={sf.requiredLevel} />
+														</div>
+														<div class="field" style="flex:1 1 140px; margin:0;">
+															<label class="label" for="sf-name-{sf.id}">Name</label>
+															<input id="sf-name-{sf.id}" name="name" type="text" class="input" value={sf.name} required />
+														</div>
+														<div class="field" style="flex:2 1 180px; margin:0;">
+															<label class="label" for="sf-desc-{sf.id}">Description</label>
+															<input id="sf-desc-{sf.id}" name="description" type="text" class="input" value={sf.description ?? ''} />
+														</div>
+														<button type="submit" class="btn btn-primary btn-sm">Save</button>
+													</div>
+												</form>
+											{/if}
 										</div>
 									{/each}
 								</div>
@@ -217,3 +289,12 @@
 		</div>
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

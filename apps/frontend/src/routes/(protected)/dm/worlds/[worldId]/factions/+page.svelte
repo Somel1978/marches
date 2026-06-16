@@ -1,6 +1,7 @@
 <!-- apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/factions/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import type { PageData, ActionData } from './$types';
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -8,6 +9,15 @@
 	const canManage = $derived((data as any).canManage === true);
 
 	const tierLabel: Record<string, string> = { LOCAL: 'Local', REGIONAL: 'Regional', WORLD: 'World' };
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div>
@@ -57,7 +67,7 @@
 										<a href="/dm/worlds/{world.id}/factions/{f.id}" class="btn btn-ghost btn-sm">{canManage ? 'Manage' : 'View'}</a>
 										{#if canManage}
 											<form method="post" action="?/delete" style="display:inline;" use:enhance={({ cancel }) => {
-												if (!confirm(`Delete faction "${f.name}"? This removes its ranks, territories, relations and renown.`)) { cancel(); return; }
+												askConfirm('Confirm', `Delete faction "${f.name}"? This removes its ranks, territories, relations and renown.`, () => { cancel(); }); return;
 												return async ({ update }) => { await update(); };
 											}}>
 												<input type="hidden" name="factionId" value={f.id} />
@@ -76,3 +86,12 @@
 		</div>
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

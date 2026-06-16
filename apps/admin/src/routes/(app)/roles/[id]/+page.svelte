@@ -2,7 +2,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import { PermissionCell } from '@core/ui';
+	import { PermissionCell, ConfirmModal } from '@core/ui';
 	import type { PageData, ActionData } from './$types';
 
 	type AccessLevel = 'NONE' | 'OWN' | 'ALL';
@@ -46,6 +46,15 @@
 
 	let saving  = $state(false);
 	let deleting = $state(false);
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -68,7 +77,7 @@
 				method="post"
 				action="?/delete"
 				use:enhance={() => {
-					if (!confirm('Delete this role? This cannot be undone.')) return () => {};
+					askConfirm('Confirm', 'Delete this role? This cannot be undone.', () => { });
 					deleting = true;
 					return async ({ update }) => { deleting = false; await update(); };
 				}}
@@ -173,3 +182,12 @@
 		{/if}
 	</form>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

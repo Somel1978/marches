@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/discord/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -57,6 +58,15 @@
 			if (!d.error) guildChannels = { ...guildChannels, [guildId]: d };
 		} finally { channelsLoading = { ...channelsLoading, [guildId]: false }; }
 	}
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -64,7 +74,8 @@
 		<h2 class="page__title">Discord Integration</h2>
 	</div>
 
-	{#if (form as any)?.success}<div class="form-success" style="margin-bottom:1rem;">Saved.</div>{/if}
+	{#if (form as any)?.success && (form as any)?.action === 'sync'}<div class="form-success" style="margin-bottom:1rem;">✓ Slash commands synced to all servers.</div>{/if}
+	{#if (form as any)?.success && (form as any)?.action !== 'sync'}<div class="form-success" style="margin-bottom:1rem;">Saved.</div>{/if}
 	{#if (form as any)?.message}<div class="form-error" style="margin-bottom:1rem;">{(form as any).message}</div>{/if}
 
 	<!-- Bot setup -->
@@ -81,6 +92,9 @@
 			<button type="button" class="btn btn-ghost btn-sm" onclick={fetchBotGuilds} disabled={guildsLoading}>
 				{guildsLoading ? 'Fetching…' : '↻ Fetch servers from bot'}
 			</button>
+			<form method="post" action="?/syncCommands" use:enhance>
+				<button type="submit" class="btn btn-ghost btn-sm">⚡ Sync Slash Commands</button>
+			</form>
 		</div>
 		{#if guildsError}<p class="form-error" style="margin-top:0.5rem;">{guildsError}</p>{/if}
 
@@ -179,7 +193,7 @@
 						{channelsLoading[server.guildId] ? 'Loading…' : '↻ Fetch channels'}
 					</button>
 					<form method="post" action="?/deleteServer" use:enhance={({ cancel }) => {
-						if (!confirm('Remove this server?')) cancel();
+						askConfirm('Confirm', 'Remove this server?', () => { cancel(); }); return;
 						return async ({ update }) => { await update(); await invalidateAll(); };
 					}}>
 						<input type="hidden" name="id" value={server.id} />
@@ -232,3 +246,12 @@
 		<div class="card"><p class="table__empty">No Discord servers configured yet. Fetch servers from the bot above or add manually.</p></div>
 	{/if}
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>
