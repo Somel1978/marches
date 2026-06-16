@@ -85,6 +85,7 @@ model Character {
   transactions  CharacterTransaction[]
   inventory    CharacterInventory[]
   dnd5eSheet   Dnd5eCharacterSheet?
+  spellbooks   Dnd5eSpellbook[]
 
   @@map("characters")
   @@schema("characters")

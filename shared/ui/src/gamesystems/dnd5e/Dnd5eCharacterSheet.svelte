@@ -2,6 +2,7 @@
 <!-- Pure UI component — no SvelteKit imports. All actions via callbacks. -->
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import Dnd5eSpellbooks from './Dnd5eSpellbooks.svelte';
 	let {
 		charSheet,
 		systemData,
@@ -18,6 +19,13 @@
 		onManualScoreAdjust,
 		canManage              = false,
 		editBlockedReason,
+		spellbooks             = [],
+		onCreateSpellbook,
+		onRenameSpellbook,
+		onDeleteSpellbook,
+		onAddSpellbookEntry,
+		onRemoveSpellbookEntry,
+		onToggleSpellPrepared,
 	}: {
 		charSheet?:                any;
 		systemData?:               any;
@@ -34,6 +42,13 @@
 		onManualScoreAdjust?:      (stat: string, delta: number, note: string) => Promise<void>;
 		canManage?:                boolean;
 		editBlockedReason?:        string;
+		spellbooks?:               any[];
+		onCreateSpellbook?:        (name: string) => Promise<void>;
+		onRenameSpellbook?:        (id: string, name: string) => Promise<void>;
+		onDeleteSpellbook?:        (id: string) => Promise<void>;
+		onAddSpellbookEntry?:      (spellbookId: string, spellId: number, classId: string, className: string) => Promise<void>;
+		onRemoveSpellbookEntry?:   (entryId: string) => Promise<void>;
+		onToggleSpellPrepared?:    (entryId: string, prepared: boolean) => Promise<void>;
 	} = $props();
 
 	// ── Constants ────────────────────────────────────────────────────────────
@@ -713,6 +728,25 @@
 			</div>
 		{/each}
 	</div>
+	{/if}
+
+	<!-- ── Spellbooks ─────────────────────────────────────────────── -->
+	{#if (charSheet?.characterClasses ?? []).some((cc: any) => cc.classRef?.canCastSpells)}
+		<div style="margin-top:1.5rem;">
+			<h3 class="section-title">Spellbooks</h3>
+			<Dnd5eSpellbooks
+				{charSheet}
+				{systemData}
+				{spellbooks}
+				canEdit={canEdit}
+				onCreateSpellbook={onCreateSpellbook}
+				onRenameSpellbook={onRenameSpellbook}
+				onDeleteSpellbook={onDeleteSpellbook}
+				onAddEntry={onAddSpellbookEntry}
+				onRemoveEntry={onRemoveSpellbookEntry}
+				onTogglePrepared={onToggleSpellPrepared}
+			/>
+		</div>
 	{/if}
 
 </div>

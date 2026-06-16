@@ -55,6 +55,7 @@
 										<a href="/game-systems/{s.id}/dnd5e/species"     class="btn btn-ghost btn-sm">Species</a>
 										<a href="/game-systems/{s.id}/dnd5e/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
 										<a href="/game-systems/{s.id}/dnd5e/feats"       class="btn btn-ghost btn-sm">Feats</a>
+										<a href="/game-systems/{s.id}/dnd5e/spells"      class="btn btn-ghost btn-sm">Spells</a>
 										<a href="/game-systems/{s.id}/data/import/dnd5e" class="btn btn-ghost btn-sm">↑ Import</a>
 									</div>
 								{:else}

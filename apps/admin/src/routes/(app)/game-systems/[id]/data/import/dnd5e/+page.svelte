@@ -8,7 +8,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const system = $derived((data as any).system);
 
-	type ImportTab = 'classes' | 'classFeatures' | 'subclasses' | 'subclassFeatures' | 'species' | 'speciesTraits' | 'backgrounds' | 'feats';
+	type ImportTab = 'classes' | 'classFeatures' | 'subclasses' | 'subclassFeatures' | 'species' | 'speciesTraits' | 'backgrounds' | 'feats' | 'spells';
 	let activeTab = $state<ImportTab>('classes');
 
 	let parsedJson  = $state('');
@@ -26,6 +26,7 @@
 		{ key: 'speciesTraits',   label: 'Species Traits',   action: '?/importSpeciesTraits',   columns: ['speciesName','name','description','requiredLevel'] },
 		{ key: 'backgrounds',     label: 'Backgrounds',      action: '?/importBackgrounds',     columns: ['name','shortDescription','featureName','grantsFeatCategory','grantsFeatId','skillProficiencies','toolProficiencies','languages','url','sortOrder'] },
 		{ key: 'feats',           label: 'Feats',            action: '?/importFeats',           columns: ['name','description','snippet','repeatable','categories','prerequisites','detailsUrl','isEpicBoon','asiAmount','asiStatFixed','asiStatChoices','sortOrder'] },
+		{ key: 'spells',          label: 'Spells',           action: '?/importSpells',          columns: ['Spell ID','Name','Link','Level','School','Concentration','Ritual','Is Homebrew','Is Legacy','Cantrip Damage','Cantrip Dmg Lvl 5','Cantrip Dmg Lvl 11','Cantrip Dmg Lvl 17','Spell Damage','Upcast Per Slot','Upcast Every 2 Slots','Spell Progression','Progression Note','Range Origin','Range Value (ft)','AoE Type','AoE Value (ft)','Duration Type','Duration Interval','Duration Unit','Requires Saving Throw','Requires Attack Roll','Can Cast Higher Level','Tags','Spell List'] },
 	];
 
 	const activeTabDef = $derived(TABS.find(t => t.key === activeTab)!);
@@ -237,6 +238,7 @@
 				{ action: '?/deleteSpecies',          label: 'Species' },
 				{ action: '?/deleteBackgrounds',      label: 'Backgrounds' },
 				{ action: '?/deleteFeats',            label: 'Feats' },
+				{ action: '?/deleteSpells',           label: 'Spells' },
 			] as btn}
 				<form method="post" action={btn.action} use:enhance={({ cancel }) => {
 					askConfirm('Confirm', 'Delete ALL ${btn.label} for ${system.name}? This cannot be undone.', () => { cancel(); }); return;

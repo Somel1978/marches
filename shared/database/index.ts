@@ -77,6 +77,8 @@ import { createDnd5eCharacter } from './dbapi/write/dnd5e/create-character.ts';
 import { approveDnd5eCharacter, rejectDnd5eCharacter } from './dbapi/write/dnd5e/approve-character.ts';
 import { submitDnd5eStructuralChanges, updateDnd5eCharacterFields } from './dbapi/write/dnd5e/update-character.ts';
 import { updateDnd5eCharacterClasses } from './dbapi/write/dnd5e/update-classes.ts';
+import { getAllDnd5eSpells, getDnd5eSpellById, getDnd5eSpellsForCharacter, getDnd5eSpellSlotProgressions, getDnd5eSpellSlotProgressionByClass, getDnd5eSpellsKnownProgressions, getDnd5eSpellsKnownProgressionByClass, getDnd5eSpellbooks } from './dbapi/read/dnd5e/get-spells.ts';
+import { upsertDnd5eSpell, updateDnd5eSpell, deleteDnd5eSpell, upsertSpellSlotProgression, deleteSpellSlotProgressionClass, upsertSpellsKnownProgression, deleteSpellsKnownProgressionClass, createSpellbook, updateSpellbook, deleteSpellbook, addSpellbookEntry, removeSpellbookEntry, toggleSpellbookEntryPrepared } from './dbapi/write/dnd5e/spells.ts';
 
 // ── Achievements ─────────────────────────────────────────────────────────────────
 import { createAchievement, updateAchievement, grantAchievement, revokeAchievement } from './dbapi/write/rewards/achievements.ts';
@@ -624,4 +626,33 @@ export const dnd5e = {
     submitChanges:       submitDnd5eStructuralChanges,
     updateFields:        updateDnd5eCharacterFields,
     updateClasses:       updateDnd5eCharacterClasses,
+    spells: {
+        getAll:          getAllDnd5eSpells,
+        getById:         getDnd5eSpellById,
+        getForCharacter: getDnd5eSpellsForCharacter,
+        upsert:          upsertDnd5eSpell,
+        update:          updateDnd5eSpell,
+        delete:          deleteDnd5eSpell,
+    },
+    spellSlots: {
+        getAll:          getDnd5eSpellSlotProgressions,
+        getByClass:      getDnd5eSpellSlotProgressionByClass,
+        upsert:          upsertSpellSlotProgression,
+        deleteClass:     deleteSpellSlotProgressionClass,
+    },
+    spellsKnown: {
+        getAll:          getDnd5eSpellsKnownProgressions,
+        getByClass:      getDnd5eSpellsKnownProgressionByClass,
+        upsert:          upsertSpellsKnownProgression,
+        deleteClass:     deleteSpellsKnownProgressionClass,
+    },
+    spellbooks: {
+        getForCharacter: getDnd5eSpellbooks,
+        create:          createSpellbook,
+        update:          updateSpellbook,
+        delete:          deleteSpellbook,
+        addEntry:        addSpellbookEntry,
+        removeEntry:     removeSpellbookEntry,
+        togglePrepared:  toggleSpellbookEntryPrepared,
+    },
 };

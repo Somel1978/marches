@@ -4,10 +4,11 @@
 import { dnd5e } from '@core/database';
 
 export async function loadDnd5eCharacterData(characterId: string, gameSystemId: string) {
-    const [systemData, charSheet, scoreAudit] = await Promise.all([
+    const [systemData, charSheet, scoreAudit, spellbooks] = await Promise.all([
         dnd5e.getSystemData(gameSystemId),
         dnd5e.getCharacterSheet(characterId),
         dnd5e.getScoreAudit(characterId),
+        dnd5e.spellbooks.getForCharacter(characterId),
     ]);
-    return { systemData, charSheet, scoreAudit };
+    return { systemData, charSheet, scoreAudit, spellbooks };
 }

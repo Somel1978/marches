@@ -66,6 +66,7 @@ export const actions: Actions = {
 					created++;
 				}
 			}
+			dnd5e.invalidateSystemCache(params.id);
 			return { success: true, created, updated, skipped, type: 'classes' };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
@@ -113,6 +114,7 @@ export const actions: Actions = {
 					created++;
 				}
 			}
+			dnd5e.invalidateSystemCache(params.id);
 			return { success: true, created, updated, skipped, type: 'class features' };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
@@ -163,6 +165,7 @@ export const actions: Actions = {
 					created++;
 				}
 			}
+			dnd5e.invalidateSystemCache(params.id);
 			return { success: true, created, updated, skipped, type: 'subclasses' };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
@@ -383,6 +386,7 @@ export const actions: Actions = {
 					created++;
 				}
 			}
+			dnd5e.invalidateSystemCache(params.id);
 			return { success: true, created, updated, skipped, type: 'feats' };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
@@ -434,6 +438,7 @@ export const actions: Actions = {
 					created++;
 				}
 			}
+			dnd5e.invalidateSystemCache(params.id);
 			return { success: true, created, updated, skipped, type: 'backgrounds' };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
@@ -546,5 +551,72 @@ export const actions: Actions = {
 		const { db } = await import('@core/database');
 		const { count } = await db.dnd5eFeat.deleteMany({ where: { gameSystemId: params.id } });
 		return { deleteSuccess: true, deleted: count, type: 'feats' };
+	},
+
+	importSpells: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'create' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data        = await request.formData();
+		const raw         = data.get('json')?.toString() ?? '';
+		if (!raw) return fail(400, { message: 'No data provided.' });
+		let rows: any[];
+		try { rows = JSON.parse(raw); } catch { return fail(400, { message: 'Invalid JSON.' }); }
+
+		const { dnd5e } = await import('@core/database');
+		let imported = 0; const errors: string[] = [];
+
+		for (const r of rows) {
+			try {
+				const levelRaw = normalize(r['Level'] ?? r['level'] ?? '');
+				const level    = levelRaw.toLowerCase() === 'cantrip' ? 0 : parseInt(levelRaw, 10) || 0;
+				const bool     = (k: string) => boolVal(r[k] ?? r[k.toLowerCase()]);
+				const str      = (k: string) => normalize(r[k] ?? r[k.toLowerCase()] ?? '') || null;
+				const num      = (k: string) => { const v = r[k] ?? r[k.toLowerCase()]; return v !== '' && v != null ? Number(v) : null; };
+
+				await dnd5e.spells.upsert({
+					gameSystemId:            params.id,
+					spellId:                 Number(r['Spell ID'] ?? r['spellId'] ?? 0),
+					name:                    normalize(r['Name'] ?? r['name'] ?? ''),
+					link:                    str('Link') ?? str('link'),
+					level,
+					school:                  normalize(r['School'] ?? r['school'] ?? ''),
+					concentration:           bool('Concentration'),
+					ritual:                  bool('Ritual'),
+					isHomebrew:              bool('Is Homebrew'),
+					isLegacy:                bool('Is Legacy'),
+					cantripDamage:           str('Cantrip Damage'),
+					cantripDamageLvl5:       str('Cantrip Dmg Lvl 5'),
+					cantripDamageLvl11:      str('Cantrip Dmg Lvl 11'),
+					cantripDamageLvl17:      str('Cantrip Dmg Lvl 17'),
+					spellDamage:             str('Spell Damage'),
+					spellUpcastPerSlot:      str('Upcast Per Slot'),
+					spellUpcastEveryTwoSlots: str('Upcast Every 2 Slots'),
+					spellProgression:        str('Spell Progression'),
+					spellProgressionNote:    str('Progression Note'),
+					rangeOrigin:             str('Range Origin'),
+					rangeValue:              num('Range Value (ft)'),
+					aoeType:                 str('AoE Type'),
+					aoeValue:                num('AoE Value (ft)'),
+					durationType:            str('Duration Type'),
+					durationInterval:        num('Duration Interval'),
+					durationUnit:            str('Duration Unit'),
+					requiresSavingThrow:     bool('Requires Saving Throw'),
+					requiresAttackRoll:      bool('Requires Attack Roll'),
+					canCastAtHigherLevel:    bool('Can Cast Higher Level'),
+					tags:                    str('Tags'),
+					spellList:               str('Spell List'),
+				});
+				imported++;
+			} catch (e: any) { errors.push(`${r['Name'] ?? '?'}: ${e.message}`); }
+		}
+		return { importSuccess: true, imported, skipped: errors.length, errors, type: 'spells' };
+	},
+
+	deleteSpells: async ({ params, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const { count } = await db.dnd5eSpell.deleteMany({ where: { gameSystemId: params.id } });
+		return { deleteSuccess: true, deleted: count, type: 'spells' };
 	},
 };

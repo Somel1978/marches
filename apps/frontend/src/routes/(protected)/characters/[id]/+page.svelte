@@ -209,6 +209,7 @@
 			charSheet={(data as any).charSheet}
 			systemData={(data as any).systemData}
 			scoreAudit={(data as any).scoreAudit ?? []}
+			spellbooks={(data as any).spellbooks ?? []}
 			character={data.character}
 			{canEdit}
 			{isLevelUp}
