@@ -192,12 +192,11 @@
 						disabled={channelsLoading[server.guildId]}>
 						{channelsLoading[server.guildId] ? 'Loading…' : '↻ Fetch channels'}
 					</button>
-					<form method="post" action="?/deleteServer" use:enhance={({ cancel }) => {
-						askConfirm('Confirm', 'Remove this server?', () => { cancel(); }); return;
-						return async ({ update }) => { await update(); await invalidateAll(); };
-					}}>
+					<form id="cf-edf686" method="post" action="?/deleteServer" use:enhance={() => {
+				return async ({ update }) => { await update(); await invalidateAll(); };
+			}}>
 						<input type="hidden" name="id" value={server.id} />
-						<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Remove</button>
+						<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', 'Remove this server?').then(ok => { if(ok)(document.getElementById("cf-edf686") as HTMLFormElement).requestSubmit(); })}>Remove</button>
 					</form>
 				</div>
 			</div>

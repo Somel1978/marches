@@ -75,6 +75,16 @@ export const actions: Actions = {
 		return { success: true, action: 'subclass' };
 	},
 
+	toggleSubclassCasting: async ({ request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data         = await request.formData();
+		const id           = data.get('id')?.toString() ?? '';
+		const canCastSpells = data.get('canCastSpells') === 'true';
+		await dnd5e.subclasses.updateSpellcasting(id, { canCastSpells });
+		return { success: true };
+	},
+
 	deleteSubclass: async ({ request, locals }) => {
 		const data = await request.formData();
 		await dnd5e.subclasses.delete(data.get('id')?.toString() ?? '');

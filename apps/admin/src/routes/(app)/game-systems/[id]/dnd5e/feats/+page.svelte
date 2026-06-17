@@ -164,12 +164,11 @@
 						{#if feat.isAvailable}<span class="badge badge-success" style="font-size:0.75rem;">✓</span>{:else}<span class="badge badge-muted" style="font-size:0.75rem;">—</span>{/if}
 					</div>
 					<div onclick={(e) => e.stopPropagation()} role="presentation" style="flex-shrink:0;">
-						<form method="post" action="?/delete" use:enhance={({ cancel }) => {
-							askConfirm('Confirm', `Delete "${feat.name}"?`, () => { cancel(); }); return;
-							return async ({ update }) => { await update(); await invalidateAll(); };
-						}} style="margin:0;">
+						<form id="cf-e69637" method="post" action="?/delete" use:enhance={() => {
+				return async ({ update }) => { await update(); await invalidateAll(); };
+			}} style="margin:0;">
 							<input type="hidden" name="id" value={feat.id} />
-							<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕</button>
+							<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete "${feat.name}"?`).then(ok => { if(ok)(document.getElementById("cf-e69637") as HTMLFormElement).requestSubmit(); })}>✕</button>
 						</form>
 					</div>
 				</div>

@@ -7,10 +7,13 @@ declare global {
 		interface Locals {
 			user?:        User;
 			session?:     Session;
-			// Populated by hooks.server.ts for every authenticated request.
-			// Always a Map — empty Map for unauthenticated requests.
 			permissions:  UserPermissions;
 		}
+	}
+
+	interface Window {
+		// Set by ConfirmModal (mounted in admin layout) inside onMount — browser only.
+		confirmModal: (title: string, message: string) => Promise<boolean>;
 	}
 }
 

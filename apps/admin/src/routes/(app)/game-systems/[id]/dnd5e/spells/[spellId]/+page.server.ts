@@ -47,8 +47,13 @@ export const actions: Actions = {
 			durationInterval:        gn('durationInterval'),
 			durationUnit:            g('durationUnit'),
 			requiresSavingThrow:     gb('requiresSavingThrow'),
+			savingThrow:      g('savingThrow'),
 			requiresAttackRoll:      gb('requiresAttackRoll'),
 			canCastAtHigherLevel:    gb('canCastAtHigherLevel'),
+			castingTime:             g('castingTime'),
+			components:              g('components'),
+			description:             g('description'),
+			sourceBook:              g('sourceBook'),
 			tags:                    g('tags'),
 			spellList:               g('spellList'),
 		});

@@ -82,11 +82,10 @@
 					<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕ Reject</button>
 				</form>
 			{/if}
-			<form method="post" action="?/deleteCharacter" use:enhance={({cancel})=>{
-				askConfirm('Confirm', 'Delete this character? This cannot be undone.', () => { cancel(); }); return;
+			<form method="post" action="?/deleteCharacter" id="cf-del-char" use:enhance={() => {
 				return async({update})=>{await update();};
 			}}>
-				<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Delete</button>
+				<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', 'Delete this character? This cannot be undone.').then(ok => { if(ok)(document.getElementById("cf-del-char") as HTMLFormElement).requestSubmit(); })}>Delete</button>
 			</form>
 		</div>
 	</div>
@@ -460,13 +459,12 @@
 								</td>
 								<td>
 									<form method="post" action="?/removeInventory"
-										use:enhance={({cancel})=>{
-											askConfirm('Confirm', 'Remove this item? Gold will be refunded.', () => { cancel(); }); return;
+										id="cf-rem-{inv.id}" use:enhance={() => {
 											return async({update})=>{await update();await invalidateAll();};
 										}}>
 										<input type="hidden" name="inventoryId" value={(inv as any).id} />
 										<input type="hidden" name="quantity" value="1" />
-										<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Remove</button>
+										<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', 'Remove this item? Gold will be refunded.').then(ok => { if(ok)(document.getElementById(`cf-rem-${inv.id}`) as HTMLFormElement).requestSubmit(); })}>Remove</button>
 									</form>
 								</td>
 							</tr>

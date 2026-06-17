@@ -95,7 +95,7 @@
 		<h3 class="section-title" style="color:var(--color-danger);">Danger zone</h3>
 		<p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1rem;">Permanently removes this item from the catalogue. Cannot be undone.</p>
 		<form method="post" action="?/delete"
-			use:enhance={({ cancel }) => { askConfirm('Confirm', 'Delete this item permanently?', () => { cancel(); }); return; return async ({ update }) => { await update(); }; }}>
+			use:enhance={() => { return async ({ update }) => { await update(); }; }} id="cf-item-del">
 			<button type="submit" class="btn btn-danger btn-sm">Delete item</button>
 		</form>
 	</div>

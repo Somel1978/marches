@@ -194,8 +194,7 @@
 			<button type="submit" class="btn btn-primary">Save</button>
 		</div>
 	</form>
-	<form id="del-ann-form" method="post" action="?/delete" use:enhance={({ cancel }) => {
-		askConfirm('Confirm', 'Delete this announcement?', () => { cancel(); }); return;
+	<form id="del-ann-form" method="post" action="?/delete" use:enhance={() => {
 		return async ({ result }) => { if (result.type === 'success') goto('/news'); };
 	}} style="display:none;"></form>
 </div>

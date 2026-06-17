@@ -318,12 +318,11 @@
 										<button type="submit" class="btn btn-ghost btn-sm">Save</button>
 									</div>
 								</form>
-								<form method="post" action="?/removeItem" use:enhance={({cancel})=>{
-									askConfirm('Confirm', 'Remove this world override?', () => { cancel(); }); return;
+								<form id="cf-rem-{wi.itemId}" method="post" action="?/removeItem" use:enhance={() => {
 									return async({update})=>{await update();await invalidateAll();};
 								}}>
 									<input type="hidden" name="itemId" value={wi.itemId} />
-									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Remove</button>
+									<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', 'Remove this world override?').then(ok => { if(ok)(document.getElementById(`cf-rem-${wi.itemId}`) as HTMLFormElement)?.requestSubmit(); })}>Remove</button>
 								</form>
 							</td>
 						</tr>

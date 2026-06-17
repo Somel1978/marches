@@ -114,6 +114,13 @@ export async function updateSubclassFeature(id: string, input: {
     return db.dnd5eSubclassFeature.update({ where: { id }, data: input });
 }
 
+export async function updateSubclass(id: string, input: {
+    name?: string; description?: string | null; canCastSpells?: boolean;
+    source?: string | null; link?: string | null; sortOrder?: number;
+}) {
+    return db.dnd5eSubclass.update({ where: { id }, data: input });
+}
+
 export async function deleteSubclassFeature(id: string) {
     return db.dnd5eSubclassFeature.delete({ where: { id } });
 }

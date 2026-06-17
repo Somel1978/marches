@@ -406,7 +406,11 @@
 		try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
 	}
 
-	$effect(() => { restoreState(); });
+	$effect(() => {
+		// Run once on mount. untrack() ensures the state writes don't
+		// re-trigger this or any other effect.
+		untrack(() => { restoreState(); });
+	});
 	// After sys.feats loads, backfill stat1/amount1 for restored feat-mode choices.
 	// untrack() prevents the write to c.stat1 from re-triggering this effect.
 	$effect(() => {
@@ -424,9 +428,11 @@
 		});
 	});
 	$effect(() => {
+		// Track top-level state signals only. untrack() for the actual save
+		// prevents deep property reads on asiChoices items from creating loops.
 		void [step, name, avatarUrl, portraitUrl, worldId, speciesId, backgroundId,
 			bgFeatPick, scores, rolled, bonusGranted, bonus, classAllocs, asiChoices];
-		saveState();
+		untrack(() => saveState());
 	});
 
 	// ── Validation ───────────────────────────────────────────────────────────
@@ -1202,13 +1208,26 @@
 			<h4 class="section-title">Ability Scores</h4>
 			<div class="wizard-review-stats" style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;text-align:center;margin-bottom:1rem;">
 				{#each STATS as st}
-					{@const base = total[st]}
-					{@const final = finalScores[st]}
-					{@const bump = final - base}
+					{@const base     = total[st]}
+					{@const final    = finalScores[st]}
+					{@const asiBump  = asiChoices
+						.filter(c => c.mode === 'stat' && (c.stat1 === st || c.stat2 === st))
+						.reduce((n, c) => n + (c.stat1 === st ? (c.amount1 || 0) : (c.amount2 || 0)), 0)}
+					{@const featBump = asiChoices
+						.filter(c => (c.mode === 'feat' || c.type === 'epic_boon') && c.stat1 === st && c.amount1)
+						.reduce((n, c) => n + (c.amount1 || 0), 0)}
 					<div class="wizard-stat-box" style="padding:0.5rem;">
 						<p class="wizard-stat-box__label">{STAT_LABEL[st]}</p>
 						<p class="wizard-stat-box__value" style="font-size:1.375rem;">{final}</p>
-						{#if bump > 0}<p style="font-size:0.6875rem;color:var(--color-success);margin:0;">+{bump} ASI</p>{/if}
+						<div style="min-height:1rem;">
+							{#if asiBump > 0}
+								<p style="font-size:0.6875rem;color:var(--color-success);margin:0;">+{asiBump} ASI</p>
+							{/if}
+							{#if featBump > 0}
+								<p style="font-size:0.6875rem;color:var(--brand-accent);margin:0;">+{featBump} Feat</p>
+							{/if}
+							<p style="font-size:0.6875rem;color:var(--text-muted);margin:0;">base {base}</p>
+						</div>
 						<p class="wizard-stat-box__mod">{mod(final)}</p>
 					</div>
 				{/each}
@@ -1298,7 +1317,10 @@
 					<input type="hidden" name="allocatedLevel" value={a.allocatedLevel} />
 				{/each}
 				{#each STATS as st}
-					<input type="hidden" name="score_{st}" value={finalScores[st]} />
+					<!-- Submit total (point-buy + bonus), NOT finalScores.
+					     ASI / feat bumps are saved separately via addCharacterFeat
+					     so the DB can track base vs ASI vs feat independently. -->
+					<input type="hidden" name="score_{st}" value={total[st]} />
 				{/each}
 				<button type="submit" class="btn btn-primary" disabled={!canSubmit}>Create Character</button>
 			</form>

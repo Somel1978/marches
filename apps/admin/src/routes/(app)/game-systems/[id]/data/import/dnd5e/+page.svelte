@@ -8,7 +8,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const system = $derived((data as any).system);
 
-	type ImportTab = 'classes' | 'classFeatures' | 'subclasses' | 'subclassFeatures' | 'species' | 'speciesTraits' | 'backgrounds' | 'feats' | 'spells';
+	type ImportTab = 'classes' | 'classFeatures' | 'subclasses' | 'subclassFeatures' | 'species' | 'speciesTraits' | 'backgrounds' | 'feats' | 'spells' | 'spellSlots' | 'spellsKnown';
 	let activeTab = $state<ImportTab>('classes');
 
 	let parsedJson  = $state('');
@@ -20,13 +20,15 @@
 	const TABS: { key: ImportTab; label: string; action: string; columns: string[] }[] = [
 		{ key: 'classes',         label: 'Classes',          action: '?/importClasses',         columns: ['name','hitDice','canCastSpells','subclassAvailableAtLevel','primaryAbilities','equipmentDescription','description','source','link','sortOrder'] },
 		{ key: 'classFeatures',   label: 'Class Features',   action: '?/importClassFeatures',   columns: ['className','name','requiredLevel','description','url'] },
-		{ key: 'subclasses',      label: 'Subclasses',       action: '?/importSubclasses',      columns: ['className','name','description','source','link','sortOrder'] },
+		{ key: 'subclasses',      label: 'Subclasses',       action: '?/importSubclasses',      columns: ['className','name','description','source','link','canCastSpells','sortOrder'] },
 		{ key: 'subclassFeatures',label: 'Subclass Features',action: '?/importSubclassFeatures',columns: ['className','subclassName','name','requiredLevel','description','url'] },
 		{ key: 'species',         label: 'Species',          action: '?/importSpecies',         columns: ['name','description','source','link','isSubrace','isLegacy','sortOrder'] },
 		{ key: 'speciesTraits',   label: 'Species Traits',   action: '?/importSpeciesTraits',   columns: ['speciesName','name','description','requiredLevel'] },
 		{ key: 'backgrounds',     label: 'Backgrounds',      action: '?/importBackgrounds',     columns: ['name','shortDescription','featureName','grantsFeatCategory','grantsFeatId','skillProficiencies','toolProficiencies','languages','url','sortOrder'] },
 		{ key: 'feats',           label: 'Feats',            action: '?/importFeats',           columns: ['name','description','snippet','repeatable','categories','prerequisites','detailsUrl','isEpicBoon','asiAmount','asiStatFixed','asiStatChoices','sortOrder'] },
-		{ key: 'spells',          label: 'Spells',           action: '?/importSpells',          columns: ['Spell ID','Name','Link','Level','School','Concentration','Ritual','Is Homebrew','Is Legacy','Cantrip Damage','Cantrip Dmg Lvl 5','Cantrip Dmg Lvl 11','Cantrip Dmg Lvl 17','Spell Damage','Upcast Per Slot','Upcast Every 2 Slots','Spell Progression','Progression Note','Range Origin','Range Value (ft)','AoE Type','AoE Value (ft)','Duration Type','Duration Interval','Duration Unit','Requires Saving Throw','Requires Attack Roll','Can Cast Higher Level','Tags','Spell List'] },
+		{ key: 'spells',          label: 'Spells',           action: '?/importSpells',          columns: ['Spell ID','Name','Link','Level','School','Concentration','Ritual','Is Homebrew','Is Legacy','Cantrip Damage','Cantrip Dmg Lvl 5','Cantrip Dmg Lvl 11','Cantrip Dmg Lvl 17','Spell Damage','Upcast Per Slot','Upcast Every 2 Slots','Spell Progression','Progression Note','Range Origin','Range Value (ft)','AoE Type','AoE Value (ft)','Duration Type','Duration Interval','Duration Unit','Requires Saving Throw','Saving Throw','Requires Attack Roll','Can Cast Higher Level','Casting Time','Components','Description','Source Book','Tags','Spell List'] },
+		{ key: 'spellSlots',      label: 'Spell Slots',      action: '?/importSpellSlots',      columns: ['Class ID','Class Name','Subclass ID','Subclass Name','Caster Type','Level','Slot 1','Slot 2','Slot 3','Slot 4','Slot 5','Slot 6','Slot 7','Slot 8','Slot 9'] },
+		{ key: 'spellsKnown',     label: 'Spells Known',     action: '?/importSpellsKnown',     columns: ['Class ID','Class Name','Subclass ID','Subclass Name','Level','Cantrips','Prepared','Additional','Note'] },
 	];
 
 	const activeTabDef = $derived(TABS.find(t => t.key === activeTab)!);
@@ -50,9 +52,29 @@
 			try {
 				const wb   = XLSX.read(ev.target?.result, { type: 'array' });
 				const ws   = wb.Sheets[wb.SheetNames[0]];
-				const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+				const rows = XLSX.utils.sheet_to_json(ws, { defval: '' }) as any[];
+
+				if (!rows.length) {
+					parseError = 'File is empty.';
+					return;
+				}
+
+				// ── Header validation ────────────────────────────────────────
+				// Uploaded file headers must contain ALL required columns for
+				// the active tab. Extra columns are ignored (e.g. notes cols).
+				const fileHeaders    = Object.keys(rows[0]);
+				const requiredCols   = activeTabDef.columns;
+				const missingCols    = requiredCols.filter(c => !fileHeaders.includes(c));
+
+				if (missingCols.length) {
+					parseError = `Wrong file for "${activeTabDef.label}" import.\n`
+						+ `Missing columns: ${missingCols.join(', ')}.\n`
+						+ `File has: ${fileHeaders.join(', ')}`;
+					return;
+				}
+
 				parsedJson  = JSON.stringify(rows);
-				previewRows = (rows as any[]).slice(0, 5);
+				previewRows = rows.slice(0, 5);
 			} catch (err: any) {
 				parseError = `Could not parse file: ${err.message}`;
 			}
@@ -93,9 +115,15 @@
 
 	{#if (form as any)?.success}
 		<div class="form-success" style="margin-bottom:1rem;">
-			✓ {(form as any).type}: {(form as any).created} created,
-			{(form as any).updated ?? 0} updated
-			{#if (form as any).skipped}, <strong>{(form as any).skipped} skipped</strong>{/if}.
+			✓ {(form as any).type}:
+			{#if (form as any).imported != null}
+				<strong>{(form as any).imported}</strong> imported
+				{#if (form as any).skipped}, <strong>{(form as any).skipped}</strong> skipped{/if}
+			{:else}
+				{(form as any).created} created,
+				{(form as any).updated ?? 0} updated
+				{#if (form as any).skipped}, <strong>{(form as any).skipped} skipped</strong>{/if}
+			{/if}.
 		</div>
 		{#if (form as any)?.skipReasons?.length}
 			<div class="form-error" style="margin-bottom:1rem;">
@@ -169,7 +197,7 @@
 			<input id="xlsxFile" type="file" accept=".xlsx,.xls,.csv" class="input"
 				onchange={handleFile} />
 			{#if fileName}<p class="field-hint">File: {fileName}</p>{/if}
-			{#if parseError}<p class="form-error">{parseError}</p>{/if}
+			{#if parseError}<p class="form-error" style="white-space:pre-line;">{parseError}</p>{/if}
 		</div>
 
 		{#if previewRows.length}
@@ -214,7 +242,7 @@
 						</div>
 					</div>
 				{/if}
-				<button type="submit" class="btn btn-primary" disabled={importing}>
+				<button type="submit" class="btn btn-primary" disabled={importing || !parsedJson || !!parseError}>
 					{#if importing}⏳ Importing…{:else}Import {activeTabDef.label}{/if}
 				</button>
 			</form>
@@ -239,12 +267,13 @@
 				{ action: '?/deleteBackgrounds',      label: 'Backgrounds' },
 				{ action: '?/deleteFeats',            label: 'Feats' },
 				{ action: '?/deleteSpells',           label: 'Spells' },
+				{ action: '?/deleteSpellSlots',       label: 'Spell Slots' },
+				{ action: '?/deleteSpellsKnown',      label: 'Spells Known' },
 			] as btn}
-				<form method="post" action={btn.action} use:enhance={({ cancel }) => {
-					askConfirm('Confirm', 'Delete ALL ${btn.label} for ${system.name}? This cannot be undone.', () => { cancel(); }); return;
-					return async ({ update }) => { await update(); };
-				}}>
-					<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);border-color:var(--color-danger);">
+				<form id="cf-ebe9cc" method="post" action={btn.action} use:enhance={() => {
+				return async ({ update }) => { await update(); };
+			}}>
+					<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);border-color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete ALL ${btn.label} for ${system.name}? This cannot be undone.`).then(ok => { if(ok)(document.getElementById("cf-ebe9cc") as HTMLFormElement).requestSubmit(); })}>
 						🗑 {btn.label}
 					</button>
 				</form>

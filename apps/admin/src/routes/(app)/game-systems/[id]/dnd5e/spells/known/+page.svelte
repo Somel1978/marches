@@ -7,26 +7,23 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const system  = $derived((data as any).system);
-	const classes = $derived((data as any).classes as any[]);
+	const sources = $derived((data as any).sources as any[]);
 
-	let classId  = $state('');
+	let sourceId = $state('');
 	const rows   = $derived((data as any).rows as any[] ?? []);
-
-	$effect(() => { classId = (data as any).classId ?? ''; });
+	$effect(() => { sourceId = (data as any).sourceId ?? ''; });
 
 	const LEVELS = Array.from({ length: 20 }, (_, i) => i + 1);
-	const selectedClass  = $derived(classes.find((c: any) => c.id === classId) ?? null);
-	const castingClasses = $derived(classes.filter((c: any) => c.canCastSpells));
+	const source = $derived(sources.find((s: any) => s.id === sourceId) ?? null);
 
-	function getRow(level: number) { return rows.find(r => r.classLevel === level); }
 	function val(level: number, field: string) {
-		const v = getRow(level)?.[field];
+		const v = rows.find((r: any) => r.classLevel === level)?.[field];
 		return v == null ? '' : String(v);
 	}
 
-	function changeClass(id: string) {
-		classId = id;
-		goto(`?classId=${id}`, { replaceState: true });
+	function changeSource(id: string) {
+		sourceId = id;
+		goto(`?sourceId=${id}`, { replaceState: true });
 	}
 </script>
 
@@ -35,35 +32,36 @@
 		<div>
 			<a href="/game-systems/{system.id}/dnd5e/spells" style="font-size:0.8125rem;color:var(--text-muted);">← Spells</a>
 			<h2 class="page__title">Spells Known / Prepared</h2>
-			<p style="margin:0;font-size:0.875rem;color:var(--text-muted);">{system.name} · Cantrips, prepared, and additional spells per level</p>
+			<p style="margin:0;font-size:0.875rem;color:var(--text-muted);">{system.name} · Cantrips, prepared, and additional per level</p>
 		</div>
-		<div style="display:flex;gap:0.5rem;">
-			<a href="/game-systems/{system.id}/dnd5e/spells/slots" class="btn btn-ghost btn-sm">Spell Slots</a>
-		</div>
+		<a href="/game-systems/{system.id}/dnd5e/spells/slots" class="btn btn-ghost btn-sm">← Spell Slots</a>
 	</div>
 
 	{#if form?.success}<div class="form-success" style="margin-bottom:1rem;">Saved.</div>{/if}
 	{#if (form as any)?.message}<div class="form-error" style="margin-bottom:1rem;">{(form as any).message}</div>{/if}
 
 	<div style="margin-bottom:1rem;">
-		<div class="field" style="margin:0;max-width:220px;">
-			<label class="label" for="class-sel">Spellcasting Class</label>
-			<select id="class-sel" class="input input--select" value={classId} onchange={(e) => changeClass((e.target as HTMLSelectElement).value)}>
-				<option value="">— Select class —</option>
-				{#each castingClasses as c}
-					<option value={c.id}>{c.name}</option>
+		<div class="field" style="margin:0;max-width:300px;">
+			<label class="label" for="source-sel">Class / Subclass</label>
+			<select id="source-sel" class="input input--select" value={sourceId} onchange={(e) => changeSource((e.target as HTMLSelectElement).value)}>
+				<option value="">— Select —</option>
+				{#each sources as s}
+					<option value={s.id}>{s.label}</option>
 				{/each}
 			</select>
 		</div>
 	</div>
 
-	{#if classId && selectedClass}
+	{#if sourceId && source}
 		<form method="post" action="?/save" use:enhance>
-			<input type="hidden" name="classId"   value={classId} />
-			<input type="hidden" name="className"  value={selectedClass.name} />
+			<input type="hidden" name="classId"      value={source.classId} />
+			<input type="hidden" name="className"    value={source.className} />
+			<input type="hidden" name="subclassId"   value={source.subclassId} />
+			<input type="hidden" name="subclassName" value={source.subclassName} />
 
 			<div style="margin-bottom:0.75rem;padding:0.625rem 0.875rem;background:var(--bg-overlay);border-radius:var(--radius-md);font-size:0.8125rem;color:var(--text-muted);">
 				Leave <strong>Cantrips</strong> or <strong>Prepared</strong> blank if the class doesn't use that column.
+				Cantrips can also be set on the Spell Slots page alongside slot data.
 				Use <strong>Note</strong> for formula-based classes (e.g. "WIS mod + Cleric level").
 			</div>
 
@@ -83,12 +81,12 @@
 							<tr>
 								<td style="font-weight:700;color:var(--text-muted);">{lvl}</td>
 								<td style="padding:0.25rem;">
-									<input name="cantrips_{lvl}"   type="number" min="0" class="input"
+									<input name="cantrips_{lvl}" type="number" min="0" class="input"
 										style="text-align:center;padding:0.25rem;font-size:0.875rem;"
 										value={val(lvl, 'cantrips')} placeholder="—" />
 								</td>
 								<td style="padding:0.25rem;">
-									<input name="prepared_{lvl}"   type="number" min="0" class="input"
+									<input name="prepared_{lvl}" type="number" min="0" class="input"
 										style="text-align:center;padding:0.25rem;font-size:0.875rem;"
 										value={val(lvl, 'prepared')} placeholder="—" />
 								</td>
@@ -111,7 +109,7 @@
 				<button type="submit" class="btn btn-primary">Save Progression</button>
 			</div>
 		</form>
-	{:else if !classId}
-		<div class="card"><p class="table__empty">Select a spellcasting class to edit its spells known progression.</p></div>
+	{:else if !sourceId}
+		<div class="card"><p class="table__empty">Select a class or spellcasting subclass to edit its progression.</p></div>
 	{/if}
 </div>

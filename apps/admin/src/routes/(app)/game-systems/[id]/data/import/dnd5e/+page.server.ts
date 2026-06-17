@@ -147,21 +147,32 @@ export const actions: Actions = {
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.subclasses.update(existing.id, {
-						description: row.description || null,
-						source:      row.source      || null,
-						link:        row.link        || null,
-						sortOrder:   Number(row.sortOrder) || 0,
+						description:  row.description || null,
+						source:       row.source      || null,
+						link:         row.link        || null,
+						sortOrder:    Number(row.sortOrder) || 0,
 					});
+					// Update canCastSpells separately if column is present
+					if (row.canCastSpells !== undefined && row.canCastSpells !== '') {
+						await dnd5e.subclasses.updateSpellcasting(existing.id, { canCastSpells: boolVal(row.canCastSpells) });
+					}
 					updated++;
 				} else {
 					await dnd5e.subclasses.create({
-						classId:     cls.id,
-						name:        row.name,
-						description: row.description || undefined,
-						source:      row.source      || undefined,
-						link:        row.link        || undefined,
-						sortOrder:   Number(row.sortOrder) || 0,
+						classId:      cls.id,
+						name:         row.name,
+						description:  row.description || undefined,
+						source:       row.source      || undefined,
+						link:         row.link        || undefined,
+						sortOrder:    Number(row.sortOrder) || 0,
 					}, locals.user!.id);
+					// canCastSpells set after create since create doesn't support it yet
+					if (boolVal(row.canCastSpells)) {
+						const fresh = (await dnd5e.classes.getAll(params.id))
+							.flatMap((c: any) => c.subclasses ?? [])
+							.find((s: any) => s.classId === cls.id && s.name === row.name);
+						if (fresh) await dnd5e.subclasses.updateSpellcasting(fresh.id, { canCastSpells: true });
+					}
 					created++;
 				}
 			}
@@ -601,15 +612,20 @@ export const actions: Actions = {
 					durationInterval:        num('Duration Interval'),
 					durationUnit:            str('Duration Unit'),
 					requiresSavingThrow:     bool('Requires Saving Throw'),
+					savingThrow:      str('Saving Throw'),
 					requiresAttackRoll:      bool('Requires Attack Roll'),
 					canCastAtHigherLevel:    bool('Can Cast Higher Level'),
+					castingTime:             str('Casting Time'),
+					components:              str('Components'),
+					description:             str('Description'),
+					sourceBook:              str('Source Book'),
 					tags:                    str('Tags'),
 					spellList:               str('Spell List'),
 				});
 				imported++;
 			} catch (e: any) { errors.push(`${r['Name'] ?? '?'}: ${e.message}`); }
 		}
-		return { importSuccess: true, imported, skipped: errors.length, errors, type: 'spells' };
+		return { success: true, imported, skipped: errors.length, errors, type: 'spells' };
 	},
 
 	deleteSpells: async ({ params, locals }) => {
@@ -618,5 +634,88 @@ export const actions: Actions = {
 		const { db } = await import('@core/database');
 		const { count } = await db.dnd5eSpell.deleteMany({ where: { gameSystemId: params.id } });
 		return { deleteSuccess: true, deleted: count, type: 'spells' };
+	},
+
+	importSpellSlots: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'create' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const raw  = data.get('json')?.toString() ?? '';
+		if (!raw) return fail(400, { message: 'No data provided.' });
+		let rows: any[];
+		try { rows = JSON.parse(raw); } catch { return fail(400, { message: 'Invalid JSON.' }); }
+		const { dnd5e } = await import('@core/database');
+		let imported = 0; const errors: string[] = [];
+		for (const r of rows) {
+			try {
+				await dnd5e.spellSlots.upsert({
+					gameSystemId: params.id,
+					classId:      normalize(r['Class ID']       ?? r['classId']       ?? ''),
+					className:    normalize(r['Class Name']     ?? r['className']     ?? ''),
+					subclassId:   normalize(r['Subclass ID']    ?? r['subclassId']    ?? ''),
+					subclassName: normalize(r['Subclass Name']  ?? r['subclassName']  ?? ''),
+					casterType:   normalize(r['Caster Type']    ?? r['casterType']    ?? '').toUpperCase(),
+					classLevel:   Number(r['Level'] ?? r['classLevel'] ?? 0),
+					slot1: Number(r['Slot 1'] ?? r['slot1'] ?? 0),
+					slot2: Number(r['Slot 2'] ?? r['slot2'] ?? 0),
+					slot3: Number(r['Slot 3'] ?? r['slot3'] ?? 0),
+					slot4: Number(r['Slot 4'] ?? r['slot4'] ?? 0),
+					slot5: Number(r['Slot 5'] ?? r['slot5'] ?? 0),
+					slot6: Number(r['Slot 6'] ?? r['slot6'] ?? 0),
+					slot7: Number(r['Slot 7'] ?? r['slot7'] ?? 0),
+					slot8: Number(r['Slot 8'] ?? r['slot8'] ?? 0),
+					slot9: Number(r['Slot 9'] ?? r['slot9'] ?? 0),
+				});
+				imported++;
+			} catch (e: any) { errors.push(`Row ${r['Class Name'] ?? '?'} Lv${r['Level'] ?? '?'}: ${e.message}`); }
+		}
+		return { success: true, imported, skipped: errors.length, errors, type: 'spell slots' };
+	},
+
+	deleteSpellSlots: async ({ params, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const { count } = await db.dnd5eSpellSlotProgression.deleteMany({ where: { gameSystemId: params.id } });
+		return { deleteSuccess: true, deleted: count, type: 'spell slots' };
+	},
+
+	importSpellsKnown: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'create' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const raw  = data.get('json')?.toString() ?? '';
+		if (!raw) return fail(400, { message: 'No data provided.' });
+		let rows: any[];
+		try { rows = JSON.parse(raw); } catch { return fail(400, { message: 'Invalid JSON.' }); }
+		const { dnd5e } = await import('@core/database');
+		const gn = (v: any) => (v !== '' && v != null) ? Number(v) : null;
+		let imported = 0; const errors: string[] = [];
+		for (const r of rows) {
+			try {
+				await dnd5e.spellsKnown.upsert({
+					gameSystemId: params.id,
+					classId:      normalize(r['Class ID']      ?? r['classId']      ?? ''),
+					className:    normalize(r['Class Name']    ?? r['className']    ?? ''),
+					subclassId:   normalize(r['Subclass ID']   ?? r['subclassId']   ?? ''),
+					subclassName: normalize(r['Subclass Name'] ?? r['subclassName'] ?? ''),
+					classLevel:   Number(r['Level'] ?? r['classLevel'] ?? 0),
+					cantrips:     gn(r['Cantrips']   ?? r['cantrips']),
+					prepared:     gn(r['Prepared']   ?? r['prepared']),
+					additional:   gn(r['Additional'] ?? r['additional']),
+					note:         normalize(r['Note'] ?? r['note'] ?? '') || null,
+				});
+				imported++;
+			} catch (e: any) { errors.push(`Row ${r['Class Name'] ?? '?'} Lv${r['Level'] ?? '?'}: ${e.message}`); }
+		}
+		return { success: true, imported, skipped: errors.length, errors, type: 'spells known' };
+	},
+
+	deleteSpellsKnown: async ({ params, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'delete' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const { db } = await import('@core/database');
+		const { count } = await db.dnd5eSpellsKnownProgression.deleteMany({ where: { gameSystemId: params.id } });
+		return { deleteSuccess: true, deleted: count, type: 'spells known' };
 	},
 };

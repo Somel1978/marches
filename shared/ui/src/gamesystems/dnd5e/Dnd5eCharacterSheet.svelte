@@ -281,7 +281,7 @@
 				<p style="font-size:0.875rem;color:var(--text-muted);margin:0;">Not set yet.{canEdit?' Click Set.':''}</p>
 			{:else}
 				<!-- Score boxes — click to toggle breakdown -->
-				<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;text-align:center;">
+				<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:0.5rem;text-align:center;">
 					{#each STATS as s}
 						{@const v       = score(s)}
 						{@const entries = auditByStat[s] ?? []}
@@ -731,7 +731,7 @@
 	{/if}
 
 	<!-- ── Spellbooks ─────────────────────────────────────────────── -->
-	{#if (charSheet?.characterClasses ?? []).some((cc: any) => cc.classRef?.canCastSpells)}
+	{#if (charSheet?.enrichedClasses ?? []).some((cc: any) => cc.classRef?.canCastSpells)}
 		<div style="margin-top:1.5rem;">
 			<h3 class="section-title">Spellbooks</h3>
 			<Dnd5eSpellbooks

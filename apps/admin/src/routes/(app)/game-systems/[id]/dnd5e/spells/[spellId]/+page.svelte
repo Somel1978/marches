@@ -73,7 +73,7 @@
 			</div>
 
 			<div style="display:flex;gap:1rem;flex-wrap:wrap;">
-				{#each [['concentration','Concentration'],['ritual','Ritual'],['isHomebrew','Homebrew'],['isLegacy','Legacy'],['requiresSavingThrow','Saving Throw'],['requiresAttackRoll','Attack Roll'],['canCastAtHigherLevel','Higher Level']] as [k, label]}
+				{#each [['concentration','Concentration'],['ritual','Ritual'],['isHomebrew','Homebrew'],['isLegacy','Legacy'],['requiresAttackRoll','Attack Roll'],['canCastAtHigherLevel','Higher Level']] as [k, label]}
 					<label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;">
 						<input type="checkbox" name={k} value="true" checked={(spell as any)[k]} onchange={(e) => {
 							const inp = e.currentTarget as HTMLInputElement;
@@ -82,6 +82,25 @@
 						{label}
 					</label>
 				{/each}
+			</div>
+
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+				<label style="display:flex;align-items:center;gap:0.375rem;font-size:0.875rem;cursor:pointer;">
+					<input type="checkbox" name="requiresSavingThrow" value="true" checked={(spell as any).requiresSavingThrow} onchange={(e) => {
+						const inp = e.currentTarget as HTMLInputElement;
+						inp.value = inp.checked ? 'true' : 'false';
+					}} />
+					Requires Saving Throw
+				</label>
+				<div class="field" style="margin:0;">
+					<label class="label" for="sp-savingThrow">Saving Throw</label>
+					<select id="sp-savingThrow" name="savingThrow" class="input input--select">
+						<option value="">— None —</option>
+						{#each ['Strength','Dexterity','Constitution','Intelligence','Wisdom','Charisma'] as ab}
+							<option value={ab} selected={(spell as any).savingThrow === ab}>{ab}</option>
+						{/each}
+					</select>
+				</div>
 			</div>
 
 			<hr style="border-color:var(--border-muted);margin:0.25rem 0;" />
@@ -136,6 +155,27 @@
 			<div class="field">
 				<label class="label" for="sp-tags">Tags <span class="table__muted">(comma-separated)</span></label>
 				<input id="sp-tags" name="tags" type="text" class="input" value={spell.tags ?? ''} placeholder="Damage, Control" />
+			</div>
+
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+				<div class="field">
+					<label class="label" for="sp-castingTime">Casting Time</label>
+					<input id="sp-castingTime" name="castingTime" type="text" class="input" value={(spell as any).castingTime ?? ''} placeholder="Action, Bonus Action, Reaction, 1 Minute…" />
+				</div>
+				<div class="field">
+					<label class="label" for="sp-sourceBook">Source Book</label>
+					<input id="sp-sourceBook" name="sourceBook" type="text" class="input" value={(spell as any).sourceBook ?? ''} placeholder="Player's Handbook, Xanathar's Guide…" />
+				</div>
+			</div>
+
+			<div class="field">
+				<label class="label" for="sp-components">Components</label>
+				<input id="sp-components" name="components" type="text" class="input" value={(spell as any).components ?? ''} placeholder="V, S or V, S, M (material)" />
+			</div>
+
+			<div class="field">
+				<label class="label" for="sp-description">Description <span class="table__muted">(optional)</span></label>
+				<textarea id="sp-description" name="description" class="input" rows="4" style="resize:vertical;">{(spell as any).description ?? ''}</textarea>
 			</div>
 
 			<button type="submit" class="btn btn-primary">Save Changes</button>

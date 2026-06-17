@@ -31,8 +31,13 @@ export async function upsertDnd5eSpell(input: {
     durationInterval?:       number | null;
     durationUnit?:           string | null;
     requiresSavingThrow:     boolean;
+    savingThrow?:     string | null;
     requiresAttackRoll:      boolean;
     canCastAtHigherLevel:    boolean;
+    castingTime?:            string | null;
+    components?:             string | null;
+    description?:            string | null;
+    sourceBook?:             string | null;
     tags?:                   string | null;
     spellList?:              string | null;
 }) {
@@ -70,8 +75,13 @@ export async function updateDnd5eSpell(id: number, input: Partial<{
     durationInterval:        number | null;
     durationUnit:            string | null;
     requiresSavingThrow:     boolean;
+    savingThrow:      string | null;
     requiresAttackRoll:      boolean;
     canCastAtHigherLevel:    boolean;
+    castingTime:             string | null;
+    components:              string | null;
+    description:             string | null;
+    sourceBook:              string | null;
     tags:                    string | null;
     spellList:               string | null;
 }>) {
@@ -88,22 +98,24 @@ export async function upsertSpellSlotProgression(input: {
     gameSystemId: string;
     classId:      string;
     className:    string;
+    subclassId:   string;
+    subclassName: string;
     casterType:   string;
     classLevel:   number;
     slot1: number; slot2: number; slot3: number;
     slot4: number; slot5: number; slot6: number;
     slot7: number; slot8: number; slot9: number;
 }) {
-    const { gameSystemId, classId, classLevel, ...rest } = input;
+    const { gameSystemId, classId, subclassId, classLevel, ...rest } = input;
     return db.dnd5eSpellSlotProgression.upsert({
-        where: { gameSystemId_classId_classLevel: { gameSystemId, classId, classLevel } },
-        create: { gameSystemId, classId, classLevel, ...rest },
+        where: { gameSystemId_classId_subclassId_classLevel: { gameSystemId, classId, subclassId, classLevel } },
+        create: { gameSystemId, classId, subclassId, classLevel, ...rest },
         update: rest,
     });
 }
 
-export async function deleteSpellSlotProgressionClass(gameSystemId: string, classId: string) {
-    return db.dnd5eSpellSlotProgression.deleteMany({ where: { gameSystemId, classId } });
+export async function deleteSpellSlotProgressionClass(gameSystemId: string, classId: string, subclassId = '') {
+    return db.dnd5eSpellSlotProgression.deleteMany({ where: { gameSystemId, classId, subclassId } });
 }
 
 // ── Spells Known Progression ──────────────────────────────────────────────────
@@ -112,22 +124,24 @@ export async function upsertSpellsKnownProgression(input: {
     gameSystemId: string;
     classId:      string;
     className:    string;
+    subclassId:   string;
+    subclassName: string;
     classLevel:   number;
     cantrips?:    number | null;
     prepared?:    number | null;
     additional?:  number | null;
     note?:        string | null;
 }) {
-    const { gameSystemId, classId, classLevel, ...rest } = input;
+    const { gameSystemId, classId, subclassId, classLevel, ...rest } = input;
     return db.dnd5eSpellsKnownProgression.upsert({
-        where: { gameSystemId_classId_classLevel: { gameSystemId, classId, classLevel } },
-        create: { gameSystemId, classId, classLevel, ...rest },
+        where: { gameSystemId_classId_subclassId_classLevel: { gameSystemId, classId, subclassId, classLevel } },
+        create: { gameSystemId, classId, subclassId, classLevel, ...rest },
         update: rest,
     });
 }
 
-export async function deleteSpellsKnownProgressionClass(gameSystemId: string, classId: string) {
-    return db.dnd5eSpellsKnownProgression.deleteMany({ where: { gameSystemId, classId } });
+export async function deleteSpellsKnownProgressionClass(gameSystemId: string, classId: string, subclassId = '') {
+    return db.dnd5eSpellsKnownProgression.deleteMany({ where: { gameSystemId, classId, subclassId } });
 }
 
 // ── Spellbooks ────────────────────────────────────────────────────────────────

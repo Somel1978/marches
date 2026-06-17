@@ -1,6 +1,6 @@
 <!-- apps/admin/src/routes/(app)/+layout.svelte -->
 <script lang="ts">
-	import { AppShell, NavItem } from '@core/ui';
+	import { AppShell, NavItem, ConfirmModal } from '@core/ui';
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
@@ -44,3 +44,6 @@
 
 	{@render children()}
 </AppShell>
+
+<!-- Global imperative confirm modal — exposes window.confirmModal(title, msg): Promise<boolean> -->
+<ConfirmModal />

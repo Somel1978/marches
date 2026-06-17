@@ -33,11 +33,10 @@
 			<span class="badge badge-npc--{npc.status}">{npc.status}</span>
 			{#if !npc.isVisible}<span class="badge badge-muted">🔒 Hidden from players</span>{/if}
 		</div>
-		<form method="post" action="?/delete" use:enhance={({ cancel }) => {
-			askConfirm('Confirm', `Delete NPC "${npc.name}"?`, () => { cancel(); }); return;
-			return async ({ update }) => { await update(); };
-		}}>
-			<button type="submit" class="btn btn-danger btn-sm">Delete NPC</button>
+		<form id="cf-140d1b" method="post" action="?/delete" use:enhance={() => {
+				return async ({ update }) => { await update(); };
+			}}>
+			<button type="button" class="btn btn-danger btn-sm" onclick={() => window.confirmModal('Confirm', `Delete NPC "${npc.name}"?`).then(ok => { if(ok)(document.getElementById("cf-140d1b") as HTMLFormElement).requestSubmit(); })}>Delete NPC</button>
 		</form>
 	</div>
 

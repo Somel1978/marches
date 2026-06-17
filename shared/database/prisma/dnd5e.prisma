@@ -49,8 +49,9 @@ model Dnd5eSubclass {
   description  String?
   source       String?
   link         String?
-  isAvailable  Boolean    @default(true) @map("is_available")
-  sortOrder    Int        @default(0)    @map("sort_order")
+  isAvailable  Boolean    @default(true)  @map("is_available")
+  canCastSpells Boolean   @default(false) @map("can_cast_spells")
+  sortOrder    Int        @default(0)     @map("sort_order")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt      @map("updated_at")
 
@@ -241,8 +242,13 @@ model Dnd5eSpell {
   durationInterval         Int?    @map("duration_interval")
   durationUnit             String? @map("duration_unit")
   requiresSavingThrow      Boolean @default(false) @map("requires_saving_throw")
+  savingThrow       String? @map("saving_throw") // e.g. "Wisdom", "Constitution"
   requiresAttackRoll       Boolean @default(false) @map("requires_attack_roll")
   canCastAtHigherLevel     Boolean @default(false) @map("can_cast_at_higher_level")
+  castingTime              String? @map("casting_time")   // e.g. "Action", "Bonus Action", "Reaction", "1 Minute"
+  components               String? @map("components")     // e.g. "V, S" or "V, S, M" or "V, S, M (material)"
+  description              String? @map("description")    // full spell text, nullable
+  sourceBook               String? @map("source_book")    // e.g. "Player's Handbook", "Xanathar's Guide"
   tags                     String?
   spellList                String? @map("spell_list") // comma-separated class names
   createdAt                DateTime @default(now()) @map("created_at")
@@ -259,39 +265,43 @@ model Dnd5eSpell {
 }
 
 model Dnd5eSpellSlotProgression {
-  id           String @id @default(uuid())
-  gameSystemId String @map("game_system_id")
-  classId      String @map("class_id")
-  className    String @map("class_name")   // denormalized
-  casterType   String @map("caster_type")  // FULL | HALF | THIRD | PACT
-  classLevel   Int    @map("class_level")  // 1–20
-  slot1        Int    @default(0) @map("slot1")
-  slot2        Int    @default(0) @map("slot2")
-  slot3        Int    @default(0) @map("slot3")
-  slot4        Int    @default(0) @map("slot4")
-  slot5        Int    @default(0) @map("slot5")
-  slot6        Int    @default(0) @map("slot6")
-  slot7        Int    @default(0) @map("slot7")
-  slot8        Int    @default(0) @map("slot8")
-  slot9        Int    @default(0) @map("slot9")
+  id            String @id @default(uuid())
+  gameSystemId  String @map("game_system_id")
+  classId       String @map("class_id")
+  className     String @map("class_name")      // denormalized
+  subclassId    String @default("") @map("subclass_id")    // "" = class-level caster
+  subclassName  String @default("") @map("subclass_name")  // denormalized
+  casterType    String @map("caster_type")     // FULL | HALF | THIRD | PACT
+  classLevel    Int    @map("class_level")     // 1–20
+  slot1         Int    @default(0) @map("slot1")
+  slot2         Int    @default(0) @map("slot2")
+  slot3         Int    @default(0) @map("slot3")
+  slot4         Int    @default(0) @map("slot4")
+  slot5         Int    @default(0) @map("slot5")
+  slot6         Int    @default(0) @map("slot6")
+  slot7         Int    @default(0) @map("slot7")
+  slot8         Int    @default(0) @map("slot8")
+  slot9         Int    @default(0) @map("slot9")
 
-  @@unique([gameSystemId, classId, classLevel])
+  @@unique([gameSystemId, classId, subclassId, classLevel])
   @@map("spell_slot_progressions")
   @@schema("dnd5e")
 }
 
 model Dnd5eSpellsKnownProgression {
-  id           String  @id @default(uuid())
-  gameSystemId String  @map("game_system_id")
-  classId      String  @map("class_id")
-  className    String  @map("class_name")  // denormalized
-  classLevel   Int     @map("class_level") // 1–20
-  cantrips     Int?                        // null = class has no cantrips
-  prepared     Int?                        // null = formula-based, show note
-  additional   Int?                        // bonus spells
-  note         String?                     // e.g. "WIS mod + Cleric level"
+  id            String  @id @default(uuid())
+  gameSystemId  String  @map("game_system_id")
+  classId       String  @map("class_id")
+  className     String  @map("class_name")     // denormalized
+  subclassId    String  @default("") @map("subclass_id")   // "" = class-level caster
+  subclassName  String  @default("") @map("subclass_name") // denormalized
+  classLevel    Int     @map("class_level")    // 1–20
+  cantrips      Int?                           // null = class has no cantrips
+  prepared      Int?                           // null = formula-based, show note
+  additional    Int?                           // bonus spells
+  note          String?                        // e.g. "WIS mod + Cleric level"
 
-  @@unique([gameSystemId, classId, classLevel])
+  @@unique([gameSystemId, classId, subclassId, classLevel])
   @@map("spells_known_progressions")
   @@schema("dnd5e")
 }

@@ -5,30 +5,50 @@ import { checkPermission } from '@core/rbac';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params, url }) => {
-	const system   = await gameSystems.getById(params.id);
+	const system  = await gameSystems.getById(params.id);
 	if (!system) throw error(404, 'Game system not found');
-	const classes  = await dnd5e.classes.getAll(params.id);
-	const classId  = url.searchParams.get('classId') ?? classes.find((c: any) => c.canCastSpells)?.id ?? '';
-	const rows     = classId ? await dnd5e.spellSlots.getByClass(params.id, classId) : [];
-	return { system, classes, classId, rows };
+	const classes = await dnd5e.classes.getAll(params.id);
+
+	// Build selector items: spellcasting classes + spellcasting subclasses
+	const sources: { id: string; label: string; classId: string; className: string; subclassId: string; subclassName: string }[] = [];
+	for (const cls of classes) {
+		if ((cls as any).canCastSpells) {
+			sources.push({ id: cls.id, label: cls.name, classId: cls.id, className: cls.name, subclassId: '', subclassName: '' });
+		}
+		for (const sub of ((cls as any).subclasses ?? [])) {
+			if (sub.canCastSpells) {
+				sources.push({ id: sub.id, label: `${cls.name} — ${sub.name}`, classId: cls.id, className: cls.name, subclassId: sub.id, subclassName: sub.name });
+			}
+		}
+	}
+
+	const sourceId   = url.searchParams.get('sourceId') ?? sources[0]?.id ?? '';
+	const source     = sources.find(s => s.id === sourceId);
+	const rows       = source ? await dnd5e.spellSlots.getByClass(params.id, source.classId).then(r => r.filter((x: any) => x.subclassId === source.subclassId)) : [];
+	const knownRows  = source ? await dnd5e.spellsKnown.getByClass(params.id, source.classId).then(r => r.filter((x: any) => x.subclassId === source.subclassId)) : [];
+
+	return { system, sources, sourceId, source, rows, knownRows };
 };
 
 export const actions: Actions = {
 	save: async ({ params, request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
-		const data      = await request.formData();
-		const classId   = data.get('classId')?.toString() ?? '';
-		const className = data.get('className')?.toString() ?? '';
-		const casterType = data.get('casterType')?.toString() ?? '';
+		const data        = await request.formData();
+		const classId     = data.get('classId')?.toString()     ?? '';
+		const className   = data.get('className')?.toString()   ?? '';
+		const subclassId  = data.get('subclassId')?.toString()  ?? '';
+		const subclassName = data.get('subclassName')?.toString() ?? '';
+		const casterType  = data.get('casterType')?.toString()  ?? '';
 		if (!classId || !className || !casterType) return fail(400, { message: 'Class and caster type required.' });
 
+		const gn = (k: string) => { const v = data.get(k)?.toString().trim(); return v !== '' && v != null ? Number(v) : null; };
+
 		for (let lvl = 1; lvl <= 20; lvl++) {
+			// Save slots
 			await dnd5e.spellSlots.upsert({
 				gameSystemId: params.id,
-				classId,
-				className,
-				casterType,
+				classId, className, subclassId, subclassName, casterType,
 				classLevel: lvl,
 				slot1: Number(data.get(`slot1_${lvl}`) ?? 0),
 				slot2: Number(data.get(`slot2_${lvl}`) ?? 0),
@@ -39,6 +59,17 @@ export const actions: Actions = {
 				slot7: Number(data.get(`slot7_${lvl}`) ?? 0),
 				slot8: Number(data.get(`slot8_${lvl}`) ?? 0),
 				slot9: Number(data.get(`slot9_${lvl}`) ?? 0),
+			});
+			// Save cantrips alongside (into spellsKnown)
+			const cantrips = gn(`cantrips_${lvl}`);
+			await dnd5e.spellsKnown.upsert({
+				gameSystemId: params.id,
+				classId, className, subclassId, subclassName,
+				classLevel: lvl,
+				cantrips,
+				prepared:   undefined,
+				additional: undefined,
+				note:       undefined,
 			});
 		}
 		return { success: true };

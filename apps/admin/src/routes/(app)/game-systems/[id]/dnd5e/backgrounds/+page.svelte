@@ -117,12 +117,11 @@
 					<div style="flex:1 1 80px; min-width:0; font-size:0.8125rem; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{b.languages ?? '—'}</div>
 					<div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;" onclick={(e) => e.stopPropagation()} role="presentation">
 						{#if b.isAvailable}<span class="badge badge-success" style="font-size:0.75rem;">✓</span>{:else}<span class="badge badge-muted" style="font-size:0.75rem;">—</span>{/if}
-						<form method="post" action="?/deleteBackground" use:enhance={({ cancel }) => {
-							askConfirm('Confirm', `Delete "${b.name}"?`, () => { cancel(); }); return;
-							return async ({ update }) => { await update(); await invalidateAll(); };
-						}} style="margin:0;">
+						<form id="cf-2767ad" method="post" action="?/deleteBackground" use:enhance={() => {
+				return async ({ update }) => { await update(); await invalidateAll(); };
+			}} style="margin:0;">
 							<input type="hidden" name="id" value={b.id} />
-							<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕</button>
+							<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete "${b.name}"?`).then(ok => { if(ok)(document.getElementById("cf-2767ad") as HTMLFormElement).requestSubmit(); })}>✕</button>
 						</form>
 					</div>
 				</div>

@@ -39,11 +39,10 @@
 			<span class="badge badge-tier--{faction.powerTier}">{tierLabel[faction.powerTier] ?? faction.powerTier}</span>
 			{#if !faction.isVisible}<span class="badge badge-muted">🔒 Hidden from players</span>{/if}
 		</div>
-		<form method="post" action="?/delete" use:enhance={({ cancel }) => {
-			askConfirm('Confirm', `Delete faction "${faction.name}"?`, () => { cancel(); }); return;
-			return async ({ update }) => { await update(); };
-		}}>
-			<button type="submit" class="btn btn-danger btn-sm">Delete faction</button>
+		<form id="cf-e89aab" method="post" action="?/delete" use:enhance={() => {
+				return async ({ update }) => { await update(); };
+			}}>
+			<button type="button" class="btn btn-danger btn-sm" onclick={() => window.confirmModal('Confirm', `Delete faction "${faction.name}"?`).then(ok => { if(ok)(document.getElementById("cf-e89aab") as HTMLFormElement).requestSubmit(); })}>Delete faction</button>
 		</form>
 	</div>
 

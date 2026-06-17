@@ -73,7 +73,7 @@
 										<button type="submit" class="btn btn-primary btn-sm">Approve</button>
 									</form>
 									<form method="post" action="?/delete"
-										use:enhance={({ cancel }) => { askConfirm('Confirm', 'Delete this request?', () => { cancel(); }); return; return async ({ update }) => { await update(); await invalidateAll(); }; }}>
+										use:enhance={() => { return async ({ update }) => { await update(); await invalidateAll(); }; }} id="cf-req-{req.id}">
 										<input type="hidden" name="id" value={req.id} />
 										<button type="submit" class="btn btn-ghost btn-sm btn-icon"
 											aria-label="Delete">

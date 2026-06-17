@@ -114,12 +114,11 @@
 				Deactivates this DM profile and removes the DM role from the user.
 				All active quests and region assignments will be frozen until manually resolved.
 			</p>
-			<form method="post" action="?/revoke"
-				use:enhance={({ cancel }) => {
-					askConfirm('Confirm', 'Revoke DM role? This deactivates the profile and removes the DM role.', () => { cancel(); }); return;
-					return async ({ update }) => { await update(); await invalidateAll(); };
-				}}>
-				<button type="submit" class="btn btn-danger btn-sm">Revoke DM role</button>
+			<form id="cf-a81f40" method="post" action="?/revoke"
+				use:enhance={() => {
+				return async ({ update }) => { await update(); await invalidateAll(); };
+			}}>
+				<button type="button" class="btn btn-danger btn-sm" onclick={() => window.confirmModal('Confirm', 'Revoke DM role? This deactivates the profile and removes the DM role.').then(ok => { if(ok)(document.getElementById("cf-a81f40") as HTMLFormElement).requestSubmit(); })}>Revoke DM role</button>
 			</form>
 		</div>
 	{/if}

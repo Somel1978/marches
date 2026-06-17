@@ -70,12 +70,11 @@
 									<td>{npc.isVisible ? '✓' : '🔒'}</td>
 									<td style="white-space:nowrap;">
 										<a href="/world/{world.id}/npcs/{npc.id}" class="btn btn-ghost btn-sm">Manage</a>
-										<form method="post" action="?/delete" style="display:inline;" use:enhance={({ cancel }) => {
-											askConfirm('Confirm', `Delete NPC "${npc.name}"?`, () => { cancel(); }); return;
-											return async ({ update }) => { await update(); };
-										}}>
+										<form id="cf-71f3c5" method="post" action="?/delete" style="display:inline;" use:enhance={() => {
+				return async ({ update }) => { await update(); };
+			}}>
 											<input type="hidden" name="npcId" value={npc.id} />
-											<button type="submit" class="btn btn-danger btn-sm">Delete</button>
+											<button type="button" class="btn btn-danger btn-sm" onclick={() => window.confirmModal('Confirm', `Delete NPC "${npc.name}"?`).then(ok => { if(ok)(document.getElementById("cf-71f3c5") as HTMLFormElement).requestSubmit(); })}>Delete</button>
 										</form>
 									</td>
 								</tr>

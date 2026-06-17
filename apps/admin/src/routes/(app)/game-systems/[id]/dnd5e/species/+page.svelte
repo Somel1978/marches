@@ -92,12 +92,11 @@
 								{#if s.isLegacy}<span class="badge badge-warning">Legacy</span>{/if}
 								<span class="badge badge-muted">{s.traits?.length ?? 0} traits</span>
 							</button>
-							<form method="post" action="?/deleteSpecies" use:enhance={({ cancel }) => {
-								askConfirm('Confirm', `Delete "${s.name}"?`, () => { cancel(); }); return;
-								return async ({ update }) => { await update(); await invalidateAll(); };
-							}} style="margin:0;">
+							<form id="cf-9d8908" method="post" action="?/deleteSpecies" use:enhance={() => {
+				return async ({ update }) => { await update(); await invalidateAll(); };
+			}} style="margin:0;">
 								<input type="hidden" name="id" value={s.id} />
-								<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕</button>
+								<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete "${s.name}"?`).then(ok => { if(ok)(document.getElementById("cf-9d8908") as HTMLFormElement).requestSubmit(); })}>✕</button>
 							</form>
 						</div>
 
