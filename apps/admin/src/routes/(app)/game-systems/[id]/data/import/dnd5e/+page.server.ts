@@ -645,16 +645,33 @@ export const actions: Actions = {
 		let rows: any[];
 		try { rows = JSON.parse(raw); } catch { return fail(400, { message: 'Invalid JSON.' }); }
 		const { dnd5e } = await import('@core/database');
+
+		// Resolve class/subclass IDs by name — IDs are system-specific and not portable
+		const classes = await dnd5e.classes.getAll(params.id);
+		const classByName = new Map(classes.map((c: any) => [c.name.toLowerCase(), c]));
+
 		let imported = 0; const errors: string[] = [];
 		for (const r of rows) {
 			try {
+				const className    = normalize(r['Class Name']    ?? r['className']    ?? '');
+				const subclassName = normalize(r['Subclass Name'] ?? r['subclassName'] ?? '');
+				const cls          = classByName.get(className.toLowerCase());
+				if (!cls) { errors.push(`Class "${className}" not found in this game system.`); continue; }
+
+				let subclassId = '';
+				if (subclassName) {
+					const sub = (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase());
+					if (!sub) { errors.push(`Subclass "${subclassName}" not found under "${className}".`); continue; }
+					subclassId = sub.id;
+				}
+
 				await dnd5e.spellSlots.upsert({
 					gameSystemId: params.id,
-					classId:      normalize(r['Class ID']       ?? r['classId']       ?? ''),
-					className:    normalize(r['Class Name']     ?? r['className']     ?? ''),
-					subclassId:   normalize(r['Subclass ID']    ?? r['subclassId']    ?? ''),
-					subclassName: normalize(r['Subclass Name']  ?? r['subclassName']  ?? ''),
-					casterType:   normalize(r['Caster Type']    ?? r['casterType']    ?? '').toUpperCase(),
+					classId:      cls.id,
+					className:    cls.name,
+					subclassId,
+					subclassName,
+					casterType:   normalize(r['Caster Type'] ?? r['casterType'] ?? '').toUpperCase(),
 					classLevel:   Number(r['Level'] ?? r['classLevel'] ?? 0),
 					slot1: Number(r['Slot 1'] ?? r['slot1'] ?? 0),
 					slot2: Number(r['Slot 2'] ?? r['slot2'] ?? 0),
@@ -689,16 +706,33 @@ export const actions: Actions = {
 		let rows: any[];
 		try { rows = JSON.parse(raw); } catch { return fail(400, { message: 'Invalid JSON.' }); }
 		const { dnd5e } = await import('@core/database');
+
+		// Resolve class/subclass IDs by name — IDs are system-specific and not portable
+		const classes = await dnd5e.classes.getAll(params.id);
+		const classByName = new Map(classes.map((c: any) => [c.name.toLowerCase(), c]));
+
 		const gn = (v: any) => (v !== '' && v != null) ? Number(v) : null;
 		let imported = 0; const errors: string[] = [];
 		for (const r of rows) {
 			try {
+				const className    = normalize(r['Class Name']    ?? r['className']    ?? '');
+				const subclassName = normalize(r['Subclass Name'] ?? r['subclassName'] ?? '');
+				const cls          = classByName.get(className.toLowerCase());
+				if (!cls) { errors.push(`Class "${className}" not found in this game system.`); continue; }
+
+				let subclassId = '';
+				if (subclassName) {
+					const sub = (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase());
+					if (!sub) { errors.push(`Subclass "${subclassName}" not found under "${className}".`); continue; }
+					subclassId = sub.id;
+				}
+
 				await dnd5e.spellsKnown.upsert({
 					gameSystemId: params.id,
-					classId:      normalize(r['Class ID']      ?? r['classId']      ?? ''),
-					className:    normalize(r['Class Name']    ?? r['className']    ?? ''),
-					subclassId:   normalize(r['Subclass ID']   ?? r['subclassId']   ?? ''),
-					subclassName: normalize(r['Subclass Name'] ?? r['subclassName'] ?? ''),
+					classId:      cls.id,
+					className:    cls.name,
+					subclassId,
+					subclassName,
 					classLevel:   Number(r['Level'] ?? r['classLevel'] ?? 0),
 					cantrips:     gn(r['Cantrips']   ?? r['cantrips']),
 					prepared:     gn(r['Prepared']   ?? r['prepared']),
