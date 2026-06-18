@@ -22,7 +22,8 @@ explicitly via `invalidateUserPermissions(userId)` after role changes.
 ---
 
 
-### Site Branding
+
+### Site Branding :D
 
 **Settings:** `site.name`, `site.logo`, `site.logoIcon`, `site.url`, `site.footer`
 

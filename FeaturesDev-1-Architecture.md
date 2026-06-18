@@ -21,7 +21,7 @@
 | Package manager | pnpm v11 |
 | Markdown | marked (via @core/ui) |
 
----
+---_
 
 
 ## Monorepo Structure
