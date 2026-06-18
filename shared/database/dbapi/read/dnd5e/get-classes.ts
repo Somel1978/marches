@@ -94,13 +94,16 @@ export async function getDnd5eSystemData(gameSystemId: string) {
     const hit = _systemDataCache.get(gameSystemId);
     if (hit && Date.now() - hit.ts < SYSTEM_DATA_TTL) return hit.data;
 
-    const [classes, species, backgrounds, feats] = await Promise.all([
+    const [classes, species, backgrounds, feats, spellSlotProgressions, spellsKnownProgressions, spells] = await Promise.all([
         getDnd5eClasses(gameSystemId),
         getDnd5eSpecies(gameSystemId),
         getDnd5eBackgrounds(gameSystemId),
         getDnd5eFeats(gameSystemId),
+        db.dnd5eSpellSlotProgression.findMany({ where: { gameSystemId }, orderBy: [{ classId: 'asc' }, { classLevel: 'asc' }] }).catch(() => []),
+        db.dnd5eSpellsKnownProgression.findMany({ where: { gameSystemId }, orderBy: [{ classId: 'asc' }, { classLevel: 'asc' }] }).catch(() => []),
+        db.dnd5eSpell.findMany({ where: { gameSystemId, isLegacy: false }, orderBy: [{ level: 'asc' }, { name: 'asc' }] }).catch(() => []),
     ]);
-    const data = { classes, species, backgrounds, feats };
+    const data = { classes, species, backgrounds, feats, spellSlotProgressions, spellsKnownProgressions, spells };
     _systemDataCache.set(gameSystemId, { data, ts: Date.now() });
     return data;
 }

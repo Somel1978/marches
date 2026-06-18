@@ -24,13 +24,19 @@
 	// Track saved/saving state per key
 	let savedKeys  = $state<Set<string>>(new Set());
 	let savingKeys = $state<Set<string>>(new Set());
+	let errorKeys  = $state<Map<string, string>>(new Map());
 
 	function onSaved(key: string) {
 		savedKeys  = new Set([...savedKeys, key]);
 		savingKeys = new Set([...savingKeys].filter(k => k !== key));
+		errorKeys  = new Map([...errorKeys].filter(([k]) => k !== key));
 		setTimeout(() => {
 			savedKeys = new Set([...savedKeys].filter(k => k !== key));
 		}, 2000);
+	}
+	function onError(key: string, msg: string) {
+		savingKeys = new Set([...savingKeys].filter(k => k !== key));
+		errorKeys  = new Map([...errorKeys, [key, msg]]);
 	}
 </script>
 
@@ -54,6 +60,8 @@
 								<span style="font-size:0.75rem; color:var(--color-success);">✓ Saved</span>
 							{:else if savingKeys.has(setting.key)}
 								<span style="font-size:0.75rem; color:var(--text-muted);">Saving…</span>
+							{:else if errorKeys.has(setting.key)}
+								<span style="font-size:0.75rem; color:var(--color-danger);">✕ Error</span>
 							{/if}
 						</div>
 						{#if setting.description}
@@ -65,6 +73,7 @@
 								return async ({ result, update }) => {
 									await update({ reset: false });
 									if (result.type === 'success') onSaved(setting.key);
+									else if (result.type === 'failure') onError(setting.key, (result as any).data?.message ?? 'Save failed.');
 									else savingKeys = new Set([...savingKeys].filter(k => k !== setting.key));
 								};
 							}}>
@@ -86,6 +95,9 @@
 									Save
 								</button>
 							</div>
+							{#if errorKeys.has(setting.key)}
+								<p style="font-size:0.75rem; color:var(--color-danger); margin:0.25rem 0 0;">{errorKeys.get(setting.key)}</p>
+							{/if}
 						</form>
 					</div>
 				{/each}

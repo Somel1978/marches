@@ -49,7 +49,7 @@ export async function getTokenStoreTransactions({ characterId, worldId, status }
         : [];
     const charMap = Object.fromEntries(chars.map(c => [c.id, c.name]));
 
-    return txs.map(t => ({ ...t, characterName: charMap[t.characterId] ?? t.characterId }));
+    return txs.map(t => ({ ...t, characterName: charMap[t.characterId] ?? 'Deleted Character' }));
 }
 
 export async function getTokenStoreTransactionById(id: string) {

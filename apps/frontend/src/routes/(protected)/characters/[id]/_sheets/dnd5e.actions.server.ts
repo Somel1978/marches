@@ -119,4 +119,83 @@ export const dnd5eActions = {
 			throw e;
 		}
 	},
+
+	// ── Spellbooks ────────────────────────────────────────────────────────────
+
+	createSpellbook: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const data  = await request.formData();
+		const name  = data.get('name')?.toString().trim() || 'Spellbook';
+		const books = await dnd5e.spellbooks.getForCharacter(params.id);
+		if (books.length >= 3) return fail(400, { message: 'Maximum 3 spellbooks per character.' });
+		await dnd5e.spellbooks.create({ characterId: params.id, name });
+		return { success: true };
+	},
+
+	renameSpellbook: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const data = await request.formData();
+		const id   = data.get('id')?.toString()   ?? '';
+		const name = data.get('name')?.toString().trim() || 'Spellbook';
+		if (!id) return fail(400, { message: 'ID required.' });
+		await dnd5e.spellbooks.update(id, name);
+		return { success: true };
+	},
+
+	deleteSpellbook: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const data = await request.formData();
+		const id   = data.get('id')?.toString() ?? '';
+		if (!id) return fail(400, { message: 'ID required.' });
+		await dnd5e.spellbooks.delete(id);
+		return { success: true };
+	},
+
+	addSpellbookEntry: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const data        = await request.formData();
+		const spellbookId = data.get('spellbookId')?.toString() ?? '';
+		const spellId     = Number(data.get('spellId')  ?? 0);
+		const classId     = data.get('classId')?.toString()     ?? '';
+		const className   = data.get('className')?.toString()   ?? '';
+		if (!spellbookId || !spellId || !classId) return fail(400, { message: 'Missing required fields.' });
+		try {
+			await dnd5e.spellbooks.addEntry({ spellbookId, spellId, classId, className });
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	removeSpellbookEntry: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const data = await request.formData();
+		const id   = data.get('id')?.toString() ?? '';
+		if (!id) return fail(400, { message: 'ID required.' });
+		await dnd5e.spellbooks.removeEntry(id);
+		return { success: true };
+	},
+
+	toggleSpellPrepared: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const data     = await request.formData();
+		const id       = data.get('id')?.toString() ?? '';
+		const prepared = data.get('prepared') === 'true';
+		if (!id) return fail(400, { message: 'ID required.' });
+		await dnd5e.spellbooks.togglePrepared(id, prepared);
+		return { success: true };
+	},
 };

@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/species/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -9,7 +10,19 @@
 	const species = $derived((data as any).species ?? []);
 
 	let expandedSpecies = $state<string | null>(null);
-	let showNew = $state(false);
+	let showNew         = $state(false);
+	let editingTrait    = $state<string | null>(null);
+	let search          = $state('');
+	const filtered = $derived(search ? species.filter((s: any) => s.name.toLowerCase().includes(search.toLowerCase())) : species);
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -22,6 +35,7 @@
 			<a href="/game-systems/{system.id}/dnd5e/classes"     class="btn btn-ghost btn-sm">Classes</a>
 			<a href="/game-systems/{system.id}/dnd5e/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
 			<button type="button" class="btn btn-primary btn-sm" onclick={() => showNew = !showNew}>+ New species</button>
+		<input type="text" class="input" style="max-width:220px;" placeholder="Search species…" bind:value={search} />
 		</div>
 	</div>
 
@@ -68,7 +82,7 @@
 	<div class="card">
 		{#if species.length}
 			<div style="display:flex; flex-direction:column; gap:0.5rem;">
-				{#each species as s}
+				{#each filtered as s}
 					<div style="border:1px solid var(--border-muted); border-radius:var(--radius-md); overflow:hidden;">
 						<div style="display:flex; align-items:center; gap:0.75rem; padding:0.625rem 0.75rem; background:var(--bg-overlay); flex-wrap:wrap">
 							<button type="button" style="flex:1; text-align:left; background:none; border:none; cursor:pointer; font-weight:600;"
@@ -78,12 +92,11 @@
 								{#if s.isLegacy}<span class="badge badge-warning">Legacy</span>{/if}
 								<span class="badge badge-muted">{s.traits?.length ?? 0} traits</span>
 							</button>
-							<form method="post" action="?/deleteSpecies" use:enhance={({ cancel }) => {
-								if (!confirm(`Delete "${s.name}"?`)) cancel();
-								return async ({ update }) => { await update(); await invalidateAll(); };
-							}} style="margin:0;">
+							<form id="cf-9d8908" method="post" action="?/deleteSpecies" use:enhance={() => {
+				return async ({ update }) => { await update(); await invalidateAll(); };
+			}} style="margin:0;">
 								<input type="hidden" name="id" value={s.id} />
-								<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕</button>
+								<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete "${s.name}"?`).then(ok => { if(ok)(document.getElementById("cf-9d8908") as HTMLFormElement).requestSubmit(); })}>✕</button>
 							</form>
 						</div>
 
@@ -95,16 +108,44 @@
 								{#if s.traits?.length}
 									<div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.5rem;">
 										{#each s.traits as t}
-											<div style="display:flex; align-items:center; gap:0.5rem; padding:0.375rem 0.5rem; background:var(--bg-surface); border-radius:var(--radius-sm); flex-wrap:wrap">
-												{#if t.requiredLevel}<span class="badge badge-muted">Lv {t.requiredLevel}</span>{/if}
-												<span style="flex:1; font-size:0.8125rem; font-weight:500;">{t.name}</span>
-												{#if t.description}<span style="font-size:0.75rem; color:var(--text-muted); flex:2;">{t.description}</span>{/if}
-												<form method="post" action="?/deleteTrait" use:enhance={() => {
-													return async ({ update }) => { await update(); await invalidateAll(); };
-												}} style="margin:0;">
-													<input type="hidden" name="id" value={t.id} />
-													<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger); font-size:0.75rem;">✕</button>
-												</form>
+											<div style="background:var(--bg-surface); border-radius:var(--radius-sm); overflow:hidden;">
+												<div style="display:flex; align-items:center; gap:0.5rem; padding:0.375rem 0.5rem; flex-wrap:wrap">
+													{#if t.requiredLevel}<span class="badge badge-muted">Lv {t.requiredLevel}</span>{/if}
+													<span style="flex:1; font-size:0.8125rem; font-weight:500;">{t.name}</span>
+													{#if t.description && editingTrait !== t.id}<span style="font-size:0.75rem; color:var(--text-muted); flex:2;">{t.description}</span>{/if}
+													<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;"
+														onclick={() => editingTrait = editingTrait === t.id ? null : t.id}>
+														{editingTrait === t.id ? 'Cancel' : 'Edit'}
+													</button>
+													<form method="post" action="?/deleteTrait" use:enhance={() => {
+														return async ({ update }) => { await update(); await invalidateAll(); };
+													}} style="margin:0;">
+														<input type="hidden" name="id" value={t.id} />
+														<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger); font-size:0.75rem;">✕</button>
+													</form>
+												</div>
+												{#if editingTrait === t.id}
+													<form method="post" action="?/updateTrait" use:enhance={() => {
+														return async ({ update }) => { await update(); await invalidateAll(); editingTrait = null; };
+													}} style="padding:0.5rem 0.625rem; border-top:1px solid var(--border-muted); background:var(--bg-muted);">
+														<input type="hidden" name="id" value={t.id} />
+														<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end;">
+															<div class="field" style="flex:0 0 55px; margin:0;">
+																<label class="label" for="tl-{t.id}">Level</label>
+																<input id="tl-{t.id}" name="requiredLevel" type="number" class="input" min="1" max="20" value={t.requiredLevel ?? ''} placeholder="—" />
+															</div>
+															<div class="field" style="flex:1 1 140px; margin:0;">
+																<label class="label" for="tn-{t.id}">Name</label>
+																<input id="tn-{t.id}" name="name" type="text" class="input" value={t.name} required />
+															</div>
+															<div class="field" style="flex:2 1 180px; margin:0;">
+																<label class="label" for="td-{t.id}">Description</label>
+																<textarea id="td-{t.id}" name="description" class="input" rows="2">{t.description ?? ''}</textarea>
+															</div>
+															<button type="submit" class="btn btn-primary btn-sm">Save</button>
+														</div>
+													</form>
+												{/if}
 											</div>
 										{/each}
 									</div>
@@ -139,3 +180,12 @@
 		{/if}
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

@@ -2,6 +2,7 @@
 <!-- Pure UI component — no SvelteKit imports. All actions via callbacks. -->
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import Dnd5eSpellbooks from './Dnd5eSpellbooks.svelte';
 	let {
 		charSheet,
 		systemData,
@@ -18,6 +19,13 @@
 		onManualScoreAdjust,
 		canManage              = false,
 		editBlockedReason,
+		spellbooks             = [],
+		onCreateSpellbook,
+		onRenameSpellbook,
+		onDeleteSpellbook,
+		onAddSpellbookEntry,
+		onRemoveSpellbookEntry,
+		onToggleSpellPrepared,
 	}: {
 		charSheet?:                any;
 		systemData?:               any;
@@ -34,6 +42,13 @@
 		onManualScoreAdjust?:      (stat: string, delta: number, note: string) => Promise<void>;
 		canManage?:                boolean;
 		editBlockedReason?:        string;
+		spellbooks?:               any[];
+		onCreateSpellbook?:        (name: string) => Promise<void>;
+		onRenameSpellbook?:        (id: string, name: string) => Promise<void>;
+		onDeleteSpellbook?:        (id: string) => Promise<void>;
+		onAddSpellbookEntry?:      (spellbookId: string, spellId: number, classId: string, className: string) => Promise<void>;
+		onRemoveSpellbookEntry?:   (entryId: string) => Promise<void>;
+		onToggleSpellPrepared?:    (entryId: string, prepared: boolean) => Promise<void>;
 	} = $props();
 
 	// ── Constants ────────────────────────────────────────────────────────────
@@ -266,7 +281,7 @@
 				<p style="font-size:0.875rem;color:var(--text-muted);margin:0;">Not set yet.{canEdit?' Click Set.':''}</p>
 			{:else}
 				<!-- Score boxes — click to toggle breakdown -->
-				<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;text-align:center;">
+				<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:0.5rem;text-align:center;">
 					{#each STATS as s}
 						{@const v       = score(s)}
 						{@const entries = auditByStat[s] ?? []}
@@ -713,6 +728,25 @@
 			</div>
 		{/each}
 	</div>
+	{/if}
+
+	<!-- ── Spellbooks ─────────────────────────────────────────────── -->
+	{#if (charSheet?.enrichedClasses ?? []).some((cc: any) => cc.classRef?.canCastSpells)}
+		<div style="margin-top:1.5rem;">
+			<h3 class="section-title">Spellbooks</h3>
+			<Dnd5eSpellbooks
+				{charSheet}
+				{systemData}
+				{spellbooks}
+				canEdit={canEdit}
+				onCreateSpellbook={onCreateSpellbook}
+				onRenameSpellbook={onRenameSpellbook}
+				onDeleteSpellbook={onDeleteSpellbook}
+				onAddEntry={onAddSpellbookEntry}
+				onRemoveEntry={onRemoveSpellbookEntry}
+				onTogglePrepared={onToggleSpellPrepared}
+			/>
+		</div>
 	{/if}
 
 </div>

@@ -8,6 +8,17 @@
 	let { data, children }: { data: LayoutData; children: any } = $props();
 	let menuOpen = $state(false);
 
+	// Lightweight sanitizer for admin-set branding {@html} fields.
+	// Strips <script> blocks, event handler attributes, and javascript: URIs.
+	function sanitizeHtml(raw: string | null | undefined): string {
+		if (!raw) return '';
+		return raw
+			.replace(/<script[\s\S]*?<\/script>/gi, '')
+			.replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')
+			.replace(/\bon\w+\s*=\s*[^\s>]*/gi, '')
+			.replace(/javascript\s*:/gi, '');
+	}
+
 	let notifCount: number = $state(0);
 	let notifList:  any[]  = $state([]);
 	$effect.pre(() => {
@@ -60,6 +71,7 @@
 
 <svelte:head>
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>{(data as any).siteName ?? 'The Binder & Brew'}</title>
 </svelte:head>
 
 <div class="site" data-theme="frontend">
@@ -68,11 +80,11 @@
 			<!-- Brand -->
 			<a href="/" class="nav-bar__brand" onclick={closeMenu}>
 				{#if (data as any).siteLogo && (data as any).siteLogo.startsWith('<')}
-					<span style="display:inline-flex; align-items:center; height:28px; width:auto;">{@html (data as any).siteLogo}</span>
+					<span style="display:inline-flex; align-items:center; height:28px; width:auto;">{@html sanitizeHtml((data as any).siteLogo)}</span>
 				{:else if (data as any).siteLogo}
 					<img src={(data as any).siteLogo} alt={(data as any).siteName} style="height:28px; width:auto;" />
 				{:else if (data as any).siteLogoIcon && (data as any).siteLogoIcon.startsWith('<')}
-					<span style="display:inline-flex; align-items:center; height:28px; width:auto;">{@html (data as any).siteLogoIcon}</span>
+					<span style="display:inline-flex; align-items:center; height:28px; width:auto;">{@html sanitizeHtml((data as any).siteLogoIcon)}</span>
 					<span class="nav-bar__name">{(data as any).siteName}</span>
 				{:else if (data as any).siteLogoIcon && ((data as any).siteLogoIcon.startsWith('http') || (data as any).siteLogoIcon.startsWith('/'))}
 					<img src={(data as any).siteLogoIcon} alt={(data as any).siteName} style="height:28px; width:auto;" />
@@ -145,6 +157,8 @@
 
 		<!-- Mobile menu -->
 		{#if menuOpen}
+			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
+			<div class="nav-mobile-backdrop" onclick={closeMenu} aria-hidden="true"></div>
 			<div class="nav-mobile" role="menu">
 				{#if data.user}
 					{#each groups as group}
@@ -180,7 +194,7 @@
 
 	<footer class="site__footer">
 		{#if (data as any).siteFooter}
-			{@html (data as any).siteFooter}
+			{@html sanitizeHtml((data as any).siteFooter)}
 		{:else}
 			<p class="site__footer-text">© {new Date().getFullYear()} {(data as any).siteName}</p>
 		{/if}

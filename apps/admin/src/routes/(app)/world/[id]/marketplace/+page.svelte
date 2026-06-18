@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/world/[id]/marketplace/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { goto, invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -79,6 +80,15 @@
 		tiers = [...tiers];
 	}
 	function tiersJson() { return JSON.stringify(tiers); }
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -308,12 +318,11 @@
 										<button type="submit" class="btn btn-ghost btn-sm">Save</button>
 									</div>
 								</form>
-								<form method="post" action="?/removeItem" use:enhance={({cancel})=>{
-									if(!confirm('Remove this world override?'))cancel();
+								<form id="cf-rem-{wi.itemId}" method="post" action="?/removeItem" use:enhance={() => {
 									return async({update})=>{await update();await invalidateAll();};
 								}}>
 									<input type="hidden" name="itemId" value={wi.itemId} />
-									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Remove</button>
+									<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', 'Remove this world override?').then(ok => { if(ok)(document.getElementById(`cf-rem-${wi.itemId}`) as HTMLFormElement)?.requestSubmit(); })}>Remove</button>
 								</form>
 							</td>
 						</tr>
@@ -326,3 +335,12 @@
 		{/if}
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

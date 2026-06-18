@@ -3,7 +3,7 @@
 	import { enhance } from '$app/forms';
 	import AdminDnd5eSheetSection from './_sheets/AdminDnd5eSheetSection.svelte';
 	import { invalidateAll } from '$app/navigation';
-	import { renderMarkdown } from '@core/ui';
+	import { renderMarkdown, ConfirmModal } from '@core/ui';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -48,6 +48,15 @@
 	function formatDate(d: Date|string) {
 		return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 	}
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -73,11 +82,10 @@
 					<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕ Reject</button>
 				</form>
 			{/if}
-			<form method="post" action="?/deleteCharacter" use:enhance={({cancel})=>{
-				if(!confirm('Delete this character? This cannot be undone.')) cancel();
+			<form method="post" action="?/deleteCharacter" id="cf-del-char" use:enhance={() => {
 				return async({update})=>{await update();};
 			}}>
-				<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Delete</button>
+				<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', 'Delete this character? This cannot be undone.').then(ok => { if(ok)(document.getElementById("cf-del-char") as HTMLFormElement).requestSubmit(); })}>Delete</button>
 			</form>
 		</div>
 	</div>
@@ -451,13 +459,12 @@
 								</td>
 								<td>
 									<form method="post" action="?/removeInventory"
-										use:enhance={({cancel})=>{
-											if(!confirm('Remove this item? Gold will be refunded.')) cancel();
+										id="cf-rem-{inv.id}" use:enhance={() => {
 											return async({update})=>{await update();await invalidateAll();};
 										}}>
 										<input type="hidden" name="inventoryId" value={(inv as any).id} />
 										<input type="hidden" name="quantity" value="1" />
-										<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Remove</button>
+										<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', 'Remove this item? Gold will be refunded.').then(ok => { if(ok)(document.getElementById(`cf-rem-${inv.id}`) as HTMLFormElement).requestSubmit(); })}>Remove</button>
 									</form>
 								</td>
 							</tr>
@@ -529,3 +536,12 @@
 		{/if}
 	{/if}
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

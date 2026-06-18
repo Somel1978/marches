@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/game-systems/[id]/progression/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData } from './$types';
 
@@ -9,6 +10,15 @@
 	const thresholds = $derived((system?.progressionThresholds ?? []).slice().sort((a: any, b: any) => a.xpRequired - b.xpRequired));
 
 	let editing = $state<string | null>(null);
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -76,13 +86,12 @@
 								<td class="table__muted">{t.description ?? '—'}</td>
 								<td style="display:flex; gap:0.5rem; flex-wrap:wrap">
 									<button type="button" class="btn btn-ghost btn-sm" onclick={() => editing = t.id}>Edit</button>
-									<form method="post" action="?/delete"
-										use:enhance={({ cancel }) => {
-											if (!confirm(`Delete "${t.label}"?`)) cancel();
-											return async ({ update }) => { await update(); await invalidateAll(); };
-										}} style="margin:0;">
+									<form id="cf-78c799" method="post" action="?/delete"
+										use:enhance={() => {
+				return async ({ update }) => { await update(); await invalidateAll(); };
+			}} style="margin:0;">
 										<input type="hidden" name="id" value={t.id} />
-										<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕</button>
+										<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete "${t.label}"?`).then(ok => { if(ok)(document.getElementById("cf-78c799") as HTMLFormElement).requestSubmit(); })}>✕</button>
 									</form>
 								</td>
 							</tr>
@@ -119,3 +128,12 @@
 		</form>
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

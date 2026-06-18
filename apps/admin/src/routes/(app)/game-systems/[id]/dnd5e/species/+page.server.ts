@@ -48,6 +48,19 @@ export const actions: Actions = {
 		await dnd5e.speciesTraits.delete(data.get('id')?.toString() ?? '');
 		return { success: true };
 	},
+
+	updateTrait: async ({ request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const id   = data.get('id')?.toString() ?? '';
+		await dnd5e.speciesTraits.update(id, {
+			name:          data.get('name')?.toString().trim()        ?? '',
+			description:   data.get('description')?.toString().trim() || null,
+			requiredLevel: Number(data.get('requiredLevel') ?? 0) || null,
+		});
+		return { success: true, action: 'trait' };
+	},
 	deleteSpecies: async ({ request, locals }) => {
 		const data = await request.formData();
 		await dnd5e.species.delete(data.get('id')?.toString() ?? '', locals.user!.id);

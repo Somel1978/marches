@@ -1,10 +1,20 @@
 <!-- apps/admin/src/routes/(app)/world/[id]/npcs/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import type { PageData, ActionData } from './$types';
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const world = $derived((data as any).world);
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -60,12 +70,11 @@
 									<td>{npc.isVisible ? '✓' : '🔒'}</td>
 									<td style="white-space:nowrap;">
 										<a href="/world/{world.id}/npcs/{npc.id}" class="btn btn-ghost btn-sm">Manage</a>
-										<form method="post" action="?/delete" style="display:inline;" use:enhance={({ cancel }) => {
-											if (!confirm(`Delete NPC "${npc.name}"?`)) { cancel(); return; }
-											return async ({ update }) => { await update(); };
-										}}>
+										<form id="cf-71f3c5" method="post" action="?/delete" style="display:inline;" use:enhance={() => {
+				return async ({ update }) => { await update(); };
+			}}>
 											<input type="hidden" name="npcId" value={npc.id} />
-											<button type="submit" class="btn btn-danger btn-sm">Delete</button>
+											<button type="button" class="btn btn-danger btn-sm" onclick={() => window.confirmModal('Confirm', `Delete NPC "${npc.name}"?`).then(ok => { if(ok)(document.getElementById("cf-71f3c5") as HTMLFormElement).requestSubmit(); })}>Delete</button>
 										</form>
 									</td>
 								</tr>
@@ -79,3 +88,12 @@
 		</div>
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

@@ -1,6 +1,7 @@
 <!-- apps/frontend/src/routes/(protected)/characters/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import Dnd5eSheetSection from './_sheets/Dnd5eSheetSection.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
@@ -41,7 +42,18 @@
 	}
 
 
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
+
+<svelte:head><title>{data.character.name} — Marches</title></svelte:head>
 
 <div class="page">
 	<div class="page__header">
@@ -156,7 +168,7 @@
 		{#if data.character.status === 'ACTIVE' || data.character.status === 'RESTING'}
 			<hr class="divider" />
 			<form method="post" action="?/retire" use:enhance={({ cancel }) => {
-				if (!confirm('Retire this character? This cannot be undone.')) { cancel(); return; }
+				askConfirm('Confirm', 'Retire this character? This cannot be undone.', () => { cancel(); }); return;
 				return async ({ update }) => { await update(); await invalidateAll(); };
 			}}>
 				<button type="submit" class="btn btn-ghost btn-sm">Retire character</button>
@@ -197,6 +209,7 @@
 			charSheet={(data as any).charSheet}
 			systemData={(data as any).systemData}
 			scoreAudit={(data as any).scoreAudit ?? []}
+			spellbooks={(data as any).spellbooks ?? []}
 			character={data.character}
 			{canEdit}
 			{isLevelUp}
@@ -273,7 +286,7 @@
 								{#if ps}
 									<form method="post" action="?/cancel" use:enhance={() => { return async ({ update }) => { await update(); await invalidateAll(); }; }}>
 										<input type="hidden" name="txId" value={ps.id} />
-										<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={(e) => { if (!confirm('Cancel this sell request?')) e.preventDefault(); }}>Cancel</button>
+										<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={(ev) => askConfirm('Confirm', 'Cancel this sell request?', () => { (ev.currentTarget as HTMLElement)?.closest('form')?.requestSubmit(); })}>Cancel</button>
 									</form>
 								{/if}
 							</div>
@@ -366,3 +379,12 @@
 		</div>
 	</div>
 {/if}
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

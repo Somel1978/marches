@@ -9,6 +9,8 @@
 	const classes = $derived((data as any).classes ?? []);
 
 	let showNew = $state(false);
+	let search  = $state('');
+	const filtered = $derived(search ? classes.filter((c: any) => c.name.toLowerCase().includes(search.toLowerCase())) : classes);
 </script>
 
 <div class="page">
@@ -22,6 +24,7 @@
 			<a href="/game-systems/{system.id}/dnd5e/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
 			<a href="/game-systems/{system.id}/data/import/dnd5e"      class="btn btn-ghost btn-sm">Import</a>
 			<button type="button" class="btn btn-primary btn-sm" onclick={() => showNew = !showNew}>+ New class</button>
+			<input type="text" class="input" style="max-width:220px;" placeholder="Search classes…" bind:value={search} />
 		</div>
 	</div>
 
@@ -88,7 +91,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each classes as c}
+					{#each filtered as c}
 						<tr>
 							<td style="font-weight:600;">{c.name}</td>
 							<td>{c.hitDice ? `d${c.hitDice}` : '—'}</td>

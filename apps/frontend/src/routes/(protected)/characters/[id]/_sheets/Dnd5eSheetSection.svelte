@@ -9,6 +9,7 @@
 		charSheet,
 		systemData,
 		scoreAudit     = [],
+		spellbooks     = [],
 		character,
 		canEdit        = false,
 		isLevelUp      = false,
@@ -18,6 +19,7 @@
 		charSheet?:      any;
 		systemData?:     any;
 		scoreAudit?:     any[];
+		spellbooks?:     any[];
 		character?:      any;
 		canEdit?:        boolean;
 		isLevelUp?:      boolean;
@@ -86,12 +88,44 @@
 	async function handleRemoveFeat(id: string) {
 		await post('removeFeat', [['id', id]]);
 	}
+
+	// ── Spellbook callbacks ───────────────────────────────────────────────────
+
+	async function handleCreateSpellbook(name: string) {
+		await post('createSpellbook', [['name', name]]);
+	}
+
+	async function handleRenameSpellbook(id: string, name: string) {
+		await post('renameSpellbook', [['id', id], ['name', name]]);
+	}
+
+	async function handleDeleteSpellbook(id: string) {
+		await post('deleteSpellbook', [['id', id]]);
+	}
+
+	async function handleAddSpellbookEntry(spellbookId: string, spellId: number, classId: string, className: string) {
+		await post('addSpellbookEntry', [
+			['spellbookId', spellbookId],
+			['spellId',     String(spellId)],
+			['classId',     classId],
+			['className',   className],
+		]);
+	}
+
+	async function handleRemoveSpellbookEntry(entryId: string) {
+		await post('removeSpellbookEntry', [['id', entryId]]);
+	}
+
+	async function handleToggleSpellPrepared(entryId: string, prepared: boolean) {
+		await post('toggleSpellPrepared', [['id', entryId], ['prepared', String(prepared)]]);
+	}
 </script>
 
 <Dnd5eCharacterSheet
 	{charSheet}
 	{systemData}
 	{scoreAudit}
+	{spellbooks}
 	{canEdit}
 	{editBlockedReason}
 	{isLevelUp}
@@ -102,4 +136,10 @@
 	onSubmitLevelUp={handleSubmitLevelUp}
 	onSaveSlot={handleSaveSlot}
 	onRemoveFeat={handleRemoveFeat}
+	onCreateSpellbook={handleCreateSpellbook}
+	onRenameSpellbook={handleRenameSpellbook}
+	onDeleteSpellbook={handleDeleteSpellbook}
+	onAddSpellbookEntry={handleAddSpellbookEntry}
+	onRemoveSpellbookEntry={handleRemoveSpellbookEntry}
+	onToggleSpellPrepared={handleToggleSpellPrepared}
 />

@@ -110,7 +110,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		const mins    = d.getUTCHours() * 60 + d.getUTCMinutes();
 		const slot    = Math.floor(mins / 30);
 		const date    = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-		const worldId = q.worldId ?? null;
+
+		// Resolve worldId from regionId — quest has no direct worldId field
+		let worldId: string | null = null;
+		if (q.regionId) {
+			const region = await db.region.findUnique({ where: { id: q.regionId }, select: { worldId: true } });
+			worldId = region?.worldId ?? null;
+		}
+
 		const userSlots   = await availability.getForQuest(date, slot, worldId);
 		const userIds     = [...new Set(userSlots.map((s: any) => s.userId))];
 		if (userIds.length) {

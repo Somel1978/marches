@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/feats/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -11,10 +12,21 @@
 	let expanded   = $state<string | null>(null);
 	let editing    = $state<string | null>(null);
 	let showCreate = $state(false);
+	let search     = $state('');
+	const filtered = $derived(search ? feats.filter((f: any) => f.name.toLowerCase().includes(search.toLowerCase())) : feats);
 
 	function toggle(id: string) {
 		expanded = expanded === id ? null : id;
 		if (editing && editing !== id) editing = null;
+	}
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
 	}
 </script>
 
@@ -28,6 +40,7 @@
 			<a href="/game-systems/{system.id}/dnd5e/classes"     class="btn btn-ghost btn-sm">Classes</a>
 			<a href="/game-systems/{system.id}/dnd5e/species"     class="btn btn-ghost btn-sm">Species</a>
 			<a href="/game-systems/{system.id}/dnd5e/backgrounds" class="btn btn-ghost btn-sm">Backgrounds</a>
+			<input type="text" class="input" style="max-width:220px;" placeholder="Search feats…" bind:value={search} />
 			<a href="/game-systems/{system.id}/data/import/dnd5e" class="btn btn-ghost btn-sm">Import</a>
 			<button class="btn btn-primary btn-sm" onclick={() => showCreate = !showCreate}>+ New Feat</button>
 		</div>
@@ -127,7 +140,7 @@
 
 	<div class="card" style="padding:0;">
 		{#if feats.length}
-			{#each feats as feat}
+			{#each filtered as feat}
 				<!-- Row header -->
 				<div
 					onclick={() => toggle(feat.id)} onkeydown={(e) => e.key === "Enter" && toggle(feat.id)} role="button" tabindex="0"
@@ -151,12 +164,11 @@
 						{#if feat.isAvailable}<span class="badge badge-success" style="font-size:0.75rem;">✓</span>{:else}<span class="badge badge-muted" style="font-size:0.75rem;">—</span>{/if}
 					</div>
 					<div onclick={(e) => e.stopPropagation()} role="presentation" style="flex-shrink:0;">
-						<form method="post" action="?/delete" use:enhance={({ cancel }) => {
-							if (!confirm(`Delete "${feat.name}"?`)) cancel();
-							return async ({ update }) => { await update(); await invalidateAll(); };
-						}} style="margin:0;">
+						<form id="cf-e69637" method="post" action="?/delete" use:enhance={() => {
+				return async ({ update }) => { await update(); await invalidateAll(); };
+			}} style="margin:0;">
 							<input type="hidden" name="id" value={feat.id} />
-							<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕</button>
+							<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete "${feat.name}"?`).then(ok => { if(ok)(document.getElementById("cf-e69637") as HTMLFormElement).requestSubmit(); })}>✕</button>
 						</form>
 					</div>
 				</div>
@@ -278,3 +290,12 @@
 		{/if}
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

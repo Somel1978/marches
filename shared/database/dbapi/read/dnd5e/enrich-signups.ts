@@ -49,5 +49,17 @@ export async function enrichDnd5eSignups(signups: { characterId: string; id: str
         }];
     }));
 
-    return signups.map(s => ({ ...s, character: charMap[s.characterId] ?? null }));
+    return signups.map(s => ({
+        ...s,
+        character: charMap[s.characterId] ?? {
+            id:          s.characterId,
+            name:        'Deleted Character',
+            avatarUrl:   null,
+            portraitUrl: null,
+            totalLevel:  0,
+            classes:     [],
+            species:     null,
+            playerName:  'Unknown Player',
+        }
+    }));
 }

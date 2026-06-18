@@ -11,6 +11,31 @@ function isCoreSettings(key: string) {
 	return CORE_PREFIXES.some(prefix => key.startsWith(prefix));
 }
 
+// Validation rules per setting key
+function validateSetting(key: string, value: string): string | null {
+	if (!value) return null; // empty = clear, always valid
+
+	// URL fields
+	if (key === 'site.url' || key === 'email.replyTo' || key.endsWith('.webhookUrl')) {
+		try { new URL(value); } catch { return `"${key}" must be a valid URL (e.g. https://example.com).`; }
+	}
+	// SMTP port
+	if (key === 'smtp.port') {
+		const n = Number(value);
+		if (!Number.isInteger(n) || n < 1 || n > 65535) return 'SMTP port must be a number between 1 and 65535.';
+	}
+	// Email addresses
+	if (key === 'smtp.from' || key === 'email.replyTo') {
+		if (value.includes('@') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value))
+			return `"${key}" must be a valid email address.`;
+	}
+	// Discord IDs / tokens — basic non-empty + no whitespace
+	if (key.startsWith('discord.') && /\s/.test(value)) {
+		return `"${key}" must not contain spaces.`;
+	}
+	return null;
+}
+
 export const load: PageServerLoad = async ({ locals }) => {
 	const canRead = checkPermission(locals.permissions, { resourceKey: 'System', action: 'read' });
 	if (!canRead.allowed) throw error(403, 'Forbidden');
@@ -34,6 +59,10 @@ export const actions: Actions = {
 		if (isSecret && raw === '') return { success: true, key };
 
 		const value = raw.trim() || null;
+
+		// Validate format
+		const validationError = validateSetting(key, value ?? '');
+		if (validationError) return fail(400, { message: validationError });
 
 		try {
 			await platform.updateSettings([{ key, value }], locals.user!.id);

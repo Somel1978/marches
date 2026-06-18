@@ -42,7 +42,7 @@ export async function getMarketplaceTransactions({
     return {
         items: items.map(t => ({
             ...t,
-            character:  charMap[t.characterId] ?? null,
+            character:  charMap[t.characterId] ?? { id: t.characterId, name: 'Deleted Character' },
             playerName: userMap[t.requestedBy] ?? t.requestedBy,
             worldName:  t.worldId ? (worldMap[t.worldId] ?? t.worldId) : null,
         })),

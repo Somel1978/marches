@@ -79,18 +79,23 @@
 							{#each entries as entry}
 								<div style="font-size:0.8125rem;">
 									<span style="font-weight:500;">{entry.userName}</span>
-									<span class="badge {entry.scope === 'GLOBAL' ? 'badge-success' : 'badge-accent'}" style="margin-left:0.375rem;">{entry.scope}</span>
+									<span class="badge {entry.scope === 'GLOBAL' ? 'badge-success' : 'badge-accent'}" style="margin-left:0.375rem;" title="Availability scope">
+										Avail: {entry.scope === 'GLOBAL' ? 'Global' : 'World'}
+									</span>
 									{#if entry.chars?.length}
 										<div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.25rem;">
 											{#each entry.chars as char}
 												<span class="character-class-tag">
 													<span>{char.name}</span>
 													<span class="badge badge-muted">Lv {char.totalLevel ?? '?'}</span>
+													<span class="badge {char.worldId ? 'badge-accent' : 'badge-success'}" style="font-size:0.625rem;" title="Character scope">{char.worldId ? 'World' : 'Global'}</span>
 												</span>
 											{/each}
 										</div>
+									{:else if entry.needsNewChar}
+										<span class="table__muted" style="font-size:0.8125rem;margin-left:0.375rem;">Needs a New Character</span>
 									{:else}
-										<span class="table__muted" style="font-size:0.8125rem;margin-left:0.375rem;">No active characters</span>
+										<span class="table__muted" style="font-size:0.8125rem;margin-left:0.375rem;">No characters</span>
 									{/if}
 								</div>
 							{/each}

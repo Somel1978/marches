@@ -49,7 +49,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             const all = await dnd5e.classes.getAll(systemId);
             for (const cls of all) {
                 for (const s of (cls.subclasses ?? [])) {
-                    rows.push({ className: cls.name, name: s.name, description: s.description ?? '', source: s.source ?? '', link: s.link ?? '', sortOrder: s.sortOrder });
+                    rows.push({ className: cls.name, name: s.name, description: s.description ?? '', source: s.source ?? '', link: s.link ?? '', canCastSpells: (s as any).canCastSpells ?? false, sortOrder: s.sortOrder });
                 }
             }
             rows.sort((a, b) => a.className.localeCompare(b.className) || a.name.localeCompare(b.name));
@@ -108,6 +108,83 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                 asiStatChoices: f.asiStatChoices   ?? '',
                 sortOrder:      f.sortOrder,
             }));
+            break;
+        }
+
+        case 'spells': {
+            const all = await dnd5e.spells.getAll(systemId);
+            rows = all.map(s => ({
+                'Spell ID':               s.spellId,
+                'Name':                   s.name,
+                'Link':                   s.link                    ?? '',
+                'Level':                  s.level === 0 ? 'Cantrip' : s.level,
+                'School':                 s.school,
+                'Concentration':          s.concentration,
+                'Ritual':                 s.ritual,
+                'Is Homebrew':            s.isHomebrew,
+                'Is Legacy':              s.isLegacy,
+                'Cantrip Damage':         s.cantripDamage           ?? '',
+                'Cantrip Dmg Lvl 5':      s.cantripDamageLvl5       ?? '',
+                'Cantrip Dmg Lvl 11':     s.cantripDamageLvl11      ?? '',
+                'Cantrip Dmg Lvl 17':     s.cantripDamageLvl17      ?? '',
+                'Spell Damage':           s.spellDamage             ?? '',
+                'Upcast Per Slot':        s.spellUpcastPerSlot      ?? '',
+                'Upcast Every 2 Slots':   s.spellUpcastEveryTwoSlots ?? '',
+                'Spell Progression':      s.spellProgression        ?? '',
+                'Progression Note':       s.spellProgressionNote    ?? '',
+                'Range Origin':           s.rangeOrigin             ?? '',
+                'Range Value (ft)':       s.rangeValue              ?? '',
+                'AoE Type':               s.aoeType                 ?? '',
+                'AoE Value (ft)':         s.aoeValue                ?? '',
+                'Duration Type':          s.durationType            ?? '',
+                'Duration Interval':      s.durationInterval        ?? '',
+                'Duration Unit':          s.durationUnit            ?? '',
+                'Requires Saving Throw':  s.requiresSavingThrow,
+                'Saving Throw':   s.savingThrow  ?? '',
+                'Requires Attack Roll':   s.requiresAttackRoll,
+                'Can Cast Higher Level':  s.canCastAtHigherLevel,
+                'Casting Time':           s.castingTime   ?? '',
+                'Components':             s.components    ?? '',
+                'Description':            s.description   ?? '',
+                'Source Book':            s.sourceBook    ?? '',
+                'Tags':                   s.tags          ?? '',
+                'Spell List':             s.spellList     ?? '',
+            }));
+            filename = 'export_spells.xlsx';
+            break;
+        }
+
+        case 'spellSlots': {
+            const all = await dnd5e.spellSlots.getAll(systemId);
+            rows = all.map(r => ({
+                'Class ID':      r.classId,
+                'Class Name':    r.className,
+                'Subclass ID':   (r as any).subclassId   ?? '',
+                'Subclass Name': (r as any).subclassName ?? '',
+                'Caster Type':   r.casterType,
+                'Level':         r.classLevel,
+                'Slot 1':  r.slot1, 'Slot 2':  r.slot2, 'Slot 3':  r.slot3,
+                'Slot 4':  r.slot4, 'Slot 5':  r.slot5, 'Slot 6':  r.slot6,
+                'Slot 7':  r.slot7, 'Slot 8':  r.slot8, 'Slot 9':  r.slot9,
+            }));
+            filename = 'export_spell_slots.xlsx';
+            break;
+        }
+
+        case 'spellsKnown': {
+            const all = await dnd5e.spellsKnown.getAll(systemId);
+            rows = all.map(r => ({
+                'Class ID':      r.classId,
+                'Class Name':    r.className,
+                'Subclass ID':   (r as any).subclassId   ?? '',
+                'Subclass Name': (r as any).subclassName ?? '',
+                'Level':         r.classLevel,
+                'Cantrips':      r.cantrips   ?? '',
+                'Prepared':      r.prepared   ?? '',
+                'Additional':    r.additional ?? '',
+                'Note':          r.note       ?? '',
+            }));
+            filename = 'export_spells_known.xlsx';
             break;
         }
 

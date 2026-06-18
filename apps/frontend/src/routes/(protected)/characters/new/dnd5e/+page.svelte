@@ -109,7 +109,6 @@
 				if (c.stat1) s[c.stat1] = (s[c.stat1] ?? 0) + (c.amount1 || 0);
 				if (c.stat2) s[c.stat2] = (s[c.stat2] ?? 0) + (c.amount2 || 0);
 			} else if (c.mode === 'feat' && c.featId) {
-				// Feat-granted ASI — stat1/amount1 are set when feat or stat is selected
 				if (c.stat1 && c.amount1) s[c.stat1] = (s[c.stat1] ?? 0) + c.amount1;
 			}
 		}
@@ -162,11 +161,11 @@
 	// ── Step 5: Classes ───────────────────────────────────────────────────────
 	let classAllocs  = $state<{ classId:string; subclassId:string; allocatedLevel:number }[]>([]);
 	let classSearch  = $state('');
-	let browseClassId = $state('');  // selected in browser
-	let browseSubId   = $state('');  // subclass selected in browser
-	let browseLevel   = $state(1);   // level for browsed class
-	let openFeats     = $state<Set<string>>(new Set()); // expanded feature rows
-	let sheetClass    = $state<any>(null); // mobile bottom sheet
+	let browseClassId = $state('');
+	let browseSubId   = $state('');
+	let browseLevel   = $state(1);
+	let openFeats     = $state<Set<string>>(new Set());
+	let sheetClass    = $state<any>(null);
 
 	const totalLevel      = $derived(classAllocs.reduce((s,c) => s+(c.allocatedLevel||0), 0));
 	const browseClass     = $derived((sys?.classes ?? []).find((c: any) => c.id === browseClassId) ?? null);
@@ -175,7 +174,6 @@
 		(sys?.classes ?? []).filter((c: any) => c.isAvailable && (!classSearch || c.name.toLowerCase().includes(classSearch.toLowerCase())))
 	);
 
-	// Merged feature timeline for browseClass + browseSub
 	const featureTimeline = $derived.by(() => {
 		const rows: { id:string; level:number; name:string; description:string|null; source:string; sourceType:'class'|'subclass' }[] = [];
 		const bc = browseClass as any;
@@ -192,7 +190,6 @@
 		return rows.sort((a,b) => a.level - b.level || a.name.localeCompare(b.name));
 	});
 
-	// Same timeline for mobile sheet
 	const sheetTimeline = $derived.by(() => {
 		const sc = sheetClass as any;
 		if (!sc) return [];
@@ -250,24 +247,22 @@
 
 	// ── Step 6: ASI / Feats ──────────────────────────────────────────────────
 	type AsiChoice = {
-		sourceClassId: string;
-		sourceLevel:   number;
-		type:          'asi' | 'epic_boon';
-		canEpicBoon:   boolean;
-		mode:          'stat' | 'feat' | null;
-		stat1:         string;
-		amount1:       number;
-		stat2:         string;
-		amount2:       number;
-		featId:        string;
-		sourceName:    string;
-		featGrantedStat?: string; // stat chosen for feat-granted ASI
-		featAsiAmount?:  number;   // cached from feat def — avoids re-lookup in finalScores
-		featAsiFixed?:   string;   // cached asiStatFixed
+		sourceClassId:   string;
+		sourceLevel:     number;
+		type:            'asi' | 'epic_boon';
+		canEpicBoon:     boolean;
+		mode:            'stat' | 'feat' | null;
+		stat1:           string;
+		amount1:         number;
+		stat2:           string;
+		amount2:         number;
+		featId:          string;
+		sourceName:      string;
+		featGrantedStat?: string;
+		featAsiAmount?:  number;
+		featAsiFixed?:   string;
 	};
 
-	// Compute ASI slots client-side — same logic as getCharacterSheet
-	// Both class AND subclass features grant ASI/Epic Boon slots
 	const asiSlots = $derived.by(() => {
 		const slots: Omit<AsiChoice, 'mode'|'stat1'|'amount1'|'stat2'|'amount2'|'featId'>[] = [];
 		const level = classAllocs.reduce((s, c) => s + (c.allocatedLevel || 0), 0);
@@ -292,13 +287,10 @@
 		return slots;
 	});
 
-	// asiChoices: one entry per slot, persisted
 	let asiChoices = $state<AsiChoice[]>([]);
 
-	// Sync asiChoices when slots change.
-	// untrack() reads asiChoices without subscribing to it, preventing a circular dependency.
 	$effect(() => {
-		const slots = asiSlots; // reactive dependency
+		const slots = asiSlots;
 		asiChoices = slots.map((slot, i) => {
 			const existing = untrack(() => asiChoices).find(
 				(c: AsiChoice) => c.sourceClassId === slot.sourceClassId && c.sourceLevel === slot.sourceLevel && (c as any).slotIndex === i
@@ -316,33 +308,32 @@
 	let asiFeatSearch = $state<string[]>([]);
 	$effect(() => { asiFeatSearch = asiSlots.map(() => ''); });
 
-	// Dynamic steps — insert ASI step only when there are slots
 	const STEPS = $derived(hasAsiStep
 		? [...BASE_STEPS, ASI_STEP, REVIEW_STEP]
 		: [...BASE_STEPS, REVIEW_STEP]
 	);
 
-	// Navigation — defined here because STEPS is derived above
 	function next()            { if (canAdvance && step < STEPS.length - 1) step++; }
 	function back()            { if (step > 0) step--; }
 	function goTo(i: number)   { if (i <= step) step = i; }
 	const nextLabel = $derived(step < STEPS.length - 1 ? STEPS[step + 1].label : '');
 
-	// Step indices
 	const ASI_STEP_IDX    = $derived(hasAsiStep ? 5 : -1);
 	const REVIEW_STEP_IDX = $derived(hasAsiStep ? 6 : 5);
 
-	// Available feats for ASI feat pick (all available feats)
-	const availableFeats = $derived((sys?.feats ?? []).filter((f: any) => f.isAvailable !== false));
+	// Regular feats — excludes epic boon feats (restricted to epic boon slots)
+	const availableFeats = $derived((sys?.feats ?? []).filter((f: any) => f.isAvailable !== false && !f.isEpicBoon));
 
-	// Epic Boon feats filtered by category
-	const epicBoonFeats = $derived(
-		(sys?.feats ?? []).filter((f: any) => f.isAvailable !== false &&
-			(f.categories ?? '').split(',').map((s: string) => s.trim().toLowerCase()).includes('epic boon')
-		)
-	);
+	// Epic Boon feats — only for epic_boon slots or canEpicBoon ASI slots
+	const epicBoonFeats = $derived((sys?.feats ?? []).filter((f: any) => f.isAvailable !== false && f.isEpicBoon));
 
-	// ASI feat ID — the "Ability Score Improvement" feat from systemData
+	// Feats for a given choice — epic boon slots and level 19+ ASI slots show all feats
+	function featsForChoice(choice: AsiChoice) {
+		if (choice.type === 'epic_boon') return epicBoonFeats;
+		if (choice.canEpicBoon) return (sys?.feats ?? []).filter((f: any) => f.isAvailable !== false && !isAsiFeatureName(f.name));
+		return availableFeats;
+	}
+
 	const asiFeatId = $derived(
 		(sys?.feats ?? []).find((f: any) => isAsiFeatureName(f.name))?.id ?? ''
 	);
@@ -353,15 +344,13 @@
 			if (c.mode === 'feat') {
 				if (!c.featId) return false;
 				const featDef = (sys?.feats ?? []).find((f: any) => f.id === c.featId);
-				// If feat grants ASI and no fixed stat, player must choose one
 				if (featDef?.asiAmount && !featDef.asiStatFixed && !c.featGrantedStat) return false;
 				return true;
 			}
-			if (c.mode === 'stat')      return !!c.stat1 && c.amount1 > 0;
+			if (c.mode === 'stat') return !!c.stat1 && c.amount1 > 0;
 			return false;
 		})
 	);
-
 
 	// ── sessionStorage persistence ───────────────────────────────────────────
 	const STORAGE_KEY = 'wizard_dnd5e';
@@ -384,32 +373,31 @@
 			const raw = sessionStorage.getItem(STORAGE_KEY);
 			if (!raw) return;
 			const s = JSON.parse(raw);
-			if (s.step        !== undefined) step         = s.step;
-			if (s.name        !== undefined) name         = s.name;
-			if (s.avatarUrl   !== undefined) avatarUrl    = s.avatarUrl;
-			if (s.portraitUrl !== undefined) portraitUrl  = s.portraitUrl;
-			if (s.worldId     !== undefined) worldId      = s.worldId;
-			if (s.speciesId   !== undefined) speciesId    = s.speciesId;
-			if (s.backgroundId!== undefined) backgroundId = s.backgroundId;
-			if (s.bgFeatPick  !== undefined) bgFeatPick   = s.bgFeatPick;
-			if (s.scores      !== undefined) scores       = s.scores;
-			if (s.rolled        !== undefined) rolled        = s.rolled;
-			if (s.standardArray !== undefined) standardArray = s.standardArray;
-			if (s.bonusGranted!== undefined) bonusGranted = s.bonusGranted;
-			if (s.bonus       !== undefined) bonus        = s.bonus;
-			if (s.classAllocs  !== undefined) classAllocs  = s.classAllocs;
-		if (s.asiChoices   !== undefined) {
-			asiChoices = s.asiChoices;
-			// Backfill stat1/amount1 for feat-mode choices restored from old sessions
-			// (before stat1 was stored directly on the choice)
-			for (const c of asiChoices) {
-				if (c.mode === 'feat' && c.featId && !c.stat1) {
-					const stat = c.featAsiFixed || c.featGrantedStat || '';
-					const amt  = c.featAsiAmount ?? 0;
-					if (stat && amt) { c.stat1 = stat; c.amount1 = amt; }
+			if (s.step         !== undefined) step          = s.step;
+			if (s.name         !== undefined) name          = s.name;
+			if (s.avatarUrl    !== undefined) avatarUrl     = s.avatarUrl;
+			if (s.portraitUrl  !== undefined) portraitUrl   = s.portraitUrl;
+			if (s.worldId      !== undefined) worldId       = s.worldId;
+			if (s.speciesId    !== undefined) speciesId     = s.speciesId;
+			if (s.backgroundId !== undefined) backgroundId  = s.backgroundId;
+			if (s.bgFeatPick   !== undefined) bgFeatPick    = s.bgFeatPick;
+			if (s.scores       !== undefined) scores        = s.scores;
+			if (s.rolled       !== undefined) rolled        = s.rolled;
+			if (s.standardArray!== undefined) standardArray = s.standardArray;
+			if (s.bonusGranted !== undefined) bonusGranted  = s.bonusGranted;
+			if (s.bonus        !== undefined) bonus         = s.bonus;
+			if (s.classAllocs  !== undefined) classAllocs   = s.classAllocs;
+			if (s.asiChoices   !== undefined) {
+				asiChoices = s.asiChoices;
+				// Backfill stat1/amount1 for feat-mode choices restored from old sessions
+				for (const c of asiChoices) {
+					if (c.mode === 'feat' && c.featId && !c.stat1) {
+						const stat = c.featAsiFixed || c.featGrantedStat || '';
+						const amt  = c.featAsiAmount ?? 0;
+						if (stat && amt) { c.stat1 = stat; c.amount1 = amt; }
+					}
 				}
 			}
-		}
 		} catch (_) {}
 	}
 
@@ -418,26 +406,33 @@
 		try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
 	}
 
-	// Restore on mount, save on every state change
-	$effect(() => { restoreState(); });
-	// After sys.feats loads, ensure all feat-mode choices have stat1/amount1 set
+	$effect(() => {
+		// Run once on mount. untrack() ensures the state writes don't
+		// re-trigger this or any other effect.
+		untrack(() => { restoreState(); });
+	});
+	// After sys.feats loads, backfill stat1/amount1 for restored feat-mode choices.
+	// untrack() prevents the write to c.stat1 from re-triggering this effect.
 	$effect(() => {
 		const feats = sys?.feats;
 		if (!feats?.length) return;
-		for (const c of asiChoices) {
-			if (c.mode === 'feat' && c.featId && !c.stat1) {
-				const featRef = feats.find((f: any) => f.id === c.featId);
-				if (!featRef?.asiAmount) continue;
-				const stat = featRef.asiStatFixed || c.featGrantedStat || c.featAsiFixed || '';
-				if (stat) { c.stat1 = stat; c.amount1 = featRef.asiAmount; }
+		untrack(() => {
+			for (const c of asiChoices) {
+				if (c.mode === 'feat' && c.featId && !c.stat1) {
+					const featRef = feats.find((f: any) => f.id === c.featId);
+					if (!featRef?.asiAmount) continue;
+					const stat = featRef.asiStatFixed || c.featGrantedStat || c.featAsiFixed || '';
+					if (stat) { c.stat1 = stat; c.amount1 = featRef.asiAmount; }
+				}
 			}
-		}
+		});
 	});
 	$effect(() => {
-		// Track all state — any change triggers save
+		// Track top-level state signals only. untrack() for the actual save
+		// prevents deep property reads on asiChoices items from creating loops.
 		void [step, name, avatarUrl, portraitUrl, worldId, speciesId, backgroundId,
 			bgFeatPick, scores, rolled, bonusGranted, bonus, classAllocs, asiChoices];
-		saveState();
+		untrack(() => saveState());
 	});
 
 	// ── Validation ───────────────────────────────────────────────────────────
@@ -459,7 +454,6 @@
 </script>
 
 <div class="page">
-	<!-- Header with always-visible Next -->
 	<div class="page__header">
 		<div>
 			<h2 class="page__title">New Character</h2>
@@ -474,7 +468,6 @@
 		</div>
 	</div>
 
-	<!-- Ribbon -->
 	<div class="ribbon">
 		{#each STEPS as s, i}
 			<button class="ribbon__step"
@@ -533,7 +526,6 @@
 
 	<!-- ════ Step 2: Species ════ -->
 	{:else if step === 1}
-		<!-- Desktop two-column -->
 		<div class="wizard-two-col" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:1rem;align-items:start;">
 			<div>
 				<div class="page__header" style="margin-bottom:0.75rem;">
@@ -542,8 +534,6 @@
 				</div>
 				<div class="wizard-species-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.75rem;">
 					{#each filteredSpecies as sp}
-						<!-- Desktop: clicking selects + updates drawer -->
-						<!-- Mobile: clicking opens sheet -->
 						<button class="tarot" class:tarot--active={speciesId===sp.id}
 							onclick={() => { speciesId=sp.id; openSpeciesSheet(sp); }}>
 							<div class="tarot__badges">
@@ -559,7 +549,6 @@
 					{/each}
 				</div>
 			</div>
-			<!-- Desktop drawer — scrollable independently -->
 			<div class="card wizard-drawer">
 				{#if selectedSpecies}
 					<h3 class="section-title">{selectedSpecies.name}</h3>
@@ -583,7 +572,6 @@
 			</div>
 		</div>
 
-		<!-- Mobile bottom sheet -->
 		{#if sheetSpecies}
 			<button class="wizard-sheet-backdrop" onclick={closeSpeciesSheet} aria-label="Close"></button>
 			<div class="wizard-sheet">
@@ -625,7 +613,6 @@
 	<!-- ════ Step 3: Background ════ -->
 	{:else if step === 2}
 		<div class="wizard-two-col" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem;align-items:start;">
-			<!-- List -->
 			<div>
 				<div class="page__header" style="margin-bottom:0.75rem;">
 					<input type="text" class="input" style="flex:1;max-width:260px;" placeholder="Search backgrounds…" bind:value={backgroundSearch} />
@@ -651,7 +638,6 @@
 				</div>
 			</div>
 
-			<!-- Desktop drawer -->
 			<div class="card wizard-drawer">
 				{#if selectedBackground}
 					{@const bg = selectedBackground as any}
@@ -692,7 +678,6 @@
 			</div>
 		</div>
 
-		<!-- Mobile bottom sheet -->
 		{#if sheetBg}
 			{@const bg = sheetBg as any}
 			<button class="wizard-sheet-backdrop" onclick={closeBgSheet} aria-label="Close"></button>
@@ -778,7 +763,6 @@
 				<p style="font-size:0.8125rem;color:var(--text-muted);margin:0 0 0.75rem;">Rolled 4d6 drop-lowest. Adjust with +/−.</p>
 			{/if}
 
-			<!-- Bonus pool -->
 			<div style="margin-bottom:0.75rem;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
 				<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
 					<div style="display:flex;align-items:center;gap:0.5rem;">
@@ -842,8 +826,6 @@
 	<!-- ════ Step 5: Classes ════ -->
 	{:else if step === 4}
 		<div class="wizard-two-col" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:1rem;align-items:start;">
-
-			<!-- Left: class list -->
 			<div>
 				<div class="page__header" style="margin-bottom:0.75rem;">
 					<input type="text" class="input" style="flex:1;" placeholder="Search classes…" bind:value={classSearch} />
@@ -868,12 +850,10 @@
 				</div>
 			</div>
 
-			<!-- Right: class detail + allocations (hidden on mobile, use sheet) -->
 			<div class="wizard-drawer wizard-class-detail" style="display:flex;flex-direction:column;gap:0.75rem;">
 				{#if browseClass}
 					{@const bc = browseClass as any}
 					<div class="card" style="padding:0.875rem;">
-						<!-- Header + Add button -->
 						<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.625rem;">
 							<div>
 								<h3 style="margin:0;font-size:1.0625rem;font-weight:700;">{bc.name}</h3>
@@ -888,7 +868,6 @@
 						</div>
 						{#if bc.description}<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0 0 0.75rem;">{bc.description}</p>{/if}
 
-						<!-- Level + subclass -->
 						<div style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.625rem;">
 							<div class="field" style="flex:0 0 80px;margin:0;">
 								<label class="label" for="browse-level">Level</label>
@@ -899,7 +878,6 @@
 							</div>
 						</div>
 
-						<!-- Subclass cards -->
 						{#if bc.subclasses?.length}
 							{@const availSubs = bc.subclasses.filter((s: any) => browseLevel >= (bc.subclassAvailableAtLevel ?? 3))}
 							{#if availSubs.length}
@@ -923,7 +901,6 @@
 						{/if}
 					</div>
 
-					<!-- Feature timeline -->
 					{#if featureTimeline.length}
 						<div class="card" style="padding:0.875rem;">
 							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.5rem;">
@@ -955,7 +932,6 @@
 					</div>
 				{/if}
 
-				<!-- Current allocations -->
 				{#if classAllocs.length}
 					<div class="card" style="padding:0.875rem;">
 						<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.5rem;">Your Classes</p>
@@ -995,7 +971,6 @@
 			</div>
 		</div>
 
-		<!-- Mobile bottom sheet for class -->
 		{#if sheetClass}
 			{@const sc = sheetClass as any}
 			<button class="wizard-sheet-backdrop" onclick={closeClassSheet} aria-label="Close"></button>
@@ -1063,11 +1038,19 @@
 				<p style="font-size:0.8125rem;color:var(--text-muted);margin:0 0 1rem;">
 					Your classes grant the following improvements. Choose for each slot.
 				</p>
+				{#if asiChoices.some(c => c.canEpicBoon) && !asiChoices.some(c => c.type === 'epic_boon')}
+					<div style="display:flex;align-items:center;gap:0.625rem;padding:0.625rem 0.875rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-md);margin-bottom:1rem;">
+						<span style="font-size:1rem;">⭐</span>
+						<p style="font-size:0.8125rem;color:var(--brand-accent);font-weight:600;margin:0;">
+							At level 19+ you qualify for an <strong>Epic Boon</strong> — select "Take a Feat / Epic Boon" on any slot below to choose one.
+						</p>
+					</div>
+				{/if}
 				<div style="display:flex;flex-direction:column;gap:1rem;">
 					{#each asiChoices as choice, i}
 						{@const isEpicBoon = choice.type === 'epic_boon'}
+						{@const choiceFeats = featsForChoice(choice)}
 						<div style="padding:0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-muted);">
-							<!-- Slot header -->
 							<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.625rem;flex-wrap:wrap;">
 								<span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">
 									{choice.sourceName} · Lv {choice.sourceLevel}
@@ -1080,16 +1063,15 @@
 							</div>
 
 							{#if isEpicBoon}
-								<!-- Epic Boon — search + card picker -->
 								{@const epicSearch = asiFeatSearch[i] ?? ''}
-								{@const epicFiltered = epicBoonFeats.filter((f: any) => !epicSearch || f.name.toLowerCase().includes(epicSearch.toLowerCase()))}
-								{@const epicPicked = epicBoonFeats.find((f: any) => f.id === asiChoices[i].featId)}
+								{@const epicFiltered = choiceFeats.filter((f: any) => !epicSearch || f.name.toLowerCase().includes(epicSearch.toLowerCase()))}
+								{@const epicPicked = choiceFeats.find((f: any) => f.id === asiChoices[i].featId)}
 								<div style="margin:0;">
 									<p style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin:0 0 0.375rem;">Choose an Epic Boon Feat</p>
 									{#if epicPicked}
 										<div style="padding:0.5rem 0.625rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
 											<span style="font-weight:700;font-size:0.875rem;">{epicPicked.name}</span>
-											<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;" onclick={() => { asiChoices[i].featId = ''; asiChoices[i].featGrantedStat = ''; asiChoices[i].featAsiAmount = undefined; asiChoices[i].featAsiFixed = undefined; }}>Change</button>
+											<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;" onclick={() => { asiChoices[i].featId = ''; }}>Change</button>
 										</div>
 									{:else}
 										<input type="text" class="input" placeholder="Search epic boon feats…" style="margin-bottom:0.375rem;font-size:0.8125rem;"
@@ -1098,7 +1080,7 @@
 											{#each epicFiltered as feat}
 												<button type="button"
 													style="text-align:left;padding:0.5rem 0.625rem;background:var(--bg-overlay);border:1px solid var(--border-muted);border-radius:var(--radius-sm);cursor:pointer;"
-													onclick={() => { asiChoices[i].featId = feat.id; asiChoices[i].mode = 'feat'; }}>
+													onclick={() => { asiChoices[i].featId = feat.id; }}>
 													<p style="font-weight:700;font-size:0.8125rem;margin:0 0 0.125rem;">{feat.name}</p>
 													{#if feat.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{feat.description.slice(0,120)}{feat.description.length>120?'…':''}</p>{/if}
 												</button>
@@ -1107,7 +1089,6 @@
 									{/if}
 								</div>
 							{:else}
-								<!-- ASI — choose mode first -->
 								<div style="display:flex;gap:0.5rem;margin-bottom:0.625rem;flex-wrap:wrap;">
 									<button
 										class="btn btn-sm"
@@ -1121,12 +1102,11 @@
 										class:btn-primary={asiChoices[i].mode === 'feat'}
 										class:btn-ghost={asiChoices[i].mode !== 'feat'}
 										onclick={() => { asiChoices[i].mode = 'feat'; asiChoices[i].stat1 = ''; asiChoices[i].stat2 = ''; }}>
-										Take a Feat
+										Take a Feat{choice.canEpicBoon ? ' / Epic Boon' : ''}
 									</button>
 								</div>
 
 								{#if asiChoices[i].mode === 'stat'}
-									<!-- Stat bump UI -->
 									<div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;">
 										<div class="field" style="margin:0;flex:1;min-width:140px;">
 											<label class="label" for="asi-stat1-{i}">Stat</label>
@@ -1158,10 +1138,9 @@
 										{/if}
 									</div>
 								{:else if asiChoices[i].mode === 'feat'}
-									<!-- Feat search + card picker -->
 									{@const featSearch = asiFeatSearch[i] ?? ''}
-									{@const featFiltered = availableFeats.filter((f: any) => !featSearch || f.name.toLowerCase().includes(featSearch.toLowerCase()))}
-									{@const featPicked = availableFeats.find((f: any) => f.id === asiChoices[i].featId)}
+									{@const featFiltered = choiceFeats.filter((f: any) => !featSearch || f.name.toLowerCase().includes(featSearch.toLowerCase()))}
+									{@const featPicked = choiceFeats.find((f: any) => f.id === asiChoices[i].featId)}
 									<div style="margin:0;">
 										{#if featPicked}
 											<div style="padding:0.5rem 0.625rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
@@ -1171,19 +1150,19 @@
 												</div>
 												<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;flex-shrink:0;" onclick={() => { asiChoices[i].featId = ''; asiChoices[i].featGrantedStat = ''; asiChoices[i].featAsiAmount = undefined; asiChoices[i].featAsiFixed = undefined; }}>Change</button>
 											</div>
-										{#if featPicked.asiAmount && !featPicked.asiStatFixed}
-											{@const choices = featPicked.asiStatChoices ? featPicked.asiStatChoices.split(',').map((s: string) => s.trim()) : STATS}
-											<div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.375rem;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);border:1px solid var(--border-muted);">
-												<span style="font-size:0.8125rem;color:var(--text-secondary);white-space:nowrap;">+{featPicked.asiAmount} to</span>
-												<select class="input input--select" style="flex:1;" bind:value={asiChoices[i].featGrantedStat}
-													onchange={(e) => { const v = (e.target as HTMLSelectElement).value; asiChoices[i].stat1 = v; asiChoices[i].amount1 = asiChoices[i].featAsiAmount ?? 1; }}>
-													<option value="">— Choose stat —</option>
-													{#each choices as st}<option value={st}>{STAT_LABEL[st] ?? st}</option>{/each}
-												</select>
-											</div>
-										{:else if featPicked.asiAmount && featPicked.asiStatFixed}
-											<p style="font-size:0.8125rem;color:var(--color-success);margin:0.375rem 0 0;">✓ Grants +{featPicked.asiAmount} {STAT_LABEL[featPicked.asiStatFixed] ?? featPicked.asiStatFixed} automatically</p>
-										{/if}
+											{#if featPicked.asiAmount && !featPicked.asiStatFixed}
+												{@const choices = featPicked.asiStatChoices ? featPicked.asiStatChoices.split(',').map((s: string) => s.trim()) : STATS}
+												<div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.375rem;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);border:1px solid var(--border-muted);">
+													<span style="font-size:0.8125rem;color:var(--text-secondary);white-space:nowrap;">+{featPicked.asiAmount} to</span>
+													<select class="input input--select" style="flex:1;" bind:value={asiChoices[i].featGrantedStat}
+														onchange={(e) => { const v = (e.target as HTMLSelectElement).value; asiChoices[i].stat1 = v; asiChoices[i].amount1 = asiChoices[i].featAsiAmount ?? 1; }}>
+														<option value="">— Choose stat —</option>
+														{#each choices as st}<option value={st}>{STAT_LABEL[st] ?? st}</option>{/each}
+													</select>
+												</div>
+											{:else if featPicked.asiAmount && featPicked.asiStatFixed}
+												<p style="font-size:0.8125rem;color:var(--color-success);margin:0.375rem 0 0;">✓ Grants +{featPicked.asiAmount} {STAT_LABEL[featPicked.asiStatFixed] ?? featPicked.asiStatFixed} automatically</p>
+											{/if}
 										{:else}
 											<input type="text" class="input" placeholder="Search feats…" style="margin-bottom:0.375rem;font-size:0.8125rem;"
 												value={featSearch} oninput={(e) => { const v = (e.target as HTMLInputElement).value; asiFeatSearch = asiFeatSearch.map((s,j) => j===i?v:s); }} />
@@ -1229,13 +1208,26 @@
 			<h4 class="section-title">Ability Scores</h4>
 			<div class="wizard-review-stats" style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;text-align:center;margin-bottom:1rem;">
 				{#each STATS as st}
-					{@const base = total[st]}
-					{@const final = finalScores[st]}
-					{@const bump = final - base}
+					{@const base     = total[st]}
+					{@const final    = finalScores[st]}
+					{@const asiBump  = asiChoices
+						.filter(c => c.mode === 'stat' && (c.stat1 === st || c.stat2 === st))
+						.reduce((n, c) => n + (c.stat1 === st ? (c.amount1 || 0) : (c.amount2 || 0)), 0)}
+					{@const featBump = asiChoices
+						.filter(c => (c.mode === 'feat' || c.type === 'epic_boon') && c.stat1 === st && c.amount1)
+						.reduce((n, c) => n + (c.amount1 || 0), 0)}
 					<div class="wizard-stat-box" style="padding:0.5rem;">
 						<p class="wizard-stat-box__label">{STAT_LABEL[st]}</p>
 						<p class="wizard-stat-box__value" style="font-size:1.375rem;">{final}</p>
-						{#if bump > 0}<p style="font-size:0.6875rem;color:var(--color-success);margin:0;">+{bump} ASI</p>{/if}
+						<div style="min-height:1rem;">
+							{#if asiBump > 0}
+								<p style="font-size:0.6875rem;color:var(--color-success);margin:0;">+{asiBump} ASI</p>
+							{/if}
+							{#if featBump > 0}
+								<p style="font-size:0.6875rem;color:var(--brand-accent);margin:0;">+{featBump} Feat</p>
+							{/if}
+							<p style="font-size:0.6875rem;color:var(--text-muted);margin:0;">base {base}</p>
+						</div>
 						<p class="wizard-stat-box__mod">{mod(final)}</p>
 					</div>
 				{/each}
@@ -1325,7 +1317,10 @@
 					<input type="hidden" name="allocatedLevel" value={a.allocatedLevel} />
 				{/each}
 				{#each STATS as st}
-					<input type="hidden" name="score_{st}" value={finalScores[st]} />
+					<!-- Submit total (point-buy + bonus), NOT finalScores.
+					     ASI / feat bumps are saved separately via addCharacterFeat
+					     so the DB can track base vs ASI vs feat independently. -->
+					<input type="hidden" name="score_{st}" value={total[st]} />
 				{/each}
 				<button type="submit" class="btn btn-primary" disabled={!canSubmit}>Create Character</button>
 			</form>

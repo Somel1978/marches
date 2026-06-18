@@ -1,6 +1,7 @@
 <!-- apps/frontend/src/routes/(protected)/quests/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -18,7 +19,18 @@
 			(_, i) => data.quest.minCapacity + i
 		)
 	);
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
+
+<svelte:head><title>{data.quest.title} — Marches</title></svelte:head>
 
 <div class="page">
 	<div class="page__header">
@@ -151,7 +163,7 @@
 					</div>
 					{#if !['COMPLETED','IN_PROGRESS','PENDING_RESULT','PENDING_RESULT_APPROVAL'].includes(data.quest.status)}
 					<form method="post" action="?/cancel"
-						use:enhance={({ cancel }) => { if (!confirm('Cancel your signup?')) { cancel(); return; } return async ({ update }) => { await update(); await invalidateAll(); }; }}>
+						use:enhance={({ cancel }) => { askConfirm('Confirm', 'Cancel your signup?', () => { cancel(); }); return; return async ({ update }) => { await update(); await invalidateAll(); }; }}>
 						<input type="hidden" name="signupId" value={s.id} />
 						<button type="submit" class="btn btn-ghost btn-sm">Cancel signup</button>
 					</form>
@@ -265,3 +277,12 @@
 		</div>
 	{/if}
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>

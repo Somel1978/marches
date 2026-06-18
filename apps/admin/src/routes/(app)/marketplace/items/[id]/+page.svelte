@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/marketplace/items/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ConfirmModal } from '@core/ui';
 	import { goto } from '$app/navigation';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
@@ -18,6 +19,15 @@
 		Artifact:  'badge-danger',
 		Unknown:   'badge-muted',
 	};
+
+	// ── Confirm modal ────────────────────────────────────────────────────────
+	let _confirmOpen  = $state(false);
+	let _confirmMsg   = $state('');
+	let _confirmTitle = $state('');
+	let _confirmCb    = $state<() => void>(() => {});
+	function askConfirm(title: string, msg: string, cb: () => void) {
+		_confirmTitle = title; _confirmMsg = msg; _confirmCb = cb; _confirmOpen = true;
+	}
 </script>
 
 <div class="page">
@@ -85,8 +95,17 @@
 		<h3 class="section-title" style="color:var(--color-danger);">Danger zone</h3>
 		<p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1rem;">Permanently removes this item from the catalogue. Cannot be undone.</p>
 		<form method="post" action="?/delete"
-			use:enhance={({ cancel }) => { if (!confirm('Delete this item permanently?')) { cancel(); return; } return async ({ update }) => { await update(); }; }}>
+			use:enhance={() => { return async ({ update }) => { await update(); }; }} id="cf-item-del">
 			<button type="submit" class="btn btn-danger btn-sm">Delete item</button>
 		</form>
 	</div>
 </div>
+<ConfirmModal
+	open={_confirmOpen}
+	title={_confirmTitle}
+	message={_confirmMsg}
+	confirmLabel="Confirm"
+	confirmClass="btn-danger"
+	onconfirm={() => { _confirmOpen = false; _confirmCb(); }}
+	oncancel={() => { _confirmOpen = false; }}
+/>
