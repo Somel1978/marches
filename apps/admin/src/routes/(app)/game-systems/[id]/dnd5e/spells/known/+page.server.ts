@@ -15,7 +15,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			sources.push({ id: cls.id, label: cls.name, classId: cls.id, className: cls.name, subclassId: '', subclassName: '' });
 		}
 		for (const sub of ((cls as any).subclasses ?? [])) {
-			if (sub.canCastSpells) {
+			// Only show subclass casters whose parent class does NOT cast spells
+			if (sub.canCastSpells && !(cls as any).canCastSpells) {
 				sources.push({ id: sub.id, label: `${cls.name} — ${sub.name}`, classId: cls.id, className: cls.name, subclassId: sub.id, subclassName: sub.name });
 			}
 		}

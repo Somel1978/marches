@@ -96,7 +96,7 @@
 					</div>
 				</div>
 				<div class="form-actions">
-					<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"
+					<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" 
 						onclick={() => { askConfirm('Confirm', 'Delete this class and all its data?', () => { deleteForm?.requestSubmit(); }); }}>
 						Delete class
 					</button>
@@ -128,7 +128,7 @@
 									return async ({ update }) => { await update(); await invalidateAll(); };
 								}} style="margin:0;">
 									<input type="hidden" name="id" value={f.id} />
-									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕</button>
+									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" >✕</button>
 								</form>
 							</div>
 							{#if editingFeature === f.id}
@@ -192,9 +192,10 @@
 							onclick={() => expandedSubclass = expandedSubclass === sub.id ? null : sub.id}>
 							{sub.name}
 							<span class="badge badge-muted" style="margin-left:0.5rem;">{sub.features?.length ?? 0} features</span>
-							{#if sub.canCastSpells}<span class="badge badge-accent" style="margin-left:0.25rem;font-size:0.6875rem;">Spellcasting</span>{/if}
+							{#if !cls.canCastSpells && sub.canCastSpells}<span class="badge badge-accent" style="margin-left:0.25rem;font-size:0.6875rem;">Spellcasting</span>{/if}
 						</button>
-						<!-- Toggle canCastSpells -->
+						<!-- Toggle canCastSpells — only relevant if parent class can't cast -->
+						{#if !cls.canCastSpells}
 						<form method="post" action="?/toggleSubclassCasting" use:enhance={() => { return async ({ update }) => { await update(); await invalidateAll(); }; }} style="margin:0;">
 							<input type="hidden" name="id" value={sub.id} />
 							<input type="hidden" name="canCastSpells" value={sub.canCastSpells ? 'false' : 'true'} />
@@ -202,6 +203,7 @@
 								{sub.canCastSpells ? '✦ Caster' : '○ Not Caster'}
 							</button>
 						</form>
+						{/if}
 						<form id="cf-{sub.id}-del" method="post" action="?/deleteSubclass" use:enhance={() => {
 				return async ({ update }) => { await update(); await invalidateAll(); };
 			}} style="margin:0;">

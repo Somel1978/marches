@@ -83,7 +83,7 @@
 					<thead>
 						<tr>
 							<th style="width:55px;">Level</th>
-							<th style="text-align:center;width:70px;">Cantrips</th>
+							<th style="text-align:center;width:70px;color:var(--text-muted);">Cantrips<br><span style="font-size:0.625rem;font-weight:400;">(read-only)</span></th>
 							{#each SLOTS as s}
 								{@const ord = s === 1 ? '1st' : s === 2 ? '2nd' : s === 3 ? '3rd' : `${s}th`}
 								<th style="text-align:center;width:55px;">{ord}</th>
@@ -96,8 +96,8 @@
 								<td style="font-weight:700;color:var(--text-muted);">{lvl}</td>
 								<td style="padding:0.25rem;">
 									<input name="cantrips_{lvl}" type="number" min="0" max="10" class="input"
-										style="text-align:center;padding:0.25rem;font-size:0.875rem;"
-										value={getCantrips(lvl)} placeholder="—" />
+										style="text-align:center;padding:0.25rem;font-size:0.875rem;opacity:0.6;cursor:not-allowed;"
+										value={getCantrips(lvl)} placeholder="—" readonly disabled />
 								</td>
 								{#each SLOTS as sl}
 									<td style="padding:0.25rem;">

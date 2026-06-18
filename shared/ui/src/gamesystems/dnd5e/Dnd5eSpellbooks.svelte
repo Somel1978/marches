@@ -1,6 +1,7 @@
 <!-- shared/ui/src/gamesystems/dnd5e/Dnd5eSpellbooks.svelte -->
 <!-- Pure UI component — no SvelteKit imports. All actions via callbacks. -->
 <script lang="ts">
+	import { confirmModal } from '../../../components/ui/confirm-modal-singleton.ts';
 	let {
 		charSheet, systemData, spellbooks = [],
 		onCreateSpellbook, onRenameSpellbook, onDeleteSpellbook,
@@ -190,7 +191,8 @@
 		await onAddEntry?.(bookId, spellId, cc.classId, cc.classRef?.name ?? cc.classId);
 		saving = false;
 	}
-	async function handleRemoveEntry(entryId: string) {
+	async function handleRemoveEntry(entryId: string, spellName: string) {
+		if (!await confirmModal('Remove Spell', `Remove "${spellName}" from this spellbook?`)) return;
 		saving = true; await onRemoveEntry?.(entryId); saving = false;
 	}
 	async function handleToggle(entryId: string, prepared: boolean) {
@@ -286,7 +288,7 @@
 						<h4 style="margin:0;font-size:1rem;font-weight:700;">{book.name}</h4>
 						{#if canEdit}
 							<button class="btn btn-ghost btn-sm" onclick={() => { renamingBook = bookId; renameVal = book.name; }}>Rename</button>
-							<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => handleDelete(bookId)} disabled={saving}>Delete</button>
+							<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => handleDelete(bookId)} disabled={saving}>Delete</button>
 						{/if}
 					{/if}
 				</div>
@@ -309,7 +311,7 @@
 					{@const entries    = bookEntries(book, cc)}
 					{@const classSpells = spellsForClass(cc)}
 					{@const cantripCnt = entries.filter((e: any) => allSpells.find((s: any) => s.spellId === e.spellId)?.level === 0).length}
-					{@const spellCnt   = entries.filter((e: any) => (allSpells.find((s: any) => s.spellId === e.spellId)?.level ?? 0) > 0).length}
+					{@const spellCnt   = entries.filter((e: any) => e.prepared && (allSpells.find((s: any) => s.spellId === e.spellId)?.level ?? 0) > 0).length}
 
 					<!-- Limits -->
 					<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.875rem;font-size:0.8125rem;">
@@ -320,11 +322,12 @@
 						{/if}
 						{#if limits?.prepared != null}
 							<span style="padding:0.25rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);">
-								Spells: <strong style="color:{spellCnt > limits.prepared ? 'var(--color-danger)' : 'var(--color-success)'};">{spellCnt}</strong> / {limits.prepared}
+								Prepared: <strong style="color:{spellCnt > limits.prepared ? 'var(--color-danger)' : 'var(--color-success)'};">{spellCnt}</strong> / {limits.prepared}
 							</span>
 						{:else if limits?.note}
+							<!-- note: formula-based prep (e.g. "WIS mod + Cleric level") — 2014 rules only, not used in 2024. Kept for backward compatibility. -->
 							<span style="padding:0.25rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);color:var(--text-muted);">
-								{limits.note} · <strong>{spellCnt}</strong> selected
+								{limits.note} · <strong>{spellCnt}</strong> prepared
 							</span>
 						{/if}
 					</div>
@@ -474,7 +477,7 @@
 															</button>
 														{/if}
 														{#if canEdit}
-															<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => handleRemoveEntry(entry.id)}>Remove</button>
+															<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => handleRemoveEntry(entry.id, sp.name)}>Remove</button>
 														{/if}
 													</div>
 												</div>
@@ -490,7 +493,7 @@
 														</button>
 													{/if}
 													{#if canEdit}
-														<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);margin-left:auto;" onclick={() => handleRemoveEntry(entry.id)}>✕</button>
+														<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);margin-left:auto;" onclick={() => handleRemoveEntry(entry.id, sp.name)}>✕</button>
 													{/if}
 												</div>
 											{/if}

@@ -6,14 +6,14 @@ import type { PageServerLoad, Actions } from './$types';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const weekParam = url.searchParams.get('week');
 	const baseDate  = weekParam ? new Date(weekParam) : new Date();
-	const dow  = baseDate.getDay();
+	const dow  = baseDate.getUTCDay();
 	const diff = dow === 0 ? -6 : 1 - dow;
 	const weekStart = new Date(baseDate);
-	weekStart.setDate(baseDate.getDate() + diff);
-	weekStart.setHours(0, 0, 0, 0);
+	weekStart.setUTCDate(baseDate.getUTCDate() + diff);
+	weekStart.setUTCHours(0, 0, 0, 0);
 	const weekEnd = new Date(weekStart);
-	weekEnd.setDate(weekStart.getDate() + 6);
-	weekEnd.setHours(23, 59, 59, 999);
+	weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+	weekEnd.setUTCHours(23, 59, 59, 999);
 
 	const [mySlots, allSlots, allWorlds] = await Promise.all([
 		availability.getForUser(locals.user!.id, weekStart, weekEnd),
@@ -27,7 +27,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	for (const s of allSlots) {
 		const d   = new Date(s.date);
-		const dow = d.getDay();
+		const dow = d.getUTCDay();
 		const dayIdx = dow === 0 ? 6 : dow - 1;
 		const key = `${dayIdx}:${s.slot}`;
 		heatmapData[key] = (heatmapData[key] ?? 0) + 1;
@@ -38,7 +38,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const mySlotMap: Record<string, { date: string; scope: string; worldIds: string[] }> = {};
 	for (const s of mySlots) {
 		const d   = new Date(s.date);
-		const dow = d.getDay();
+		const dow = d.getUTCDay();
 		const dayIdx = dow === 0 ? 6 : dow - 1;
 		mySlotMap[`${dayIdx}:${s.slot}`] = {
 			date:     d.toISOString().split('T')[0],

@@ -19,15 +19,15 @@
 	const weekStart    = $derived(new Date((data as any).weekStart));
 	const maxCount     = $derived(Math.max(1,...Object.values(heatmap??{}).map(Number)));
 
-	function dayDate(i: number) { const d=new Date(weekStart); d.setDate(weekStart.getDate()+i); return d; }
+	function dayDate(i: number) { const d=new Date(weekStart); d.setUTCDate(weekStart.getUTCDate()+i); return d; }
 	function dateKey(d: Date)   { return d.toISOString().split('T')[0]; }
 	const weekLabel = $derived(()=>{
 		const end=new Date(weekStart); end.setDate(weekStart.getDate()+6);
 		const f=(d:Date)=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 		return `${f(weekStart)} – ${f(end)}`;
 	});
-	function prevWeek() { const d=new Date(weekStart); d.setDate(d.getDate()-7); goto(`/availability?week=${dateKey(d)}`); }
-	function nextWeek() { const d=new Date(weekStart); d.setDate(d.getDate()+7); goto(`/availability?week=${dateKey(d)}`); }
+	function prevWeek() { const d=new Date(weekStart); d.setUTCDate(d.getUTCDate()-7); goto(`/availability?week=${dateKey(d)}`); }
+	function nextWeek() { const d=new Date(weekStart); d.setUTCDate(d.getUTCDate()+7); goto(`/availability?week=${dateKey(d)}`); }
 
 	function getCount(di:number,si:number)  { return (heatmap??{})[`${di}:${si}`]??0; }
 	function getMySlot(di:number,si:number) { return (mySlotMap??{})[`${di}:${si}`]??null; }
