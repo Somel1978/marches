@@ -15,8 +15,9 @@ function ordinal(n: number) { return `${n}${n===1?'st':n===2?'nd':n===3?'rd':'th
 function levelLabel(n: number) { return n === 0 ? 'Cantrip' : `${ordinal(n)} level`; }
 
 async function getGameSystemId(): Promise<string | null> {
-    const systems = await gameSystems.getActive();
-    return systems[0]?.id ?? null;
+    const systems = await gameSystems.getAll();
+    const dnd5eSystem = systems.find((s: any) => s.slug === 'dnd5e');
+    return dnd5eSystem?.id ?? null;
 }
 
 export async function handleSpellInfoCommand(interaction: ChatInputCommandInteraction, ephemeral: boolean) {

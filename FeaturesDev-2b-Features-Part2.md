@@ -334,3 +334,82 @@ TokenStoreTransaction:
 **Character sheet:** `+X from boosts` shown under XP and GP stat cards
 
 **Discord:** `TOKEN_STORE_PENDING` notification via APPROVALS channel
+---
+
+### 29. D&D 5e Spell System ✅
+
+**Schema additions to `Dnd5eSpell`:**
+```
+castingTime       String?   // "Action", "Bonus Action", "Reaction", "1 Minute"
+components        String?   // "V, S" or "V, S, M (material note)"
+description       String?   // full spell text, nullable
+sourceBook        String?   // "Player's Handbook", "Xanathar's Guide", etc.
+savingThrow       String?   // ability name: "Wisdom", "Constitution", etc.
+```
+
+**Schema additions to `Dnd5eSubclass`:**
+```
+canCastSpells     Boolean   @default(false)
+// Only relevant when parent class does NOT cast spells (Eldritch Knight, Arcane Trickster)
+```
+
+**Schema additions to `Dnd5eSpellSlotProgression` and `Dnd5eSpellsKnownProgression`:**
+```
+subclassId        String    @default("")   // "" = class-level caster
+subclassName      String    @default("")   // denormalized
+@@unique([gameSystemId, classId, subclassId, classLevel])
+```
+
+**Admin — Spell management:**
+- `/game-systems/[id]/dnd5e/spells` — spell list with search + level/school/spellList/concentration filters; Source Book column
+- `/game-systems/[id]/dnd5e/spells/[spellId]` — full spell editor: castingTime, components, description, sourceBook, savingThrow dropdown, all existing fields
+- `/game-systems/[id]/dnd5e/spells/slots` — Spell Slot Progression table; selector shows spellcasting classes AND spellcasting subclasses (e.g. "Fighter — Eldritch Knight"); Cantrips column is **read-only** (managed on Spells Known page); saves slot1-slot9 only
+- `/game-systems/[id]/dnd5e/spells/known` — Spells Known/Prepared table; same class/subclass selector; editable cantrips, prepared, additional, note columns; note column kept for 2014 backward compatibility, not used in 2024 rules
+- `/game-systems/[id]/dnd5e/classes/[classId]` — subclass rows show `canCastSpells` toggle **only when parent class cannot cast spells**; "Spellcasting" badge shown on qualifying subclasses
+
+**Import/Export:**
+- Spells XLSX: adds `Casting Time`, `Components`, `Description`, `Source Book`, `Saving Throw` columns
+- Spell Slots XLSX: `Subclass ID` and `Subclass Name` columns; import resolves `classId` and `subclassId` by **name** (portable across installations — no UUID dependency)
+- Spells Known XLSX: same subclass columns; same name-based ID resolution
+- Subclasses XLSX: adds `canCastSpells` column
+
+**Multiclass spell slot computation:**
+- Detects spellcasting via `cc.classRef?.canCastSpells || cc.subclassRef?.canCastSpells`
+- FULL = full level contribution; HALF = floor(level/2); THIRD = floor(level/3)
+- Combined level looked up against FULL caster table
+- Pact Magic (PACT caster type) shown separately
+
+**Character spellbooks (`Dnd5eSpellbooks.svelte`):**
+- Limits banner shows: `Cantrips: X/Y` · `Prepared: X/Y` · `Max Spell Level: Nth`
+  - Cantrips: count of level-0 entries in book
+  - Prepared: count of entries where `entry.prepared === true` AND level > 0 (NOT total spells in book)
+  - Max Spell Level: derived from highest non-zero slot in slot progression for character's class/level
+- Spell picker: filter bar (text search, level dropdown, school dropdown, Concentration toggle, Ritual toggle); results grouped by level with sticky headers
+- Expanded spell card: property tiles grid (`auto-fill minmax(100px, 1fr)`): Casting Time ⚡, Range 📏/🧍, Duration ⏳, Components ✦, AoE 💥, Saving Throw 🎲 (shows ability e.g. "WIS Save"), Attack Roll ⚔; damage with solid-color type pills (white text); cantrip scaling; At Higher Levels callout with contextual text ("for each slot level above Xth" or "for every two slot levels above Xth"); source book; DDB link
+- Collapsed header: name · level badge · school · Conc · Ritual · damage pills · chevron (damage pills kept in header for combat scanning)
+- Spell removal requires confirmation via `confirmModal`
+
+---
+
+### 30. Discord Spell Commands ✅
+
+**Files:** `apps/discord/src/commands/spell.ts`, `apps/discord/src/commands/spellbook.ts`
+
+**Channel:** `CHARACTERS` for all spell commands
+
+**Commands:**
+
+`/spell info [name]` — **ephemeral** — shows full spell card embed: level, school, concentration/ritual, casting time, range, duration, components, AoE, saving throw, damage with emoji type indicators, cantrip scaling, at higher levels (contextual text), source book, DDB link
+
+`/spell list [class] [level]` — **ephemeral** — lists all spells for a class at a given level (cantrip or 1–9); shows name, school, concentration/ritual badges, damage; paginated if over 4000 chars
+
+`/spellbook list [character] [spellbook]` — **ephemeral** — lists all spells in a named spellbook grouped by level; ✅ = prepared, ⬜ = not prepared, ✨ = cantrip; requires linked account
+
+`/spellbook slots [character]` — **ephemeral** — shows spell slots card with multiclass caster level; requires linked account
+
+`/spellbook prepared [character]` — **ephemeral** — shows all prepared spells grouped by level; limits banner (Cantrips X/Y · Prepared X/Y · Max Level Nth); requires linked account
+
+**Notes:**
+- All spellbook commands require a Discord-linked account
+- `/spell info` and `/spell list` are always ephemeral (info lookups, not character actions)
+- Game system resolved by `slug = 'dnd5e'` from `gameSystems.getAll()` — always targets the D&D 5e system regardless of other active systems
