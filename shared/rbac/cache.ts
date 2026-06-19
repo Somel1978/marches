@@ -1,65 +1,44 @@
 // shared/rbac/cache.ts
 
-// Permission Cache 
-// Caches the resolved UserPermissions map per user to avoid a DB query on
-// every request. The interface is designed to be swappable --- replace the
-// LruPermissionCache with a RedisPermissionCache when horizontal scaling
-// or cross-process invalidation is needed, without changing any callers.
+// Permission Cache
+// Stores resolved UserPermissions per user alongside the time they were cached.
+// On every read, the caller compares cachedAt against the global
+// `rbac.permissionsUpdatedAt` DB setting — if the DB timestamp is newer the
+// entry is stale and must be re-fetched. This makes invalidation cross-process:
+// any process (admin, frontend) that bumps the DB timestamp will cause all
+// other processes to re-fetch on the next request, with only one cheap DB
+// read per request (the timestamp SELECT) rather than a full permission query.
 //
-// Invalidation responsibility:
-//   - setUserRoles  invalidate the affected user directly
-//   - updatePermissions  invalidate all users with that role
-//   Both are called from SvelteKit actions (app layer) AFTER the dbapi write,
-//   keeping @core/database free of any dependency on @core/rbac.
-//
-// TTL: 5 minutes as a safety net. Explicit invalidation is the primary
-// mechanism  TTL only covers edge cases (e.g. direct DB edits).
-//
+// TTL: 60 minutes safety net for edge cases (e.g. direct DB edits).
+// Explicit DB-timestamp invalidation is the primary mechanism.
 
 import { LRUCache } from 'lru-cache';
 import type { UserPermissions } from './access.ts';
 
-// -Interface  swap this for Redis without changing callers
+export interface CachedEntry {
+    permissions: UserPermissions;
+    cachedAt:    number;   // Date.now() when stored
+}
 
 export interface PermissionCacheStore {
-    get(userId: string): UserPermissions | undefined;
-    set(userId: string, permissions: UserPermissions): void;
+    get(userId: string): CachedEntry | undefined;
+    set(userId: string, entry: CachedEntry): void;
     delete(userId: string): void;
     clear(): void;
 }
 
-// LRU implementation
-
-const TTL_MS      = 5 * 60 * 1000;  // 5 minutes
-const MAX_ENTRIES = 5_000;           // max concurrent cached users
+const TTL_MS      = 60 * 60 * 1000; // 60 minutes safety net
+const MAX_ENTRIES = 5_000;
 
 class LruPermissionCache implements PermissionCacheStore {
-    private cache = new LRUCache<string, UserPermissions>({
+    private cache = new LRUCache<string, CachedEntry>({
         max: MAX_ENTRIES,
         ttl: TTL_MS,
     });
-
-    get(userId: string): UserPermissions | undefined {
-        return this.cache.get(userId);
-    }
-
-    set(userId: string, permissions: UserPermissions): void {
-        this.cache.set(userId, permissions);
-    }
-
-    delete(userId: string): void {
-        this.cache.delete(userId);
-    }
-
-    clear(): void {
-        this.cache.clear();
-    }
+    get(userId: string)                     { return this.cache.get(userId); }
+    set(userId: string, entry: CachedEntry) { this.cache.set(userId, entry); }
+    delete(userId: string)                  { this.cache.delete(userId); }
+    clear()                                 { this.cache.clear(); }
 }
-
-// -Singleton replace with RedisPermissionCache when ready
-// To switch to Redis:
-//   1. Implement RedisPermissionCache satisfying PermissionCacheStore
-//   2. Replace the line below: export const permissionCache = new RedisPermissionCache(redisClient);
-//   3. No other files need to change.
 
 export const permissionCache: PermissionCacheStore = new LruPermissionCache();

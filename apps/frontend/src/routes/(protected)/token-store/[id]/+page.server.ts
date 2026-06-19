@@ -1,5 +1,6 @@
 // apps/frontend/src/routes/(protected)/token-store/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
+import { checkPermission } from '@core/rbac';
 import { tokenStore, characters } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -16,7 +17,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		return true;
 	});
 
-	return { item, eligible };
+	const canViewDescriptions = checkPermission(locals.permissions, { resourceKey: 'dnd5eDescriptions', action: 'read' }).allowed;
+	return { item, eligible, canViewDescriptions };
 };
 
 export const actions: Actions = {

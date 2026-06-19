@@ -53,7 +53,7 @@
 				</form>
 				<form method="post" action="?/reject" use:enhance={e_reload} style="display:flex;gap:0.25rem;flex-wrap:wrap;">
 					<input name="note" type="text" class="input" placeholder="Rejection reason" required style="width:180px;" />
-					<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Reject</button>
+					<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" >Reject</button>
 				</form>
 			</div>
 		</div>
@@ -117,6 +117,7 @@
 		{systemData}
 		scoreAudit={(data as any).scoreAudit ?? []}
 		{canManage}
+		canViewDescriptions={(data as any).canViewDescriptions ?? false}
 		{isLevelUp}
 		{isLevelDown}
 		availableLevel={earnedLevel}

@@ -12,19 +12,21 @@
 		spellbooks     = [],
 		character,
 		canEdit        = false,
+		canViewDescriptions = false,
 		isLevelUp      = false,
 		isLevelDown    = false,
 		availableLevel = 0,
 	}: {
-		charSheet?:      any;
-		systemData?:     any;
-		scoreAudit?:     any[];
-		spellbooks?:     any[];
-		character?:      any;
-		canEdit?:        boolean;
-		isLevelUp?:      boolean;
-		isLevelDown?:    boolean;
-		availableLevel?: number;
+		charSheet?:         any;
+		systemData?:        any;
+		scoreAudit?:        any[];
+		spellbooks?:        any[];
+		character?:         any;
+		canEdit?:           boolean;
+		canViewDescriptions?: boolean;
+		isLevelUp?:         boolean;
+		isLevelDown?:       boolean;
+		availableLevel?:    number;
 	} = $props();
 
 	const editBlockedReason = $derived.by(() => {
@@ -127,6 +129,7 @@
 	{scoreAudit}
 	{spellbooks}
 	{canEdit}
+	{canViewDescriptions}
 	{editBlockedReason}
 	{isLevelUp}
 	{isLevelDown}

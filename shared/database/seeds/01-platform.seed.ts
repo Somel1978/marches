@@ -46,7 +46,8 @@ const MODULES: {
         description: 'Game system catalogue management',
         sortOrder:   2,
         resources: [
-            { key: 'GameSystem', displayName: 'Game Systems', description: 'Manage game systems, classes and progression', sortOrder: 0, navVisibility: 'ALL' },
+            { key: 'GameSystem',          displayName: 'Game Systems',      description: 'Manage game systems, classes and progression',                       sortOrder: 0, navVisibility: 'ALL'  },
+            { key: 'dnd5eDescriptions',   displayName: 'D&D 5e Descriptions', description: 'View D&D 5e descriptions: class/subclass features, species traits, backgrounds, spells, items', sortOrder: 1, navVisibility: 'NONE' },
         ],
     },
 ];
@@ -57,6 +58,8 @@ const SETTINGS: {
     description: string;
     isSecret:    boolean;
 }[] = [
+    // RBAC
+    { key: 'rbac.permissionsUpdatedAt', value: '0', description: 'Epoch ms of last role permission change — cross-process cache invalidation signal', isSecret: false },
     // SMTP
     { key: 'smtp.host',    value: null,                    description: 'SMTP server hostname',           isSecret: false },
     { key: 'smtp.port',    value: '587',                   description: 'SMTP server port',               isSecret: false },

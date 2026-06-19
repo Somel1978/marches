@@ -10,6 +10,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const sys = $derived((data as any).systemData);
+	const canViewDescriptions = $derived((data as any).canViewDescriptions ?? false);
 
 	// ── Steps ────────────────────────────────────────────────────────────────
 	const BASE_STEPS  = [
@@ -542,7 +543,7 @@
 							</div>
 							<div class="tarot__icon">🧝</div>
 							<h4 class="tarot__name">{sp.name}</h4>
-							{#if sp.description}<p class="tarot__desc">{sp.description}</p>{/if}
+							{#if canViewDescriptions}{#if sp.description}<p class="tarot__desc">{sp.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 						</button>
 					{:else}
 						<p class="table__empty" style="grid-column:1/-1;">No species match.</p>
@@ -552,7 +553,7 @@
 			<div class="card wizard-drawer">
 				{#if selectedSpecies}
 					<h3 class="section-title">{selectedSpecies.name}</h3>
-					{#if selectedSpecies.description}
+					{#if canViewDescriptions && selectedSpecies.description}
 						<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{selectedSpecies.description}</p>
 					{/if}
 					{#if selectedSpecies.traits?.length}
@@ -561,7 +562,7 @@
 							{#each selectedSpecies.traits as t}
 								<div style="padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
 									<p style="margin:0 0 0.125rem;font-size:0.8125rem;font-weight:700;color:var(--brand-accent);">{t.name}</p>
-									{#if t.description}<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);">{t.description}</p>{/if}
+									{#if canViewDescriptions}{#if t.description}<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);">{t.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 								</div>
 							{/each}
 						</div>
@@ -587,7 +588,7 @@
 							{#if sheetSpecies.isSubrace}<span class="wizard-pill">Subrace</span>{/if}
 						</div>
 					{/if}
-					{#if sheetSpecies.description}
+					{#if canViewDescriptions && sheetSpecies.description}
 						<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{sheetSpecies.description}</p>
 					{/if}
 					{#if sheetSpecies.traits?.length}
@@ -653,7 +654,7 @@
 						<div style="padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-accent);">
 							<p style="margin:0 0 0.25rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Granted Feat</p>
 							<p style="margin:0;font-size:0.875rem;font-weight:700;color:var(--brand-accent);">🏅 {bg.grantsFeat.name}</p>
-							{#if bg.grantsFeat.description}<p style="margin:0.25rem 0 0;font-size:0.8125rem;color:var(--text-secondary);">{bg.grantsFeat.description}</p>{/if}
+							{#if canViewDescriptions}{#if bg.grantsFeat.description}<p style="margin:0.25rem 0 0;font-size:0.8125rem;color:var(--text-secondary);">{bg.grantsFeat.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 						</div>
 					{:else if bg.grantsFeatCategory}
 						<div style="padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-accent);">
@@ -664,7 +665,7 @@
 										<input type="radio" name="bg-feat" value={feat.id} checked={bgFeatPick===feat.id} onchange={() => bgFeatPick=feat.id} style="margin-top:2px;accent-color:var(--brand-accent);" />
 										<div>
 											<p style="margin:0;font-size:0.875rem;font-weight:600;">{feat.name}</p>
-											{#if feat.description}<p style="margin:0.125rem 0 0;font-size:0.75rem;color:var(--text-secondary);">{feat.description}</p>{/if}
+											{#if canViewDescriptions}{#if feat.description}<p style="margin:0.125rem 0 0;font-size:0.75rem;color:var(--text-secondary);">{feat.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 										</div>
 									</label>
 								{/each}
@@ -707,7 +708,7 @@
 										<input type="radio" name="bg-feat-mobile" value={feat.id} checked={bgFeatPick===feat.id} onchange={() => bgFeatPick=feat.id} style="margin-top:2px;accent-color:var(--brand-accent);" />
 										<div>
 											<p style="margin:0;font-size:0.875rem;font-weight:600;">{feat.name}</p>
-											{#if feat.description}<p style="margin:0.125rem 0 0;font-size:0.75rem;color:var(--text-secondary);">{feat.description}</p>{/if}
+											{#if canViewDescriptions}{#if feat.description}<p style="margin:0.125rem 0 0;font-size:0.75rem;color:var(--text-secondary);">{feat.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 										</div>
 									</label>
 								{/each}
@@ -866,7 +867,7 @@
 								{classAllocs.find((a: any)=>a.classId===bc.id)?'Update':'+ Add'}
 							</button>
 						</div>
-						{#if bc.description}<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0 0 0.75rem;">{bc.description}</p>{/if}
+						{#if canViewDescriptions}{#if bc.description}<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0 0 0.75rem;">{bc.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 
 						<div style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.625rem;">
 							<div class="field" style="flex:0 0 80px;margin:0;">
@@ -893,7 +894,7 @@
 								</div>
 								{#if browseSub}
 									{@const bs = browseSub as any}
-									{#if bs.description}<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0 0 0.625rem;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">{bs.description}</p>{/if}
+									{#if canViewDescriptions}{#if bs.description}<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0 0 0.625rem;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">{bs.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 								{/if}
 							{:else}
 								<p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 0.625rem;">Subclass available at level {bc.subclassAvailableAtLevel ?? 3}.</p>
@@ -950,7 +951,7 @@
 										<div style="display:flex;gap:0.25rem;align-items:center;">
 											<button class="wizard-ctrl-btn" onclick={() => { a.allocatedLevel = Math.max(1, a.allocatedLevel-1); }}>−</button>
 											<button class="wizard-ctrl-btn" onclick={() => { a.allocatedLevel = Math.min(20, a.allocatedLevel+1); }}>+</button>
-											<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => removeClass(i)}>✕</button>
+											<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => removeClass(i)}>✕</button>
 										</div>
 									</div>
 									{#if subs.length}
@@ -985,7 +986,7 @@
 						{#if sc.hitDice}<span class="badge badge-muted">d{sc.hitDice}</span>{/if}
 						{#if sc.primaryAbilities}<span class="badge badge-muted">{sc.primaryAbilities}</span>{/if}
 					</div>
-					{#if sc.description}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{sc.description}</p>{/if}
+					{#if canViewDescriptions}{#if sc.description}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{sc.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 					{#if sheetTimeline.length}
 						<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">Features</p>
 						<div class="feat-timeline">
@@ -998,7 +999,7 @@
 										<span class="feat-row__chevron" class:feat-row__chevron--open={open}>▶</span>
 									</button>
 									{#if open && feat.description}
-										<div class="feat-row__body">{feat.description}</div>
+										{#if canViewDescriptions}<div class="feat-row__body">{feat.description}</div>{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 									{/if}
 								</div>
 							{/each}
@@ -1082,7 +1083,7 @@
 													style="text-align:left;padding:0.5rem 0.625rem;background:var(--bg-overlay);border:1px solid var(--border-muted);border-radius:var(--radius-sm);cursor:pointer;"
 													onclick={() => { asiChoices[i].featId = feat.id; }}>
 													<p style="font-weight:700;font-size:0.8125rem;margin:0 0 0.125rem;">{feat.name}</p>
-													{#if feat.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{feat.description.slice(0,120)}{feat.description.length>120?'…':''}</p>{/if}
+													{#if canViewDescriptions}{#if feat.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{feat.description.slice(0,120)}{feat.description.length>120?'…':''}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 												</button>
 											{/each}
 										</div>
@@ -1146,7 +1147,7 @@
 											<div style="padding:0.5rem 0.625rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
 												<div>
 													<p style="font-weight:700;font-size:0.875rem;margin:0 0 0.125rem;">{featPicked.name}</p>
-													{#if featPicked.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{featPicked.description.slice(0,120)}{featPicked.description.length>120?'…':''}</p>{/if}
+													{#if canViewDescriptions}{#if featPicked.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{featPicked.description.slice(0,120)}{featPicked.description.length>120?'…':''}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 												</div>
 												<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;flex-shrink:0;" onclick={() => { asiChoices[i].featId = ''; asiChoices[i].featGrantedStat = ''; asiChoices[i].featAsiAmount = undefined; asiChoices[i].featAsiFixed = undefined; }}>Change</button>
 											</div>
@@ -1173,7 +1174,7 @@
 														onclick={() => { asiChoices[i].featId = feat.id; asiChoices[i].featGrantedStat = feat.asiStatFixed ?? ''; asiChoices[i].featAsiAmount = feat.asiAmount ?? undefined; asiChoices[i].featAsiFixed = feat.asiStatFixed ?? undefined; if (feat.asiStatFixed && feat.asiAmount) { asiChoices[i].stat1 = feat.asiStatFixed; asiChoices[i].amount1 = feat.asiAmount; } }}>
 														<p style="font-weight:700;font-size:0.8125rem;margin:0 0 0.125rem;">{feat.name}</p>
 														{#if feat.asiAmount}<p style="font-size:0.7rem;color:var(--color-success);margin:0 0 0.0625rem;">+{feat.asiAmount} {feat.asiStatFixed ? (STAT_LABEL[feat.asiStatFixed] ?? feat.asiStatFixed) : 'stat (your choice)'}</p>{/if}
-														{#if feat.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{feat.description.slice(0,120)}{feat.description.length>120?'…':''}</p>{/if}
+														{#if canViewDescriptions}{#if feat.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{feat.description.slice(0,120)}{feat.description.length>120?'…':''}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 													</button>
 												{/each}
 											</div>

@@ -212,6 +212,7 @@
 			spellbooks={(data as any).spellbooks ?? []}
 			character={data.character}
 			{canEdit}
+			canViewDescriptions={(data as any).canViewDescriptions ?? false}
 			{isLevelUp}
 			{isLevelDown}
 			availableLevel={earnedLevel}
@@ -286,7 +287,7 @@
 								{#if ps}
 									<form method="post" action="?/cancel" use:enhance={() => { return async ({ update }) => { await update(); await invalidateAll(); }; }}>
 										<input type="hidden" name="txId" value={ps.id} />
-										<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={(ev) => askConfirm('Confirm', 'Cancel this sell request?', () => { (ev.currentTarget as HTMLElement)?.closest('form')?.requestSubmit(); })}>Cancel</button>
+										<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={(ev) => askConfirm('Confirm', 'Cancel this sell request?', () => { (ev.currentTarget as HTMLElement)?.closest('form')?.requestSubmit(); })}>Cancel</button>
 									</form>
 								{/if}
 							</div>

@@ -2,6 +2,7 @@
 import { fail, error } from '@sveltejs/kit';
 import { characters, db, achievements, gameSystems, marketplace, platform, worlds } from '@core/database';
 import { isMarchesError } from '@core/errors';
+import { checkPermission } from '@core/rbac';
 import { loadDnd5eCharacterData } from './_loaders/dnd5e.server.ts';
 import { dnd5eActions } from './_sheets/dnd5e.actions.server.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -75,9 +76,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	// Only include dnd5e data when appropriate
 	const systemSpecific = (gameSystem as any)?.slug === 'dnd5e' ? systemSpecificData : {};
 
+	const canViewDescriptions = checkPermission(locals.permissions, { resourceKey: 'dnd5eDescriptions', action: 'read' }).allowed;
+
 	return {
 		character, charAchievements, transactions, boostTxs, gameSystem, progressionThresholds,
 		inventory: inventoryWithSellPrice, pendingBuys, pendingSells, sellPct: globalSellPct, worldName,
+		canViewDescriptions,
 		...systemSpecific,
 	};
 };

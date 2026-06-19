@@ -8,6 +8,7 @@
 		systemData,
 		scoreAudit             = [],
 		canEdit                = false,
+		canViewDescriptions    = false,
 		isLevelUp              = false,
 		isLevelDown            = false,
 		availableLevel         = 0,
@@ -31,6 +32,7 @@
 		systemData?:               any;
 		scoreAudit?:               any[];
 		canEdit?:                  boolean;
+		canViewDescriptions?:      boolean;
 		isLevelUp?:                boolean;
 		isLevelDown?:              boolean;
 		availableLevel?:           number;
@@ -442,7 +444,7 @@
 					<div><span class="table__muted">Species:</span> <strong>{charSheet.speciesRef.name}</strong>
 						{#if charSheet.speciesRef.traits?.length}
 							<span style="margin-left:0.5rem;display:inline-flex;flex-wrap:wrap;gap:0.25rem;">
-								{#each charSheet.speciesRef.traits as t}<span class="badge badge-muted" title={t.description??''}>{t.name}</span>{/each}
+								{#each charSheet.speciesRef.traits as t}<span class="badge badge-muted" title={canViewDescriptions ? (t.description??'') : ''}>{t.name}</span>{/each}
 							</span>
 						{/if}
 					</div>
@@ -471,7 +473,7 @@
 									<div>
 										<p style="font-size:0.75rem;font-weight:700;color:var(--brand-accent);margin:0 0 0.25rem;">{cc.classRef?.name??cc.classId}</p>
 										<div style="display:flex;flex-wrap:wrap;gap:0.25rem;">
-											{#each feats as f}<span class="badge badge-muted" style="font-size:0.75rem;" title={f.description??''}>{f.name} (Lv{f.requiredLevel})</span>{/each}
+											{#each feats as f}<span class="badge badge-muted" style="font-size:0.75rem;" title={canViewDescriptions ? (f.description??'') : ''}>{f.name} (Lv{f.requiredLevel})</span>{/each}
 										</div>
 									</div>
 								{/if}
@@ -532,7 +534,7 @@
 						{/if}
 					{/if}
 					{#if editClasses.length > 1}
-						<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => editClasses=editClasses.filter((_,j)=>j!==i)}>✕</button>
+						<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => editClasses=editClasses.filter((_,j)=>j!==i)}>✕</button>
 					{/if}
 				</div>
 			{/each}
@@ -593,7 +595,7 @@
 									<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot, {open:true}, slotIdx)}>Edit</button>
 								{/if}
 								{#if r.charFeatId}
-									<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => onRemoveFeat?.(cf?.id??r.charFeatId)}>Remove</button>
+									<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => onRemoveFeat?.(cf?.id??r.charFeatId)}>Remove</button>
 								{/if}
 							{/if}
 						</div>
@@ -607,7 +609,11 @@
 					{@const featRef = cf?.feat ?? (systemData?.feats ?? []).find((f:any) => f.id === r.featId)}
 					{#if featRef}
 						<div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border-muted);">
-							{#if featRef.description}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.25rem;">{featRef.description}</p>{/if}
+							{#if canViewDescriptions}
+								{#if featRef.description}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.25rem;">{featRef.description}</p>{/if}
+							{:else}
+								<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
+							{/if}
 							{#if featRef.prerequisites}<p style="font-size:0.75rem;color:var(--text-muted);margin:0;">Requires: {featRef.prerequisites}</p>{/if}
 						</div>
 					{/if}
@@ -739,6 +745,7 @@
 				{systemData}
 				{spellbooks}
 				canEdit={canEdit}
+				{canViewDescriptions}
 				onCreateSpellbook={onCreateSpellbook}
 				onRenameSpellbook={onRenameSpellbook}
 				onDeleteSpellbook={onDeleteSpellbook}

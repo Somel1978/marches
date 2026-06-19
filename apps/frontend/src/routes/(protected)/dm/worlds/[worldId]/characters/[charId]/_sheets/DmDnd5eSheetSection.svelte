@@ -10,17 +10,19 @@
 		systemData,
 		scoreAudit     = [],
 		canManage      = false,
+		canViewDescriptions = false,
 		isLevelUp      = false,
 		isLevelDown    = false,
 		availableLevel = 0,
 	}: {
-		charSheet?:      any;
-		systemData?:     any;
-		scoreAudit?:     any[];
-		canManage?:      boolean;
-		isLevelUp?:      boolean;
-		isLevelDown?:    boolean;
-		availableLevel?: number;
+		charSheet?:         any;
+		systemData?:        any;
+		scoreAudit?:        any[];
+		canManage?:         boolean;
+		canViewDescriptions?: boolean;
+		isLevelUp?:         boolean;
+		isLevelDown?:       boolean;
+		availableLevel?:    number;
 	} = $props();
 
 	async function post(name: string, entries: [string, string][]) {
@@ -88,6 +90,7 @@
 	{isLevelDown}
 	{availableLevel}
 	canManage={canManage}
+	{canViewDescriptions}
 	onSaveAbilityScores={canManage ? handleSaveAbilityScores : undefined}
 	onSubmitChanges={canManage ? handleSubmitChanges : undefined}
 	onSubmitLevelUp={canManage ? handleSubmitLevelUp : undefined}
