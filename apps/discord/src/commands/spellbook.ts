@@ -11,8 +11,9 @@ async function resolveCharacter(linkedUser: any, charName: string) {
 }
 
 async function getGameSystemId(): Promise<string | null> {
-    const systems = await gameSystems.getActive();
-    return systems[0]?.id ?? null;
+    const systems = await gameSystems.getAll();
+    const dnd5eSystem = systems.find((s: any) => s.slug === 'dnd5e');
+    return dnd5eSystem?.id ?? null;
 }
 
 export async function handleSpellbookListCommand(interaction: ChatInputCommandInteraction, linkedUser: any) {
@@ -99,7 +100,7 @@ export async function handleSpellbookSlotsCommand(interaction: ChatInputCommandI
     const slotLines: string[] = [];
     if (lookupRow) {
         for (let s = 1; s <= 9; s++) {
-            const count = lookupRow[`slot${s}`] ?? 0;
+            const count = (lookupRow as any)[`slot${s}`] ?? 0;
             if (count > 0) slotLines.push(`${ordinal(s)}: **${count}**`);
         }
     }
@@ -147,7 +148,7 @@ export async function handleSpellbookPreparedCommand(interaction: ChatInputComma
             r.classId === cc.classId && (!r.subclassId || r.subclassId === '') && r.classLevel === cc.allocatedLevel
         );
         if (!row) continue;
-        for (let s = 9; s >= 1; s--) { if ((row[`slot${s}`] ?? 0) > 0) { maxLevel = Math.max(maxLevel, s); break; } }
+        for (let s = 9; s >= 1; s--) { if (((row as any)[`slot${s}`] ?? 0) > 0) { maxLevel = Math.max(maxLevel, s); break; } }
 
         // Limits per class
         const known = knownProgressions.find((r: any) =>
