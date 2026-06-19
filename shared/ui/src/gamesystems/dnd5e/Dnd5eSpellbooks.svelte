@@ -7,6 +7,7 @@
 		onCreateSpellbook, onRenameSpellbook, onDeleteSpellbook,
 		onAddEntry, onRemoveEntry, onTogglePrepared,
 		canEdit = false,
+		canViewDescriptions = false,
 	}: {
 		charSheet?: any; systemData?: any; spellbooks?: any[];
 		onCreateSpellbook?:  (name: string) => Promise<void>;
@@ -16,6 +17,7 @@
 		onRemoveEntry?:      (entryId: string) => Promise<void>;
 		onTogglePrepared?:   (entryId: string, prepared: boolean) => Promise<void>;
 		canEdit?: boolean;
+		canViewDescriptions?: boolean;
 	} = $props();
 
 	// ── Damage type colours ───────────────────────────────────────────────────
@@ -437,8 +439,12 @@
 												{/if}
 
 												<!-- Description -->
-												{#if sp.description}
-													<p style="margin:0;font-size:0.875rem;color:var(--text-secondary);line-height:1.5;">{sp.description}</p>
+												{#if canViewDescriptions}
+													{#if sp.description}
+														<p style="margin:0;font-size:0.875rem;color:var(--text-secondary);line-height:1.5;">{sp.description}</p>
+													{/if}
+												{:else}
+													<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
 												{/if}
 
 												<!-- Damage + scaling -->

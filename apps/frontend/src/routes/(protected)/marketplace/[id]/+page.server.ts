@@ -1,6 +1,7 @@
 // apps/frontend/src/routes/(protected)/marketplace/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
 import { marketplace, characters } from '@core/database';
+import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -28,7 +29,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	);
 	const contexts = Object.fromEntries(contextEntries);
 
-	return { item, activeChars, contexts, urlWorldId };
+	return { item, activeChars, contexts, urlWorldId , canViewDescriptions: checkPermission(locals.permissions, { resourceKey: 'dnd5eDescriptions', action: 'read' }).allowed };
 };
 
 export const actions: Actions = {

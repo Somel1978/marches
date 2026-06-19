@@ -413,3 +413,50 @@ subclassName      String    @default("")   // denormalized
 - All spellbook commands require a Discord-linked account
 - `/spell info` and `/spell list` are always ephemeral (info lookups, not character actions)
 - Game system resolved by `slug = 'dnd5e'` from `gameSystems.getAll()` — always targets the D&D 5e system regardless of other active systems
+
+---
+
+### 31. D&D 5e Descriptions Permission Gate ✅
+
+**Permission key:** `dnd5eDescriptions` / action `read`
+**Resource registered in:** `Game Systems` module, `01-platform.seed.ts`
+**No schema changes** — uses existing RBAC `RolePermission` table and `Setting` table.
+
+**What is gated** — shows `📖 Description not available — contact your DM.` when permission not granted:
+
+| Page | Gated content |
+|---|---|
+| Character sheet | Species trait tooltips, class/subclass feature tooltips, feat description in ASI panel |
+| Spellbook | Spell description in expanded card |
+| Character wizard | Species, traits, backgrounds, feats, class/subclass feature descriptions |
+| Marketplace item detail | Item description |
+| Token store list | Item description snippet |
+| Token store item detail | Item description |
+
+**What is NOT gated** — world lore always visible: world/region/location descriptions, journal descriptions, faction descriptions, quest descriptions.
+
+**Prop chain:** `canViewDescriptions` resolved in page server → passed through page svelte → `Dnd5eSheetSection` / `DmDnd5eSheetSection` → `Dnd5eCharacterSheet` → `Dnd5eSpellbooks`
+
+**Setup for new installs:** `pnpm seed` in `shared/database` registers the resource automatically. Then assign `dnd5eDescriptions / read / ALL` to desired roles in Admin → Roles.
+
+---
+
+### 32. RBAC Cross-Process Cache Invalidation ✅
+
+**Problem:** Admin and frontend run as separate Node.js processes each with their own LRU permission cache. When admin saves role permissions, it invalidates its own cache but the frontend cache stays stale until TTL expires (was 5 minutes).
+
+**Solution:** DB timestamp invalidation via `Setting` key `rbac.permissionsUpdatedAt`.
+
+**How it works:**
+1. `getUserPermissions(userId)` does one cheap `SELECT` on `settings WHERE key = 'rbac.permissionsUpdatedAt'`
+2. Compares `cachedAt` of the LRU entry against the DB timestamp
+3. If `cachedAt >= dbTimestamp` → return cached (fast path)
+4. If `cachedAt < dbTimestamp` → stale → re-fetch from DB and re-cache
+5. `invalidateRolePermissions` and `invalidateUserPermissions` both call `bumpPermissionsTimestamp()` which does an `UPSERT` on the setting with `Date.now()`
+
+**Effect:** Permission changes in admin propagate to all processes (frontend, discord) on the next request — no restart needed, no arbitrary delay.
+
+**Files changed:**
+- `shared/rbac/cache.ts` — `CachedEntry` stores `{ permissions, cachedAt: number }` instead of bare `UserPermissions`; TTL raised to 60 minutes (DB timestamp is primary invalidation)
+- `shared/rbac/access.ts` — `getUserPermissions` checks DB timestamp before using cache; `bumpPermissionsTimestamp` helper added; both invalidation functions bump the timestamp
+- `shared/database/seeds/01-platform.seed.ts` — `rbac.permissionsUpdatedAt` setting seeded with value `'0'`

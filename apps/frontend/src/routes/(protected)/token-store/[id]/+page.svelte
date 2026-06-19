@@ -33,7 +33,11 @@
 		</div>
 
 		{#if item?.description}
-			<p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:1rem;">{item.description}</p>
+			{#if (data as any).canViewDescriptions}
+				<p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:1rem;">{item.description}</p>
+			{:else}
+				<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
+			{/if}
 		{/if}
 
 		<!-- Reward details -->

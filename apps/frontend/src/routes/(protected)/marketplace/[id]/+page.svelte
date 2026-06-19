@@ -4,6 +4,7 @@
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const canViewDescriptions = $derived((data as any).canViewDescriptions ?? false);
 	let saving         = $state(false);
 	let selectedCharId = $state('');
 
@@ -79,7 +80,7 @@
 				{/if}
 				{#if data.item.weight}<div class="field"><span class="label">Weight</span><span class="table__muted">{data.item.weight} lbs</span></div>{/if}
 				{#if data.item.source}<div class="field"><span class="label">Source</span><span class="table__muted">{data.item.source}</span></div>{/if}
-				{#if data.item.description}<div class="field"><span class="label">Description</span><p style="font-size:0.875rem; color:var(--text-secondary); margin:0; white-space:pre-wrap;">{data.item.description}</p></div>{/if}
+				<div class="field"><span class="label">Description</span>{#if canViewDescriptions}{#if data.item.description}<p style="font-size:0.875rem; color:var(--text-secondary); margin:0; white-space:pre-wrap;">{data.item.description}</p>{:else}<p style="color:var(--text-muted);font-style:italic;">No description.</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}</div>
 				{#if data.item.requirements}<div class="field"><span class="label">Requirements</span><span class="table__muted">{data.item.requirements}</span></div>{/if}
 				{#if data.item.link}<div class="field"><span class="label">Reference</span><a href={data.item.link} target="_blank" style="font-size:0.875rem;">D&D Beyond ↗</a></div>{/if}
 			</div>

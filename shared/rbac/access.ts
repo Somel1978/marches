@@ -48,9 +48,27 @@ function actionLevel(perm: ResolvedPermission, action: PermissionAction): Access
 
 // ── Core Engine ───────────────────────────────────────────────────────────────
 
+const TIMESTAMP_KEY = 'rbac.permissionsUpdatedAt';
+
+async function getPermissionsTimestamp(): Promise<number> {
+    const row = await db.setting.findUnique({ where: { key: TIMESTAMP_KEY } });
+    return row?.value ? Number(row.value) : 0;
+}
+
+async function bumpPermissionsTimestamp(): Promise<void> {
+    const now = String(Date.now());
+    await db.setting.upsert({
+        where:  { key: TIMESTAMP_KEY },
+        update: { value: now },
+        create: { key: TIMESTAMP_KEY, value: now, description: 'Last time role permissions were changed — used for cross-process cache invalidation', isSecret: false },
+    });
+}
+
 export async function getUserPermissions(userId: string): Promise<UserPermissions> {
+    // Check DB timestamp first — one cheap SELECT to detect cross-process invalidation
+    const dbTimestamp = await getPermissionsTimestamp();
     const cached = permissionCache.get(userId);
-    if (cached) return cached;
+    if (cached && cached.cachedAt >= dbTimestamp) return cached.permissions;
 
     const user = await db.user.findUnique({
         where: { id: userId },
@@ -65,7 +83,7 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
 
     if (!user?.userRoles.length) {
         const empty = new Map<string, ResolvedPermission>();
-        permissionCache.set(userId, empty);
+        permissionCache.set(userId, { permissions: empty, cachedAt: Date.now() });
         return empty;
     }
 
@@ -76,7 +94,7 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
     if (isSuperAdmin) {
         const superMap = new Map<string, ResolvedPermission>();
         superMap.set('__SUPERADMIN__', { canCreate: 'ALL', canRead: 'ALL', canUpdate: 'ALL', canDelete: 'ALL' });
-        permissionCache.set(userId, superMap);
+        permissionCache.set(userId, { permissions: superMap, cachedAt: Date.now() });
         return superMap;
     }
 
@@ -103,12 +121,14 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
         }
     }
 
-    permissionCache.set(userId, resolved);
+    permissionCache.set(userId, { permissions: resolved, cachedAt: Date.now() });
     return resolved;
 }
 
 export function invalidateUserPermissions(userId: string): void {
     permissionCache.delete(userId);
+    // Also bump DB timestamp so other processes know to re-fetch
+    bumpPermissionsTimestamp().catch(() => {});
 }
 
 export async function invalidateRolePermissions(roleId: string): Promise<void> {
@@ -119,6 +139,8 @@ export async function invalidateRolePermissions(roleId: string): Promise<void> {
     for (const { userId } of userRoles) {
         permissionCache.delete(userId);
     }
+    // Bump DB timestamp so other processes (admin ↔ frontend) immediately see the change
+    await bumpPermissionsTimestamp();
 }
 
 // ── Core check ────────────────────────────────────────────────────────────────

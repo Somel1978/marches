@@ -600,3 +600,34 @@
 - `/spellbook slots [character]` — spell slots summary
 - `/spellbook prepared [character]` — prepared spells with limits
 - Run `pnpm register` in `apps/discord` after deploying to push new commands to Discord
+
+---
+
+## D&D 5e Descriptions Permission Gate + RBAC Cross-Process Cache Fix
+
+**New permission resource:** `dnd5eDescriptions` / action `read` — registered in `Game Systems` module via seed. Assign in Admin → Roles to control which roles see D&D 5e descriptions.
+
+**Gated descriptions** (show placeholder `📖 Description not available — contact your DM.` when not permitted):
+- Character sheet: species trait tooltips, class/subclass feature tooltips, feat description
+- Spellbook: spell description in expanded card
+- Character wizard: species, traits, backgrounds, feats, class/subclass features
+- Marketplace item detail: item description
+- Token store list + detail: item description
+
+**World lore NOT gated:** world, region, location, journal, faction, quest descriptions remain visible to all.
+
+**Files changed (descriptions gate):**
+- `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte` — added `canViewDescriptions` prop; gates trait tooltips and feat description
+- `shared/ui/src/gamesystems/dnd5e/Dnd5eSpellbooks.svelte` — added `canViewDescriptions` prop; gates spell description
+- `apps/frontend/src/routes/(protected)/characters/[id]/_sheets/Dnd5eSheetSection.svelte` — prop added and passed through
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/characters/[charId]/_sheets/DmDnd5eSheetSection.svelte` — prop added and passed through
+- Page servers: `characters/[id]`, `characters/new/dnd5e`, `dm/worlds/[worldId]/characters/[charId]`, `marketplace/[id]`, `token-store`, `token-store/[id]` — all add `checkPermission(..., { resourceKey: 'dnd5eDescriptions', action: 'read' })` and return `canViewDescriptions`
+- Page svelte files: `characters/[id]`, `characters/new/dnd5e`, `dm/worlds/[worldId]/characters/[charId]`, `marketplace/[id]`, `token-store`, `token-store/[id]` — pass `canViewDescriptions` down to components
+- `shared/database/seeds/01-platform.seed.ts` — `dnd5eDescriptions` resource added to Game Systems module
+
+**RBAC cross-process cache fix:**
+- Root cause: admin and frontend are separate Node processes; admin invalidated its own LRU but frontend served stale permissions until 5-minute TTL expired
+- Fix: `Setting` key `rbac.permissionsUpdatedAt` stores epoch ms of last permission change; `getUserPermissions` does one cheap DB SELECT per request to check if cache is stale
+- `invalidateRolePermissions` and `invalidateUserPermissions` both call `bumpPermissionsTimestamp()` — any process that bumps the timestamp causes all other processes to re-fetch on next request
+- Files: `shared/rbac/cache.ts`, `shared/rbac/access.ts`, `shared/database/seeds/01-platform.seed.ts`
+- **Action required on existing installs:** `cd ~/dev/shared/database && pnpm seed` to register `rbac.permissionsUpdatedAt` setting

@@ -48,7 +48,7 @@
 						<h3 style="font-size:1rem;font-weight:700;margin:0;">{item.name}</h3>
 						<span style="font-weight:700;white-space:nowrap;color:var(--color-accent);">🪙 {item.tokenCost}</span>
 					</div>
-					{#if item.description}
+					{#if (data as any).canViewDescriptions && item.description}
 						<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0;">{item.description.slice(0,100)}{item.description.length > 100 ? '…' : ''}</p>
 					{/if}
 					<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-top:auto;">

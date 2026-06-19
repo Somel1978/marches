@@ -1,5 +1,6 @@
 // apps/frontend/src/routes/(protected)/token-store/+page.server.ts
 import { characters, tokenStore, gameSystems } from '@core/database';
+import { checkPermission } from '@core/rbac';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -24,5 +25,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const systems = await gameSystems.getActive();
 
-	return { items, activeChars, search, systems };
+	const canViewDescriptions = checkPermission(locals.permissions, { resourceKey: 'dnd5eDescriptions', action: 'read' }).allowed;
+	return { items, activeChars, search, systems, canViewDescriptions };
 };

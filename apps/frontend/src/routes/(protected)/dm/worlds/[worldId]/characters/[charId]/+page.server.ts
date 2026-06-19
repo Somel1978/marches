@@ -2,6 +2,7 @@
 import { fail, error } from '@sveltejs/kit';
 import { characters, users, gameSystems, db } from '@core/database';
 import { isMarchesError } from '@core/errors';
+import { checkPermission } from '@core/rbac';
 import { loadDnd5eCharacterData } from './_loaders/dnd5e.server.ts';
 import { dmDnd5eActions } from './_sheets/dnd5e.actions.server.ts';
 import type { PageServerLoad, Actions } from './$types';
@@ -16,7 +17,7 @@ async function assertCanManage(worldId: string, userId: string) {
 	return a?.canManage === true;
 }
 
-export const load: PageServerLoad = async ({ params, parent }) => {
+export const load: PageServerLoad = async ({ params, parent, locals }) => {
 	const { canManage } = await parent();
 
 	const character = await characters.getById(params.charId);
@@ -35,7 +36,8 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 		systemSpecific = await loadDnd5eCharacterData(params.charId, character.gameSystemId);
 	}
 
-	return { character, owner, gameSystem, inventory, canManage, ...systemSpecific };
+	const canViewDescriptions = checkPermission(locals.permissions, { resourceKey: 'dnd5eDescriptions', action: 'read' }).allowed;
+	return { character, owner, gameSystem, inventory, canManage, canViewDescriptions, ...systemSpecific };
 };
 
 export const actions: Actions = {

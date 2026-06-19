@@ -3,6 +3,7 @@
 import { fail, redirect, error } from '@sveltejs/kit';
 import { dnd5e, characters, gameSystems, worlds } from '@core/database';
 import { isMarchesError } from '@core/errors';
+import { checkPermission } from '@core/rbac';
 import { isAsiFeatureName } from '@core/database';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -25,7 +26,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// can sign up for quests, not whether new world-specific characters can be created.
 	const activeWorlds = (allWorlds as any[]).filter((w: any) => w.isActive);
 
-	return { slotInfo, gameSystem: system, systemData, activeWorlds };
+	const canViewDescriptions = checkPermission(locals.permissions, { resourceKey: 'dnd5eDescriptions', action: 'read' }).allowed;
+	return { slotInfo, gameSystem: system, systemData, activeWorlds, canViewDescriptions };
 };
 
 export const actions: Actions = {
