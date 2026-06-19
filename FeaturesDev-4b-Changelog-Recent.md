@@ -542,3 +542,61 @@
 
 **Bug Fixes**
 - Wizard cancel ✕ button — was `<a href="/characters/new">` (no state clear, caused 405 POST errors on the index page which has no actions). Now calls `clearState()` then `goto('/characters')`. `goto` imported from `$app/navigation`.
+---
+
+## Spell System + Discord Spell Commands
+
+**Schema (`dnd5e.prisma`):**
+- `Dnd5eSpell` gains: `castingTime String?`, `components String?`, `description String?`, `sourceBook String?`, `savingThrow String?`
+- `Dnd5eSubclass` gains: `canCastSpells Boolean @default(false)` — only relevant when parent class cannot cast spells
+- `Dnd5eSpellSlotProgression` and `Dnd5eSpellsKnownProgression` gain: `subclassId String @default("")`, `subclassName String @default("")`; `@@unique` updated to include `subclassId`
+- **Requires `db:push && db:generate`**
+
+**Admin spell editor (`/game-systems/[id]/dnd5e/spells/[spellId]`):**
+- New fields: Casting Time, Components, Description (textarea), Source Book, Saving Throw (dropdown: STR/DEX/CON/INT/WIS/CHA)
+
+**Admin spell slots page:**
+- Selector now shows spellcasting classes AND spellcasting subclasses (only when parent class `canCastSpells = false`)
+- Cantrips column is now **read-only** (managed on Spells Known page only)
+- Save action no longer writes to `Dnd5eSpellsKnownProgression`
+
+**Admin spells known page:**
+- Same subclass-aware selector
+
+**Admin classes page:**
+- `canCastSpells` toggle on subclass rows shown only when parent class `canCastSpells = false`
+- "Spellcasting" badge shown on qualifying subclasses
+
+**Import/Export:**
+- Spells sheet: adds Casting Time, Components, Description, Source Book, Saving Throw columns
+- Spell Slots/Known sheets: `Class ID` and `Subclass ID` removed from required columns; import resolves IDs by Class Name / Subclass Name (portable across systems)
+- Subclasses sheet: adds `canCastSpells` column
+
+**Character spellbooks (`Dnd5eSpellbooks.svelte`) — full rewrite:**
+- `Prepared` count = entries where `entry.prepared = true` (NOT total spells in book)
+- `Max Spell Level` computed from slot progression, shown in limits banner
+- Spell card expanded body: property tiles grid (castingTime, range, duration, components, AoE, savingThrow with ability name, attackRoll); At Higher Levels with contextual text ("for each slot level above Nth")
+- Collapsed header: damage pills kept for combat scanning
+- Spell picker: filters (search, level, school, concentration, ritual); results grouped by level
+- Spell removal requires `confirmModal` confirmation
+- Subclass casters (Eldritch Knight, Arcane Trickster) fully supported in multiclass computation
+
+**Availability fixes:**
+- DM hub: removed own-slot skip (DM sees their own availability)
+- DM hub + DM World: character status filter changed from `ACTIVE` only to exclude `RETIRED`, `DECEASED`, `REJECTED`; `needsNewChar: true` flag added when user has no valid characters
+- DM World: slot filter now based purely on availability scope (`GLOBAL` always shows player; `WORLD` only shows for targeted worlds); `acceptsGlobal` only controls which characters are displayed, not which players appear
+- DM Quest invite: `worldId` now correctly resolved via `regionId → region.worldId` (quest has no direct `worldId` field)
+- All date range calculations changed to UTC methods (`setUTCHours`, `setUTCDate`, `getUTCDay`) to prevent timezone-based slot mismatches
+
+**UI fixes:**
+- Ability scores grid: `repeat(auto-fill, minmax(80px, 1fr))` — 3 cols on mobile, 6 on desktop
+- `--color-danger` brightened from `#8B3A3A` to `#E05555` for readability on dark backgrounds
+- Mobile nav `z-index: 100` (was behind backdrop z-index: 99, making menu unclickable)
+
+**Discord spell commands (new):**
+- `/spell info [name]` — ephemeral spell card
+- `/spell list [class] [level]` — ephemeral spell list for class at level
+- `/spellbook list [character] [spellbook]` — spellbook contents
+- `/spellbook slots [character]` — spell slots summary
+- `/spellbook prepared [character]` — prepared spells with limits
+- Run `pnpm register` in `apps/discord` after deploying to push new commands to Discord
