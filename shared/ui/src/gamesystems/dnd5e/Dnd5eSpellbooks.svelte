@@ -313,6 +313,17 @@
 					{@const cantripCnt = entries.filter((e: any) => allSpells.find((s: any) => s.spellId === e.spellId)?.level === 0).length}
 					{@const spellCnt   = entries.filter((e: any) => e.prepared && (allSpells.find((s: any) => s.spellId === e.spellId)?.level ?? 0) > 0).length}
 
+					{@const maxSpellLevel = (() => {
+						const isClassCaster = !!cc.classRef?.canCastSpells;
+						const subclassId    = cc.subclassId ?? '';
+						const row = isClassCaster
+							? slotProgressions.find((r: any) => r.classId === cc.classId && (!r.subclassId || r.subclassId === '') && r.classLevel === cc.allocatedLevel)
+							: slotProgressions.find((r: any) => r.subclassId === subclassId && r.classLevel === cc.allocatedLevel);
+						if (!row) return 0;
+						for (let s = 9; s >= 1; s--) { if ((row[`slot${s}`] ?? 0) > 0) return s; }
+						return 0;
+					})()}
+
 					<!-- Limits -->
 					<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.875rem;font-size:0.8125rem;">
 						{#if limits?.cantrips != null}
@@ -328,6 +339,11 @@
 							<!-- note: formula-based prep (e.g. "WIS mod + Cleric level") — 2014 rules only, not used in 2024. Kept for backward compatibility. -->
 							<span style="padding:0.25rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);color:var(--text-muted);">
 								{limits.note} · <strong>{spellCnt}</strong> prepared
+							</span>
+						{/if}
+						{#if maxSpellLevel > 0}
+							<span style="padding:0.25rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);">
+								Max Spell Level: <strong style="color:var(--brand-accent);">{ordinal(maxSpellLevel)}</strong>
 							</span>
 						{/if}
 					</div>
@@ -451,7 +467,15 @@
 													<div style="padding:0.625rem 0.875rem;background:rgba(184,115,74,0.1);border-radius:var(--radius-sm);border-left:3px solid var(--brand-accent);">
 														<p style="margin:0 0 0.25rem;font-size:0.75rem;font-weight:700;color:var(--brand-accent);">At Higher Levels</p>
 														<p style="margin:0;font-size:0.875rem;color:var(--text-secondary);">
-															{sp.spellUpcastPerSlot ?? ''}{sp.spellUpcastEveryTwoSlots ?? ''}{sp.spellProgression ?? ''}{sp.spellProgressionNote ?? ''}
+															{#if sp.spellUpcastPerSlot}
+																{sp.spellUpcastPerSlot} for each slot level above {ordinal(sp.level)}.
+															{:else if sp.spellUpcastEveryTwoSlots}
+																{sp.spellUpcastEveryTwoSlots} for every two slot levels above {ordinal(sp.level)}.
+															{:else if sp.spellProgressionNote}
+																{sp.spellProgressionNote}
+															{:else if sp.spellProgression}
+																{sp.spellProgression}
+															{/if}
 														</p>
 													</div>
 												{/if}
