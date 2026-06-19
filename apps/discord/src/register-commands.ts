@@ -54,6 +54,45 @@ export const commands = [
             .addStringOption(o => o.setName('end_time').setDescription('End time (HH:MM, 24h)').setRequired(true)),
     },
 
+    // ── Spells ────────────────────────────────────────────────────────────────
+    {
+        data: new SlashCommandBuilder()
+            .setName('spell')
+            .setDescription('Spell reference commands')
+            .addSubcommand(sub => sub
+                .setName('info')
+                .setDescription('Show spell details')
+                .addStringOption(o => o.setName('name').setDescription('Spell name').setRequired(true))
+            )
+            .addSubcommand(sub => sub
+                .setName('list')
+                .setDescription('List all spells for a class at a given level')
+                .addStringOption(o => o.setName('class').setDescription('Class name (e.g. Wizard)').setRequired(true))
+                .addStringOption(o => o.setName('level').setDescription('cantrip or 1–9').setRequired(true))
+            ),
+    },
+    {
+        data: new SlashCommandBuilder()
+            .setName('spellbook')
+            .setDescription('Character spellbook commands')
+            .addSubcommand(sub => sub
+                .setName('list')
+                .setDescription('List spells in a spellbook')
+                .addStringOption(o => o.setName('character').setDescription('Character name').setRequired(true))
+                .addStringOption(o => o.setName('spellbook').setDescription('Spellbook name').setRequired(true))
+            )
+            .addSubcommand(sub => sub
+                .setName('slots')
+                .setDescription('Show spell slots for a character')
+                .addStringOption(o => o.setName('character').setDescription('Character name').setRequired(true))
+            )
+            .addSubcommand(sub => sub
+                .setName('prepared')
+                .setDescription('Show all prepared spells and limits')
+                .addStringOption(o => o.setName('character').setDescription('Character name').setRequired(true))
+            ),
+    },
+
     // ── Characters ────────────────────────────────────────────────────────────
     {
         data: new SlashCommandBuilder()

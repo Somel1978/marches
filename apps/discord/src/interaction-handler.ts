@@ -6,6 +6,8 @@ import { handleQuestCommand }      from './commands/quest.js';
 import { handleSignupCommand }     from './commands/signup.js';
 import { handleCharactersCommand } from './commands/characters.js';
 import { handleCharsInvCommand }   from './commands/charactersinv.js';
+import { handleSpellInfoCommand, handleSpellListCommand } from './commands/spell.js';
+import { handleSpellbookListCommand, handleSpellbookSlotsCommand, handleSpellbookPreparedCommand } from './commands/spellbook.js';
 import { handleItemCommand }       from './commands/item.js';
 import { handleBuyItemCommand }    from './commands/buyitem.js';
 import { handleSellItemCommand }    from './commands/sellitem.js';
@@ -21,6 +23,8 @@ const COMMAND_CHANNEL: Record<string, string> = {
     cancelsignup:  'QUESTS',
     characters:    'CHARACTERS',
     charactersinv: 'CHARACTERS',
+    spell:         'CHARACTERS',
+    spellbook:     'CHARACTERS',
     item:          'MARKET',
     buyitem:       'MARKET',
     sellitem:      'MARKET',
@@ -78,6 +82,18 @@ export async function handleInteraction(interaction: Interaction) {
     if (cmd === 'tavern')          return handleTavernCommand(interaction as any);
     if (cmd === 'setavailable')    return handleSetAvailableCommand(interaction as any);
     if (cmd === 'unsetavailable')  return handleUnsetAvailableCommand(interaction as any);
+
+    if (cmd === 'spell') {
+        const sub = interaction.options.getSubcommand();
+        if (sub === 'info') return handleSpellInfoCommand(interaction, ephemeral);
+        if (sub === 'list') return handleSpellListCommand(interaction, ephemeral);
+    }
+    if (cmd === 'spellbook') {
+        const sub = interaction.options.getSubcommand();
+        if (sub === 'list')     return handleSpellbookListCommand(interaction, linkedUser);
+        if (sub === 'slots')    return handleSpellbookSlotsCommand(interaction, linkedUser);
+        if (sub === 'prepared') return handleSpellbookPreparedCommand(interaction, linkedUser);
+    }
 }
 
 async function getUserByDiscordId(discordId: string) {
