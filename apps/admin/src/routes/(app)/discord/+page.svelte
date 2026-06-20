@@ -85,7 +85,13 @@
 			Set your bot token and client ID in <a href="/settings">Platform Settings</a> first.
 			Then invite the bot to your Discord servers and click <strong>Fetch servers</strong>.
 		</p>
-		<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+		<div style="margin-top:0.875rem;padding:0.625rem 0.875rem;background:rgba(220,150,50,0.1);border-left:3px solid var(--color-warning);border-radius:var(--radius-sm);">
+			<p style="margin:0;font-size:0.875rem;font-weight:600;color:var(--color-warning);">⚠ Multi-server notice</p>
+			<p style="margin:0.25rem 0 0;font-size:0.8125rem;color:var(--text-secondary);">
+				Each server should have its own dedicated channels. Do not add multiple bots to the same channels.
+			</p>
+		</div>
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1rem;">
 			{#if botInviteUrl()}
 				<a href={botInviteUrl()} target="_blank" rel="noopener" class="btn btn-primary btn-sm">+ Invite bot to a server</a>
 			{/if}
@@ -196,7 +202,7 @@
 				return async ({ update }) => { await update(); await invalidateAll(); };
 			}}>
 						<input type="hidden" name="id" value={server.id} />
-						<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', 'Remove this server?').then(ok => { if(ok)(document.getElementById("cf-edf686") as HTMLFormElement).requestSubmit(); })}>Remove</button>
+						<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => window.confirmModal('Confirm', 'Remove this server?').then(ok => { if(ok)(document.getElementById("cf-edf686") as HTMLFormElement).requestSubmit(); })}>Remove</button>
 					</form>
 				</div>
 			</div>

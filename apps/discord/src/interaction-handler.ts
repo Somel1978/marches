@@ -46,23 +46,29 @@ export async function handleInteraction(interaction: Interaction) {
     const settings     = await platform.getSettingsMap();
     const ephemeral    = settings['discord.responseMode'] !== 'public';
 
-    // Find which server scope this guild belongs to
-    const allServers   = await discord.servers.getAll();
-    const server       = allServers.find(s => s.guildId === interaction.guildId);
-    if (!server) {
-        await interaction.reply({ content: '❌ This server is not linked to Marches.', ephemeral: true });
-        return;
-    }
+    // Resolve server by channelId — each channel belongs to exactly one server.
+    // This allows multiple Marches bots in the same guild as long as they use
+    // separate channels (documented requirement in the Discord admin page).
+    const allServers = await discord.servers.getAll();
+    const allChannels = allServers
+        .flatMap((s: any) => s.channels.map((c: any) => ({ ...c, server: s })))
+        .filter((c: any) => c.channelId === interaction.channelId && c.server.guildId === interaction.guildId);
 
-    // Verify correct channel
+    if (!allChannels.length) return; // not a registered channel — silently ignore
+
+    const server      = allChannels[0].server;
     const requiredType = COMMAND_CHANNEL[interaction.commandName];
-    if (requiredType) {
-        const channel = server.channels.find(c => c.type === requiredType);
-        if (channel && channel.channelId !== interaction.channelId) {
-            const mention = `<#${channel.channelId}>`;
-            await interaction.reply({ content: `❌ Please use ${mention} for this command.`, ephemeral: true });
-            return;
-        }
+
+    // If command requires a specific channel type, prefer the matching one
+    const channel = requiredType
+        ? (allChannels.find((c: any) => c.type === requiredType) ?? allChannels[0])
+        : allChannels[0];
+
+    if (requiredType && channel.type !== requiredType) {
+        const correctChannel = server.channels.find((c: any) => c.type === requiredType);
+        const mention = correctChannel ? `<#${correctChannel.channelId}>` : `the ${requiredType.toLowerCase()} channel`;
+        await interaction.reply({ content: `❌ Please use ${mention} for this command.`, ephemeral: true });
+        return;
     }
 
     // Verify user is linked

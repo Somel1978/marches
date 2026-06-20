@@ -610,7 +610,11 @@
 					{#if featRef}
 						<div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border-muted);">
 							{#if canViewDescriptions}
-								{#if featRef.description}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.25rem;">{featRef.description}</p>{/if}
+								{#if canViewDescriptions}
+									{#if featRef.description}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.25rem;">{featRef.description}</p>{/if}
+								{:else}
+									<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
+								{/if}
 							{:else}
 								<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
 							{/if}
@@ -693,7 +697,7 @@
 												{#if feat.asiAmount}<span style="font-size:0.6875rem;padding:0.0625rem 0.375rem;background:rgba(34,197,94,0.15);color:var(--color-success);border-radius:99px;">+{feat.asiAmount} {feat.asiStatFixed ?? 'stat'}</span>{/if}
 												{#if taken}<span style="font-size:0.6875rem;color:var(--text-muted);">Already taken</span>{/if}
 											</div>
-											{#if feat.snippet}<p style="margin:0.125rem 0 0;font-size:0.8125rem;color:var(--text-secondary);">{feat.snippet}</p>{/if}
+											{#if canViewDescriptions}{#if feat.snippet}<p style="margin:0.125rem 0 0;font-size:0.8125rem;color:var(--text-secondary);">{feat.snippet}</p>{/if}{:else if feat.snippet}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 											{#if feat.prerequisites}<p style="margin:0.125rem 0 0;font-size:0.75rem;color:var(--text-muted);">Requires: {feat.prerequisites}</p>{/if}
 										</div>
 									</label>
