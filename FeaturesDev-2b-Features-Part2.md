@@ -426,7 +426,8 @@ subclassName      String    @default("")   // denormalized
 
 | Page | Gated content |
 |---|---|
-| Character sheet | Species trait tooltips, class/subclass feature tooltips, feat description in ASI panel |
+| Character sheet | Species trait tooltips, class/subclass feature tooltips, feat description in ASI panel, feat snippet in feat picker |
+| ASI Feats Panel | Chosen feat snippet, feat picker snippet (`Dnd5eAsiFeatsPanel` — prop ready, not yet wired) |
 | Spellbook | Spell description in expanded card |
 | Character wizard | Species, traits, backgrounds, feats, class/subclass feature descriptions |
 | Marketplace item detail | Item description |
@@ -460,3 +461,55 @@ subclassName      String    @default("")   // denormalized
 - `shared/rbac/cache.ts` — `CachedEntry` stores `{ permissions, cachedAt: number }` instead of bare `UserPermissions`; TTL raised to 60 minutes (DB timestamp is primary invalidation)
 - `shared/rbac/access.ts` — `getUserPermissions` checks DB timestamp before using cache; `bumpPermissionsTimestamp` helper added; both invalidation functions bump the timestamp
 - `shared/database/seeds/01-platform.seed.ts` — `rbac.permissionsUpdatedAt` setting seeded with value `'0'`
+
+---
+
+### 33. Discord Multi-Server Channel Routing ✅
+
+**Problem:** Multiple Marches instances in the same Discord guild caused command conflicts — commands resolved by `guildId` alone couldn't distinguish which server instance should respond.
+
+**Solution:** Resolve server context by `channelId + guildId` instead of `guildId` alone. Each registered Discord channel belongs to exactly one server instance. The bot silently ignores interactions from unregistered channels.
+
+**How it works:**
+1. On interaction, collect all `DiscordChannel` entries matching `channelId + guildId`
+2. If none found → silently ignore (not this server's channel)
+3. If command requires a specific channel type → prefer the matching type entry from the results
+4. If wrong channel type → redirect user to the correct channel with a mention
+5. Server context (`server`) is resolved from the matched channel's `server` relation
+
+**Admin notice added:** Bot Setup section in `/discord` admin page now shows:
+> "Each server should have its own dedicated channels. Do not add multiple bots to the same channels."
+
+**Files changed:**
+- `apps/discord/src/interaction-handler.ts` — channel-based routing with `guildId` cross-check; handles multiple channel type registrations on same channelId
+- `apps/admin/src/routes/(app)/discord/+page.svelte` — multi-server warning notice
+
+---
+
+### 34. Discord Quest Links Fix ✅
+
+**Problem:** Quest notification URLs were generating `https://site.url/quests/undefined` because the notification payload uses `questId` but `dispatcher.ts` was reading `quest.id`.
+
+**Fix:** All 6 `quest.id` references in `dispatcher.ts` changed to `quest.questId` to match the payload field name.
+
+**File:** `apps/discord/src/notifications/dispatcher.ts`
+
+---
+
+### 35. Discord `/quests` Per-Quest Layout ✅
+
+**Problem:** `/quests` command sent one embed with all quests as fields, then all buttons grouped at the bottom — buttons not associated with their quest visually.
+
+**Fix:** Each quest now gets its own embed + buttons sent as separate messages. First quest uses `editReply`, subsequent quests use `followUp`. Details and View on site buttons appear directly below each quest.
+
+**File:** `apps/discord/src/commands/quests.ts`
+
+---
+
+### 36. DM Quest Invite — WorldId Fix ✅
+
+**Problem:** `getAvailableUsersForQuest` was always called with `worldId = null` because `quest.worldId` doesn't exist on the Quest model (only `regionId` does). This meant only `GLOBAL`-scoped availability was ever matched, so world-scoped players never appeared in the invite list.
+
+**Fix:** `worldId` now resolved via `regionId → db.region.worldId` before calling the availability query.
+
+**File:** `apps/frontend/src/routes/(protected)/dm/quests/[id]/+page.server.ts`

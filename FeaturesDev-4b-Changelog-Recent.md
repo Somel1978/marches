@@ -631,3 +631,37 @@
 - `invalidateRolePermissions` and `invalidateUserPermissions` both call `bumpPermissionsTimestamp()` — any process that bumps the timestamp causes all other processes to re-fetch on next request
 - Files: `shared/rbac/cache.ts`, `shared/rbac/access.ts`, `shared/database/seeds/01-platform.seed.ts`
 - **Action required on existing installs:** `cd ~/dev/shared/database && pnpm seed` to register `rbac.permissionsUpdatedAt` setting
+
+---
+
+## D&D 5e Descriptions Gate — Additional Fixes
+
+**Missing gates found and fixed after initial implementation:**
+
+- `Dnd5eCharacterSheet.svelte` — feat picker `feat.snippet` (the long description shown when browsing feats in ASI edit mode) was not gated; `featRef.description` on the chosen feat summary was also missed in the first pass
+- `Dnd5eAsiFeatsPanel.svelte` — added `canViewDescriptions` prop and gated both `feat.snippet` displays (chosen feat summary row + feat picker list). Component is exported from `@core/ui` but not yet wired into any page — prop is ready for when it gets used.
+
+**Files updated:** `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte`, `shared/ui/src/gamesystems/dnd5e/Dnd5eAsiFeatsPanel.svelte`
+
+---
+
+## Discord Multi-Server Routing + Quest Fixes
+
+**Discord channel-based routing (`interaction-handler.ts`):**
+- Server context now resolved by `channelId + guildId` instead of `guildId` alone
+- Silently ignores interactions from unregistered channels (correct behaviour for multi-bot guilds)
+- Handles multiple channel type registrations on same channelId — prefers matching type
+- Admin Discord page: added multi-server notice "Each server should have its own dedicated channels. Do not add multiple bots to the same channels."
+
+**Quest notification URL fix (`dispatcher.ts`):**
+- `quest.id` → `quest.questId` in all 6 URL constructions — payload field was always `questId` not `id`
+
+**`/quests` command layout (`commands/quests.ts`):**
+- Each quest now sends its own embed + buttons as separate messages
+- Details and View on site buttons appear directly below their quest
+- No more grouped buttons at the bottom
+
+**DM quest invite fix (`dm/quests/[id]/+page.server.ts`):**
+- `worldId` now resolved via `regionId → db.region.worldId`
+- Previously always `null` so only GLOBAL-scoped availability matched; world-scoped players never appeared
+- Quest invite now works correctly for world-specific quests

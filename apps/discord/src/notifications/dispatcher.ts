@@ -37,7 +37,7 @@ export async function notifyQuestPublished(quest: any) {
             { name: 'Players', value: `0/${quest.maxCapacity}`,              inline: true },
             { name: 'XP',      value: quest.missionXp.toLocaleString(),      inline: true },
         )
-        .setURL(`${siteUrl}/quests/${quest.id}`)
+        .setURL(`${siteUrl}/quests/${quest.questId}`)
         .setTimestamp();
     if (quest.scheduledAt) embed.addFields({ name: 'Scheduled', value: new Date(quest.scheduledAt).toLocaleString(), inline: true });
 
@@ -52,7 +52,7 @@ export async function notifyQuestStarted(quest: any) {
         .setTitle(`⚔ Quest Started: ${quest.title}`)
         .setColor(0x6366f1)
         .setDescription(('This quest is now in progress. Good luck adventurers!') || null)
-        .setURL(`${siteUrl}/quests/${quest.id}`)
+        .setURL(`${siteUrl}/quests/${quest.questId}`)
         .setTimestamp();
     await send('global', 'QUESTS', embed);
     if (quest.worldId) await send(quest.worldId, 'QUESTS', embed);
@@ -69,7 +69,7 @@ export async function notifyQuestPendingApproval(quest: any) {
             { name: 'Level', value: `${quest.minLevel}–${quest.maxLevel}`, inline: true },
             { name: 'XP',    value: quest.missionXp?.toLocaleString() ?? '0', inline: true },
         )
-        .setURL(`${siteUrl}/quests/${quest.id}`)
+        .setURL(`${siteUrl}/quests/${quest.questId}`)
         .setTimestamp();
     await send('global', 'APPROVALS', embed);
     if (quest.worldId) await send(quest.worldId, 'APPROVALS', embed);
@@ -82,7 +82,7 @@ export async function notifyQuestResultPending(quest: any) {
         .setTitle(`📋 Quest Result Awaiting Approval: ${quest.title}`)
         .setColor(0xf59e0b)
         .setDescription(('Quest result has been submitted and needs review.') || null)
-        .setURL(`${siteUrl}/quests/${quest.id}`)
+        .setURL(`${siteUrl}/quests/${quest.questId}`)
         .setTimestamp();
     await send('global', 'APPROVALS', embed);
     if (quest.worldId) await send(quest.worldId, 'APPROVALS', embed);
@@ -104,7 +104,7 @@ export async function notifyQuestResult(quest: any, resultChars: any[]) {
                     inline: false,
                 }))
         )
-        .setURL(`${siteUrl}/quests/${quest.id}`)
+        .setURL(`${siteUrl}/quests/${quest.questId}`)
         .setTimestamp();
 
     await send('global', 'QUESTS', embed);
@@ -294,7 +294,7 @@ export async function notifyInvite(discordId: string, quest: any) {
                 { name: 'Level', value: `${quest.minLevel}–${quest.maxLevel}`, inline: true },
                 { name: 'XP',   value: quest.missionXp.toLocaleString(),       inline: true },
             )
-            .setURL(`${siteUrl}/quests/${quest.id}`)
+            .setURL(`${siteUrl}/quests/${quest.questId}`)
             .setTimestamp();
         if (quest.scheduledAt) embed.addFields({ name: 'Scheduled', value: new Date(quest.scheduledAt).toLocaleString(), inline: true });
         await user.send({ embeds: [embed] });

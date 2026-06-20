@@ -1,15 +1,18 @@
 <!-- shared/ui/src/gamesystems/dnd5e/Dnd5eAsiFeatsPanel.svelte -->
 <script lang="ts">
+	import { isAsiFeatureName } from './feature-names.ts';
 	let {
 		asiSlots       = [],
 		availableFeats = [],
 		chosenFeats    = [],
+		canViewDescriptions = false,
 		onAddFeat,
 		onRemoveFeat,
 	}: {
 		asiSlots?:       any[];
 		availableFeats?: any[];
 		chosenFeats?:    any[];
+		canViewDescriptions?: boolean;
 			onAddFeat?:      (featId: string, opts: { sourceClassId: string; sourceLevel: number; stat1?: string; amount1?: number; stat2?: string; amount2?: number; stat3?: string; amount3?: number }) => void;
 		onRemoveFeat?:   (id: string) => void;
 	} = $props();
@@ -26,7 +29,6 @@
 	let editing     = $state<Record<string, boolean>>({});
 
 	function slotKey(slot: any) { return `${slot.sourceClassId}_${slot.sourceLevel}`; }
-	import { isAsiFeatureName } from './feature-names.ts';
 	let featGrantedStat = $state<Record<string, string>>({});
 	let asi3Stat1   = $state<Record<string, string>>({});
 	let asi3Stat2   = $state<Record<string, string>>({});
@@ -136,7 +138,7 @@
 								{/if}
 							{:else if r.kind === 'feat'}
 								<span style="font-size:0.875rem; font-weight:600; color:var(--color-success);">🏅 {cf?.feat?.name ?? r.featName ?? 'Feat chosen'}</span>
-								{#if cf?.feat?.snippet}<span style="font-size:0.8125rem; color:var(--text-muted);">{cf.feat.snippet}</span>{/if}
+								{#if canViewDescriptions}{#if cf?.feat?.snippet}<span style="font-size:0.8125rem; color:var(--text-muted);">{cf.feat.snippet}</span>{/if}{:else if cf?.feat?.snippet}<span style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</span>{/if}
 								{#if onRemoveFeat && cf}
 									<button onclick={() => onRemoveFeat?.(cf.id)}
 										style="font-size:0.75rem; color:var(--color-danger); background:none; border:none; cursor:pointer; padding:0.125rem 0.375rem; border-radius:var(--radius-sm); border:1px solid var(--color-danger);">Remove</button>
@@ -237,7 +239,7 @@
 												{#if feat.asiAmount}<span style="font-size:0.6875rem; padding:0.0625rem 0.375rem; background:rgba(34,197,94,0.15); color:var(--color-success); border-radius:99px;">+{feat.asiAmount} {feat.asiStatFixed ?? 'stat'}</span>{/if}
 												{#if alreadyTaken}<span style="font-size:0.6875rem; color:var(--text-muted);">Already taken</span>{/if}
 											</div>
-											{#if feat.snippet}<p style="margin:0.125rem 0 0; font-size:0.8125rem; color:var(--text-secondary);">{feat.snippet}</p>{/if}
+											{#if canViewDescriptions}{#if feat.snippet}<p style="margin:0.125rem 0 0; font-size:0.8125rem; color:var(--text-secondary);">{feat.snippet}</p>{/if}{:else if feat.snippet}<span style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</span>{/if}
 											{#if feat.prerequisites}<p style="margin:0.125rem 0 0; font-size:0.75rem; color:var(--text-muted);">Requires: {feat.prerequisites}</p>{/if}
 										</div>
 									</label>
