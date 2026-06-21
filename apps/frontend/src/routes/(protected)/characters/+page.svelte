@@ -60,9 +60,9 @@
 							<span class="badge {statusColors[char.status] ?? 'badge-muted'}">{char.status}</span>
 						</div>
 						<p class="character-card__level">Level {totalLevel(char)}</p>
-						{#if (char as any).classes?.length}
+						{#if (char as any).dnd5eClasses?.length}
 							<p class="character-card__classes">
-								{(char as any).classes?.map((c: any) => c.classRef?.name).join(' · ')}
+								{(char as any).dnd5eClasses.map((c: any) => c.subclassName ? `${c.name} (${c.subclassName})` : c.name).join(' · ')}
 							</p>
 						{/if}
 						<div class="character-card__stats">

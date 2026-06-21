@@ -46,7 +46,7 @@ export const actions: Actions = {
 		}
 	},
 
-	// Reject quest (PENDING_APPROVAL → CANCELLED)
+	// Reject quest (PENDING_APPROVAL → DRAFT so DM can edit and resubmit)
 	reject: async ({ params, request, locals }) => {
 		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
 		const data = await request.formData();
@@ -54,7 +54,7 @@ export const actions: Actions = {
 		const note = data.get('note')?.toString().trim() ?? '';
 		if (!note) return fail(400, { message: 'Rejection reason required.' });
 		try {
-			await quests.updateStatus(id, 'CANCELLED', note, locals.user!.id);
+			await quests.updateStatus(id, 'DRAFT', note, locals.user!.id);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

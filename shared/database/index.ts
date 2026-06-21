@@ -141,7 +141,7 @@ import { updateQuest, updateQuestRewards, addCoDM,
          removeCoDM                                      } from './dbapi/write/quests/update.ts';
 import { updateQuestStatus                               } from './dbapi/write/quests/update-status.ts';
 import { signupForQuest, cancelSignup,
-         confirmWaitlistPromotion                        } from './dbapi/write/quests/signup.ts';
+         confirmWaitlistPromotion, expireStalePromotions  } from './dbapi/write/quests/signup.ts';
 import { submitQuestResult, approveQuestResult,
          rejectQuestResult                               } from './dbapi/write/quests/submit-result.ts';
 import { deleteQuest                                     } from './dbapi/write/quests/delete.ts';
@@ -290,6 +290,7 @@ export const quests = {
     signup:                signupForQuest,
     cancelSignup,
     confirmWaitlistPromotion,
+    expireStalePromotions,
     submitResult:          submitQuestResult,
     approveResult:         approveQuestResult,
     rejectResult:          rejectQuestResult,

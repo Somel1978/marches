@@ -112,6 +112,7 @@ model QuestSignup {
   signedUpAt  DateTime     @default(now()) @map("signed_up_at")
   updatedAt   DateTime     @updatedAt      @map("updated_at")
   cancelNote  String?      @map("cancel_note")
+  promotedAt  DateTime?    @map("promoted_at")  // set when promoted from WAITLIST to PENDING_CONFIRMATION
 
   @@unique([questId, characterId])
   @@map("quest_signups")
