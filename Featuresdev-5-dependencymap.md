@@ -1,12 +1,13 @@
 # Marches — Codebase Dependency Map
-> Auto-generated from source. Update when adding/removing imports.
-> Format: **file** → functions exported → callers
+
+> Auto-generated. Update when adding/removing imports.
+> Format: **file** → exports → callers
 
 
 ## DB Read — Characters
 
 ### `shared/database/dbapi/read/characters/get-all.ts`
-**Exports:** `getAllCharacters`
+**Exports:** `GetAllCharactersOptions`, `getAllCharacters`
 
 **Called by:**
 - `shared/database/index.ts` — uses `getAllCharacters`
@@ -45,7 +46,7 @@
 ## DB Write — Characters
 
 ### `shared/database/dbapi/write/characters/adjust-currency.ts`
-**Exports:** `adjustCurrency`
+**Exports:** `CurrencyType`, `adjustCurrency`
 
 **Called by:**
 - `shared/database/index.ts` — uses `adjustCurrency`
@@ -97,7 +98,7 @@
 - `shared/database/index.ts` — uses `grantCharacterSlot`
 
 ### `shared/database/dbapi/write/characters/update-classes.ts`
-**Exports:** `updateCharacterClasses`
+**Exports:** `ClassAllocation`, `updateCharacterClasses`
 
 > ⚠ No direct import callers found (may be called via `@core/database` barrel only)
 
@@ -116,7 +117,7 @@
 ## DB Read — Quests
 
 ### `shared/database/dbapi/read/quests/get-all.ts`
-**Exports:** `getAllQuests`
+**Exports:** `GetAllQuestsOptions`, `getAllQuests`
 
 **Called by:**
 - `shared/database/index.ts` — uses `getAllQuests`
@@ -130,7 +131,7 @@
 ## DB Write — Quests
 
 ### `shared/database/dbapi/write/quests/create.ts`
-**Exports:** `createQuest`
+**Exports:** `CreateQuestInput`, `createQuest`
 
 **Called by:**
 - `shared/database/index.ts` — uses `createQuest`
@@ -239,7 +240,7 @@
 - `shared/database/index.ts` — uses `createDnd5eClass`, `updateDnd5eClass`, `deleteDnd5eClass`, `createClassFeature`, `updateClassFeature`, `deleteClassFeature`
 
 ### `shared/database/dbapi/write/dnd5e/create-character.ts`
-**Exports:** `createDnd5eCharacter`
+**Exports:** `ClassAllocationInput`, `Dnd5eCreateCharacterInput`, `createDnd5eCharacter`
 
 **Called by:**
 - `shared/database/index.ts` — uses `createDnd5eCharacter`
@@ -251,7 +252,7 @@
 - `shared/database/index.ts` — uses `createDnd5eFeat`, `updateDnd5eFeat`, `deleteDnd5eFeat`
 
 ### `shared/database/dbapi/write/dnd5e/score-audit.ts`
-**Exports:** `addScoreAuditEntries`, `addScoreAuditEntry`, `applyManualScoreAdjustment`
+**Exports:** `ScoreAuditInput`, `addScoreAuditEntries`, `addScoreAuditEntry`, `applyManualScoreAdjustment`
 
 **Called by:**
 - `shared/database/dbapi/write/dnd5e/update-ability-scores.ts` — uses `addScoreAuditEntries`
@@ -294,7 +295,7 @@
 - `shared/database/index.ts` — uses `submitDnd5eStructuralChanges`, `updateDnd5eCharacterFields`
 
 ### `shared/database/dbapi/write/dnd5e/update-classes.ts`
-**Exports:** `updateDnd5eCharacterClasses`
+**Exports:** `ClassAllocation`, `updateDnd5eCharacterClasses`
 
 **Called by:**
 - `shared/database/index.ts` — uses `updateDnd5eCharacterClasses`
@@ -302,7 +303,7 @@
 ## DB Read — Users
 
 ### `shared/database/dbapi/read/users/get-all.ts`
-**Exports:** `getAll`
+**Exports:** `GetAllUsersOptions`, `getAll`
 
 **Called by:**
 - `shared/database/index.ts` — uses `getAll`
@@ -316,7 +317,7 @@
 ## DB Write — Users
 
 ### `shared/database/dbapi/write/users/create.ts`
-**Exports:** `createUser`
+**Exports:** `CreateUserInput`, `createUser`
 
 **Called by:**
 - `shared/database/index.ts` — uses `createUser`
@@ -334,10 +335,10 @@
 - `shared/database/index.ts` — uses `setPassword`
 
 ### `shared/database/dbapi/write/users/update.ts`
-**Exports:** `updateUser`, `updateUserDiscord`
+**Exports:** `UpdateUserInput`, `updateUser`, `updateUserDiscord`, `updateUserTheme`
 
 **Called by:**
-- `shared/database/index.ts` — uses `updateUser`, `updateUserDiscord`
+- `shared/database/index.ts` — uses `updateUser`, `updateUserDiscord`, `updateUserTheme`
 
 ## DB Read — Roles
 
@@ -356,7 +357,7 @@
 ## DB Write — Roles
 
 ### `shared/database/dbapi/write/roles/create.ts`
-**Exports:** `createRole`
+**Exports:** `CreateRoleInput`, `createRole`
 
 **Called by:**
 - `shared/database/index.ts` — uses `createRole`
@@ -368,7 +369,7 @@
 - `shared/database/index.ts` — uses `deleteRole`
 
 ### `shared/database/dbapi/write/roles/update-permissions.ts`
-**Exports:** `setUserRoles`, `updatePermissions`
+**Exports:** `PermissionInput`, `setUserRoles`, `updatePermissions`
 
 **Called by:**
 - `shared/database/index.ts` — uses `updatePermissions`, `setUserRoles`
@@ -382,7 +383,7 @@
 - `shared/database/index.ts` — uses `getResources`, `getResourceNames`, `getResourceNavVisibility`
 
 ### `shared/database/dbapi/read/platform/get-settings.ts`
-**Exports:** `getSettings`, `getSettingsMap`
+**Exports:** `SettingRow`, `getSettings`, `getSettingsMap`
 
 **Called by:**
 - `shared/database/dbapi/read/characters/get-slot-info.ts` — uses `getSettingsMap`
@@ -405,7 +406,7 @@
 ## DB Read — Marketplace
 
 ### `shared/database/dbapi/read/marketplace/get-items.ts`
-**Exports:** `getAllMarketplaceItemsForExport`, `getMarketplaceItemById`, `getMarketplaceItemByName`, `getMarketplaceItems`, `searchMarketplaceItems`
+**Exports:** `GetItemsOptions`, `getAllMarketplaceItemsForExport`, `getMarketplaceItemById`, `getMarketplaceItemByName`, `getMarketplaceItems`, `searchMarketplaceItems`
 
 **Called by:**
 - `shared/database/index.ts` — uses `getMarketplaceItems`, `getMarketplaceItemById`, `getAllMarketplaceItemsForExport`, `searchMarketplaceItems`, `getMarketplaceItemByName`
@@ -432,7 +433,7 @@
 ## DB Write — Marketplace
 
 ### `shared/database/dbapi/write/marketplace/import.ts`
-**Exports:** `importMarketplaceItems`
+**Exports:** `ImportRow`, `importMarketplaceItems`
 
 **Called by:**
 - `shared/database/index.ts` — uses `importMarketplaceItems`
@@ -627,13 +628,13 @@
 ## DB Read — Factions
 
 ### `shared/database/dbapi/read/factions/get-factions.ts`
-**Exports:** `getFactionById`, `getFactionBySlug`, `getFactionRenownForCharacter`, `getFactionsByWorld`
+**Exports:** `GetFactionsOptions`, `getFactionById`, `getFactionBySlug`, `getFactionRenownForCharacter`, `getFactionsByWorld`
 
 **Called by:**
 - `shared/database/index.ts` — uses `getFactionsByWorld`, `getFactionById`, `getFactionBySlug`, `getFactionRenownForCharacter`
 
 ### `shared/database/dbapi/read/factions/get-npcs.ts`
-**Exports:** `getNpcById`, `getNpcsByWorld`, `getPublicNpcs`
+**Exports:** `GetNpcsOptions`, `getNpcById`, `getNpcsByWorld`, `getPublicNpcs`
 
 **Called by:**
 - `shared/database/index.ts` — uses `getNpcsByWorld`, `getPublicNpcs`, `getNpcById`
@@ -641,13 +642,13 @@
 ## DB Write — Factions
 
 ### `shared/database/dbapi/write/factions/factions.ts`
-**Exports:** `addFactionQuest`, `addFactionTerritory`, `createFaction`, `createFactionRank`, `deleteFaction`, `deleteFactionRank`, `removeFactionQuest`, `removeFactionRelation`, `removeFactionTerritory`, `setFactionRelation`, `updateFaction`, `updateFactionRank`
+**Exports:** `FactionInput`, `addFactionQuest`, `addFactionTerritory`, `createFaction`, `createFactionRank`, `deleteFaction`, `deleteFactionRank`, `removeFactionQuest`, `removeFactionRelation`, `removeFactionTerritory`, `setFactionRelation`, `updateFaction` ...
 
 **Called by:**
 - `shared/database/index.ts` — uses `createFaction`, `updateFaction`, `deleteFaction`, `createFactionRank`, `updateFactionRank`, `deleteFactionRank`
 
 ### `shared/database/dbapi/write/factions/npcs.ts`
-**Exports:** `addNpcQuest`, `createNpc`, `deleteNpc`, `removeNpcQuest`, `updateNpc`
+**Exports:** `NpcInput`, `addNpcQuest`, `createNpc`, `deleteNpc`, `removeNpcQuest`, `updateNpc`
 
 **Called by:**
 - `shared/database/index.ts` — uses `createNpc`, `updateNpc`, `deleteNpc`, `addNpcQuest`, `removeNpcQuest`
@@ -673,13 +674,13 @@
 - `shared/database/index.ts` — uses `getWikis`, `getAllWikis`, `getWikiById`, `getWikiPageById`
 
 ### `shared/database/dbapi/read/news/get-world-journals.ts`
-**Exports:** `getAllWorldJournals`, `getWorldJournalPage`, `getWorldJournals`
+**Exports:** `UserContext`, `getAllWorldJournals`, `getWorldJournalPage`, `getWorldJournals`
 
 **Called by:**
 - `shared/database/index.ts` — uses `getWorldJournals`, `getAllWorldJournals`, `getWorldJournalPage`
 
 ### `shared/database/dbapi/read/news/resolve-enrichers.ts`
-**Exports:** `resolveEnrichers`, `searchEnrichablesbyName`
+**Exports:** `EnricherToken`, `resolveEnrichers`, `searchEnrichablesbyName`
 
 **Called by:**
 - `shared/database/index.ts` — uses `resolveEnrichers`, `searchEnrichablesbyName`
@@ -720,7 +721,7 @@
 ## DB Read — Audit
 
 ### `shared/database/dbapi/read/audit/get-logs.ts`
-**Exports:** `getAuditLogs`
+**Exports:** `GetAuditLogsOptions`, `getAuditLogs`
 
 **Called by:**
 - `shared/database/index.ts` — uses `getAuditLogs`
@@ -728,7 +729,7 @@
 ## DB Write — Audit
 
 ### `shared/database/dbapi/write/audit/log.ts`
-**Exports:** `logAudit`
+**Exports:** `AuditLogInput`, `logAudit`
 
 **Called by:**
 - `shared/database/dbapi/transactions/register-user.ts` — uses `logAudit`
@@ -825,38 +826,16 @@
 **Called by:**
 - `shared/database/index.ts` — uses `createProgressionThreshold`, `updateProgressionThreshold`, `deleteProgressionThreshold`
 
-## DB Transactions
-
-### `shared/database/dbapi/transactions/register-user.ts`
-**Exports:** `registerUser`
-
-**Called by:**
-- `shared/database/index.ts` — uses `registerUser`
-
-## DB Analytics
-
-### `shared/database/dbapi/analytics/get-platform-metrics.ts`
-**Exports:** `getPlatformMetrics`
-
-**Called by:**
-- `shared/database/index.ts` — uses `getPlatformMetrics`
-
-### `shared/database/dbapi/analytics/get-user-growth.ts`
-**Exports:** `getUserGrowth`
-
-**Called by:**
-- `shared/database/index.ts` — uses `getUserGrowth`
-
 ## Shared RBAC (@core/rbac)
 
 ### `shared/rbac/access.ts`
-**Exports:** `assertListPermission`, `assertPermission`, `assertRecordPermission`, `assertWritePermission`, `canNavigate`, `checkPermission`, `getPermissionLevel`, `getUserPermissions`, `invalidateRolePermissions`, `invalidateUserPermissions`, `isOwner`
+**Exports:** `NavVisibility`, `PermissionAction`, `PermissionRequest`, `PermissionResult`, `ResolvedPermission`, `UserPermissions`, `assertListPermission`, `assertPermission`, `assertRecordPermission`, `assertWritePermission`, `canNavigate`, `checkPermission` ...
 
 **Called by:**
 - `shared/rbac/auth.ts` — uses `invalidateUserPermissions`
 
 ### `shared/rbac/auth.ts`
-**Exports:** `getBaseAuthConfig`
+**Exports:** `Auth`, `BaseAuthConfigInput`, `EmailSender`, `getBaseAuthConfig`
 
 > ⚠ No direct import callers found (may be called via `@core/database` barrel only)
 
@@ -872,6 +851,58 @@
 
 ## Shared UI (@core/ui)
 
+### `shared/ui/components/layout/AppShell.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/layout/Footer.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/layout/Header.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/layout/NavBar.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/layout/NavItem.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/layout/Sidebar.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/ui/Avatar.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/ui/Badge.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/ui/Button.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/ui/Card.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/ui/ConfirmModal.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/ui/NotificationBell.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/components/ui/PermissionCell.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
 ### `shared/ui/components/ui/confirm-modal-singleton.ts`
 **Exports:** `confirmModal`, `registerConfirmModal`, `unregisterConfirmModal`
 
@@ -881,6 +912,26 @@
 
 ### `shared/ui/index.ts`
 **Exports:** ` confirmModal `, ` default as AppShell `, ` default as Avatar `, ` default as Badge `, ` default as Button `, ` default as Card `, ` default as ConfirmModal `, ` default as Dnd5eAsiFeatsPanel `, ` default as Dnd5eCharacterCard `, ` default as Dnd5eCharacterCreation `, ` default as Dnd5eCharacterSheet `, ` default as Dnd5eSpellbooks ` ...
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/src/gamesystems/dnd5e/Dnd5eAsiFeatsPanel.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterCard.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterCreation.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `shared/ui/src/gamesystems/dnd5e/Dnd5eSpellbooks.svelte`
 
 > ⚠ No direct import callers found (may be called via `@core/database` barrel only)
 
@@ -990,3 +1041,34 @@
 **Exports:** `commands`
 
 > ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+## Frontend Utilities
+
+### `apps/frontend/src/lib/index.ts`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `apps/frontend/src/lib/rarity.ts`
+**Exports:** `RARITIES`, `RARITY_BADGE`, `Rarity`, `rarityBadge`, `rarityLabel`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `apps/frontend/src/lib/server/auth.ts`
+**Exports:** `auth`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `apps/frontend/src/lib/themes.ts`
+**Exports:** `getAvailableThemes`, `validateTheme`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `apps/frontend/src/lib/vitest-examples/greet.spec.ts`
+
+> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+
+### `apps/frontend/src/lib/vitest-examples/greet.ts`
+**Exports:** `greet`
+
+**Called by:**
+- `apps/frontend/src/lib/vitest-examples/greet.spec.ts` — uses `greet`

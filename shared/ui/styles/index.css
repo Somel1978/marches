@@ -2,7 +2,9 @@
 
 /* Tailwind v4 must be a CSS @import, not a JS import */
 @import 'tailwindcss';
-@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/forms' {
+  strategy: 'class';
+}
 @plugin '@tailwindcss/typography';
 
 /* Design tokens — must come after Tailwind so @theme overrides work */

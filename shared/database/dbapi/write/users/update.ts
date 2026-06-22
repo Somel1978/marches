@@ -47,3 +47,7 @@ export async function updateUser(id: string, input: UpdateUserInput) {
 export async function updateUserDiscord(id: string, discordId: string | null, discordHandle: string | null) {
     return db.user.update({ where: { id }, data: { discordId, discordHandle } });
 }
+
+export async function updateUserTheme(id: string, theme: string) {
+    return db.user.update({ where: { id }, data: { theme } });
+}

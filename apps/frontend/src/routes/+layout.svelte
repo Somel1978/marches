@@ -71,10 +71,10 @@
 
 <svelte:head>
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>{(data as any).siteName ?? 'The Binder & Brew'}</title>
+	<title>{(data as any).siteName ?? 'Marches'}</title>
 </svelte:head>
 
-<div class="site" data-theme="frontend">
+<div class="site">
 	<header class="site__nav">
 		<nav class="nav-bar">
 			<!-- Brand -->

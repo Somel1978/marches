@@ -15,7 +15,7 @@
 			If <strong>{form.email}</strong> exists in our system, a reset link has been sent.
 			Check your inbox.
 		</div>
-		<a href="/login" class="btn btn-ghost" style="margin-top:1rem">Back to login</a>
+		<a href="/login" class="btn btn-ghost">Back to login</a>
 	{:else}
 		<p class="auth-card__subtitle">
 			Enter your email address and we'll send you a reset link.

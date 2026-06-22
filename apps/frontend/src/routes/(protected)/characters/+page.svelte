@@ -38,7 +38,7 @@
 			<p style="font-size:2rem; margin-bottom:0.5rem;">⚔</p>
 			<p style="color:var(--text-secondary);">No characters yet.</p>
 			{#if data.slotInfo.available > 0}
-				<a href="/characters/new" class="btn btn-primary" style="margin-top:1rem;">Create your first character</a>
+				<a href="/characters/new" class="btn btn-primary">Create your first character</a>
 			{/if}
 		</div>
 	{:else}

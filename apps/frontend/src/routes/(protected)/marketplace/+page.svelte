@@ -1,18 +1,9 @@
 <!-- apps/frontend/src/routes/(protected)/marketplace/+page.svelte -->
 <script lang="ts">
+	import { rarityBadge, rarityLabel } from '$lib/rarity';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
 
-	const rarityColors: Record<string, string> = {
-		Mundane:   'badge-muted',
-		Common:    'badge-muted',
-		Uncommon:  'badge-accent',
-		Rare:      'badge-success',
-		Very_Rare: 'badge-warning',
-		Legendary: 'badge-danger',
-		Artifact:  'badge-danger',
-		Unknown:   'badge-muted',
-	};
 
 	const CATEGORIES = ['Combat', 'Consumable', 'Utility', 'Destroyable'];
 	const RARITIES   = ['Mundane', 'Common', 'Uncommon', 'Rare', 'Very_Rare', 'Legendary', 'Artifact'];
@@ -149,7 +140,7 @@
 						{/if}
 						<p style="font-weight:700; font-size:0.9375rem; margin:0;">{item.name}</p>
 						<div style="display:flex; gap:0.375rem; flex-wrap:wrap;">
-							<span class="badge {rarityColors[item.rarity] ?? 'badge-muted'}">{item.rarity.replace('_', ' ')}</span>
+							<span class="badge {rarityBadge(item.rarity)}">{rarityLabel(item.rarity)}</span>
 							<span class="badge badge-muted">{item.category}</span>
 							{#if item.requiresAttunement}<span class="badge badge-warning">Attunement</span>{/if}
 						</div>

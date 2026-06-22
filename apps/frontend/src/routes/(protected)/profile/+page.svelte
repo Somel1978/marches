@@ -10,6 +10,24 @@
 	let lightboxOpen   = $state(false);
 	let showCurrent    = $state(false);
 	let showNew        = $state(false);
+	let savingTheme       = $state(false);
+	let selectedTheme     = $derived.by(() => (data.user as any).theme ?? 'frontend');
+	let themeOverride     = $state<string | null>(null);
+	const activeTheme     = $derived(themeOverride ?? selectedTheme);
+
+	async function applyTheme(key: string) {
+		themeOverride = key;
+		// Apply immediately in the browser
+		document.documentElement.setAttribute('data-theme', key);
+		// Also set cookie directly so it persists on refresh even before server responds
+		document.cookie = `userTheme=${key};path=/;max-age=31536000;samesite=lax`;
+		// Save to DB via form action
+		savingTheme = true;
+		const fd = new FormData();
+		fd.append('theme', key);
+		await fetch('?/updateTheme', { method: 'POST', body: fd });
+		savingTheme = false;
+	}
 </script>
 
 <div class="page">
@@ -203,13 +221,66 @@
 					<p style="font-weight:600; margin:0;">Connected as <span style="color:var(--color-accent);">@{(data as any).user.discordHandle}</span></p>
 					<p class="table__muted" style="font-size:0.8125rem; margin:0.125rem 0 0;">Linked — you can receive quest invites via DM and use bot commands.</p>
 				</div>
-				<a href="/auth/discord/unlink" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Unlink</a>
+				<a href="/auth/discord/unlink" class="btn btn-danger btn-sm">Unlink</a>
 			</div>
 		{:else}
 			<p class="table__muted" style="margin-bottom:0.75rem;">Link your Discord account to receive quest invites via DM and use slash commands.</p>
-			<a href="/auth/discord" class="btn btn-primary btn-sm">Connect Discord</a>
+			<a href="/auth/discord" class="btn btn-primary">Connect Discord</a>
 		{/if}
 	</div>
+</div>
+
+<!-- ── Theme ─────────────────────────────────────────────────── -->
+<div class="card" style="margin-top:1.5rem;">
+	<h2 class="section-title" style="margin-bottom:0.875rem;">Appearance</h2>
+	<p class="table__muted" style="margin-bottom:1rem;">Choose a colour theme for your experience.</p>
+	<div style="display:flex;flex-wrap:wrap;gap:0.75rem;">
+		{#each (data as any).themes as theme}
+			{@const active = activeTheme === theme.key}
+			<button
+				type="button"
+				onclick={() => applyTheme(theme.key)}
+				style="
+					display:flex;flex-direction:column;align-items:flex-start;gap:0;
+					padding:0;border-radius:12px;overflow:hidden;
+					border:2px solid {active ? theme.accent : theme.bgSurface};
+					background:transparent;cursor:pointer;width:130px;
+					transition:border-color 0.15s;
+				"
+				aria-label="Select {theme.name} theme"
+				aria-pressed={active}
+			>
+				<!-- Swatch preview -->
+				<div style="width:100%;height:64px;background:{theme.bgBase};position:relative;overflow:hidden;border-radius:10px 10px 0 0;">
+					<!-- Mini sidebar strip -->
+					<div style="position:absolute;top:0;left:0;bottom:0;width:28px;background:{theme.bgSurface};border-right:1px solid {theme.accent}22;"></div>
+					<!-- Mini nav dots -->
+					<div style="position:absolute;top:8px;left:6px;display:flex;flex-direction:column;gap:5px;">
+						<div style="width:16px;height:4px;border-radius:2px;background:{theme.accent};opacity:0.9;"></div>
+						<div style="width:14px;height:3px;border-radius:2px;background:{theme.bgSurface};filter:brightness(1.5);"></div>
+						<div style="width:14px;height:3px;border-radius:2px;background:{theme.bgSurface};filter:brightness(1.5);"></div>
+					</div>
+					<!-- Mini card -->
+					<div style="position:absolute;top:8px;left:36px;right:6px;background:{theme.bgSurface};border-radius:4px;padding:5px 6px;border:1px solid {theme.accent}30;">
+						<div style="width:70%;height:3px;border-radius:2px;background:{theme.accent};margin-bottom:4px;"></div>
+						<div style="width:50%;height:2px;border-radius:2px;background:{theme.accentLight};opacity:0.7;"></div>
+					</div>
+					<!-- Badge dot -->
+					<div style="position:absolute;bottom:8px;right:8px;background:{theme.accent};width:16px;height:8px;border-radius:99px;"></div>
+				</div>
+				<!-- Label -->
+				<div style="width:100%;padding:6px 10px 7px;background:{theme.bgSurface};display:flex;align-items:center;justify-content:space-between;">
+					<span style="font-size:0.75rem;font-weight:500;color:{theme.accentLight};">{theme.name}</span>
+					{#if active}
+						<span style="width:8px;height:8px;border-radius:50%;background:{theme.accent};flex-shrink:0;"></span>
+					{/if}
+				</div>
+			</button>
+		{/each}
+	</div>
+	{#if savingTheme}
+		<p class="table__muted" style="font-size:0.8125rem;margin-top:0.75rem;">Applying…</p>
+	{/if}
 </div>
 
 {#if lightboxOpen}

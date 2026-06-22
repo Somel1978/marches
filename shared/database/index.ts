@@ -9,7 +9,7 @@ export { isAsiFeatureName, isEpicBoonFeatureName } from './dbapi/read/dnd5e/feat
 import { getAll    as getAllUsers  } from './dbapi/read/users/get-all.ts';
 import { getById as getUserById, getUserByDiscordId, getUserRoleIds } from './dbapi/read/users/get-by-id.ts';
 import { createUser                } from './dbapi/write/users/create.ts';
-import { updateUser, updateUserDiscord } from './dbapi/write/users/update.ts';
+import { updateUser, updateUserDiscord, updateUserTheme } from './dbapi/write/users/update.ts';
 import { deleteUser                } from './dbapi/write/users/delete.ts';
 import { setPassword               } from './dbapi/write/users/set-password.ts';
 
@@ -191,7 +191,7 @@ export * from '@prisma/client';
 // ── Namespaced API ────────────────────────────────────────────────────────────
 export const users = {
     getAll: getAllUsers, getById: getUserById,
-    create: createUser, update: updateUser, updateDiscord: updateUserDiscord, delete: deleteUser, setPassword,
+    create: createUser, update: updateUser, updateDiscord: updateUserDiscord, updateTheme: updateUserTheme, delete: deleteUser, setPassword,
     getByDiscordId: getUserByDiscordId,
     getRoleIds: getUserRoleIds,
 };

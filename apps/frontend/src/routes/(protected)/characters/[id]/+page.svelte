@@ -1,5 +1,6 @@
 <!-- apps/frontend/src/routes/(protected)/characters/[id]/+page.svelte -->
 <script lang="ts">
+	import { rarityBadge, rarityLabel } from '$lib/rarity';
 	import { enhance } from '$app/forms';
 	import { ConfirmModal } from '@core/ui';
 	import Dnd5eSheetSection from './_sheets/Dnd5eSheetSection.svelte';
@@ -29,11 +30,6 @@
 	const statusColors: Record<string, string> = {
 		PENDING:'badge-warning', ACTIVE:'badge-success', RESTING:'badge-accent',
 		SUSPENDED:'badge-danger', RETIRED:'badge-muted', DECEASED:'badge-muted',
-	};
-	const rarityColors: Record<string, string> = {
-		Mundane:'badge-muted', Common:'badge-muted', Uncommon:'badge-accent',
-		Rare:'badge-success', Very_Rare:'badge-warning', Legendary:'badge-danger',
-		Artifact:'badge-danger', Unknown:'badge-muted',
 	};
 
 	function openLightbox(src: string) { lightboxSrc = src; lightboxOpen = true; }
@@ -258,7 +254,7 @@
 								{:else}{inv.itemName}{/if}
 							</p>
 							<div style="display:flex; gap:0.375rem; flex-wrap:wrap; margin-top:0.25rem;">
-								{#if inv.liveRarity ?? inv.itemRarity}<span class="badge {(rarityColors as any)[inv.liveRarity ?? inv.itemRarity ?? ''] ?? 'badge-muted'}">{(inv.liveRarity ?? inv.itemRarity ?? '').replace('_',' ')}</span>{/if}
+								{#if inv.liveRarity ?? inv.itemRarity}<span class="badge {rarityBadge(inv.liveRarity ?? inv.itemRarity)}">{rarityLabel(inv.liveRarity ?? inv.itemRarity)}</span>{/if}
 								{#if inv.itemCategory}<span class="badge badge-muted">{inv.itemCategory}</span>{/if}
 								<span class="badge badge-muted">×{inv.quantity}</span>
 							</div>
@@ -287,7 +283,7 @@
 								{#if ps}
 									<form method="post" action="?/cancel" use:enhance={() => { return async ({ update }) => { await update(); await invalidateAll(); }; }}>
 										<input type="hidden" name="txId" value={ps.id} />
-										<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={(ev) => askConfirm('Confirm', 'Cancel this sell request?', () => { (ev.currentTarget as HTMLElement)?.closest('form')?.requestSubmit(); })}>Cancel</button>
+										<button type="submit" class="btn btn-danger btn-sm"  onclick={(ev) => askConfirm('Confirm', 'Cancel this sell request?', () => { (ev.currentTarget as HTMLElement)?.closest('form')?.requestSubmit(); })}>Cancel</button>
 									</form>
 								{/if}
 							</div>

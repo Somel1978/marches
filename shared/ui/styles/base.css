@@ -56,13 +56,15 @@ body {
 }
 
 /* ── Links ───────────────────────────────────────────────── */
-a {
-  color: var(--accent-light);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-}
-a:hover {
-  color: var(--text-primary);
+@layer base {
+  a {
+    color: var(--accent-light);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+  a:hover {
+    color: var(--text-primary);
+  }
 }
 
 /* ── Headings ────────────────────────────────────────────── */

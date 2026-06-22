@@ -173,8 +173,8 @@
 								<option value={v} selected={section.visibility === v}>{visibilityLabel[v] ?? v}</option>
 							{/each}
 						</select>
-						<button type="submit" class="btn btn-ghost btn-sm" style="font-size:0.75rem; padding:0.25rem 0.5rem;">✓</button>
-						<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger); font-size:0.75rem;"
+						<button type="submit" class="btn btn-ghost btn-xs">✓</button>
+						<button type="button" class="btn btn-danger btn-sm"
 							onclick={() => {
 								askConfirm('Confirm', 'Delete section and all pages?', () => { });
 								(document.getElementById(`del-sec-${section.id}`) as HTMLFormElement)?.requestSubmit();
@@ -193,13 +193,13 @@
 					{/each}
 					<form method="post" action="?/createPage" use:enhance={e_reload} style="margin-top:0.25rem;">
 						<input type="hidden" name="sectionId" value={section.id} />
-						<button type="submit" class="btn btn-ghost btn-sm" style="font-size:0.75rem; padding:0.125rem 0.5rem 0.125rem 1.5rem;">+ Add page</button>
+						<button type="submit" class="btn btn-ghost btn-xs">+ Add page</button>
 					</form>
 				</div>
 			{/each}
 			<form method="post" action="?/createSection" use:enhance={e_reload}>
 				<input type="hidden" name="title" value="New Section" />
-				<button type="submit" class="btn btn-ghost btn-sm" style="width:100%; margin-top:0.5rem;">+ Add section</button>
+				<button type="submit" class="btn btn-ghost btn-full" style="margin-top:0.5rem;">+ Add section</button>
 			</form>
 		</div>
 	</div>
@@ -256,7 +256,7 @@
 						</div>
 					</div>
 					<div class="form-actions">
-						<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"
+						<button type="button" class="btn btn-danger btn-sm" 
 							onclick={() => { askConfirm('Confirm', 'Delete this page?', () => { }); (document.getElementById('del-pg-form') as HTMLFormElement)?.requestSubmit(); }}>
 							Delete page
 						</button>

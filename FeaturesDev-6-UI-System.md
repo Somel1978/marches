@@ -15,39 +15,91 @@
 7. **`enrichedClasses` not `characterClasses`** — correct field name on `charSheet`
 8. **`$effect` not `onMount`** — Svelte 5 rune syntax throughout
 9. **`type="button"` on all non-submit buttons** — prevents accidental form submission
+10. **No inline `style` colour overrides on buttons** — use the correct btn class instead
+11. **Rarity colours always from `$lib/rarity`** — never define `rarityColors` inline in a svelte file
+
+---
+
+## CSS Architecture
+
+The CSS entry point is `shared/ui/styles/index.css`. Both apps import it via a JS import in their root `+layout.svelte`:
+
+```svelte
+<!-- +layout.svelte -->
+import '@core/ui/styles/index.css';
+```
+
+**Do NOT** also import tailwind or any of its plugins in the app's own CSS files — `index.css` already handles the full stack. Doing so causes `@tailwindcss/forms` to run twice and break all `.btn` styles.
+
+`@tailwindcss/forms` uses `strategy: 'class'` — it does NOT auto-style `button` or `input` elements. All input styling comes from the `.input` class defined in `layout.css`.
+
+The base `a { color: ... }` rule is inside `@layer base` so `@layer components` (where `.btn-primary` lives) correctly overrides it on `<a class="btn">` elements.
 
 ---
 
 ## Themes
 
-Two themes, one token set. Applied via `data-theme` on `<html>`:
-- `apps/frontend/src/app.html` → `<html data-theme="frontend">`
-- `apps/admin/src/app.html` → `<html data-theme="admin">`
+Two built-in themes + unlimited user-selectable themes. Applied via `data-theme` on `<html>`:
+- Default: `data-theme="frontend"` (warm amber/parchment)
+- Admin: `data-theme="admin"` (cool professional grey) — not user-selectable
 
-| Token | Frontend | Admin |
-|---|---|---|
-| `--bg-base` | `#14171C` | `#0F1216` |
-| `--bg-surface` | `#1E2228` | `#1B1F25` |
-| `--bg-overlay` | `#252B33` | `#2A2F37` |
-| `--bg-muted` | `#2A3040` | `#333A44` |
-| `--text-primary` | `#F3E9DC` (parchment) | `#AEB4BD` (cool grey) |
-| `--text-secondary` | `#C4B5A5` | `#7E8694` |
-| `--text-muted` | `#8A7D72` | `#555D6B` |
-| `--text-disabled` | `#5A504A` | `#3A4050` |
+### User theme system
 
-**Shared brand tokens (never change per theme):**
+User themes are defined in `tokens.css` using the naming convention:
 ```css
---brand-accent:       #B8734A
---brand-accent-light: #E6A87A
---brand-accent-dim:   #7A4D32
---color-success:      #4A7C59
---color-warning:      #B8934A
---color-danger:       #E05555
---color-info:         #3A6B8B
---radius-sm: 4px  --radius-md: 8px  --radius-lg: 12px  --radius-xl: 16px
---transition-fast: 150ms ease  --transition-base: 250ms ease
---sidebar-width: 240px  --sidebar-width-collapsed: 64px  --header-height: 56px
+/* theme-name: Display Name */
+[data-theme="frontend-yourkey"] {
+  ...
+}
 ```
+
+The comment must appear on the line **immediately before** the selector — no CSS between them.
+
+The `themes.ts` utility in the frontend parses `tokens.css` at build time (via Vite `?raw` import), finds all `frontend-*` blocks, resolves `var(--)` references, and returns `ThemeOption[]` for the profile page picker.
+
+**Adding a new theme:** add the comment + block to `tokens.css` — it appears in the picker automatically. No code changes needed.
+
+### Current themes
+
+| Key | Name |
+|---|---|
+| `frontend` | Default (amber/parchment — hardcoded in themes.ts) |
+| `frontend-emerald` | Emerald & Gold |
+| `frontend-crimsonandgold` | Crimson & Gold |
+| `frontend-burgundygoldblack` | Burgundy |
+| `frontend-antiqueparchment` | Parchment |
+| `frontend-midnightneon` | Midnight Neon |
+
+### Theme persistence
+
+- Stored in `User.theme` DB field (default `"frontend"`)
+- Persisted in `userTheme` cookie (httpOnly: false, 1 year) for fast SSR application
+- `hooks.server.ts` seeds cookie from DB on first login
+- `updateTheme` action in profile saves to DB + sets cookie
+- `app.html` inline script reads cookie before paint — **no flash of wrong theme**
+
+### Token structure
+
+| Token | Purpose |
+|---|---|
+| `--bg-base` | Page background |
+| `--bg-surface` | Card/panel backgrounds |
+| `--bg-overlay` | Hover states, overlays |
+| `--bg-muted` | Inactive/muted sections |
+| `--text-primary` | Main text |
+| `--text-secondary` | Secondary text |
+| `--text-muted` | Muted/placeholder text |
+| `--text-disabled` | Disabled elements |
+| `--border-base` | Default borders |
+| `--border-muted` | Subtle borders |
+| `--border-accent` | Highlighted borders |
+| `--accent` | Buttons, active states |
+| `--accent-light` | Hover states, links |
+| `--accent-dim` | Badge backgrounds |
+| `--brand-accent` | Brand logo/icon colour |
+| `--brand-accent-light` | Brand secondary |
+| `--color-success/warning/danger/info` | Semantic feedback |
+| `--parchment` | Decorative tint for special cards |
 
 ---
 
@@ -66,21 +118,47 @@ Two themes, one token set. Applied via `data-theme` on `<html>`:
 .btn-primary       accent background, white text
 .btn-ghost         transparent, border-base, text-secondary
 .btn-danger        danger background, white text
-.btn-sm            smaller padding + font
-.btn-lg            larger padding + font
+.btn-sm            smaller padding (0.375rem 0.75rem) + 0.8125rem font
+.btn-xs            compact (0.1875rem 0.5rem) + 0.75rem font — for inline/tight contexts
+.btn-lg            larger padding (0.75rem 1.5rem) + 1rem font
 .btn-icon          square aspect ratio
 .btn-full          width 100%
 ```
-**Rule:** Always `type="button"` unless the button is the form submit. Ghost danger buttons use inline `style` override, not a separate class.
+**Rules:**
+- Always `type="button"` unless the button is the form submit
+- Destructive actions → `btn-danger`, never `btn-ghost` with inline colour override
+- `btn-sm` for table row actions and secondary page actions
+- Full size `btn-primary`/`btn-ghost` for page-level CTAs and form submits
+- `btn-xs` for compact inline contexts (sidebar actions, tight UI)
 
 ### Badges
 ```
-.badge             inline-flex, pill shape, 0.75rem
-.badge-accent      accent-dim bg, accent-light text
-.badge-success     success bg, white text
-.badge-warning     warning bg, white text
-.badge-danger      danger bg, white text
+.badge             base pill shape, 0.75rem
+.badge-accent      accent-dim bg, accent-light text  ← theme-dependent
+.badge-success     success bg (green), white text
+.badge-warning     warning bg (amber), white text
+.badge-danger      danger bg (red), white text
 .badge-muted       bg-overlay, text-muted
+.badge-info        info bg (blue), white text
+```
+
+### D&D 5e Rarity Badges — ALWAYS use these for item rarity
+Fixed hardcoded colours — independent of the active user theme.
+**Never** define a `rarityColors` Record inline in a svelte file. Always import from `$lib/rarity`.
+
+```
+.badge-rarity-common     grey
+.badge-rarity-uncommon   green
+.badge-rarity-rare       blue
+.badge-rarity-very-rare  purple
+.badge-rarity-legendary  orange
+.badge-rarity-artifact   red
+```
+
+Usage:
+```svelte
+import { rarityBadge, rarityLabel } from '$lib/rarity';
+<span class="badge {rarityBadge(item.rarity)}">{rarityLabel(item.rarity)}</span>
 ```
 
 ### Tables
@@ -88,12 +166,9 @@ Two themes, one token set. Applied via `data-theme` on `<html>`:
 .table             full-width, border-collapse
 .table th          muted text, border-bottom, nowrap
 .table td          primary text, border-bottom, middle align
-.table tr:hover    bg-overlay on hover
-.table__row        clickable row (cursor pointer)
 .table__muted      secondary colour, 0.8125rem
 .table__num        text-align right
 .table__action     right-aligned, 80px wide
-.table__id         monospace, muted
 .table__empty      centred, 2rem padding, muted
 .table__name       flex with avatar gap
 .table-wrap        overflow-x scroll wrapper
@@ -112,26 +187,36 @@ Two themes, one token set. Applied via `data-theme` on `<html>`:
 ```
 .field             flex column with gap
 .label             0.8125rem, muted, 500 weight
-.input             bg-overlay, border-base, text-primary, radius-md
-.input--select     select variant
-.form-actions      flex row, justify-end, gap
-.field-hint        0.8125rem, muted, margin-bottom
+.input             bg-overlay, border-base, text-primary, radius-md — fully self-defined, no forms plugin dependency
+.input--select     select variant (auto width)
+.input-group       flex row for input + toggle button
+.input-toggle      show/hide button attached to input
+.form-actions      flex row, justify-end, gap, margin-top 1.25rem
+.field-hint        0.8125rem, muted
+.form-error        danger-tinted feedback block
+.form-success      success-tinted feedback block
 ```
 
 ### Layout
 ```
-.shell             flex, min-height 100dvh
-.shell__body       flex column, flex 1
-.shell__main       flex 1, overflow-y auto, padding 1.5rem (1rem mobile)
-.page__header      flex, justify-between, align-center, gap
-.section-title     section heading style
+.page              flex column, gap 1.5rem
+.page__header      flex, justify-between, flex-wrap
+.page__title       1.25rem, 700 weight
+.page__subtitle    0.875rem, text-secondary
+.section-title     1rem, 600 weight, margin-bottom 1.25rem
+.sections          2-column grid, collapses to 1 on mobile
+.fields            flex column, gap 1rem
+.field             flex column, gap 0.375rem
+.back-link         small muted navigation link
 .divider           1px border-muted horizontal rule
-.pending-banner    warning banner for pending states
+.tabs              flex tab row, border-bottom
+.tab               tab button, border-bottom indicator
+.tab--active       accent colour + border
 ```
 
 ### Enricher Badges
 ```
-.enricher-badge              base inline badge, bg-overlay
+.enricher-badge              base inline badge
 .enricher-quest              red border/text
 .enricher-item               amber border/text
 .enricher-character          purple border/text
@@ -139,13 +224,6 @@ Two themes, one token set. Applied via `data-theme` on `<html>`:
 .enricher-region             emerald border/text
 .enricher-location           cyan border/text
 .enricher-user               grey border/text
-```
-
-### Character Specific
-```
-.character-card__classes     class name row on character card
-.character-class-tag         class + subclass + level badge inline group
-.tarot__desc                 description text in tarot/card picker
 ```
 
 ---
@@ -156,44 +234,18 @@ Two themes, one token set. Applied via `data-theme` on `<html>`:
 Root application shell. Composes Sidebar + Header + main content.
 
 ```svelte
-<AppShell
-  title="Site Name"
-  siteLogo="<svg>…</svg>"       <!-- SVG string, URL, or omit -->
-  siteLogoIcon="⚔"              <!-- compact icon for collapsed sidebar -->
-  notifCount={data.notifCount}
-  notifications={data.notifications}
-  user={data.user}              <!-- { name, email, image? } -->
->
+<AppShell title="Site Name" siteLogo="..." notifCount={n} notifications={[...]} user={data.user}>
   {#snippet nav({ collapsed })}
     <NavItem href="/" label="Home" icon="<svg>…</svg>" active={…} {collapsed} />
   {/snippet}
-
-  {#snippet footer({ collapsed })}
-    <!-- sign out button etc -->
-  {/snippet}
-
-  <!-- page content -->
+  {#snippet footer({ collapsed })}<!-- sign out -->{/snippet}
 </AppShell>
 ```
 
-**State managed internally:** `collapsed` (desktop sidebar), `drawerOpen` (mobile drawer).
-
----
-
 ### `NavItem`
-Single navigation link. Supports sub-items shown when parent is active.
-
 ```svelte
-<NavItem
-  href="/quests"
-  label="Quests"
-  icon="<svg>…</svg>"   <!-- raw SVG HTML string -->
-  active={page.url.pathname.startsWith('/quests')}
-  collapsed={collapsed}
-  children={[           <!-- optional sub-nav, shown when active + not collapsed -->
-    { label: 'Published', href: '/quests?status=PUBLISHED', active: false }
-  ]}
-/>
+<NavItem href="/quests" label="Quests" icon="<svg>…</svg>" active={...} collapsed={collapsed}
+  children={[{ label: 'Published', href: '/quests?status=PUBLISHED', active: false }]} />
 ```
 
 ---
@@ -202,321 +254,170 @@ Single navigation link. Supports sub-items shown when parent is active.
 
 ### `ConfirmModal`
 
-**Always mount in layout:**
+**Mount once in layout:**
 ```svelte
-<!-- +layout.svelte -->
-<script>
-  import { ConfirmModal } from '@core/ui';
-</script>
-<slot />
 <ConfirmModal />
 ```
 
-**Prop-driven (for simple cases):**
+**Imperative singleton (always prefer for form actions):**
 ```svelte
-<ConfirmModal
-  open={showModal}
-  title="Delete item"
-  message="This cannot be undone."
-  confirmLabel="Delete"
-  confirmClass="btn-danger"
-  onconfirm={() => { /* do action */ showModal = false; }}
-  oncancel={() => showModal = false}
-/>
+<button type="button" onclick={() =>
+  confirmModal('Delete', 'Sure?').then(ok => { if (ok) form.requestSubmit(); })
+}>Delete</button>
 ```
-
-**Imperative singleton (preferred for form actions):**
-```svelte
-<script>
-  import { confirmModal } from '@core/ui';
-</script>
-
-<button
-  type="button"
-  onclick={() => confirmModal('Delete', 'Sure?').then(ok => {
-    if (ok) form.requestSubmit();
-  })}
->
-  Delete
-</button>
-```
-> ⚠ `confirmModal` returns `false` and logs a warning if `<ConfirmModal />` is not mounted.
-
----
 
 ### `PermissionCell`
-Click-to-cycle permission toggle: `NONE` → `OWN` → `ALL`.
+Click-to-cycle `NONE → OWN → ALL`. Used only in admin roles page.
 
-```svelte
-<PermissionCell
-  value={perm.canRead}
-  locked={isSystemRole}
-  onchange={(v) => handlePermChange('read', v)}
-/>
-```
-
-Used only in admin roles permission table.
+### `NotificationBell`
+Bell + dropdown. Notifications POST to `/notifications?/read`. Internal to AppShell Header.
 
 ---
 
-### `NotificationBell`
-Bell icon with badge + dropdown panel.
+## Frontend Utilities (`apps/frontend/src/lib/`)
 
-```svelte
-<NotificationBell count={notifCount} notifications={notifications} />
-```
+### `$lib/themes.ts`
+Parses `tokens.css` at build time via Vite `?raw` import.
 
-Notifications render as form POST buttons to `/notifications?/read`. Click-outside handled internally.
+| Export | Purpose |
+|---|---|
+| `getAvailableThemes()` | Returns `ThemeOption[]` — all user-selectable themes parsed from tokens.css |
+| `validateTheme(key)` | Returns `key` if valid, otherwise `'frontend'` |
+| `ThemeOption` | `{ key, name, bgBase, bgSurface, accent, accentLight }` |
+
+**Called by:** `apps/frontend/src/hooks.server.ts`, `apps/frontend/src/routes/(protected)/profile/+page.server.ts`
+
+### `$lib/rarity.ts`
+Single source of truth for D&D 5e item rarity display.
+
+| Export | Purpose |
+|---|---|
+| `rarityBadge(rarity)` | Returns the correct `badge-rarity-*` class |
+| `rarityLabel(rarity)` | Returns human-readable label (replaces `_` with space) |
+| `RARITIES` | Ordered rarity array |
+| `RARITY_BADGE` | Raw Record mapping |
+
+**Called by:** `marketplace/+page.svelte`, `marketplace/[id]/+page.svelte`, `characters/[id]/+page.svelte`, `dm/worlds/[worldId]/marketplace/+page.svelte`
 
 ---
 
 ## Utility Functions
 
-### `renderMarkdown(content: string): string`
-Wraps `marked` with GFM + line breaks enabled.
-```ts
-import { renderMarkdown } from '@core/ui';
-const html = renderMarkdown(journalEntry.content);
-// Use: {@html html}
-```
+### `renderMarkdown(content)` → `string`
+Wraps `marked` with GFM + line breaks. Use with `{@html}`.
 
-### `generateFantasyName(speciesName?: string): string`
-Syllable-based name generator. Adapts to species.
-```ts
-import { generateFantasyName } from '@core/ui';
-const name = generateFantasyName('Elf'); // e.g. "Aelriel"
-```
-Supported species keys: `elf`, `dwarf`, `halfling`, `human`, `tiefling`. Falls back to `default` for anything else.
+### `generateFantasyName(speciesName?)` → `string`
+Syllable-based name generator. Species: `elf`, `dwarf`, `halfling`, `human`, `tiefling`.
 
-### `isAsiFeatureName(name: string | null | undefined): boolean`
-### `isEpicBoonFeatureName(name: string | null | undefined): boolean`
-### `normalizeFeatureName(name: string | null | undefined): string`
-Always use `normalizeFeatureName` before comparing feature names — handles casing + whitespace in imported data.
-> ⚠ These are **intentionally duplicated** in `@core/database/dbapi/read/dnd5e/feature-names.ts`. Keep both in sync when changing logic.
+### `isAsiFeatureName(name)` / `isEpicBoonFeatureName(name)` / `normalizeFeatureName(name)`
+Feature name helpers. **Intentionally duplicated** in `@core/database` — packages cannot cross-depend. Keep both in sync.
 
 ---
 
 ## D&D 5e Components
 
-### `Dnd5eCharacterSheet`
-
-The main character sheet. 763 lines. Pure UI — no network calls.
+### `Dnd5eCharacterSheet` — 763 lines
 
 **Props:**
 
-| Prop | Type | Default | Purpose |
-|---|---|---|---|
-| `charSheet` | `any` | — | Enriched sheet from `getDnd5eCharacterSheet()` |
-| `systemData` | `any` | — | System data from `getDnd5eSystemData()` |
-| `scoreAudit` | `any[]` | `[]` | Ability score history |
-| `canEdit` | `boolean` | `false` | Enables edit buttons (player) |
-| `canViewDescriptions` | `boolean` | `false` | Gates feat/feature/trait descriptions |
-| `canManage` | `boolean` | `false` | DM override (manual score adjust, bypass locks) |
-| `isLevelUp` | `boolean` | `false` | Shows level allocation UI |
-| `isLevelDown` | `boolean` | `false` | Shows level reduction UI |
-| `availableLevel` | `number` | `0` | Target total level for level up/down |
-| `editBlockedReason` | `string?` | — | Banner shown when canEdit is false |
-| `spellbooks` | `any[]` | `[]` | Character spellbooks |
-
-**Callbacks:**
-
-| Callback | Signature | When called |
+| Prop | Type | Purpose |
 |---|---|---|
-| `onSaveAbilityScores` | `(scores: Record<string,number>) => Promise<void>` | Player saves base stats |
-| `onSubmitChanges` | `({ speciesId, backgroundId, classes }) => Promise<void>` | Player submits identity edit |
-| `onSubmitLevelUp` | `(classes: any[]) => Promise<void>` | Player submits level allocation |
-| `onSaveSlot` | `(opts: any) => Promise<void>` | Player saves ASI/feat slot |
-| `onRemoveFeat` | `(id: string) => Promise<void>` | Player removes a feat |
-| `onManualScoreAdjust` | `(stat, delta, note) => Promise<void>` | DM applies manual stat change |
-| `onCreateSpellbook` | `(name: string) => Promise<void>` | Creates new spellbook |
-| `onRenameSpellbook` | `(id, name) => Promise<void>` | Renames spellbook |
-| `onDeleteSpellbook` | `(id: string) => Promise<void>` | Deletes spellbook |
-| `onAddSpellbookEntry` | `(spellbookId, spellId, classId, className) => Promise<void>` | Adds spell to book |
-| `onRemoveSpellbookEntry` | `(entryId: string) => Promise<void>` | Removes spell from book |
-| `onToggleSpellPrepared` | `(entryId, prepared) => Promise<void>` | Toggles prepared state |
+| `charSheet` | `any` | Enriched sheet from `getDnd5eCharacterSheet()` |
+| `systemData` | `any` | System data from `getDnd5eSystemData()` |
+| `scoreAudit` | `any[]` | Ability score history |
+| `canEdit` | `boolean` | Enables edit buttons (player) |
+| `canViewDescriptions` | `boolean` | Gates feat/feature/trait descriptions |
+| `canManage` | `boolean` | DM override powers |
+| `isLevelUp` / `isLevelDown` | `boolean` | Level allocation mode |
+| `availableLevel` | `number` | Target level for up/down |
+| `editBlockedReason` | `string?` | Banner when canEdit is false |
+| `spellbooks` | `any[]` | Character spellbooks |
 
-**Sections rendered:**
-1. **Ability Scores** — 6-stat grid, audit history on click, DM manual adjust form (canManage only)
-2. **Identity & Classes** — Species / Background / Classes display + edit mode + level up/down allocation
-3. **ASI & Feats** — one card per `asiSlot`; modes: +2 one stat / +1/+1 two stats / feat picker
-4. **Spellbooks** — only shown if `enrichedClasses.some(cc => cc.classRef?.canCastSpells)`; renders `Dnd5eSpellbooks`
+**Callbacks:** `onSaveAbilityScores`, `onSubmitChanges`, `onSubmitLevelUp`, `onSaveSlot`, `onRemoveFeat`, `onManualScoreAdjust`, `onCreateSpellbook`, `onRenameSpellbook`, `onDeleteSpellbook`, `onAddSpellbookEntry`, `onRemoveSpellbookEntry`, `onToggleSpellPrepared`
 
-**`charSheet` expected shape (from `getDnd5eCharacterSheet`):**
+**`charSheet` key fields:**
 ```ts
 {
   abilityScores: { stat, baseScore }[]
-  asiSlots: {
-    sourceClassId, sourceClass, sourceLevel,
-    type,           // 'asi' | 'background_feat' | 'epic_boon'
-    grantsFeatId?,  // if background_feat with forced feat
-    featCategory?,  // category filter
-    canEpicBoon?,   // true at level 19+
-    resolved?: {
-      kind: 'asi' | 'feat',
-      charFeatId?, featId?, featName?,
-      asiStat1?, asiAmount1?, asiStat2?, asiAmount2?,
-    }
-  }[]
-  enrichedClasses: {
-    classId, classRef: { name, canCastSpells },
-    subclassId?, subclassRef?: { name, canCastSpells },
-    allocatedLevel,
-    classFeatures: { name, description?, requiredLevel }[]
-    subclassFeatures: { name, description?, requiredLevel }[]
-  }[]
-  chosenFeats: {
-    id, featId,
-    feat: { name, description?, snippet?, prerequisites?, ... }
-  }[]
-  speciesRef?: { name, traits: { name, description? }[] }
-  backgroundRef?: { name, featureName? }
-  sheet?: { speciesId, backgroundId }
+  asiSlots: { sourceClassId, sourceLevel, type, resolved?: { kind, featId?, ... } }[]
+  enrichedClasses: { classId, classRef: { name, canCastSpells }, allocatedLevel, classFeatures[], subclassFeatures[] }[]
+  chosenFeats: { id, featId, feat: { name, description?, snippet? } }[]
+  speciesRef?: { name, traits[] }
+  backgroundRef?: { name }
 }
 ```
 
-**`systemData` expected shape (from `getDnd5eSystemData`):**
+**`systemData` key fields:**
 ```ts
 {
-  classes: {
-    id, name, isAvailable, subclassAvailableAtLevel, canCastSpells,
-    subclasses: { id, name, isAvailable, canCastSpells }[]
-  }[]
-  species: { id, name, isAvailable }[]
-  backgrounds: { id, name, isAvailable }[]
-  feats: {
-    id, name, isAvailable, isEpicBoon, repeatable,
-    description?, snippet?, prerequisites?, categories?,
-    asiAmount?, asiStatFixed?, asiStatChoices?,
-  }[]
-  spellSlotProgressions: {
-    classId, subclassId, casterType, classLevel,
-    slot1…slot9: number
-  }[]
-  spellsKnownProgressions: {
-    classId, subclassId, classLevel,
-    cantrips?, prepared?, additional?, note?
-  }[]
-  spells: { spellId, name, level, school, … }[]
+  classes: { id, name, canCastSpells, subclasses[] }[]
+  species, backgrounds, feats: { id, name, isEpicBoon, ... }[]
+  spellSlotProgressions, spellsKnownProgressions, spells[]
 }
 ```
 
----
+### `Dnd5eSpellbooks` — 611 lines
 
-### `Dnd5eSpellbooks`
+| Prop | Purpose |
+|---|---|
+| `spellbooks` | `{ id, name, classId, entries: { id, spellId, prepared }[] }[]` |
+| `canViewDescriptions` | Gates spell descriptions |
 
-Spellbook management. Rendered internally by `Dnd5eCharacterSheet`. Can also be used standalone.
+Key computed values: `cantripCnt` (level-0 entries), `spellCnt` (prepared === true AND level > 0), `maxSpellLevel` (highest non-zero slot). Multiclass slot computation: FULL/HALF/THIRD contribution → combined → FULL table lookup. Pact Magic separate.
 
-**Props:**
-
-| Prop | Type | Default | Purpose |
-|---|---|---|---|
-| `charSheet` | `any` | — | Same enriched sheet |
-| `systemData` | `any` | — | Same system data |
-| `spellbooks` | `any[]` | `[]` | `{ id, name, classId, className, entries: { id, spellId, prepared }[] }[]` |
-| `canEdit` | `boolean` | `false` | Enables add/remove/prepare |
-| `canViewDescriptions` | `boolean` | `false` | Gates spell description |
-| `onCreateSpellbook` | callback | — | |
-| `onRenameSpellbook` | callback | — | |
-| `onDeleteSpellbook` | callback | — | |
-| `onAddEntry` | callback | — | |
-| `onRemoveEntry` | callback | — | |
-| `onTogglePrepared` | callback | — | |
-
-**Key computed values per spellbook:**
-- `cantripCnt` — count of level-0 entries in the book
-- `spellCnt` — count of entries where `prepared === true` AND level > 0 (NOT total spells)
-- `maxSpellLevel` — highest non-zero slot in progression for this class/level
-- `limits.cantrips` — max cantrips from spells-known progression
-- `limits.prepared` — max prepared spells from spells-known progression
-
-**Multiclass slot computation:**
-- FULL caster: full level contribution
-- HALF caster: `floor(level / 2)`
-- THIRD caster: `floor(level / 3)`
-- Combined level → looked up against FULL caster table
-- Pact Magic (PACT type) handled separately
-
-**Subclass casters:** Detected via `cc.subclassRef?.canCastSpells` (Eldritch Knight, Arcane Trickster)
-
-**At Higher Levels text:**
-- `spellUpcastPerSlot` → "X for each slot level above Nth"
-- `spellUpcastEveryTwoSlots` → "X for every two slot levels above Nth"
-- `spellProgressionNote` → special scaling note (verbatim)
-- `spellProgression` → fallback
-- `note` field → 2014 formula-based prep (backward compat, not used in 2024 rules)
-
----
-
-### `Dnd5eAsiFeatsPanel`
-
-Standalone ASI & feats panel. Exported but **not yet wired into any page**.
-
-**Props:**
-
-| Prop | Type | Default | Purpose |
-|---|---|---|---|
-| `asiSlots` | `any[]` | `[]` | Same format as charSheet.asiSlots |
-| `availableFeats` | `any[]` | `[]` | Feat list from systemData.feats |
-| `chosenFeats` | `any[]` | `[]` | Same format as charSheet.chosenFeats |
-| `canViewDescriptions` | `boolean` | `false` | Gates feat snippet |
-| `onAddFeat` | callback | — | `(featId, { sourceClassId, sourceLevel, stat1?, amount1?, stat2?, amount2?, stat3?, amount3? }) => void` |
-| `onRemoveFeat` | callback | — | `(id: string) => void` |
-
----
-
-### `Dnd5eCharacterCard`
-
-Summary card for character list/picker displays. 174 lines.
-
----
-
-### `Dnd5eCharacterCreation`
-
-Thin wrapper/guide component for character creation flow. 103 lines.
+### `Dnd5eAsiFeatsPanel` — 282 lines
+Standalone ASI/feat panel. **Not yet wired into any page.**
 
 ---
 
 ## Component Caller Map
 
-| Component / Function | Called from |
+| Component / Utility | Called from |
 |---|---|
 | `AppShell` | `apps/frontend/src/routes/+layout.svelte`, `apps/admin/src/routes/+layout.svelte` |
-| `NavItem` | Both layout `+layout.svelte` nav snippets |
-| `ConfirmModal` | Both layout `+layout.svelte` (mounted once); singleton `confirmModal()` called from any action page |
+| `ConfirmModal` (mounted) | Both `+layout.svelte` files |
+| `confirmModal` (singleton) | Any page with destructive actions |
 | `PermissionCell` | `apps/admin/src/routes/(app)/roles/[id]/+page.svelte` |
 | `NotificationBell` | Internal to `Header.svelte` → `AppShell` |
 | `renderMarkdown` | Journal, wiki, news pages in both apps |
-| `Dnd5eCharacterSheet` | `apps/frontend/src/routes/(protected)/characters/[id]/_sheets/Dnd5eSheetSection.svelte` (player), `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/characters/[charId]/_sheets/DmDnd5eSheetSection.svelte` (DM), `apps/admin/src/routes/(app)/characters/[id]/_sheets/Dnd5eSheetSection.svelte` (admin) |
+| `Dnd5eCharacterSheet` | `characters/[id]/_sheets/Dnd5eSheetSection.svelte` (player), `dm/worlds/[w]/characters/[c]/_sheets/DmDnd5eSheetSection.svelte` (DM), admin character sheet |
 | `Dnd5eSpellbooks` | Internal to `Dnd5eCharacterSheet` only |
-| `Dnd5eAsiFeatsPanel` | Not yet wired into any page |
-| `generateFantasyName` | `apps/frontend/src/routes/(protected)/characters/new/dnd5e/+page.svelte` |
-| `isAsiFeatureName` | `apps/frontend/src/routes/(protected)/characters/new/dnd5e/+page.svelte`, `shared/database/dbapi/write/dnd5e/score-audit.ts` |
-| `isEpicBoonFeatureName` | Character sheet loaders in frontend and admin |
-| `normalizeFeatureName` | Anywhere feature names are compared |
+| `Dnd5eAsiFeatsPanel` | Not yet wired — ready to use |
+| `generateFantasyName` | `characters/new/dnd5e/+page.svelte` |
+| `getAvailableThemes` | `profile/+page.server.ts`, `hooks.server.ts` |
+| `validateTheme` | `hooks.server.ts` |
+| `rarityBadge` / `rarityLabel` | `marketplace/+page.svelte`, `marketplace/[id]/+page.svelte`, `characters/[id]/+page.svelte`, `dm/worlds/[w]/marketplace/+page.svelte` |
 
 ---
 
 ## Adding New Features — Checklist
 
 **New description field on a D&D 5e entity:**
-- [ ] Gate with `{#if canViewDescriptions}…{:else}<placeholder>{/if}`
-- [ ] Placeholder text: `📖 Description not available — contact your DM.`
-- [ ] Add `canViewDescriptions` to the prop chain if the component doesn't have it yet
+- [ ] Gate with `{#if canViewDescriptions}…{:else}<span>📖 Description not available — contact your DM.</span>{/if}`
+- [ ] Add `canViewDescriptions` to prop chain if component doesn't have it yet
 
 **New component in shared/ui:**
 - [ ] No SvelteKit imports
 - [ ] No database imports
-- [ ] Props typed with interface
 - [ ] All colours via CSS tokens
 - [ ] Export from `shared/ui/index.ts`
 - [ ] Add to Component Caller Map above
 
 **New destructive action button:**
-- [ ] `type="button"` (not submit)
-- [ ] Use `confirmModal` singleton
-- [ ] Pattern: `onclick={() => confirmModal('Title','Message').then(ok => { if (ok) form.requestSubmit(); })}`
+- [ ] `type="button"` — NOT submit
+- [ ] Class `btn-danger`, never `btn-ghost` + inline colour
+- [ ] `confirmModal('Title', 'Message').then(ok => { if (ok) form.requestSubmit(); })`
 
 **New CSS class:**
-- [ ] Add to appropriate file in `shared/ui/styles/components/`
-- [ ] Use tokens only — no hardcoded values
-- [ ] Document in this file under CSS Class Reference
+- [ ] In appropriate file under `shared/ui/styles/components/`
+- [ ] Tokens only — no hardcoded values
+- [ ] Document in CSS Class Reference above
+
+**New user theme:**
+- [ ] Add `/* theme-name: Display Name */` immediately before `[data-theme="frontend-*"]` in `tokens.css`
+- [ ] Define all required tokens (see Token structure table above)
+- [ ] No code changes needed — picker auto-discovers it
+
+**Item rarity display:**
+- [ ] Import `rarityBadge`, `rarityLabel` from `$lib/rarity`
+- [ ] Never define a local `rarityColors` Record

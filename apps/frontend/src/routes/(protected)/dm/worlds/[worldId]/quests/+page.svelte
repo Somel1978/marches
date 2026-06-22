@@ -85,7 +85,7 @@
 								<form method="post" action="?/reject" use:enhance={e_reload} style="display:flex; gap:0.25rem; flex-wrap:wrap">
 									<input type="hidden" name="id" value={quest.id} />
 									<input name="note" type="text" class="input" placeholder="Reason" required style="width:110px;" />
-									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Reject</button>
+									<button type="submit" class="btn btn-danger btn-sm" >Reject</button>
 								</form>
 							</div>
 						{:else if quest.status === 'PENDING_RESULT_APPROVAL' && canManage}
@@ -97,7 +97,7 @@
 								<form method="post" action="?/rejectResult" use:enhance={e_reload} style="display:flex; gap:0.25rem; flex-wrap:wrap">
 									<input type="hidden" name="questId" value={quest.id} />
 									<input name="note" type="text" class="input" placeholder="Reason" required style="width:110px;" />
-									<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Reject</button>
+									<button type="submit" class="btn btn-danger btn-sm" >Reject</button>
 								</form>
 							</div>
 						{:else}
