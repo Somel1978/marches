@@ -74,6 +74,16 @@ async function main() {
         setInterval(() => processQueue(client).catch((e: any) => {
             console.error('[Discord] Queue error:', e?.message ?? e);
         }), 30_000);
+
+        // Expire stale PENDING_CONFIRMATION signups every 15 minutes
+        setInterval(async () => {
+            try {
+                const { quests } = await import('@core/database');
+                await quests.expireStalePromotions();
+            } catch (e: any) {
+                console.error('[Discord] Signup expiry error:', e?.message ?? e);
+            }
+        }, 15 * 60 * 1000);
     });
 
     client.on('error', (e) => console.error('[Discord] Client error:', e?.message ?? e));

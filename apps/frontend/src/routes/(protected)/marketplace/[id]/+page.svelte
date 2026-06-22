@@ -1,5 +1,6 @@
 <!-- apps/frontend/src/routes/(protected)/marketplace/[id]/+page.svelte -->
 <script lang="ts">
+	import { rarityBadge, rarityLabel } from '$lib/rarity';
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 
@@ -22,12 +23,6 @@
 	const effectiveSell = $derived(displayCtx ? Math.floor(displayCtx.price * displayCtx.sellPricePercent / 100) : 0);
 	const isWorldPriced = $derived(!!displayCtx && displayCtx.price !== (data as any).item.buyPrice);
 
-	const rarityColors: Record<string, string> = {
-		Mundane:   'badge-muted',  Common:    'badge-muted',
-		Uncommon:  'badge-accent', Rare:      'badge-success',
-		Very_Rare: 'badge-warning', Legendary: 'badge-danger',
-		Artifact:  'badge-danger', Unknown:   'badge-muted',
-	};
 </script>
 
 <div class="page">
@@ -36,7 +31,7 @@
 			<a href="/marketplace{(data as any).urlWorldId ? `?worldId=${(data as any).urlWorldId}` : ''}" class="back-link">← Marketplace</a>
 			<h2 class="page__title">{data.item.name}</h2>
 			<div class="page__title-row">
-				<span class="badge {rarityColors[data.item.rarity] ?? 'badge-muted'}">{data.item.rarity.replace('_', ' ')}</span>
+				<span class="badge {rarityBadge(data.item.rarity)}">{rarityLabel(data.item.rarity)}</span>
 				<span class="badge badge-muted">{data.item.category}</span>
 				{#if data.item.requiresAttunement}<span class="badge badge-warning">Requires Attunement</span>{/if}
 			</div>

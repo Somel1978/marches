@@ -49,7 +49,7 @@ export const actions: Actions = {
 		const note = data.get('note')?.toString().trim() ?? '';
 		if (!note) return fail(400, { message: 'Review note is required when rejecting.' });
 		try {
-			await quests.updateStatus(params.id, 'CANCELLED', note, locals.user!.id);
+			await quests.updateStatus(params.id, 'DRAFT', note, locals.user!.id);
 			return { success: true, action: 'rejected' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

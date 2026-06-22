@@ -20,19 +20,9 @@ export async function updateCharacterStatus(
         ? await getRestUntil()
         : null;
 
-    if (status === 'ACTIVE') {
-        await createNotification(
-            character.userId, 'CHARACTER_APPROVED', 'Character approved',
-            'Your character has been approved and is ready to play!',
-            `/characters/${id}`,
-        );
-    } else if (status === 'REJECTED') {
-        await createNotification(
-            character.userId, 'CHARACTER_REJECTED', 'Character rejected',
-            `Your character was rejected.${note ? ' Reason: ' + note : ''}`,
-            `/characters/${id}`,
-        );
-    }
+    // NOTE: CHARACTER_APPROVED and CHARACTER_REJECTED notifications are sent by
+    // approveCharacter() and rejectCharacter() in approve.ts — do NOT duplicate them here.
+    // updateCharacterStatus is for admin/DM manual status overrides only.
 
     return db.$transaction(async (tx) => {
         const updated = await tx.character.update({

@@ -41,54 +41,180 @@
 }
 
 /* ── Frontend theme — Warm, immersive, inviting ───────────── */
+/* Default theme — hardcoded as "Default" in themes.ts, no theme-name comment needed */
 [data-theme="frontend"] {
-  /* Backgrounds */
   --bg-base:     #14171C;
   --bg-surface:  #1E2228;
   --bg-overlay:  #252B33;
   --bg-muted:    #2A3040;
 
-  /* Text */
-  --text-primary:  #F3E9DC;
+  --text-primary:   #F3E9DC;
   --text-secondary: #C4B5A5;
-  --text-muted:    #8A7D72;
-  --text-disabled: #5A504A;
+  --text-muted:     #8A7D72;
+  --text-disabled:  #5A504A;
 
-  /* Borders */
-  --border-base:    rgba(184, 115, 74, 0.15);
-  --border-muted:   rgba(243, 233, 220, 0.08);
-  --border-accent:  rgba(184, 115, 74, 0.40);
+  --border-base:   rgba(184, 115, 74, 0.15);
+  --border-muted:  rgba(243, 233, 220, 0.08);
+  --border-accent: rgba(184, 115, 74, 0.40);
 
-  /* Accent (aliased from brand for convenience) */
   --accent:       var(--brand-accent);
   --accent-light: var(--brand-accent-light);
   --accent-dim:   var(--brand-accent-dim);
 
-  /* Decorative (parchment tint for cards/panels) */
-  --parchment:    rgba(243, 233, 220, 0.03);
+  --parchment: rgba(243, 233, 220, 0.03);
 }
 
 /* ── Admin theme — Professional, focused, efficient ──────── */
 [data-theme="admin"] {
-  /* Backgrounds — cooler, darker than frontend */
   --bg-base:     #0F1216;
   --bg-surface:  #1B1F25;
   --bg-overlay:  #2A2F37;
   --bg-muted:    #333A44;
 
-  /* Text — grey-leaning, not warm parchment */
   --text-primary:   #AEB4BD;
   --text-secondary: #7E8694;
   --text-muted:     #555D6B;
   --text-disabled:  #3A4050;
 
-  /* Borders */
   --border-base:   rgba(174, 180, 189, 0.10);
   --border-muted:  rgba(174, 180, 189, 0.06);
   --border-accent: rgba(184, 115, 74, 0.35);
 
-  /* Accent — same brand color, different surrounding mood */
   --accent:       var(--brand-accent);
   --accent-light: var(--brand-accent-light);
   --accent-dim:   var(--brand-accent-dim);
+}
+
+/* ── Custom user themes ───────────────────────────────────── */
+/* Convention: theme-name comment must appear on the line
+   immediately before the data-theme selector — no CSS between them. */
+
+/* theme-name: Emerald & Gold */
+[data-theme="frontend-emerald"] {
+  --bg-base:            #0D1611;
+  --bg-surface:         #132019;
+  --bg-overlay:         #1A2D22;
+  --bg-muted:           #1E3528;
+  --text-primary:       #E8F5E2;
+  --text-secondary:     #eee8aa;
+  --text-muted:         #6A9460;
+  --text-disabled:      #3A5040;
+  --border-base:        rgba(80,180,100,0.18);
+  --border-muted:       rgba(80,180,100,0.08);
+  --border-accent:      rgba(80,180,100,0.40);
+  --accent:             #aaaa46;
+  --accent-light:       #aa9646;
+  --accent-dim:         #aaaa4655;
+  --brand-accent:       #aaaa46;
+  --brand-accent-light: #aa9646;
+  --brand-accent-dim:   #aaaa4655;
+  --color-success:      #2E8B57;
+  --color-warning:      #C8A840;
+  --color-danger:       #E05555;
+  --color-info:         #3A6B8B;
+  --parchment:          rgba(232,245,226,0.03);
+}
+
+/* theme-name: Crimson & Gold */
+[data-theme="frontend-crimsonandgold"] {
+  --bg-base:            #0F0505;
+  --bg-surface:         #1A0A0A;
+  --bg-overlay:         #241010;
+  --bg-muted:           #2E1414;
+  --text-primary:       #FFEBB8;
+  --text-secondary:     #FFF3CD;
+  --text-muted:         #A69260;
+  --text-disabled:      #52462E;
+  --border-base:        rgba(255,215,100,0.18);
+  --border-muted:       rgba(255,215,100,0.08);
+  --border-accent:      rgba(255,215,100,0.40);
+  --accent:             #D4AF37;
+  --accent-light:       #aa9646;
+  --accent-dim:         #D4AF3755;
+  --brand-accent:       #D4AF37;
+  --brand-accent-light: #aa9646;
+  --brand-accent-dim:   #D4AF3755;
+  --color-success:      #3CB371;
+  --color-warning:      #DAA520;
+  --color-danger:       #DC143C;
+  --color-info:         #4682B4;
+  --parchment:          rgba(255,245,215,0.03);
+}
+
+/* theme-name: Burgundy */
+[data-theme="frontend-burgundygoldblack"] {
+  --bg-base:            #0F0309;  /* Near-black with deep burgundy undertone */
+  --bg-surface:         #1B0810;  /* Dark burgundy surface */
+  --bg-overlay:         #280E1A;  /* Slightly lifted for cards/hovers */
+  --bg-muted:           #361525;  /* Visible separation for muted areas */
+  --text-primary:       #F5E8E2;  /* Warm ivory — readable, not harsh white */
+  --text-secondary:     #C9A8B4;  /* Muted rose — harmonises with burgundy */
+  --text-muted:         #7D5060;  /* Deep muted wine */
+  --text-disabled:      #42222E;
+  --border-base:        rgba(180, 80, 110, 0.20);
+  --border-muted:       rgba(180, 80, 110, 0.09);
+  --border-accent:      rgba(180, 80, 110, 0.50);
+  --accent:             #A03050;  /* Deep wine-crimson — buttons, active states */
+  --accent-light:       #C84E72;  /* Lighter rose — hover states, highlights */
+  --accent-dim:         rgba(160, 48, 80, 0.25);
+  --brand-accent:       #A03050;
+  --brand-accent-light: #C84E72;
+  --brand-accent-dim:   rgba(160, 48, 80, 0.25);
+  --color-success:      #3A8C5C;
+  --color-warning:      #C08030;
+  --color-danger:       #E04040;
+  --color-info:         #4070A0;
+  --parchment:          rgba(180, 80, 110, 0.05);
+}
+
+/* theme-name: Parchment */
+[data-theme="frontend-antiqueparchment"] {
+  --bg-base:            #eee8aa;
+  --bg-surface:         #f5f0c6;
+  --bg-overlay:         #fbf8e3;
+  --bg-muted:           #e2dc9d;
+  --text-primary:       #24040D;
+  --text-secondary:     #4A1A24;
+  --text-muted:         #735624;
+  --text-disabled:      #A38A5A;
+  --border-base:        rgba(115,86,36,0.25);
+  --border-muted:       rgba(115,86,36,0.12);
+  --border-accent:      rgba(36,4,13,0.40);
+  --accent:             #735624;
+  --accent-light:       #9A7B42;
+  --accent-dim:         rgba(115,86,36,0.25);
+  --brand-accent:       #24040D;
+  --brand-accent-light: #4A1A24;
+  --brand-accent-dim:   rgba(36,4,13,0.15);
+  --color-success:      #2A7A4D;
+  --color-warning:      #B8860B;
+  --color-danger:       #B22222;
+  --color-info:         #2A5A7A;
+  --parchment:          rgba(115,86,36,0.08);
+}
+
+/* theme-name: Midnight Neon */
+[data-theme="frontend-midnightneon"] {
+  --bg-base:            #090B10;
+  --bg-surface:         #11151E;
+  --bg-overlay:         #1A202C;
+  --bg-muted:           #222B3D;
+  --text-primary:       #F1F5F9;
+  --text-secondary:     #94A3B8;
+  --text-muted:         #64748B;
+  --text-disabled:      #334155;
+  --border-base:        rgba(148,163,184,0.15);
+  --border-muted:       rgba(148,163,184,0.05);
+  --border-accent:      rgba(0,240,255,0.40);
+  --accent:             #00F0FF;
+  --accent-light:       #66F6FF;
+  --accent-dim:         rgba(0,240,255,0.15);
+  --brand-accent:       #9D4EDD;
+  --brand-accent-light: #C77DFF;
+  --brand-accent-dim:   rgba(157,78,221,0.15);
+  --color-success:      #10B981;
+  --color-warning:      #F59E0B;
+  --color-danger:       #EF4444;
+  --color-info:         #3B82F6;
+  --parchment:          rgba(241,245,249,0.02);
 }

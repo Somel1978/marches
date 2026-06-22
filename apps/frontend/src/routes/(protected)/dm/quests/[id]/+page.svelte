@@ -122,7 +122,7 @@
 			</form>
 			<form method="post" action="?/reject" use:enhance={e_reload} style="display:flex; gap:0.25rem; flex-wrap:wrap;">
 				<input name="note" type="text" class="input" placeholder="Rejection reason" required style="width:160px;" />
-				<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Reject</button>
+				<button type="submit" class="btn btn-danger btn-sm" >Reject</button>
 			</form>
 		{:else if data.quest.status === 'PENDING_APPROVAL'}
 			<span class="badge badge-warning">Awaiting approval</span>

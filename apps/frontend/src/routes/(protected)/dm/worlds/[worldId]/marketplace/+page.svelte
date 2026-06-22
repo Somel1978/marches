@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { ConfirmModal } from '@core/ui';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { rarityBadge, rarityLabel } from '$lib/rarity';
 	
 	import type { PageData, ActionData } from './$types';
 
@@ -267,7 +268,7 @@
 				{#each worldItems as wi}
 					<tr>
 						<td style="font-weight:600;">{wi.item.name}</td>
-						<td><span class="badge badge-muted">{wi.item.rarity}</span></td>
+						<td><span class="badge {rarityBadge(wi.item.rarity)}">{rarityLabel(wi.item.rarity)}</span></td>
 						<td class="table__muted">{wi.item.buyPrice} GP</td>
 						<td>
 							{#if wi.priceOverride !== null}
@@ -308,7 +309,7 @@
 								return async({update})=>{await update();await invalidateAll();};
 							}}>
 								<input type="hidden" name="itemId" value={wi.itemId} />
-								<button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">✕</button>
+								<button type="submit" class="btn btn-danger btn-sm" >✕</button>
 							</form>
 						</td>
 					</tr>

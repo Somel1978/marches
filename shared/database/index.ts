@@ -9,7 +9,7 @@ export { isAsiFeatureName, isEpicBoonFeatureName } from './dbapi/read/dnd5e/feat
 import { getAll    as getAllUsers  } from './dbapi/read/users/get-all.ts';
 import { getById as getUserById, getUserByDiscordId, getUserRoleIds } from './dbapi/read/users/get-by-id.ts';
 import { createUser                } from './dbapi/write/users/create.ts';
-import { updateUser, updateUserDiscord } from './dbapi/write/users/update.ts';
+import { updateUser, updateUserDiscord, updateUserTheme } from './dbapi/write/users/update.ts';
 import { deleteUser                } from './dbapi/write/users/delete.ts';
 import { setPassword               } from './dbapi/write/users/set-password.ts';
 
@@ -141,7 +141,7 @@ import { updateQuest, updateQuestRewards, addCoDM,
          removeCoDM                                      } from './dbapi/write/quests/update.ts';
 import { updateQuestStatus                               } from './dbapi/write/quests/update-status.ts';
 import { signupForQuest, cancelSignup,
-         confirmWaitlistPromotion                        } from './dbapi/write/quests/signup.ts';
+         confirmWaitlistPromotion, expireStalePromotions  } from './dbapi/write/quests/signup.ts';
 import { submitQuestResult, approveQuestResult,
          rejectQuestResult                               } from './dbapi/write/quests/submit-result.ts';
 import { deleteQuest                                     } from './dbapi/write/quests/delete.ts';
@@ -191,7 +191,7 @@ export * from '@prisma/client';
 // ── Namespaced API ────────────────────────────────────────────────────────────
 export const users = {
     getAll: getAllUsers, getById: getUserById,
-    create: createUser, update: updateUser, updateDiscord: updateUserDiscord, delete: deleteUser, setPassword,
+    create: createUser, update: updateUser, updateDiscord: updateUserDiscord, updateTheme: updateUserTheme, delete: deleteUser, setPassword,
     getByDiscordId: getUserByDiscordId,
     getRoleIds: getUserRoleIds,
 };
@@ -290,6 +290,7 @@ export const quests = {
     signup:                signupForQuest,
     cancelSignup,
     confirmWaitlistPromotion,
+    expireStalePromotions,
     submitResult:          submitQuestResult,
     approveResult:         approveQuestResult,
     rejectResult:          rejectQuestResult,

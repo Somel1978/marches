@@ -604,7 +604,7 @@
 					{/if}
 				</div>
 				<div class="wizard-sheet__footer">
-					<button class="btn btn-primary" style="width:100%;" onclick={() => selectSpecies(sheetSpecies.id)}>
+					<button class="btn btn-primary btn-full" onclick={() => selectSpecies(sheetSpecies.id)}>
 						{speciesId === sheetSpecies.id ? '✓ Selected' : `Select ${sheetSpecies.name}`}
 					</button>
 				</div>
@@ -717,8 +717,7 @@
 					{/if}
 				</div>
 				<div class="wizard-sheet__footer">
-					<button class="btn btn-primary" style="width:100%;"
-						disabled={!!(bg.grantsFeatCategory && !bgFeatPick)}
+					<button class="btn btn-primary btn-full" disabled={!!(bg.grantsFeatCategory && !bgFeatPick)}
 						onclick={() => selectBg(bg.id)}>
 						{backgroundId===bg.id ? '✓ Selected' : `Select ${bg.name}`}
 					</button>
@@ -951,7 +950,7 @@
 										<div style="display:flex;gap:0.25rem;align-items:center;">
 											<button class="wizard-ctrl-btn" onclick={() => { a.allocatedLevel = Math.max(1, a.allocatedLevel-1); }}>−</button>
 											<button class="wizard-ctrl-btn" onclick={() => { a.allocatedLevel = Math.min(20, a.allocatedLevel+1); }}>+</button>
-											<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => removeClass(i)}>✕</button>
+											<button class="btn btn-danger btn-sm"  onclick={() => removeClass(i)}>✕</button>
 										</div>
 									</div>
 									{#if subs.length}
@@ -1024,7 +1023,7 @@
 							</div>
 						{/if}
 					</div>
-					<button class="btn btn-primary" style="width:100%;" onclick={() => { addBrowseClass(); closeClassSheet(); }}>
+					<button class="btn btn-primary btn-full" onclick={() => { addBrowseClass(); closeClassSheet(); }}>
 						{classAllocs.find((a: any)=>a.classId===sc.id)?'Update':'+ Add Class'}
 					</button>
 				</div>
@@ -1072,7 +1071,7 @@
 									{#if epicPicked}
 										<div style="padding:0.5rem 0.625rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
 											<span style="font-weight:700;font-size:0.875rem;">{epicPicked.name}</span>
-											<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;" onclick={() => { asiChoices[i].featId = ''; }}>Change</button>
+											<button type="button" class="btn btn-ghost btn-xs" onclick={() => { asiChoices[i].featId = ''; }}>Change</button>
 										</div>
 									{:else}
 										<input type="text" class="input" placeholder="Search epic boon feats…" style="margin-bottom:0.375rem;font-size:0.8125rem;"
@@ -1092,14 +1091,14 @@
 							{:else}
 								<div style="display:flex;gap:0.5rem;margin-bottom:0.625rem;flex-wrap:wrap;">
 									<button
-										class="btn btn-sm"
+										class="btn btn-ghost btn-sm"
 										class:btn-primary={asiChoices[i].mode === 'stat'}
 										class:btn-ghost={asiChoices[i].mode !== 'stat'}
 										onclick={() => { asiChoices[i].mode = 'stat'; asiChoices[i].featId = ''; }}>
 										+2 / +1+1
 									</button>
 									<button
-										class="btn btn-sm"
+										class="btn btn-ghost btn-sm"
 										class:btn-primary={asiChoices[i].mode === 'feat'}
 										class:btn-ghost={asiChoices[i].mode !== 'feat'}
 										onclick={() => { asiChoices[i].mode = 'feat'; asiChoices[i].stat1 = ''; asiChoices[i].stat2 = ''; }}>
@@ -1149,7 +1148,7 @@
 													<p style="font-weight:700;font-size:0.875rem;margin:0 0 0.125rem;">{featPicked.name}</p>
 													{#if canViewDescriptions}{#if featPicked.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{featPicked.description.slice(0,120)}{featPicked.description.length>120?'…':''}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 												</div>
-												<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.75rem;flex-shrink:0;" onclick={() => { asiChoices[i].featId = ''; asiChoices[i].featGrantedStat = ''; asiChoices[i].featAsiAmount = undefined; asiChoices[i].featAsiFixed = undefined; }}>Change</button>
+												<button type="button" class="btn btn-ghost btn-xs" style="flex-shrink:0;" onclick={() => { asiChoices[i].featId = ''; asiChoices[i].featGrantedStat = ''; asiChoices[i].featAsiAmount = undefined; asiChoices[i].featAsiFixed = undefined; }}>Change</button>
 											</div>
 											{#if featPicked.asiAmount && !featPicked.asiStatFixed}
 												{@const choices = featPicked.asiStatChoices ? featPicked.asiStatChoices.split(',').map((s: string) => s.trim()) : STATS}

@@ -5,13 +5,19 @@ import { users } from '@core/database';
 import { assertRecordPermission } from '@core/rbac';
 import { auth } from '$lib/server/auth';
 import { APIError } from 'better-auth/api';
+import { getAvailableThemes } from '$lib/themes';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	// Always fetch fresh from DB — session may have stale email after email change
 	const user         = await users.getById(locals.user!.id);
 	const emailChanged = url.searchParams.get('emailChanged') === '1';
-	return { user: user!, emailChanged, discordSuccess: url.searchParams.get('success') ?? null };
+	return {
+		user: user!,
+		emailChanged,
+		discordSuccess: url.searchParams.get('success') ?? null,
+		themes: getAvailableThemes(),
+	};
 };
 
 export const actions: Actions = {
@@ -104,6 +110,20 @@ export const actions: Actions = {
 			if (e instanceof APIError) {
 				return fail(400, { emailMessage: 'Could not initiate email change. Please try again.' });
 			}
+			throw e;
+		}
+	},
+
+	updateTheme: async ({ request, locals, cookies }) => {
+		const data  = await request.formData();
+		const theme = data.get('theme')?.toString() ?? 'frontend';
+		try {
+			await users.updateTheme(locals.user!.id, theme);
+			// Set cookie so hooks.server.ts picks it up on next request without DB query
+			cookies.set('userTheme', theme, { path: '/', maxAge: 60 * 60 * 24 * 365, httpOnly: false, sameSite: 'lax' });
+			return { themeSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { themeMessage: e.message });
 			throw e;
 		}
 	},

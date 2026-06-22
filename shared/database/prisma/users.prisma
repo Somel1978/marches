@@ -24,6 +24,7 @@ model User {
   discordId     String?  @unique @map("discord_id")  // Discord user snowflake ID for linking
   timezone      String   @default("UTC") @map("timezone")
   mobile        String?
+  theme         String   @default("frontend") @map("theme")
 
   sessions      Session[]
   accounts      Account[]

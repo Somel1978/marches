@@ -24,7 +24,7 @@ export async function submitQuestResult(
     if (quest.result && quest.result.status !== 'REJECTED') throw new ValidationError('Result already submitted.');
 
     const confirmed = quest.signups;
-    if (confirmed.length === 0) throw new ValidationError('No confirmed players to distribute XP to.');
+    // Zero players is allowed — DM can close a quest with no participants
 
     const count        = confirmed.length;
     const missionXpPerPlayer = Math.max(1, Math.floor(quest.missionXp / count));
@@ -143,34 +143,30 @@ export async function approveQuestResult(resultId: string, actorId: string) {
     });
     const charMap = Object.fromEntries(characters.map(c => [c.id, c]));
 
-    // Handle ITEM rewards — one randomized item per reward per character
-    const itemRewards = currentRewards.filter(r => r.type === 'ITEM') as any[];
-    // itemGrantMap: characterId -> array of items to grant (one per ITEM reward)
-    const itemGrantMap: Record<string, { id: string; name: string }[]> = {};
-    for (const itemReward of itemRewards) {
-        const itemWhere: any = { isAvailable: true };
-        if (itemReward.itemRarity)   itemWhere.rarity   = { equals: itemReward.itemRarity };
-        if (itemReward.itemCategory) itemWhere.category = { equals: itemReward.itemCategory };
-        if (itemReward.itemMaxValue) itemWhere.buyPrice = { lte: itemReward.itemMaxValue };
-
-        const eligibleItems = await db.marketplaceItem.findMany({ where: itemWhere, select: { id: true, name: true } });
-        if (eligibleItems.length === 0) {
-            throw new ValidationError(
-                `Cannot approve: no marketplace items match the item reward filters ` +
-                `(rarity: ${itemReward.itemRarity ?? 'any'}, category: ${itemReward.itemCategory ?? 'any'}). ` +
-                `Please add matching items or update the quest reward filters.`
-            );
-        }
-
-        // Randomize one item per character for this reward
-        for (const rc of result.characters) {
-            const pick = eligibleItems[Math.floor(Math.random() * eligibleItems.length)];
-            if (!itemGrantMap[rc.characterId]) itemGrantMap[rc.characterId] = [];
-            itemGrantMap[rc.characterId].push({ id: pick.id, name: pick.name });
-        }
-    }
-
     await db.$transaction(async (tx) => {
+        // Handle ITEM rewards — randomised inside transaction to ensure consistency on retry
+        const itemRewards = currentRewards.filter(r => r.type === 'ITEM') as any[];
+        const itemGrantMap: Record<string, { id: string; name: string }[]> = {};
+        for (const itemReward of itemRewards) {
+            const itemWhere: any = { isAvailable: true };
+            if (itemReward.itemRarity)   itemWhere.rarity   = { equals: itemReward.itemRarity };
+            if (itemReward.itemCategory) itemWhere.category = { equals: itemReward.itemCategory };
+            if (itemReward.itemMaxValue) itemWhere.buyPrice = { lte: itemReward.itemMaxValue };
+
+            const eligibleItems = await tx.marketplaceItem.findMany({ where: itemWhere, select: { id: true, name: true } });
+            if (eligibleItems.length === 0) {
+                throw new ValidationError(
+                    `Cannot approve: no marketplace items match the item reward filters ` +
+                    `(rarity: ${itemReward.itemRarity ?? 'any'}, category: ${itemReward.itemCategory ?? 'any'}). ` +
+                    `Please add matching items or update the quest reward filters.`
+                );
+            }
+            for (const rc of result.characters) {
+                const pick = eligibleItems[Math.floor(Math.random() * eligibleItems.length)];
+                if (!itemGrantMap[rc.characterId]) itemGrantMap[rc.characterId] = [];
+                itemGrantMap[rc.characterId].push({ id: pick.id, name: pick.name });
+            }
+        }
         for (const rc of result.characters) {
             const char       = charMap[rc.characterId];
             const xpToGrant     = currentXpPerPlayer; // mission + extra
@@ -387,11 +383,14 @@ export async function approveQuestResult(resultId: string, actorId: string) {
 }
 
 export async function rejectQuestResult(resultId: string, reviewNote: string, actorId: string) {
-    const result = await db.questResult.findUnique({ where: { id: resultId } });
+    const result = await db.questResult.findUnique({
+        where:   { id: resultId },
+        include: { quest: { select: { title: true, dmProfileId: true } } },
+    });
     if (!result) throw new NotFoundError('QuestResult', resultId);
     if (result.status !== 'PENDING_APPROVAL') throw new ValidationError('Result is not pending approval.');
 
-    return db.$transaction(async (tx) => {
+    await db.$transaction(async (tx) => {
         await tx.questResult.update({
             where: { id: resultId },
             data:  { status: 'REJECTED', reviewNote },
@@ -409,4 +408,19 @@ export async function rejectQuestResult(resultId: string, reviewNote: string, ac
             after:       { status: 'REJECTED', reviewNote },
         });
     });
+
+    // Notify DM of rejection with review note
+    const dm = await db.dMProfile.findUnique({
+        where:  { id: result.quest?.dmProfileId ?? '' },
+        select: { userId: true },
+    }).catch(() => null);
+    if (dm) {
+        await createNotification(
+            dm.userId,
+            'QUEST_RESULT_REJECTED',
+            'Quest result rejected',
+            `Results for "${result.quest?.title}" were rejected.${reviewNote ? ` Reason: ${reviewNote}` : ''} Please review and resubmit.`,
+            `/dm/quests/${result.questId}`,
+        );
+    }
 }
