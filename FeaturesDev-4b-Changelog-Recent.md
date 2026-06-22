@@ -665,3 +665,52 @@
 - `worldId` now resolved via `regionId → db.region.worldId`
 - Previously always `null` so only GLOBAL-scoped availability matched; world-scoped players never appeared
 - Quest invite now works correctly for world-specific quests
+
+---
+
+### Session 75 — Quest/Character Workflow Audit, UI System & Theme Overhaul (2026-06-22)
+
+**Quest & Character Approval Workflow Fixes**
+- `shared/database/dbapi/write/quests/update-status.ts` — `PENDING_APPROVAL → DRAFT` on rejection (was CANCELLED, destroying the quest); `CANCELLED` from `PENDING_RESULT_APPROVAL` now deletes `QuestResult` + `QuestResultCharacter` records and notifies confirmed players
+- `shared/database/dbapi/write/quests/signup.ts` — blocks `LEVEL_UP_PENDING` and `LEVEL_DOWN_PENDING` characters from signing up; capacity count moved inside `db.$transaction` (race condition fix); `cancelSignup` now sends notification to cancelled player + promotes waitlist with notification + sets `promotedAt`; `expireStalePromotions()` NEW — expires PENDING_CONFIRMATION > 8h, cancels + promotes next + notifies both; Discord bot calls every 15 min
+- `shared/database/dbapi/write/quests/submit-result.ts` — `itemGrantMap` built inside `db.$transaction` (was outside, inconsistent on retry); zero-player result block removed; `rejectQuestResult` now notifies DM with `reviewNote`
+- `shared/database/dbapi/write/characters/update-status.ts` — removed duplicate `CHARACTER_APPROVED`/`CHARACTER_REJECTED` notifications (handled only by `approve.ts`)
+- `shared/database/prisma/quests.prisma` — `QuestSignup.promotedAt DateTime?` added
+- Admin + DM frontend reject quest actions changed from `updateStatus(id, 'CANCELLED')` to `updateStatus(id, 'DRAFT')`
+- `apps/discord/src/index.ts` — added `setInterval` every 15 min for `quests.expireStalePromotions()`
+
+**Character List — Classes Display**
+- `shared/database/dbapi/read/characters/get-by-id.ts` — `getCharactersByUserId` now detects dnd5e characters via separate `gameSystem` lookup, then loads `Dnd5eCharacterClass` + `Dnd5eClass` names + `Dnd5eSubclass` names separately (cross-schema, no direct relations); returns `gameSystemSlug` and `dnd5eClasses: { name, subclassName, allocatedLevel }[]` as additive fields — safe for all 23+ existing callers
+- `apps/frontend/src/routes/(protected)/characters/+page.svelte` — shows `Fighter (Eldritch Knight)` format; gated on `gameSystemSlug === 'dnd5e'`
+
+**User Theme System**
+- `shared/database/prisma/users.prisma` — `theme String @default("frontend")` added to `User`
+- `shared/database/dbapi/write/users/update.ts` — `updateUserTheme(id, theme)` added
+- `shared/database/index.ts` — `users.updateTheme` exported
+- `shared/ui/styles/tokens.css` — new user themes added: Emerald & Gold (`frontend-emerald`), Crimson & Gold (`frontend-crimsonandgold`), Burgundy (`frontend-burgundygoldblack`), Parchment (`frontend-antiqueparchment`), Midnight Neon (`frontend-midnightneon`); `/* theme-name: */` convention for theme picker auto-discovery
+- `apps/frontend/src/lib/themes.ts` — NEW: parses `tokens.css` via Vite `?raw` import; `getAvailableThemes()` extracts theme names + swatch colours (resolves `var(--)` references); `validateTheme()` guards cookie values
+- `apps/frontend/src/app.html` — inline `<script>` reads `userTheme` cookie before paint (no flash); default `data-theme="frontend"` hardcoded
+- `apps/frontend/src/hooks.server.ts` — seeds `userTheme` cookie from DB on first login if missing; removed `transformPageChunk` (unreliable through `svelteKitHandler`)
+- `apps/frontend/src/routes/(protected)/profile/+page.server.ts` — `updateTheme` action saves to DB + sets cookie; `getAvailableThemes()` in load
+- `apps/frontend/src/routes/(protected)/profile/+page.svelte` — Appearance section: theme swatches with swatch preview generated from each theme's own tokens (no CSS vars — fully isolated from current page theme); clicking applies immediately via `data-theme` + cookie + DB save
+
+**CSS Architecture Fixes**
+- `apps/frontend/src/routes/+layout.svelte` — removed hardcoded `data-theme="frontend"` from `.site` div (was overriding `<html>` theme); removed `layout.css` import
+- `apps/frontend/src/routes/layout.css` — DELETED; was causing `@tailwindcss/forms` to run twice (Tailwind Vite plugin + JS import both processing it), breaking all `.btn` styles
+- `shared/ui/styles/index.css` — `@plugin '@tailwindcss/forms' { strategy: 'class' }` — prevents forms plugin from auto-resetting `button` elements and overriding `.btn` component classes
+- `shared/ui/styles/base.css` — `a { color }` and `a:hover { color }` moved inside `@layer base` so `@layer components` (`.btn-primary { color: #fff }`) correctly overrides on `<a class="btn">` elements. Root cause of ghost-styled `<a>` buttons.
+
+**Button Consistency Audit — All Frontend Svelte Files**
+- Automated fix across 8 files: `btn-ghost` + `style="color:var(--color-danger)"` → `btn-danger`; `btn btn-sm` with no variant → `btn-ghost btn-sm`
+- Manual fixes: removed redundant inline styles already covered by `.btn` (display:flex, align-items, gap); removed `margin-top` from button elements (belongs on parent); `font-size`+`padding` overrides replaced with new `btn-xs` class
+- `shared/ui/styles/components/ui.css` — added `.btn-xs { padding: 0.1875rem 0.5rem; font-size: 0.75rem }` for compact inline contexts
+- Settings page Discord buttons aligned with profile page (no `btn-sm` on Connect Discord)
+
+**Item Rarity Colours**
+- `shared/ui/styles/components/ui.css` — added `badge-info` (blue) and 6 fixed rarity badges: `badge-rarity-common/uncommon/rare/very-rare/legendary/artifact` with hardcoded colours independent of active theme; follows D&D 5e conventions (grey/green/blue/purple/orange/red)
+- `apps/frontend/src/lib/rarity.ts` — NEW: `rarityBadge(rarity)`, `rarityLabel(rarity)`, `RARITIES`, `RARITY_BADGE`; single source of truth replacing 3 duplicate `rarityColors` Records
+- Updated: `marketplace/+page.svelte`, `marketplace/[id]/+page.svelte`, `characters/[id]/+page.svelte`, `dm/worlds/[worldId]/marketplace/+page.svelte` — all import from `$lib/rarity`
+
+**Schema changes requiring `db:push && db:generate`:**
+- `QuestSignup.promotedAt DateTime?`
+- `User.theme String @default("frontend")`
