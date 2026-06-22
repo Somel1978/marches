@@ -173,7 +173,7 @@ Never use `db.*` directly in route files. Always use `@core/database` namespaced
 ```
 platform.{getSettings, getSettingsMap, updateSettings, getModules, ...}
 users.{getAll, getById, getByEmail, create, update, delete}
-users.getByDiscordId, users.updateDiscord, users.getRoleIds
+users.getByDiscordId, users.updateDiscord, users.updateTheme, users.getRoleIds
 roles.{getAll, getById, getByName, create, update, delete, assignToUser, ...}
 gameSystems.{getAll, getActive, getById, create, update, delete}
 gameSystems.progression.{create, update, delete}
@@ -200,7 +200,7 @@ dms.profiles.{getAll, getById, getByUserId, create, update, revoke}
 dms.roleRequests.{getAll, getPending, getLatestByUser, create, approve, reject, delete}
 quests.{getAll, getById, getByDM, getResult, create, update, updateRewards,
         updateStatus, addCoDM, removeCoDM, signup, cancelSignup,
-        confirmWaitlistPromotion, submitResult, approveResult, rejectResult,
+        confirmWaitlistPromotion, expireStalePromotions, submitResult, approveResult, rejectResult,
         delete, itemUsage.{submit, approve, reject, getForQuest}}
 achievements.{getAll, getForCharacter, create, update, grant, revoke}
 marketplace.items.{getAll, getById, getByName, upsert, update, delete, import}
@@ -307,20 +307,34 @@ Feature settings always go in the feature seed file, never in 01-platform.
 
 ## Shared UI CSS Components
 
+**CSS entry point:** `shared/ui/styles/index.css` — imported in both app `+layout.svelte` files via JS import. Do NOT also import tailwind or its plugins separately in the app — this causes double-processing and breaks `.btn` styles.
+
+`@tailwindcss/forms` uses `strategy: 'class'` — does NOT auto-style `button`/`input` elements. All `.btn` and `.input` styles come from `@core/ui`.
+
+`a { color }` styles live inside `@layer base` so `.btn-primary { color: #fff }` in `@layer components` correctly overrides on `<a class="btn">` elements.
+
 ```
-shared/ui/styles/index.css          — imports all components
+shared/ui/styles/index.css          — imports tailwindcss + all components
+shared/ui/styles/tokens.css         — design tokens per theme (frontend/admin/frontend-*)
+shared/ui/styles/base.css           — body, a, * resets inside @layer base
 shared/ui/styles/components/
-  site.css          — nav-bar, nav-group dropdowns, site layout
+  ui.css            — .btn, .badge, .card, .table, .pagination, .input, .field
+                      New: .btn-xs, .badge-info, .badge-rarity-* (6 fixed D&D rarity colours)
+  layout.css        — .page, .sections, .field, .form-actions, .input, .input-toggle
+  site.css          — nav-bar, nav-group dropdowns, site layout, .tabs, .tab, .tab--active
   nav-mobile.css    — hamburger nav (≤640px) + .nav-mobile__group-title
   character.css     — character cards, portrait, avatar, lightbox, class allocation,
                       sheet-class, sheet-feature, sheet-trait
-  world.css         — .worlds-page, .worlds-section, .region-grid, .region-card,
-                      .region-card__img, .region-card__footer, .region-card__top,
-                      .region-card__danger--*, .region-card__level, .region-card__sub
-  availability.css  — .avail, .avail__grid, .avail__cell, .avail__tip, .avail__bulk-bar,
-                      .avail__modal, .avail__scopes, .avail__backdrop
+  world.css         — .worlds-page, .worlds-section, .region-grid, .region-card, ...
+  availability.css  — .avail, .avail__grid, .avail__cell, .avail__tip, .avail__bulk-bar, ...
   world-map.css     — .world-map-marker, .world-map-label
   markdown.css      — .markdown-body (headings, lists, code, tables)
+```
+
+### Frontend-only utilities (`apps/frontend/src/lib/`)
+```
+themes.ts   — getAvailableThemes(), validateTheme() — parses tokens.css via Vite ?raw import
+rarity.ts   — rarityBadge(rarity), rarityLabel(rarity) — D&D 5e rarity → badge class mapping
 ```
 
 ### Shared UI Components

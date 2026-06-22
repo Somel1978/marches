@@ -91,130 +91,212 @@
 
 /* theme-name: Emerald & Gold */
 [data-theme="frontend-emerald"] {
-  --bg-base:            #0D1611;
-  --bg-surface:         #132019;
-  --bg-overlay:         #1A2D22;
-  --bg-muted:           #1E3528;
-  --text-primary:       #E8F5E2;
-  --text-secondary:     #eee8aa;
-  --text-muted:         #6A9460;
-  --text-disabled:      #3A5040;
-  --border-base:        rgba(80,180,100,0.18);
-  --border-muted:       rgba(80,180,100,0.08);
-  --border-accent:      rgba(80,180,100,0.40);
-  --accent:             #aaaa46;
-  --accent-light:       #aa9646;
-  --accent-dim:         #aaaa4655;
-  --brand-accent:       #aaaa46;
-  --brand-accent-light: #aa9646;
-  --brand-accent-dim:   #aaaa4655;
-  --color-success:      #2E8B57;
-  --color-warning:      #C8A840;
-  --color-danger:       #E05555;
-  --color-info:         #3A6B8B;
-  --parchment:          rgba(232,245,226,0.03);
-}
-
-/* theme-name: Crimson & Gold */
-[data-theme="frontend-crimsonandgold"] {
-  --bg-base:            #0F0505;
-  --bg-surface:         #1A0A0A;
-  --bg-overlay:         #241010;
-  --bg-muted:           #2E1414;
-  --text-primary:       #FFEBB8;
-  --text-secondary:     #FFF3CD;
-  --text-muted:         #A69260;
-  --text-disabled:      #52462E;
-  --border-base:        rgba(255,215,100,0.18);
-  --border-muted:       rgba(255,215,100,0.08);
-  --border-accent:      rgba(255,215,100,0.40);
-  --accent:             #D4AF37;
-  --accent-light:       #aa9646;
-  --accent-dim:         #D4AF3755;
-  --brand-accent:       #D4AF37;
-  --brand-accent-light: #aa9646;
-  --brand-accent-dim:   #D4AF3755;
-  --color-success:      #3CB371;
-  --color-warning:      #DAA520;
-  --color-danger:       #DC143C;
-  --color-info:         #4682B4;
-  --parchment:          rgba(255,245,215,0.03);
-}
-
-/* theme-name: Burgundy */
-[data-theme="frontend-burgundygoldblack"] {
-  --bg-base:            #0F0309;  /* Near-black with deep burgundy undertone */
-  --bg-surface:         #1B0810;  /* Dark burgundy surface */
-  --bg-overlay:         #280E1A;  /* Slightly lifted for cards/hovers */
-  --bg-muted:           #361525;  /* Visible separation for muted areas */
-  --text-primary:       #F5E8E2;  /* Warm ivory — readable, not harsh white */
-  --text-secondary:     #C9A8B4;  /* Muted rose — harmonises with burgundy */
-  --text-muted:         #7D5060;  /* Deep muted wine */
-  --text-disabled:      #42222E;
-  --border-base:        rgba(180, 80, 110, 0.20);
-  --border-muted:       rgba(180, 80, 110, 0.09);
-  --border-accent:      rgba(180, 80, 110, 0.50);
-  --accent:             #A03050;  /* Deep wine-crimson — buttons, active states */
-  --accent-light:       #C84E72;  /* Lighter rose — hover states, highlights */
-  --accent-dim:         rgba(160, 48, 80, 0.25);
-  --brand-accent:       #A03050;
-  --brand-accent-light: #C84E72;
-  --brand-accent-dim:   rgba(160, 48, 80, 0.25);
-  --color-success:      #3A8C5C;
-  --color-warning:      #C08030;
-  --color-danger:       #E04040;
-  --color-info:         #4070A0;
-  --parchment:          rgba(180, 80, 110, 0.05);
-}
-
-/* theme-name: Parchment */
-[data-theme="frontend-antiqueparchment"] {
-  --bg-base:            #eee8aa;
-  --bg-surface:         #f5f0c6;
-  --bg-overlay:         #fbf8e3;
-  --bg-muted:           #e2dc9d;
-  --text-primary:       #24040D;
-  --text-secondary:     #4A1A24;
-  --text-muted:         #735624;
-  --text-disabled:      #A38A5A;
-  --border-base:        rgba(115,86,36,0.25);
-  --border-muted:       rgba(115,86,36,0.12);
-  --border-accent:      rgba(36,4,13,0.40);
-  --accent:             #735624;
-  --accent-light:       #9A7B42;
-  --accent-dim:         rgba(115,86,36,0.25);
-  --brand-accent:       #24040D;
-  --brand-accent-light: #4A1A24;
-  --brand-accent-dim:   rgba(36,4,13,0.15);
-  --color-success:      #2A7A4D;
-  --color-warning:      #B8860B;
-  --color-danger:       #B22222;
-  --color-info:         #2A5A7A;
-  --parchment:          rgba(115,86,36,0.08);
-}
-
-/* theme-name: Midnight Neon */
-[data-theme="frontend-midnightneon"] {
-  --bg-base:            #090B10;
-  --bg-surface:         #11151E;
-  --bg-overlay:         #1A202C;
-  --bg-muted:           #222B3D;
-  --text-primary:       #F1F5F9;
-  --text-secondary:     #94A3B8;
-  --text-muted:         #64748B;
-  --text-disabled:      #334155;
-  --border-base:        rgba(148,163,184,0.15);
-  --border-muted:       rgba(148,163,184,0.05);
-  --border-accent:      rgba(0,240,255,0.40);
-  --accent:             #00F0FF;
-  --accent-light:       #66F6FF;
-  --accent-dim:         rgba(0,240,255,0.15);
-  --brand-accent:       #9D4EDD;
-  --brand-accent-light: #C77DFF;
-  --brand-accent-dim:   rgba(157,78,221,0.15);
+  --bg-base:            #0A120E;  /* Deep dark forest base */
+  --bg-surface:         #101C16;  /* Luxurious emerald stone */
+  --bg-overlay:         #182920;  /* Slightly illuminated overlay */
+  --bg-muted:           #20362B;  /* Balanced separation */
+  --text-primary:       #ECFDF5;  /* Bright jade tint */
+  --text-secondary:     #C2F3D9;  /* Muted mint */
+  --text-muted:         #6B9E78;  /* Sage green shadow */
+  --text-disabled:      #3D5C46;
+  --border-base:        rgba(16, 185, 129, 0.18);
+  --border-muted:       rgba(16, 185, 129, 0.08);
+  --border-accent:      rgba(178, 143, 36, 0.40);
+  --accent:             #B28F24;  /* Muted brassy gold */
+  --accent-light:       #D4AF37;  /* Polished gold highlight */
+  --accent-dim:         rgba(178, 143, 36, 0.20);
+  --brand-accent:       #B28F24;
+  --brand-accent-light: #D4AF37;
+  --brand-accent-dim:   rgba(178, 143, 36, 0.20);
   --color-success:      #10B981;
   --color-warning:      #F59E0B;
   --color-danger:       #EF4444;
   --color-info:         #3B82F6;
-  --parchment:          rgba(241,245,249,0.02);
+  --parchment:          rgba(16, 185, 129, 0.03);
+}
+
+/* theme-name: Crimson & Gold */
+[data-theme="frontend-crimsonandgold"] {
+  --bg-base:            #0D0404;  /* Deepest blood ruby */
+  --bg-surface:         #180A0A;  /* Rich velvet crimson */
+  --bg-overlay:         #231111;  /* High contrast overlay */
+  --bg-muted:           #2F1818;  /* Shaded velvet */
+  --text-primary:       #FFEBB8;  /* Golden warm cream */
+  --text-secondary:     #FFF3CD;  /* Soft yellow-ivory */
+  --text-muted:         #A68860;  /* Deep gold shadow */
+  --text-disabled:      #5E4A35;
+  --border-base:        rgba(220, 20, 60, 0.18);
+  --border-muted:       rgba(220, 20, 60, 0.08);
+  --border-accent:      rgba(184, 147, 74, 0.45);
+  --accent:             #B8934A;  /* Soft warm antique gold */
+  --accent-light:       #D4AF37;  /* Polished gold on hover */
+  --accent-dim:         rgba(184, 147, 74, 0.20);
+  --brand-accent:       #B8934A;
+  --brand-accent-light: #D4AF37;
+  --brand-accent-dim:   rgba(184, 147, 74, 0.20);
+  --color-success:      #10B981;
+  --color-warning:      #F59E0B;
+  --color-danger:       #EF4444;
+  --color-info:         #3B82F6;
+  --parchment:          rgba(255, 245, 215, 0.03);
+}
+
+/* theme-name: Burgundy */
+[data-theme="frontend-burgundygoldblack"] {
+  --bg-base:            #0A0206;  /* Deep wine-cellar void */
+  --bg-surface:         #15060E;  /* Vintage dark burgundy */
+  --bg-overlay:         #200D18;  /* Slightly illuminated rose-grey */
+  --bg-muted:           #2C1422;  /* Velvet shadow */
+  --text-primary:       #F7EBE6;  /* Warm antique ivory */
+  --text-secondary:     #D2AEBA;  /* Delicate rose petal */
+  --text-muted:         #8E566C;  /* Muted elderberry */
+  --text-disabled:      #4D2B39;
+  --border-base:        rgba(16, 48, 80, 0.22);
+  --border-muted:       rgba(160, 48, 80, 0.09);
+  --border-accent:      rgba(200, 78, 114, 0.50);
+  --accent:             #B0264A;  /* Deep wine-crimson */
+  --accent-light:       #DF5E82;  /* Vibrant roseate highlight */
+  --accent-dim:         rgba(176, 38, 74, 0.22);
+  --brand-accent:       #B0264A;
+  --brand-accent-light: #DF5E82;
+  --brand-accent-dim:   rgba(176, 38, 74, 0.22);
+  --color-success:      #10B981;
+  --color-warning:      #F59E0B;
+  --color-danger:       #EF4444;
+  --color-info:         #3B82F6;
+  --parchment:          rgba(160, 48, 80, 0.05);
+}
+
+/* theme-name: Parchment */
+[data-theme="frontend-antiqueparchment"] {
+  --bg-base:            #F2EDE0;  /* Authentic light parchment paper */
+  --bg-surface:         #FAF7EE;  /* Bright cream desk surface */
+  --bg-overlay:         #FFFFFF;  /* Clean illuminated paper */
+  --bg-muted:           #E5DEC9;  /* Muted shadowed fold */
+  --text-primary:       #2A1A12;  /* Iron-gall dark ink */
+  --text-secondary:     #523D32;  /* Faded sepia text */
+  --text-muted:         #877265;  /* Dusty scroll shadow */
+  --text-disabled:      #BBAFA7;
+  --border-base:        rgba(82, 61, 50, 0.16);
+  --border-muted:       rgba(82, 61, 50, 0.08);
+  --border-accent:      rgba(140, 83, 51, 0.40);
+  --accent:             #8C5333;  /* Aged leather brown */
+  --accent-light:       #B8734A;  /* Soft copper */
+  --accent-dim:         rgba(140, 83, 51, 0.15);
+  --brand-accent:       #2A1A12;
+  --brand-accent-light: #523D32;
+  --brand-accent-dim:   rgba(82, 61, 50, 0.12);
+  --color-success:      #15803D;  /* Darkened for light background readability */
+  --color-warning:      #B45309;  /* Darkened warning */
+  --color-danger:       #B91C1C;  /* Darkened danger */
+  --color-info:         #1D4ED8;  /* Darkened info */
+  --parchment:          rgba(140, 83, 51, 0.06);
+}
+
+/* theme-name: Midnight Neon */
+[data-theme="frontend-midnightneon"] {
+  --bg-base:            #05070B;  /* Space obsidian void */
+  --bg-surface:         #0C101A;  /* Cybernetic console gray */
+  --bg-overlay:         #141926;  /* Lifted metal surface */
+  --bg-muted:           #1C2333;  /* Sleek separator */
+  --text-primary:       #fcfbf8;  /* Bright neon white */
+  --text-secondary:     #94A3B8;  /* Cool slate gray */
+  --text-muted:         #64748B;  /* Shaded metal gray */
+  --text-disabled:      #334155;
+  --border-base:        rgba(148, 163, 184, 0.15);
+  --border-muted:       rgba(148, 163, 184, 0.05);
+  --border-accent:      rgba(0, 240, 255, 0.45);
+  --accent:             #00F0FF;  /* Radiant mana cyan */
+  --accent-light:       #66F6FF;  /* Supercharged neon cyan */
+  --accent-dim:         rgba(0, 240, 255, 0.20);
+  --accent-text:        #05070B;  /* High contrast dark text on bright cyan */
+  --accent-text-hover:  #05070B;
+  --brand-accent:       #C77DFF;  /* Arcane violet */
+  --brand-accent-light: #E0AAFF;  /* Luminous violet */
+  --brand-accent-dim:   rgba(199, 125, 255, 0.20);
+  --color-success:      #10B981;
+  --color-warning:      #F59E0B;
+  --color-danger:       #EF4444;
+  --color-info:         #3B82F6;
+  --parchment:          rgba(0, 240, 255, 0.03);
+}
+
+/* theme-name: Arcane Sanctuary */
+[data-theme="frontend-arcanesanctuary"] {
+  --bg-base:            #090714;  /* Deep celestial void */
+  --bg-surface:         #110F24;  /* Arcane tower stone */
+  --bg-overlay:         #1A1735;  /* Illuminated arcane energy */
+  --bg-muted:           #231F45;  /* Shadowed magical alcove */
+  --text-primary:       #E5E2FF;  /* Starlight silver */
+  --text-secondary:     #B5AFFF;  /* Pale lavender */
+  --text-muted:         #7C75A3;  /* Mystical shadow */
+  --text-disabled:      #4D476D;
+  --border-base:        rgba(157, 78, 221, 0.20);
+  --border-muted:       rgba(157, 78, 221, 0.08);
+  --border-accent:      rgba(0, 255, 255, 0.40);
+  --accent:             #9D4EDD;  /* Arcane purple */
+  --accent-light:       #00FFFF;  /* Glowing mana cyan */
+  --accent-dim:         rgba(157, 78, 221, 0.20);
+  --brand-accent:       #9D4EDD;
+  --brand-accent-light: #00FFFF;
+  --brand-accent-dim:   rgba(157, 78, 221, 0.20);
+  --color-success:      #10B981;
+  --color-warning:      #F59E0B;
+  --color-danger:       #EF4444;
+  --color-info:         #3B82F6;
+  --parchment:          rgba(157, 78, 221, 0.04);
+}
+
+/* theme-name: Sunlight & Sapphire */
+[data-theme="frontend-sunlightsapphire"] {
+  --bg-base:            #E8EDF5;  /* Soft cool gray base to eliminate glare */
+  --bg-surface:         #F3F6FA;  /* Soft off-white surface */
+  --bg-overlay:         #E1E7F0;  /* Cool gray hover/overlay */
+  --bg-muted:           #D3DBE7;  /* Slate divider/mute */
+  --text-primary:       #0F172A;  /* Deep slate black */
+  --text-secondary:     #334155;  /* Dark slate gray */
+  --text-muted:         #64748B;  /* Slate gray */
+  --text-disabled:      #94A3B8;
+  --border-base:        rgba(15, 23, 42, 0.08);
+  --border-muted:       rgba(15, 23, 42, 0.04);
+  --border-accent:      rgba(29, 78, 216, 0.30);
+  --accent:             #1D4ED8;  /* Deep sapphire blue */
+  --accent-light:       #2563EB;  /* Sapphire blue hover */
+  --accent-dim:         rgba(29, 78, 216, 0.10);
+  --accent-text:        #FFFFFF;
+  --accent-text-hover:  #FFFFFF;
+  --brand-accent:       #1D4ED8;
+  --brand-accent-light: #2563EB;
+  --brand-accent-dim:   rgba(29, 78, 216, 0.10);
+  --color-success:      #15803D;  /* Darkened for light background contrast */
+  --color-warning:      #B45309;  /* Darkened warning */
+  --color-danger:       #B91C1C;  /* Darkened danger */
+  --color-info:         #1D4ED8;  /* Darkened info */
+  --parchment:          rgba(29, 78, 216, 0.02);
+}
+
+/* theme-name: Portugal */
+[data-theme="frontend-portugal"] {
+  --bg-base:            #081C15;  /* Deep elegant dark emerald base */
+  --bg-surface:         #112F24;  /* Rich, premium forest green surface */
+  --bg-overlay:         #1B4332;  /* Luminous green overlay for cards/dropdowns */
+  --bg-muted:           #2D6A4F;  /* Muted pine green for panels/inputs */
+  --text-primary:       #F4FAF6;  /* High-contrast crisp mint-white */
+  --text-secondary:     #FFDD55;  /* Vibrant, polished gold/yellow secondary text */
+  --text-muted:         #7FB099;  /* Sage green shadow text */
+  --text-disabled:      #476A5A;  /* Disabled state text */
+  --border-base:        rgba(255, 221, 85, 0.15);  /* Subtle gold borders to frame panels elegantly */
+  --border-muted:       rgba(255, 221, 85, 0.08);
+  --border-accent:      #8a101a;  /* Radiant crimson red accent border */
+  --accent:             #85131c;  /* Vibrant Portuguese red for primary buttons and call-to-actions */
+  --accent-light:       #ac0e1b;  /* Luminous red hover */
+  --accent-dim:         rgba(230, 57, 70, 0.18);
+  --brand-accent:       #FFDD55;  /* Polished yellow gold for icons/brand elements */
+  --brand-accent-light: #FFEAA0;  /* Light golden highlight */
+  --brand-accent-dim:   rgba(255, 221, 85, 0.20);
+  --color-success:      #2D6A4F;  /* Flag green */
+  --color-warning:      #FFDD55;  /* Flag yellow */
+  --color-danger:       #E63946;  /* Flag red */
+  --color-info:         #0055A5;  /* Shield blue */
+  --parchment:          rgba(255, 221, 85, 0.03); /* Subtle gold parchment glow */
 }

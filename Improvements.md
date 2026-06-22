@@ -117,3 +117,21 @@
 - FEAT_STATS uppercase enum values (was title case, caused 500 on ASI save)
 - Admin marketplace nav import link fixed
 - DM view: canManage DMs edit directly, quest-only DMs read-only
+## Session 75 Completed
+- Quest rejection now goes to DRAFT (not CANCELLED) so DM can edit and resubmit — FIXED
+- LEVEL_UP_PENDING and LEVEL_DOWN_PENDING characters can no longer sign up for quests — FIXED
+- PENDING_CONFIRMATION signup now expires after 8h with notifications — FIXED (expireStalePromotions every 15min)
+- rejectQuestResult now notifies DM with reviewNote — FIXED
+- itemGrantMap now built inside db.$transaction (was outside, inconsistent on retry) — FIXED
+- Quest CANCELLED from PENDING_RESULT_APPROVAL now cleans up QuestResult records — FIXED
+- Duplicate CHARACTER_APPROVED/REJECTED notifications removed from updateCharacterStatus — FIXED
+- Zero-player quest result hard block removed — FIXED
+- Signup capacity race condition reduced (count moved inside transaction) — FIXED
+- Cancelled signup now notifies the player — FIXED
+- Character list now shows D&D 5e classes and subclasses — FIXED
+- <a class="btn-primary"> elements appeared as ghost buttons — FIXED (a element styles moved to @layer base)
+- All buttons rendered the same due to double Tailwind/forms plugin processing — FIXED (deleted layout.css, strategy: class)
+- btn-ghost + inline color:var(--color-danger) pattern replaced with btn-danger throughout — FIXED
+- Item rarity badges now use fixed D&D 5e convention colours independent of theme — FIXED
+- rarityColors defined in 3 separate svelte files — FIXED ($lib/rarity.ts single source)
+- User theme selection with live preview and persistence — NEW

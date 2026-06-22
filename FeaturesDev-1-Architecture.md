@@ -21,7 +21,7 @@
 | Package manager | pnpm v11 |
 | Markdown | marked (via @core/ui) |
 
----_
+---
 
 
 ## Monorepo Structure
@@ -109,6 +109,10 @@ marches/
 ✅ 27. dnd5e character sheet completion — ASI/feats, ability scores, background feat grants, DM/admin sheet sections
 ⬜ 28. DM dashboard quest filters (UI cleanup phase)
 ✅ 29. Character creation wizard — 6-step D&D 5e wizard (/characters/new/dnd5e), system selector gate, point-buy + roll, class browser with feature timeline, mobile bottom sheets
+✅ 30. Quest & Character workflow audit — rejection→DRAFT, PENDING_CONFIRMATION 8h expiry, level-pending signup block, result rejection notification, item grant in transaction, result cleanup on cancel, duplicate notifications removed
+✅ 31. User theme system — User.theme DB field, userTheme cookie, inline script no-flash apply, tokens.css convention for auto-discovery, profile page swatch picker, 5 themes shipped
+✅ 32. CSS architecture fix — layout.css deleted, @tailwindcss/forms class strategy, a element styles in @layer base, button consistency audit across all frontend svelte files
+✅ 33. Item rarity colours — D&D 5e convention badge classes (theme-independent), $lib/rarity.ts single source of truth
 ```
 
 ---

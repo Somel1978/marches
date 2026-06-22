@@ -45,8 +45,8 @@
   }
   .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  .btn-primary { background-color: var(--accent); color: #fff; }
-  .btn-primary:hover:not(:disabled) { background-color: var(--accent-light); color: var(--bg-base); }
+  .btn-primary { background-color: var(--accent); color: var(--accent-text, #fff); }
+  .btn-primary:hover:not(:disabled) { background-color: var(--accent-light); color: var(--accent-text-hover, var(--bg-base)); }
 
   .btn-ghost {
     background-color: transparent;
