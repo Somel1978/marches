@@ -51,7 +51,7 @@
 			{/if}
 			<div class="fields" style="margin-bottom:0;">
 				<div class="field">
-					<span class="label">Buy price</span>
+					<span class="label label-accent">Buy price</span>
 					{#if displayCtx}
 						<strong>
 							{displayCtx.price.toLocaleString()} GP
@@ -64,20 +64,20 @@
 					{/if}
 				</div>
 				<div class="field">
-					<span class="label">Sell price</span>
+					<span class="label label-accent">Sell price</span>
 					<span class="table__muted">{effectiveSell.toLocaleString()} GP</span>
 				</div>
 				{#if displayCtx?.stockEnabled && displayCtx.stock !== null}
 					<div class="field">
-						<span class="label">Stock</span>
+						<span class="label label-accent">Stock</span>
 						<span class="badge badge-accent">{displayCtx.stock} remaining</span>
 					</div>
 				{/if}
-				{#if data.item.weight}<div class="field"><span class="label">Weight</span><span class="table__muted">{data.item.weight} lbs</span></div>{/if}
-				{#if data.item.source}<div class="field"><span class="label">Source</span><span class="table__muted">{data.item.source}</span></div>{/if}
-				<div class="field"><span class="label">Description</span>{#if canViewDescriptions}{#if data.item.description}<p style="font-size:0.875rem; color:var(--text-secondary); margin:0; white-space:pre-wrap;">{data.item.description}</p>{:else}<p style="color:var(--text-muted);font-style:italic;">No description.</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}</div>
-				{#if data.item.requirements}<div class="field"><span class="label">Requirements</span><span class="table__muted">{data.item.requirements}</span></div>{/if}
-				{#if data.item.link}<div class="field"><span class="label">Reference</span><a href={data.item.link} target="_blank" style="font-size:0.875rem;">D&D Beyond ↗</a></div>{/if}
+				{#if data.item.weight}<div class="field"><span class="label label-accent">Weight</span><span class="table__muted">{data.item.weight} lbs</span></div>{/if}
+				{#if data.item.source}<div class="field"><span class="label label-accent">Source</span><span class="table__muted">{data.item.source}</span></div>{/if}
+				<div class="field"><span class="label label-accent">Description</span>{#if canViewDescriptions}{#if data.item.description}<p style="font-size:0.875rem; color:var(--text-secondary); margin:0; white-space:pre-wrap;">{data.item.description}</p>{:else}<p style="color:var(--text-muted);font-style:italic;">No description.</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}</div>
+				{#if data.item.requirements}<div class="field"><span class="label label-accent">Requirements</span><span class="table__muted">{data.item.requirements}</span></div>{/if}
+				{#if data.item.link}<div class="field"><span class="label label-accent">Reference</span><a href={data.item.link} target="_blank" style="font-size:0.875rem;">D&D Beyond ↗</a></div>{/if}
 			</div>
 		</div>
 

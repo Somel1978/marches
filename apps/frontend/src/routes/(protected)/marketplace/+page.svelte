@@ -120,7 +120,7 @@
 				</select>
 			</div>
 		</div>
-		<div style="display:flex; gap:0.5rem; flex-wrap:wrap">
+		<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.75rem;">
 			<button type="submit" class="btn btn-primary btn-sm">Apply filters</button>
 			<a href="/marketplace" class="btn btn-ghost btn-sm">Reset</a>
 		</div>

@@ -121,6 +121,9 @@
   .settings-group { display: flex; flex-direction: column; gap: 1.25rem; }
   .group-title    { font-size: 1rem; font-weight: 600; margin: 0; }
 
+  /* Label modifier — accent colour for detail view field labels */
+  .label-accent { color: var(--accent-light); }
+
   /* ── Admin sidebar sign-out button ─────────────────────── */
   .nav-signout {
     display: flex;

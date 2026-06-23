@@ -69,6 +69,9 @@ The `themes.ts` utility in the frontend parses `tokens.css` at build time (via V
 | `frontend-burgundygoldblack` | Burgundy |
 | `frontend-antiqueparchment` | Parchment |
 | `frontend-midnightneon` | Midnight Neon |
+| `frontend-arcanesanctuary` | Arcane Sanctuary |
+| `frontend-sunlightsapphire` | Sunlight & Sapphire |
+| `frontend-portugal` | Portugal |
 
 ### Theme persistence
 
@@ -100,6 +103,8 @@ The `themes.ts` utility in the frontend parses `tokens.css` at build time (via V
 | `--brand-accent-light` | Brand secondary |
 | `--color-success/warning/danger/info` | Semantic feedback |
 | `--parchment` | Decorative tint for special cards |
+| `--accent-text` | Text colour on `btn-primary` background (default `#fff`, override for light accents like Midnight Neon cyan) |
+| `--accent-text-hover` | Text colour on `btn-primary:hover` background |
 
 ---
 
@@ -375,6 +380,7 @@ Standalone ASI/feat panel. **Not yet wired into any page.**
 | Component / Utility | Called from |
 |---|---|
 | `AppShell` | `apps/frontend/src/routes/+layout.svelte`, `apps/admin/src/routes/+layout.svelte` |
+| `afterNavigate` (SvelteKit) | `AppShell.svelte` — closes mobile drawer on route change. Pragmatic exception to no-SvelteKit-imports rule. |
 | `ConfirmModal` (mounted) | Both `+layout.svelte` files |
 | `confirmModal` (singleton) | Any page with destructive actions |
 | `PermissionCell` | `apps/admin/src/routes/(app)/roles/[id]/+page.svelte` |
@@ -421,3 +427,43 @@ Standalone ASI/feat panel. **Not yet wired into any page.**
 **Item rarity display:**
 - [ ] Import `rarityBadge`, `rarityLabel` from `$lib/rarity`
 - [ ] Never define a local `rarityColors` Record
+
+---
+
+## Admin Navigation System (`apps/admin/src/lib/nav.ts`)
+
+### Types
+
+```ts
+NavItemDef = NavItem | NavSection   // discriminated union
+
+NavSection  { type: 'section', label: string }
+NavItem     { type?: 'item', label, icon, resourceKey, href, activeMatch?, children? }
+NavChildDef { label, href: string | ((ctx) => string), activeMatch? }
+NavContext  { userId: string, level: 'NONE' | 'OWN' | 'ALL' }
+
+ResolvedNavItem = { type: 'section', label } | { type: 'item', label, icon, href, active, children? }
+```
+
+### Sections
+| Section | Items |
+|---|---|
+| *(ungrouped)* | Dashboard |
+| Campaign | Quests, Characters, DM Hub, Availability, Rewards |
+| Content | World, Marketplace, Token Store, News, Wiki |
+| Administration | Users, Roles & Permissions, Game Systems, Discord, Audit Log |
+| Footer | Settings |
+
+### Rules
+- `activeMatch` string → `startsWith(match)` (prefix match)
+- `activeMatch` function → called with `(pathname, ctx)`
+- Default when no `activeMatch` → `startsWith(href)`
+- Child `href` supports `(ctx: NavContext) => string` for dynamic routes
+- Child `activeMatch` supports same patterns as parent
+- Section labels always visible; items hidden when section is collapsed
+- Active item's section always auto-expands regardless of saved collapsed state
+- Collapsed state persisted in `localStorage` under key `admin-nav-collapsed-sections`
+- On mobile (drawer mode), all items always visible; section dividers shown instead of labels when sidebar is icon-only
+
+### Adding a nav item
+Add one entry to `NAV_ITEMS` in `nav.ts`. Nothing else changes.

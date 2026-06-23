@@ -366,3 +366,42 @@
   border-bottom-color: var(--accent-light);
   font-weight: 600;
 }
+/* ── Admin sidebar section labels ──────────────────────────────────────── */
+.nav-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;  /* minimum touch target on mobile */
+  background: none;
+  border: none;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 0.5rem 0.75rem 0.25rem;
+  margin-top: 0.125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--transition-fast);
+}
+.nav-section-label:hover { color: var(--text-secondary); }
+
+.nav-section-chevron {
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: transform var(--transition-fast);
+}
+.nav-section-label--collapsed .nav-section-chevron {
+  transform: rotate(-90deg);
+}
+
+/* Thin divider shown in place of section label when sidebar is icon-only */
+.nav-section-divider {
+  height: 1px;
+  background: var(--border-muted);
+  margin: 0.5rem 0.5rem;
+}

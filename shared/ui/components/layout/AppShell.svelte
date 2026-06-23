@@ -1,5 +1,6 @@
 <!-- shared/ui/components/layout/AppShell.svelte -->
 <script lang="ts">
+	import { afterNavigate } from '$app/navigation';
 	import type { Snippet } from 'svelte';
 	import Sidebar from './Sidebar.svelte';
 	import Header  from './Header.svelte';
@@ -31,6 +32,9 @@
 	let drawerOpen   = $state(false);
 
 	function closDrawer() { drawerOpen = false; }
+
+	// Close mobile drawer automatically after any navigation
+	afterNavigate(() => { drawerOpen = false; });
 </script>
 
 <!-- Mobile overlay backdrop -->

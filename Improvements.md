@@ -135,3 +135,11 @@
 - Item rarity badges now use fixed D&D 5e convention colours independent of theme — FIXED
 - rarityColors defined in 3 separate svelte files — FIXED ($lib/rarity.ts single source)
 - User theme selection with live preview and persistence — NEW
+
+## Session 76 Completed
+- Admin nav 16 flat items reorganised into collapsible sections — DONE
+- Dynamic child hrefs and activeMatch sub-route support in admin nav — DONE
+- Marketplace filter buttons missing vertical spacing — FIXED
+- Marketplace item detail field labels now use accent colour — FIXED (label-accent class)
+- Mobile drawer stays open after navigation — FIXED (afterNavigate in AppShell)
+- Section toggle buttons below 44px touch target — FIXED
