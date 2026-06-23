@@ -1,7 +1,6 @@
 # Marches — Codebase Dependency Map
 
 > Auto-generated. Update when adding/removing imports.
-> Format: **file** → exports → callers
 
 
 ## DB Read — Characters
@@ -100,7 +99,7 @@
 ### `shared/database/dbapi/write/characters/update-classes.ts`
 **Exports:** `ClassAllocation`, `updateCharacterClasses`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/database/dbapi/write/characters/update-status.ts`
 **Exports:** `updateCharacterStatus`
@@ -280,7 +279,7 @@
 
 ### `shared/database/dbapi/write/dnd5e/update-character-asi.ts`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/database/dbapi/write/dnd5e/update-character-feats.ts`
 **Exports:** `addDnd5eCharacterFeat`, `removeDnd5eCharacterFeat`
@@ -696,7 +695,7 @@
 ### `shared/database/dbapi/write/news/journals.ts`
 **Exports:** `createJournal`, `createPage`, `createSection`, `deleteJournal`, `deletePage`, `deleteSection`, `updateJournal`, `updatePage`, `updateSection`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/database/dbapi/write/news/wiki.ts`
 **Exports:** `createWiki`, `createWikiPage`, `createWikiSection`, `deleteWiki`, `deleteWikiPage`, `deleteWikiSection`, `updateWiki`, `updateWikiPage`, `updateWikiSection`
@@ -837,7 +836,7 @@
 ### `shared/rbac/auth.ts`
 **Exports:** `Auth`, `BaseAuthConfigInput`, `EmailSender`, `getBaseAuthConfig`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/rbac/cache.ts`
 **Exports:** `permissionCache`
@@ -847,61 +846,61 @@
 
 ### `shared/rbac/index.ts`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ## Shared UI (@core/ui)
 
 ### `shared/ui/components/layout/AppShell.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/layout/Footer.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/layout/Header.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/layout/NavBar.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/layout/NavItem.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/layout/Sidebar.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/ui/Avatar.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/ui/Badge.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/ui/Button.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/ui/Card.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/ui/ConfirmModal.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/ui/NotificationBell.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/ui/PermissionCell.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/components/ui/confirm-modal-singleton.ts`
 **Exports:** `confirmModal`, `registerConfirmModal`, `unregisterConfirmModal`
@@ -911,29 +910,28 @@
 - `shared/ui/src/gamesystems/dnd5e/Dnd5eSpellbooks.svelte` — uses `confirmModal`
 
 ### `shared/ui/index.ts`
-**Exports:** ` confirmModal `, ` default as AppShell `, ` default as Avatar `, ` default as Badge `, ` default as Button `, ` default as Card `, ` default as ConfirmModal `, ` default as Dnd5eAsiFeatsPanel `, ` default as Dnd5eCharacterCard `, ` default as Dnd5eCharacterCreation `, ` default as Dnd5eCharacterSheet `, ` default as Dnd5eSpellbooks ` ...
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/src/gamesystems/dnd5e/Dnd5eAsiFeatsPanel.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterCard.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterCreation.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/src/gamesystems/dnd5e/Dnd5eSpellbooks.svelte`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/src/gamesystems/dnd5e/feature-names.ts`
 **Exports:** `isAsiFeatureName`, `isEpicBoonFeatureName`, `normalizeFeatureName`
@@ -944,131 +942,157 @@
 ### `shared/ui/src/gamesystems/dnd5e/name-generator.ts`
 **Exports:** `generateFantasyName`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/src/markdown.ts`
 **Exports:** `renderMarkdown`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ## Discord Bot
 
 ### `apps/discord/src/commands/availability.ts`
 **Exports:** `handleSetAvailableCommand`, `handleUnsetAvailableCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/buyitem.ts`
 **Exports:** `handleBuyItemCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/cancelsignup.ts`
 **Exports:** `handleCancelSignupCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/characters.ts`
 **Exports:** `handleCharactersCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/charactersinv.ts`
 **Exports:** `handleCharsInvCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/item.ts`
 **Exports:** `handleItemCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/quest.ts`
 **Exports:** `handleQuestCommand`, `handleQuestDetailButton`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/quests.ts`
 **Exports:** `handleQuestsCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/sellitem.ts`
 **Exports:** `handleSellItemCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/signup.ts`
 **Exports:** `handleSignupCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/spell.ts`
 **Exports:** `handleSpellInfoCommand`, `handleSpellListCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/spellbook.ts`
 **Exports:** `handleSpellbookListCommand`, `handleSpellbookPreparedCommand`, `handleSpellbookSlotsCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/commands/tavern.ts`
 **Exports:** `handleTavernCommand`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/index.ts`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/interaction-handler.ts`
 **Exports:** `handleInteraction`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/notifications/dispatcher.ts`
 **Exports:** `notifyAnnouncement`, `notifyCharacterApproved`, `notifyCharacterPendingApproval`, `notifyCharacterRejected`, `notifyInvite`, `notifyItemPurchased`, `notifyItemSold`, `notifyMarketplacePending`, `notifyQuestPendingApproval`, `notifyQuestPublished`, `notifyQuestResult`, `notifyQuestResultPending` ...
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/notifications/process-queue.ts`
 **Exports:** `processQueue`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/discord/src/register-commands.ts`
 **Exports:** `commands`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ## Frontend Utilities
 
 ### `apps/frontend/src/lib/index.ts`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/frontend/src/lib/rarity.ts`
 **Exports:** `RARITIES`, `RARITY_BADGE`, `Rarity`, `rarityBadge`, `rarityLabel`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/frontend/src/lib/server/auth.ts`
 **Exports:** `auth`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/frontend/src/lib/themes.ts`
 **Exports:** `getAvailableThemes`, `validateTheme`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/frontend/src/lib/vitest-examples/greet.spec.ts`
 
-> ⚠ No direct import callers found (may be called via `@core/database` barrel only)
+> ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `apps/frontend/src/lib/vitest-examples/greet.ts`
 **Exports:** `greet`
 
 **Called by:**
 - `apps/frontend/src/lib/vitest-examples/greet.spec.ts` — uses `greet`
+
+## Admin Utilities
+
+### `apps/admin/src/lib/index.ts`
+
+> ⚠ No direct import callers (may be via `@core/database` barrel)
+
+### `apps/admin/src/lib/nav.ts`
+**Exports:** `FOOTER_ITEMS`, `NAV_ITEMS`, `NavChildDef`, `NavContext`, `NavItem`, `NavItemDef`, `NavSection`, `PermissionLevel`, `ResolvedChild`, `ResolvedNavItem`
+
+> ⚠ No direct import callers (may be via `@core/database` barrel)
+
+### `apps/admin/src/lib/server/auth.ts`
+**Exports:** `auth`
+
+> ⚠ No direct import callers (may be via `@core/database` barrel)
+
+### `apps/admin/src/lib/vitest-examples/greet.spec.ts`
+
+> ⚠ No direct import callers (may be via `@core/database` barrel)
+
+### `apps/admin/src/lib/vitest-examples/greet.ts`
+**Exports:** `greet`
+
+**Called by:**
+- `apps/admin/src/lib/vitest-examples/greet.spec.ts` — uses `greet`

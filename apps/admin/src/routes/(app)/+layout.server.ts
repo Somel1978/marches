@@ -14,10 +14,17 @@ function resolveNavItems(
 ): ResolvedNavItem[] {
     return items
         .filter(item => {
+            // Section labels always show
+            if (item.type === 'section') return true;
             if (item.resourceKey === null) return true;
-            return checkPermission(permissions, { resourceKey: item.resourceKey, action: 'read' }).allowed;
+            return checkPermission(permissions, { resourceKey: item.resourceKey!, action: 'read' }).allowed;
         })
         .map(item => {
+            // Pass section labels through unchanged
+            if (item.type === 'section') {
+                return { type: 'section' as const, label: item.label };
+            }
+
             // Build context with resolved permission level for this resource
             const level = item.resourceKey
                 ? (checkPermission(permissions, { resourceKey: item.resourceKey, action: 'read' }).level as 'NONE' | 'OWN' | 'ALL')
@@ -27,19 +34,27 @@ function resolveNavItems(
 
             const href = typeof item.href === 'function' ? item.href(ctx) : item.href;
 
+            // activeMatch: function → call it; string → prefix match; default → startsWith(href)
             const active = item.activeMatch
                 ? typeof item.activeMatch === 'function'
                     ? item.activeMatch(pathname, ctx)
-                    : pathname === item.activeMatch
+                    : pathname.startsWith(item.activeMatch)
                 : pathname.startsWith(href);
 
-            const children = item.children?.map(child => ({
-                label:  child.label,
-                href:   child.href,
-                active: pathname === child.href || pathname.startsWith(child.href + '/'),
-            }));
+            // Resolve children — supports dynamic href and activeMatch per child
+            const children = item.children?.map(child => {
+                const childHref = typeof child.href === 'function' ? child.href(ctx) : child.href;
 
-            return { label: item.label, icon: item.icon, href, active, children };
+                const childActive = child.activeMatch
+                    ? typeof child.activeMatch === 'function'
+                        ? child.activeMatch(pathname, ctx)
+                        : pathname.startsWith(child.activeMatch)
+                    : pathname === childHref || pathname.startsWith(childHref + '/');
+
+                return { label: child.label, href: childHref, active: childActive };
+            });
+
+            return { type: 'item' as const, label: item.label, icon: item.icon, href, active, children };
         });
 }
 
@@ -55,9 +70,15 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 	});
 	if (!canAccessAdmin.allowed) redirect(302, '/unauthorized');
 
-	const unread = await notifications.getUnread(locals.user.id);
+	const [settingsMap, unread] = await Promise.all([
+		platform.getSettingsMap(),
+		notifications.getUnread(locals.user.id),
+	]);
 
 	return {
+		siteName:      settingsMap['site.name']    ?? 'Admin',
+		siteLogo:      settingsMap['site.logo']    ?? '',
+		siteLogoIcon:  settingsMap['site.logoIcon'] ?? '⚔',
 		user: {
 			id:    locals.user.id,
 			name:  locals.user.name,

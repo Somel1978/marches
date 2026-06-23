@@ -714,3 +714,24 @@
 **Schema changes requiring `db:push && db:generate`:**
 - `QuestSignup.promotedAt DateTime?`
 - `User.theme String @default("frontend")`
+
+---
+
+### Session 76 — Admin Nav Sections, Marketplace UX & Mobile Fixes (2026-06-23)
+
+**Admin Navigation — Sections & Collapsible Groups**
+- `apps/admin/src/lib/nav.ts` — `NavItemDef` is now a discriminated union (`NavItem | NavSection`); `NavChildDef` supports dynamic `href: string | ((ctx) => string)` and `activeMatch`; 16 flat items reorganised into 3 sections: Campaign (Quests, Characters, DM Hub, Availability, Rewards), Content (World, Marketplace, Token Store, News, Wiki), Administration (Users, Roles & Permissions, Game Systems, Discord, Audit Log)
+- `apps/admin/src/routes/(app)/+layout.server.ts` — `resolveNavItems` handles section pass-through; string `activeMatch` changed to `startsWith` (was exact match); children resolve dynamic hrefs + own `activeMatch` with sub-route support (`startsWith(childHref + '/')`); `getSetting` → `getSettingsMap()` (single DB call)
+- `apps/admin/src/routes/(app)/+layout.svelte` — nav items pre-grouped into `NavGroup[]` by section; per-section `collapsedSections` state persisted in `localStorage`; active section always auto-expands regardless of saved state; collapsed sidebar shows `nav-section-divider` (thin line) instead of section label
+- `shared/ui/styles/components/site.css` — `.nav-section-label` (collapsible button, uppercase, 44px min-height touch target) + `.nav-section-divider` (1px border-muted line for icon-only sidebar) + `.nav-section-chevron` with `rotate(-90deg)` on collapsed state
+
+**Marketplace UX**
+- `apps/frontend/src/routes/(protected)/marketplace/+page.svelte` — `margin-top: 0.75rem` added to Apply Filters / Reset button row, separating it from Sort by select
+- `apps/frontend/src/routes/(protected)/marketplace/[id]/+page.svelte` — item detail field labels (Buy price, Sell price, Stock, Weight, Source, Description, Requirements, Reference) now use `class="label label-accent"` for accent colour
+- `shared/ui/styles/components/ui.css` — added `.label-accent { color: var(--accent-light) }` modifier class; also added `--accent-text` / `--accent-text-hover` support to `.btn-primary` for themes with light accents (Midnight Neon, Sunlight & Sapphire)
+
+**Mobile Fixes**
+- `shared/ui/components/layout/AppShell.svelte` — `afterNavigate(() => { drawerOpen = false })` closes mobile drawer on every route change. Pre-existing bug made critical with section collapse — without this the drawer stays open on top of the new page after clicking a nav item
+- `shared/ui/styles/components/site.css` — `.nav-section-label` `min-height: 44px` for accessibility touch target compliance
+
+**Note:** `AppShell.svelte` now imports `afterNavigate` from `$app/navigation` — a pragmatic exception to the no-SvelteKit-imports rule in `@core/ui`. AppShell is inherently tied to SvelteKit's routing model and the mobile UX fix requires it.

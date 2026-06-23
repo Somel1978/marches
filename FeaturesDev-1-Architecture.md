@@ -113,6 +113,8 @@ marches/
 ✅ 31. User theme system — User.theme DB field, userTheme cookie, inline script no-flash apply, tokens.css convention for auto-discovery, profile page swatch picker, 5 themes shipped
 ✅ 32. CSS architecture fix — layout.css deleted, @tailwindcss/forms class strategy, a element styles in @layer base, button consistency audit across all frontend svelte files
 ✅ 33. Item rarity colours — D&D 5e convention badge classes (theme-independent), $lib/rarity.ts single source of truth
+✅ 34. Admin nav sections — collapsible grouped nav with localStorage persistence, dynamic child hrefs, improved activeMatch
+✅ 35. Mobile nav fix — AppShell afterNavigate closes drawer on route change; 44px touch targets on section labels
 ```
 
 ---
