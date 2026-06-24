@@ -191,4 +191,8 @@ export const actions: Actions = {
 	addSpellbookEntry:    dnd5eActions.addSpellbookEntry,
 	removeSpellbookEntry: dnd5eActions.removeSpellbookEntry,
 	toggleSpellPrepared:  dnd5eActions.toggleSpellPrepared,
+	saveMood:             dnd5eActions.saveMood,
+	saveSkills:           dnd5eActions.saveSkills,
+	saveSavingThrow:      dnd5eActions.saveSavingThrow,
+	saveDetails:          dnd5eActions.saveDetails,
 };

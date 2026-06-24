@@ -48,9 +48,10 @@ export const dmDnd5eActions = {
 		const amount1       = data.get('amount1') ? Number(data.get('amount1')) : undefined;
 		const stat2         = data.get('stat2')?.toString()  || undefined;
 		const amount2       = data.get('amount2') ? Number(data.get('amount2')) : undefined;
+		const chosenSkills  = data.getAll('chosenSkill').map((v: FormDataEntryValue) => v.toString()).filter(Boolean);
 		if (!featId) return fail(400, { message: 'Feat ID required.' });
 		try {
-			await dnd5e.addCharacterFeat(params.charId, featId, { sourceClassId, sourceLevel, stat1, amount1, stat2, amount2 });
+			await dnd5e.addCharacterFeat(params.charId, featId, { sourceClassId, sourceLevel, stat1, amount1, stat2, amount2, chosenSkills: chosenSkills.length ? chosenSkills : undefined });
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -100,6 +101,85 @@ export const dmDnd5eActions = {
 		if (!stat || !delta) return fail(400, { message: 'Stat and delta required.' });
 		try {
 			await dnd5e.manualScoreAdjustment(params.charId, stat, delta, note, locals.user!.id);
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveMood: async ({ params, request, locals }: any) => {
+		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
+		const { dnd5e } = await import('@core/database');
+		const data  = await request.formData();
+		const emoji = data.get('emoji')?.toString() ?? null;
+		const text  = data.get('text')?.toString()  ?? null;
+		try {
+			await dnd5e.saveMood(params.charId, emoji, text);
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveSkills: async ({ params, request, locals }: any) => {
+		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
+		const { dnd5e } = await import('@core/database');
+		const data        = await request.formData();
+		const skill       = data.get('skill')?.toString() ?? '';
+		const proficiency = (data.get('proficiency')?.toString() ?? 'NONE') as 'NONE' | 'HALF_PROFICIENT' | 'PROFICIENT' | 'EXPERT';
+		if (!skill) return fail(400, { message: 'Skill required.' });
+		try {
+			if (proficiency === 'NONE') {
+				await dnd5e.removeSkillGrantsBySource(params.charId, 'dm-manual-' + skill);
+			} else {
+				const value = { 'HALF_PROFICIENT': 0.5, 'PROFICIENT': 1.0, 'EXPERT': 2.0 }[proficiency] ?? 1.0;
+				await dnd5e.upsertDmSkillGrant(params.charId, skill, value);
+			}
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveSavingThrow: async ({ params, request, locals }: any) => {
+		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
+		const { dnd5e } = await import('@core/database');
+		const data      = await request.formData();
+		const stat      = data.get('stat')?.toString() ?? '';
+		const proficient = data.get('proficient') === 'true';
+		if (!stat) return fail(400, { message: 'Stat required.' });
+		try {
+			if (proficient) {
+				await dnd5e.addSavingThrowGrants(params.charId, [{ stat, sourceType: 'DM', sourceId: 'dm-manual-' + stat }]);
+			} else {
+				await dnd5e.removeSavingThrowsBySource(params.charId, 'dm-manual-' + stat);
+			}
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveDetails: async ({ params, request, locals }: any) => {
+		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
+		const { dnd5e } = await import('@core/database');
+		const data = await request.formData();
+		try {
+			await dnd5e.saveDetails(params.charId, {
+				alignment:         data.get('alignment')?.toString()         ?? null,
+				personalityTraits: data.get('personalityTraits')?.toString() ?? null,
+				ideals:            data.get('ideals')?.toString()            ?? null,
+				bonds:             data.get('bonds')?.toString()             ?? null,
+				flaws:             data.get('flaws')?.toString()             ?? null,
+				appearance:        data.get('appearance')?.toString()        ?? null,
+				age:               data.get('age') ? Number(data.get('age')) : null,
+				height:            data.get('height')?.toString()            ?? null,
+				weight:            data.get('weight')?.toString()            ?? null,
+			});
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

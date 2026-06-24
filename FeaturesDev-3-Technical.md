@@ -1,7 +1,7 @@
 # Marches — Technical Reference
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-06-03 (session 61-70)
+> Last updated: 2026-06-24 (session 77)
 
 ---
 
@@ -177,7 +177,7 @@ users.getByDiscordId, users.updateDiscord, users.updateTheme, users.getRoleIds
 roles.{getAll, getById, getByName, create, update, delete, assignToUser, ...}
 gameSystems.{getAll, getActive, getById, create, update, delete}
 gameSystems.progression.{create, update, delete}
-dnd5e.classes.{getAll, getActive, getById, create, update, delete}
+dnd5e.classes.{getAll, getActive, getById, create, update, delete, updateSavingThrows, updateSkillPool}
 dnd5e.classFeatures.{create, update, delete}
 dnd5e.subclasses.{create, update, delete}
 dnd5e.subclassFeatures.{create, update, delete}

@@ -3,6 +3,7 @@
 	import { rarityBadge, rarityLabel } from '$lib/rarity';
 	import { enhance } from '$app/forms';
 	import { ConfirmModal } from '@core/ui';
+	import MoodEditor from '@core/ui/gamesystems/dnd5e/MoodEditor.svelte';
 	import Dnd5eSheetSection from './_sheets/Dnd5eSheetSection.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
@@ -171,6 +172,24 @@
 			</form>
 		{/if}
 	</div>
+
+	<!-- ── Character Mood — universal, not dnd5e specific ──────────── -->
+	{#if canEdit || (data.character as any).moodEmoji || (data.character as any).moodText}
+		<div class="card">
+			<h3 class="section-title" style="margin-bottom:0.75rem;">Character Mood</h3>
+			<MoodEditor
+				emoji={(data.character as any).moodEmoji ?? ''}
+				text={(data.character as any).moodText ?? ''}
+				readonly={!canEdit}
+				onSave={async (emoji, text) => {
+					const fd = new FormData();
+					fd.set('emoji', emoji);
+					fd.set('text', text);
+					await fetch('?/saveMood', { method: 'POST', body: fd, headers: { 'x-sveltekit-action': 'true' } });
+				}}
+			/>
+		</div>
+	{/if}
 
 	<!-- Progression bar -->
 	{#if thresholds.length}

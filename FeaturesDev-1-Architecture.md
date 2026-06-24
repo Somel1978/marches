@@ -1,7 +1,7 @@
 # Marches — Architecture & Decision Log
 
 > **Living document.** Updated as decisions are made and features are built.
-> Last updated: 2026-06-04 (wizard session)
+> Last updated: 2026-06-24 (session 77 — skill grants system)
 
 ---
 
@@ -51,10 +51,25 @@ marches/
 03 auth        — Session, Account, Verification (better-auth owned)
 04 audit       — AuditLog (append-only)
 05 gamesystem  — GameSystem, ProgressionThreshold
-06 dnd5e       — Dnd5eClass, Dnd5eClassFeature, Dnd5eSubclass, Dnd5eSubclassFeature,
-                 Dnd5eSpecies, Dnd5eSpeciesTrait, Dnd5eBackground (grantsFeatCategory, grantsFeatId),
-                 Dnd5eFeat, Dnd5eCharacterFeat (sourceClassId, sourceLevel, asiStat1/2, asiAmount1/2),
-                 Dnd5eCharacterSheet, Dnd5eCharacterClass, Dnd5eAbilityStat, Dnd5eAbilityScore
+06 dnd5e       — Dnd5eClass (skillChoiceCount Int?),
+                 Dnd5eClassFeature (grantsSkills, grantsExpertise, grantsHalfSkills,
+                   grantsSavingThrows, skillChoiceCount, skillChoicePool),
+                 Dnd5eClassSavingThrow (classId, stat — junction),
+                 Dnd5eClassSkillOption (classId, skill Dnd5eSkillName — junction),
+                 Dnd5eSubclass, Dnd5eSubclassFeature (same 6 grant fields as ClassFeature),
+                 Dnd5eSpecies, Dnd5eSpeciesTrait (grantsSkills, grantsExpertise,
+                   grantsHalfSkills, skillChoiceCount, skillChoicePool),
+                 Dnd5eBackground (grantsSkills, skillChoiceCount, skillChoicePool,
+                   grantsFeatCategory, grantsFeatId),
+                 Dnd5eFeat (grantsSkills, grantsExpertise, grantsHalfSkills,
+                   grantsSavingThrows, skillChoiceCount, skillChoicePool),
+                 Dnd5eCharacterFeat (sourceClassId, sourceLevel, asiStat1/2, asiAmount1/2),
+                 Dnd5eCharacterSkill (characterId, skill Dnd5eSkillName,
+                   value Float 0/0.5/1.0/2.0, sources String),
+                 Dnd5eCharacterSavingThrow (characterId, stat Dnd5eAbilityStat,
+                   isProficient Boolean, sourceId, sourceType),
+                 Dnd5eCharacterSheet, Dnd5eCharacterClass, Dnd5eAbilityStat, Dnd5eAbilityScore,
+                 Dnd5eScoreAuditEntry (ScoreEntrySource enum: INITIAL/ASI/FEAT/MANUAL)
 07 characters  — Character, CharacterClass, CharacterSlotGrant,
                  CharacterTransaction, CharacterInventory
 08 dms         — DMProfile, DMGameSystem, RoleRequest, DMRating
@@ -115,6 +130,9 @@ marches/
 ✅ 33. Item rarity colours — D&D 5e convention badge classes (theme-independent), $lib/rarity.ts single source of truth
 ✅ 34. Admin nav sections — collapsible grouped nav with localStorage persistence, dynamic child hrefs, improved activeMatch
 ✅ 35. Mobile nav fix — AppShell afterNavigate closes drawer on route change; 44px touch targets on section labels
+✅ 36. D&D 5e skill grant system — skillChoiceCount/skillChoicePool on all 5 source entities (class, classFeature, subclassFeature, speciesTrait, background, feat); Dnd5eClassSavingThrow + Dnd5eClassSkillOption junctions; Dnd5eCharacterSkill/SavingThrow tracking with Float value (0/0.5/1/2); approval flow writes grants from all sources; updateClassSavingThrows/updateClassSkillPool write functions; admin UI grant fields on class detail, species traits, feats
+✅ 37. Character creation wizard — skills step (step 3) added: saving throws read-only, auto-granted skills labelled by source, background/species/class/feature choice pools with toggle buttons; allPoolsSatisfied validation gate; hidden form inputs for pool selections
+✅ 38. Admin species edit — full species edit form (name, description, source, link, isAvailable, isSubrace, isLegacy, sortOrder) in expanded section; updateSpecies action
 ```
 
 ---

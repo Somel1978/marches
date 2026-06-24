@@ -1,6 +1,61 @@
 # Marches — Changelog (Sessions 21+)
 
-### Session 73b — Approval Notifications, Auth Fixes, Build Fixes (2026-06-08)
+### Session 77 — D&D 5e Skill Grant System & Admin UI (2026-06-24)
+
+**Skill Grant System — Schema**
+- `Dnd5eClass` — `skillChoiceCount Int?` added directly; `savingThrows Dnd5eClassSavingThrow[]` and `skillOptions Dnd5eClassSkillOption[]` junction relations (already existed from earlier work)
+- `Dnd5eClassFeature` + `Dnd5eSubclassFeature` — added `grantsSkills`, `grantsExpertise`, `grantsHalfSkills`, `grantsSavingThrows`, `skillChoiceCount`, `skillChoicePool`
+- `Dnd5eSpeciesTrait` — added `grantsSkills`, `grantsExpertise`, `grantsHalfSkills`, `skillChoiceCount`, `skillChoicePool`
+- `Dnd5eBackground` — added `grantsSkills String?`, `skillChoiceCount Int?`, `skillChoicePool String?` (replaces old `skillProficiencies` string with proper structured fields)
+- `Dnd5eFeat` — added all 6 grant fields: `grantsSkills`, `grantsExpertise`, `grantsHalfSkills`, `grantsSavingThrows`, `skillChoiceCount`, `skillChoicePool`
+
+**Skill Grant System — Write Functions**
+- `shared/database/dbapi/write/dnd5e/classes.ts` — `updateClassSavingThrows(classId, stats[])` and `updateClassSkillPool(classId, skills[])` added (delete-and-recreate junction pattern)
+- `shared/database/index.ts` — both exported as `dnd5e.classes.updateSavingThrows` and `dnd5e.classes.updateSkillPool`
+- Grant fields added to all create/update functions: `createClassFeature`, `updateClassFeature`, `createSubclassFeature`, `updateSubclassFeature`, `createSpeciesTrait`, `updateSpeciesTrait`, `createDnd5eFeat`, `updateDnd5eFeat`
+
+**Import/Export Consistency**
+- All 7 import tabs now include their applicable grant columns
+- `normalizeSkills(raw, warnings, context)` / `normalizeStats(raw, warnings, context)` helpers normalise display names → enum keys; unrecognised values pushed to `warnings[]`
+- Export tabs updated to emit grant columns for all entities
+- Import UI shows amber warning banner for normalisation failures (never silently drops)
+
+**Admin UI — Class Detail (`/game-systems/[id]/dnd5e/classes/[classId]`)**
+- Class details form: added `Saving throws granted` (pre-filled from `cls.savingThrows` junction), `Skill choices` count, `Skill pool` (pre-filled from `cls.skillOptions` junction)
+- `updateClass` action now saves `skillChoiceCount` directly and calls `updateSavingThrows` + `updateSkillPool` on the junction tables
+- Class feature and subclass feature edit forms: grant field row added (6 inputs per form); server reads and writes all grant fields on `addFeature`, `updateFeature`, `addSubclassFeature`, `updateSubclassFeature`
+
+**Admin UI — Species (`/game-systems/[id]/dnd5e/species`)**
+- Expanded species row now shows a full edit form for all species fields (name, description, source, link, isAvailable, isSubrace, isLegacy, sortOrder) — previously only trait management was available
+- `updateSpecies` action added to server; calls `dnd5e.species.update`
+- Species trait edit form gains grant field row (5 inputs — no saving throws for traits)
+- `traitGrantFields(data)` helper in server
+
+**Admin UI — Feats (`/game-systems/[id]/dnd5e/feats`)**
+- Both create and edit forms gain full 6-field grant row
+- `featGrantFields(data)` helper in server; both `create` and `update` actions spread it
+- Empty `{#each feat.categories}` block fixed — now renders category badge spans
+
+**Character Creation Wizard — Skills Step**
+- Step 3 ("Skills") added between Background (2) and Scores (4)
+- Shows saving throws (read-only, from primary class junction), auto-granted fixed skills labelled by source (Background / Species), background skill choice pool picker, species trait choice pickers, class skill pool picker, class feature skill choice pickers (all features up to `allocatedLevel`)
+- `chosenPoolSkills` state — keyed by sourceId (backgroundId, traitId, featureId)
+- `allPoolsSatisfied` derived validates all choice pools are fully satisfied before advancing
+- Hidden form inputs in Review submit pool selections with `poolSkill`, `poolSkillSource`, `poolSkillSourceId`
+- Infinite reactive loop from `chosenClassSkills` filter fixed with `untrack()` on the write side
+
+**`Dnd5eSkillsPanel.svelte`**
+- Full rewrite: uses `sk.value` (Float 0/0.5/1/2) replacing old `sk.proficiency` enum; `valueToProf()` converter; `sk.sources` array replacing `sk.source` string; legend layout fixed
+
+**Character Mood**
+- Moved from `Dnd5eCharacterSheet.svelte` to universal character page (`characters/[id]/+page.svelte`); reads from `data.character.moodEmoji` / `data.character.moodText`; saves via `?/saveMood`
+
+**Bug Fixes**
+- `Dnd5eClassSkillOption.createMany` — `skill as any` cast required for `Dnd5eSkillName` enum
+- Grant helpers (`grantFields`, `traitGrantFields`, `featGrantFields`) return `undefined` not `null` to satisfy create function type signatures
+- A11y: standalone `<label>` tags without `for` attributes removed from inline grant field rows (inputs retain `placeholder`)
+
+
 
 **Part 5 — Approval Workflow Notifications ✅**
 - `dispatcher.ts` — added `dmAdmins()` and `dmWorldDMs()` helpers; SUPERADMIN OR User/read/ALL query covers all admin roles; `notifyUserRegistered()` now delegates to `dmAdmins()`; `notifyCharacterPendingApproval()` and `notifyMarketplacePending()` wired to send Discord DMs in addition to channel posts

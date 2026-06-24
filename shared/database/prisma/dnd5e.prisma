@@ -1,5 +1,31 @@
 /* shared/database/prisma/dnd5e.prisma */
 
+// ── Skill system enums ────────────────────────────────────────────────────────
+
+enum Dnd5eSkillName {
+  ACROBATICS      // DEX
+  ANIMAL_HANDLING // WIS
+  ARCANA          // INT
+  ATHLETICS       // STR
+  DECEPTION       // CHA
+  HISTORY         // INT
+  INSIGHT         // WIS
+  INTIMIDATION    // CHA
+  INVESTIGATION   // INT
+  MEDICINE        // WIS
+  NATURE          // INT
+  PERCEPTION      // WIS
+  PERFORMANCE     // CHA
+  PERSUASION      // CHA
+  RELIGION        // INT
+  SLEIGHT_OF_HAND // DEX
+  STEALTH         // DEX
+  SURVIVAL        // WIS
+
+  @@schema("dnd5e")
+}
+
+
 model Dnd5eClass {
   id                   String   @id @default(uuid())
   gameSystemId         String   @map("game_system_id")
@@ -14,11 +40,14 @@ model Dnd5eClass {
   primaryAbilities     String?                   @map("primary_abilities")  // e.g. "Strength, Constitution"
   equipmentDescription String?                   @map("equipment_description")
   subclassAvailableAtLevel Int  @default(3)      @map("subclass_available_at_level")
+  skillChoiceCount         Int? @map("skill_choice_count")  // how many skills player picks at level 1
   createdAt            DateTime @default(now())  @map("created_at")
   updatedAt            DateTime @updatedAt       @map("updated_at")
 
-  features   Dnd5eClassFeature[]
-  subclasses Dnd5eSubclass[]
+  features      Dnd5eClassFeature[]
+  subclasses    Dnd5eSubclass[]
+  savingThrows  Dnd5eClassSavingThrow[]
+  skillOptions  Dnd5eClassSkillOption[]
 
   @@unique([gameSystemId, name])
   @@map("classes")
@@ -29,12 +58,18 @@ model Dnd5eClassFeature {
   id             String     @id @default(uuid())
   classId        String     @map("class_id")
   class          Dnd5eClass @relation(fields: [classId], references: [id], onDelete: Cascade)
-  name           String
-  description    String?
-  requiredLevel  Int        @map("required_level")
-  url            String?
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt      @map("updated_at")
+  name                String
+  description         String?
+  requiredLevel       Int        @map("required_level")
+  url                 String?
+  grantsSkills        String?    @map("grants_skills")         // comma-sep e.g. "PERCEPTION,INSIGHT"
+  grantsExpertise     String?    @map("grants_expertise")      // comma-sep e.g. "ARCANA"
+  grantsHalfSkills    String?    @map("grants_half_skills")    // comma-sep e.g. "*" = all skills (Jack of All Trades)
+  grantsSavingThrows  String?    @map("grants_saving_throws")  // comma-sep e.g. "STRENGTH,CONSTITUTION"
+  skillChoiceCount  Int?     @map("skill_choice_count")  // how many the player picks
+  skillChoicePool   String?  @map("skill_choice_pool")   // comma-sep pool; null = no choice
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt      @map("updated_at")
 
   @@unique([classId, name, requiredLevel])
   @@map("class_features")
@@ -66,12 +101,18 @@ model Dnd5eSubclassFeature {
   id            String        @id @default(uuid())
   subclassId    String        @map("subclass_id")
   subclass      Dnd5eSubclass @relation(fields: [subclassId], references: [id], onDelete: Cascade)
-  name          String
-  description   String?
-  requiredLevel Int           @map("required_level")
-  url           String?
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt      @map("updated_at")
+  name                String
+  description         String?
+  requiredLevel       Int           @map("required_level")
+  url                 String?
+  grantsSkills        String?       @map("grants_skills")
+  grantsExpertise     String?       @map("grants_expertise")
+  grantsHalfSkills    String?       @map("grants_half_skills")
+  grantsSavingThrows  String?       @map("grants_saving_throws")
+  skillChoiceCount  Int?     @map("skill_choice_count")  // how many the player picks
+  skillChoicePool   String?  @map("skill_choice_pool")   // comma-sep pool; null = no choice
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt      @map("updated_at")
 
   @@unique([subclassId, name, requiredLevel])
   @@map("subclass_features")
@@ -103,9 +144,14 @@ model Dnd5eSpeciesTrait {
   id            String       @id @default(uuid())
   speciesId     String       @map("species_id")
   species       Dnd5eSpecies @relation(fields: [speciesId], references: [id], onDelete: Cascade)
-  name          String
-  description   String?
-  requiredLevel Int?         @map("required_level")
+  name              String
+  description       String?
+  grantsSkills      String?  @map("grants_skills")      // comma-sep e.g. "PERCEPTION,INSIGHT"
+  grantsExpertise   String?  @map("grants_expertise")   // comma-sep
+  grantsHalfSkills  String?  @map("grants_half_skills") // comma-sep
+  skillChoiceCount  Int?     @map("skill_choice_count")  // how many the player picks
+  skillChoicePool   String?  @map("skill_choice_pool")   // comma-sep pool; null = no choice
+  requiredLevel     Int?     @map("required_level")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt      @map("updated_at")
 
@@ -123,7 +169,6 @@ model Dnd5eBackground {
   grantsFeatCategory  String?  @map("grants_feat_category")  // player picks any feat of this category
   grantsFeatId        String?  @map("grants_feat_id")          // background auto-grants this specific feat
   grantsFeat          Dnd5eFeat? @relation("BackgroundGrantedFeat", fields: [grantsFeatId], references: [id], onDelete: SetNull)
-  skillProficiencies  String?  @map("skill_proficiencies")
   toolProficiencies   String?  @map("tool_proficiencies")
   languages           String?
   url                 String?
@@ -131,6 +176,10 @@ model Dnd5eBackground {
   sortOrder           Int      @default(0)    @map("sort_order")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt      @map("updated_at")
+
+  grantsSkills      String?  @map("grants_skills")      // comma-sep always-granted skills
+  skillChoiceCount  Int?     @map("skill_choice_count")  // how many the player picks
+  skillChoicePool   String?  @map("skill_choice_pool")   // comma-sep pool; null = no choice
 
   @@unique([gameSystemId, name])
   @@map("backgrounds")
@@ -144,6 +193,18 @@ model Dnd5eCharacterSheet {
   speciesId      String?   @map("species_id")
   backgroundId   String?   @map("background_id")
   pendingChanges Json?     @map("pending_changes")
+
+  // Character details
+  alignment         String?  @map("alignment")           // e.g. "Lawful Good"
+  personalityTraits String?  @map("personality_traits")  // max 500 chars
+  ideals            String?  @map("ideals")              // max 300 chars
+  bonds             String?  @map("bonds")               // max 300 chars
+  flaws             String?  @map("flaws")               // max 300 chars
+  appearance        String?  @map("appearance")          // physical description, max 500 chars
+  age               Int?     @map("age")
+  height            String?  @map("height")              // e.g. "5'10\"" or "178 cm"
+  weight            String?  @map("weight")              // e.g. "170 lbs"
+
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt      @map("updated_at")
 
@@ -181,6 +242,12 @@ model Dnd5eFeat {
   asiAmount     Int?     @map("asi_amount")       // null = no grant; 1 = +1; 2 = +2
   asiStatFixed  String?  @map("asi_stat_fixed")   // e.g. "CONSTITUTION" — null means player picks
   asiStatChoices String? @map("asi_stat_choices") // comma-sep subset e.g. "STRENGTH,DEXTERITY"; null = any stat
+  grantsSkills        String?  @map("grants_skills")         // comma-sep proficiency grants
+  grantsExpertise     String?  @map("grants_expertise")      // comma-sep expertise grants
+  grantsHalfSkills    String?  @map("grants_half_skills")    // comma-sep half proficiency grants
+  grantsSavingThrows  String?  @map("grants_saving_throws")  // comma-sep saving throw grants
+  skillChoiceCount  Int?     @map("skill_choice_count")  // how many the player picks
+  skillChoicePool   String?  @map("skill_choice_pool")   // comma-sep pool; null = no choice
   sortOrder     Int      @default(0)     @map("sort_order")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt      @map("updated_at")
@@ -381,5 +448,60 @@ model Dnd5eScoreAuditEntry {
   createdAt   DateTime         @default(now()) @map("created_at")
 
   @@map("score_audit_entries")
+  @@schema("dnd5e")
+}
+
+// ── Skill system models ───────────────────────────────────────────────────────
+
+model Dnd5eClassSavingThrow {
+  id      String     @id @default(uuid())
+  classId String     @map("class_id")
+  class   Dnd5eClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  stat    String     // "STRENGTH" | "DEXTERITY" | "CONSTITUTION" | "INTELLIGENCE" | "WISDOM" | "CHARISMA"
+
+  @@unique([classId, stat])
+  @@map("class_saving_throws")
+  @@schema("dnd5e")
+}
+
+model Dnd5eClassSkillOption {
+  id      String         @id @default(uuid())
+  classId String         @map("class_id")
+  class   Dnd5eClass     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  skill   Dnd5eSkillName
+
+  @@unique([classId, skill])
+  @@map("class_skill_options")
+  @@schema("dnd5e")
+}
+
+model Dnd5eCharacterSkillGrant {
+  id          String         @id @default(uuid())
+  characterId String         @map("character_id")
+  character   Character      @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  skill       Dnd5eSkillName
+  value       Float          // 0.5 = half proficiency | 1.0 = proficient | 2.0 = expertise
+  sourceType  String         @map("source_type")  // "Background"|"ClassFeature"|"SubclassFeature"|"SpeciesTrait"|"Feat"|"DM"|"PlayerChoice"
+  sourceId    String?        @map("source_id")    // id of granting entity — used for cleanup on removal
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  @@index([characterId])
+  @@index([characterId, skill])
+  @@map("character_skill_grants")
+  @@schema("dnd5e")
+}
+
+model Dnd5eCharacterSavingThrowGrant {
+  id          String    @id @default(uuid())
+  characterId String    @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  stat        String    // "STRENGTH" | "DEXTERITY" | "CONSTITUTION" | "INTELLIGENCE" | "WISDOM" | "CHARISMA"
+  sourceType  String    @map("source_type")  // "Class"|"ClassFeature"|"SubclassFeature"|"Feat"|"DM"
+  sourceId    String?   @map("source_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([characterId])
+  @@index([characterId, stat])
+  @@map("character_saving_throw_grants")
   @@schema("dnd5e")
 }

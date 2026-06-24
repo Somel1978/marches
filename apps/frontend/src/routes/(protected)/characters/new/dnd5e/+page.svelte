@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
 	import { generateFantasyName, isAsiFeatureName, isEpicBoonFeatureName } from '@core/ui';
+	import { SKILL_DISPLAY, SKILL_ABILITY, STAT_ABBR } from '@core/ui/gamesystems/dnd5e/skills.ts';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -17,6 +18,7 @@
 		{ label: 'Identity'  },
 		{ label: 'Species'   },
 		{ label: 'Background'},
+		{ label: 'Skills'    },
 		{ label: 'Scores'    },
 		{ label: 'Classes'   },
 	];
@@ -319,8 +321,92 @@
 	function goTo(i: number)   { if (i <= step) step = i; }
 	const nextLabel = $derived(step < STEPS.length - 1 ? STEPS[step + 1].label : '');
 
-	const ASI_STEP_IDX    = $derived(hasAsiStep ? 5 : -1);
-	const REVIEW_STEP_IDX = $derived(hasAsiStep ? 6 : 5);
+	const SKILLS_STEP_IDX = 3;  // always present between Background and Scores
+	const ASI_STEP_IDX    = $derived(hasAsiStep ? 6 : -1);
+	const REVIEW_STEP_IDX = $derived(hasAsiStep ? 7 : 6);
+
+	// ── Step 4: Skills ──────────────────────────────────────────────────────
+	let chosenClassSkills     = $state<string[]>([]);
+	// skillChoicePool choices keyed by sourceId (featureId, backgroundId, traitId, featId)
+	let chosenPoolSkills      = $state<Record<string, string[]>>({});
+
+	const selectedClass0 = $derived((sys?.classes ?? []).find((c: any) => classAllocs[0]?.classId === c.id) ?? null);
+
+	// Fixed always-granted skills from background grantsSkills string
+	const backgroundFixedSkills = $derived(
+		((selectedBackground as any)?.grantsSkills ?? '').split(',').map((s: string) => s.trim()).filter(Boolean) as string[]
+	);
+	// Background skill choice if any
+	const backgroundChoiceCount = $derived((selectedBackground as any)?.skillChoiceCount ?? 0);
+	const backgroundChoicePool  = $derived(
+		((selectedBackground as any)?.skillChoicePool ?? '').split(',').map((s: string) => s.trim()).filter(Boolean) as string[]
+	);
+
+	// Fixed skills from species traits
+	const speciesFixedSkills = $derived(
+		(selectedSpecies?.traits ?? []).flatMap((t: any) =>
+			((t.grantsSkills ?? '').split(',').map((s: string) => s.trim()).filter(Boolean))
+		) as string[]
+	);
+	// Species trait choice pools (only traits with skillChoicePool and requiredLevel <= 1 for creation)
+	const speciesTraitChoices = $derived(
+		(selectedSpecies?.traits ?? []).filter((t: any) =>
+			t.skillChoiceCount && t.skillChoicePool && (t.requiredLevel ?? 1) <= 1
+		) as any[]
+	);
+
+	// All auto-granted (fixed) skills across all sources
+	const autoGrantedSkills = $derived([...backgroundFixedSkills, ...speciesFixedSkills]);
+
+	// Class skill pool from skillOptions junction
+	const classSkillPool      = $derived(((selectedClass0 as any)?.skillOptions ?? []).map((o: any) => o.skill) as string[]);
+	const classSkillCount     = $derived((selectedClass0 as any)?.skillChoiceCount ?? 2);
+	const classSavingThrows   = $derived(((selectedClass0 as any)?.savingThrows ?? []).map((s: any) => s.stat) as string[]);
+	const availableClassSkills = $derived(classSkillPool.filter((s: string) => !autoGrantedSkills.includes(s)));
+
+	// Class features with skill choices at startingLevel (from all allocated classes)
+	const featureChoices = $derived(() => {
+		const result: { sourceId: string; label: string; count: number; pool: string[]; sourceType: string }[] = [];
+		for (const alloc of classAllocs) {
+			const cls = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			if (!cls) continue;
+			const allFeatures = [
+				...(cls.features ?? []).map((f: any) => ({ ...f, sourceType: 'ClassFeature' })),
+				...(cls.subclasses ?? []).filter((s: any) => s.id === alloc.subclassId)
+					.flatMap((s: any) => (s.features ?? []).map((f: any) => ({ ...f, sourceType: 'SubclassFeature' }))),
+			];
+			for (const f of allFeatures) {
+				if (f.requiredLevel <= alloc.allocatedLevel && f.skillChoiceCount && f.skillChoicePool) {
+					const pool = f.skillChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean);
+					result.push({ sourceId: f.id, label: `${cls.name}: ${f.name} (level ${f.requiredLevel})`, count: f.skillChoiceCount, pool, sourceType: f.sourceType });
+				}
+			}
+		}
+		return result;
+	});
+
+	// Validation: all choice pools fully satisfied
+	const allPoolsSatisfied = $derived(
+		featureChoices().every(fc => (chosenPoolSkills[fc.sourceId] ?? []).length >= Math.min(fc.count, fc.pool.length)) &&
+		(backgroundChoiceCount === 0 || (chosenPoolSkills[backgroundId ?? ''] ?? []).length >= Math.min(backgroundChoiceCount, backgroundChoicePool.length)) &&
+		speciesTraitChoices.every((t: any) => (chosenPoolSkills[t.id] ?? []).length >= Math.min(t.skillChoiceCount, t.skillChoicePool.split(',').filter(Boolean).length))
+	);
+
+	$effect(() => {
+		const available = availableClassSkills;
+		untrack(() => {
+			chosenClassSkills = chosenClassSkills.filter((s: string) => available.includes(s));
+		});
+	});
+
+	function togglePoolSkill(sourceId: string, skill: string, maxCount: number) {
+		const current = chosenPoolSkills[sourceId] ?? [];
+		if (current.includes(skill)) {
+			chosenPoolSkills = { ...chosenPoolSkills, [sourceId]: current.filter(s => s !== skill) };
+		} else if (current.length < maxCount) {
+			chosenPoolSkills = { ...chosenPoolSkills, [sourceId]: [...current, skill] };
+		}
+	}
 
 	// Regular feats — excludes epic boon feats (restricted to epic boon slots)
 	const availableFeats = $derived((sys?.feats ?? []).filter((f: any) => f.isAvailable !== false && !f.isEpicBoon));
@@ -442,9 +528,10 @@
 			case 0: return name.trim().length > 0;
 			case 1: return !!speciesId;
 			case 2: return !!backgroundId && bgFeatValid;
-			case 3: return scoresValid;
-			case 4: return classesValid;
-			case 5: return !hasAsiStep || asiValid;
+			case 3: return chosenClassSkills.length === Math.min(classSkillCount, availableClassSkills.length) && allPoolsSatisfied; // skills step
+			case 4: return scoresValid;
+			case 5: return classesValid;
+			case 6: return !hasAsiStep || asiValid;
 			default: return true;
 		}
 	});
@@ -646,7 +733,7 @@
 					{#if bg.shortDescription}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{bg.shortDescription}</p>{/if}
 					{#if bg.featureName}<p style="font-size:0.8125rem;font-weight:700;color:var(--brand-accent);margin:0 0 0.5rem;">{bg.featureName}</p>{/if}
 					<div style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.75rem;">
-						{#if bg.skillProficiencies}<span><strong>Skills:</strong> {bg.skillProficiencies}</span>{/if}
+						{#if bg.skillGrants?.length}<span><strong>Skills:</strong> {bg.skillGrants.map((g: any) => SKILL_DISPLAY[g.skill] ?? g.skill).join(', ')}</span>{/if}
 						{#if bg.toolProficiencies}<span><strong>Tools:</strong> {bg.toolProficiencies}</span>{/if}
 						{#if bg.languages}<span><strong>Languages:</strong> {bg.languages}</span>{/if}
 					</div>
@@ -691,7 +778,7 @@
 					<h3 class="section-title">{bg.name}</h3>
 					{#if bg.shortDescription}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{bg.shortDescription}</p>{/if}
 					<div style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.75rem;">
-						{#if bg.skillProficiencies}<span><strong>Skills:</strong> {bg.skillProficiencies}</span>{/if}
+						{#if bg.skillGrants?.length}<span><strong>Skills:</strong> {bg.skillGrants.map((g: any) => SKILL_DISPLAY[g.skill] ?? g.skill).join(', ')}</span>{/if}
 						{#if bg.toolProficiencies}<span><strong>Tools:</strong> {bg.toolProficiencies}</span>{/if}
 						{#if bg.languages}<span><strong>Languages:</strong> {bg.languages}</span>{/if}
 					</div>
@@ -725,8 +812,141 @@
 			</div>
 		{/if}
 
-	<!-- ════ Step 4: Ability Scores ════ -->
+	<!-- ════ Step 3: Skills & Saving Throws ════ -->
 	{:else if step === 3}
+		<div class="card" style="max-width:680px;width:100%;">
+			<h3 class="section-title" style="margin-bottom:1rem;">Skills &amp; Saving Throws</h3>
+
+			<!-- Saving throws — auto from first class, read-only -->
+			{#if classSavingThrows.length}
+				<div style="margin-bottom:1.25rem;">
+					<p class="label label-accent" style="margin-bottom:0.5rem;">Saving Throw Proficiencies</p>
+					<p class="table__muted" style="font-size:0.8125rem;margin-bottom:0.5rem;">Granted by {selectedClass0?.name ?? 'your class'} (primary class only):</p>
+					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+						{#each classSavingThrows as stat}
+							<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Auto-granted fixed skills from background + species -->
+			{#if autoGrantedSkills.length}
+				<div style="margin-bottom:1.25rem;">
+					<p class="label label-accent" style="margin-bottom:0.5rem;">Auto-Granted Skills</p>
+					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+						{#each backgroundFixedSkills as skill}
+							<span class="badge badge-success">{SKILL_DISPLAY[skill] ?? skill} <span style="opacity:0.65;font-size:0.6875rem;">Background</span></span>
+						{/each}
+						{#each speciesFixedSkills as skill}
+							<span class="badge badge-success">{SKILL_DISPLAY[skill] ?? skill} <span style="opacity:0.65;font-size:0.6875rem;">Species</span></span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Background skill choice pool -->
+			{#if backgroundChoiceCount > 0 && backgroundChoicePool.length > 0}
+				{@const bgChosen = chosenPoolSkills[backgroundId ?? ''] ?? []}
+				<div style="margin-bottom:1.25rem;">
+					<p class="label label-accent" style="margin-bottom:0.25rem;">
+						Background: Choose {backgroundChoiceCount} Skill{backgroundChoiceCount !== 1 ? 's' : ''}
+						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({bgChosen.length}/{Math.min(backgroundChoiceCount, backgroundChoicePool.length)} chosen)</span>
+					</p>
+					<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.375rem;margin-top:0.5rem;">
+						{#each backgroundChoicePool as skill}
+							{@const chosen = bgChosen.includes(skill)}
+							{@const full = !chosen && bgChosen.length >= Math.min(backgroundChoiceCount, backgroundChoicePool.length)}
+							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
+								onclick={() => togglePoolSkill(backgroundId ?? '', skill, backgroundChoiceCount)}>
+								{SKILL_DISPLAY[skill] ?? skill}
+								<span class="table__muted" style="font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Species trait choice pools -->
+			{#each speciesTraitChoices as trait}
+				{@const pool = trait.skillChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean)}
+				{@const traitChosen = chosenPoolSkills[trait.id] ?? []}
+				<div style="margin-bottom:1.25rem;">
+					<p class="label label-accent" style="margin-bottom:0.25rem;">
+						{selectedSpecies?.name}: {trait.name} — Choose {trait.skillChoiceCount} Skill{trait.skillChoiceCount !== 1 ? 's' : ''}
+						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({traitChosen.length}/{Math.min(trait.skillChoiceCount, pool.length)} chosen)</span>
+					</p>
+					<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.375rem;margin-top:0.5rem;">
+						{#each pool as skill}
+							{@const chosen = traitChosen.includes(skill)}
+							{@const full = !chosen && traitChosen.length >= Math.min(trait.skillChoiceCount, pool.length)}
+							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
+								onclick={() => togglePoolSkill(trait.id, skill, trait.skillChoiceCount)}>
+								{SKILL_DISPLAY[skill] ?? skill}
+								<span class="table__muted" style="font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/each}
+
+			<!-- Class skill choices -->
+			{#if availableClassSkills.length}
+				<div style="margin-bottom:1.25rem;">
+					<p class="label label-accent" style="margin-bottom:0.25rem;">
+						{selectedClass0?.name ?? 'Class'}: Choose {classSkillCount} Skill{classSkillCount !== 1 ? 's' : ''}
+						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">
+							({chosenClassSkills.length}/{Math.min(classSkillCount, availableClassSkills.length)} chosen)
+						</span>
+					</p>
+					<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.375rem;margin-top:0.5rem;">
+						{#each availableClassSkills as skill}
+							{@const chosen = chosenClassSkills.includes(skill)}
+							{@const full   = !chosen && chosenClassSkills.length >= Math.min(classSkillCount, availableClassSkills.length)}
+							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
+								onclick={() => {
+									if (chosen) chosenClassSkills = chosenClassSkills.filter(s => s !== skill);
+									else if (!full) chosenClassSkills = [...chosenClassSkills, skill];
+								}}>
+								{SKILL_DISPLAY[skill] ?? skill}
+								<span class="table__muted" style="font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Class feature skill choice pools (features up to starting level) -->
+			{#each featureChoices() as fc}
+				{@const fcChosen = chosenPoolSkills[fc.sourceId] ?? []}
+				<div style="margin-bottom:1.25rem;">
+					<p class="label label-accent" style="margin-bottom:0.25rem;">
+						{fc.label}: Choose {fc.count} Skill{fc.count !== 1 ? 's' : ''}
+						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({fcChosen.length}/{Math.min(fc.count, fc.pool.length)} chosen)</span>
+					</p>
+					<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.375rem;margin-top:0.5rem;">
+						{#each fc.pool as skill}
+							{@const chosen = fcChosen.includes(skill)}
+							{@const full = !chosen && fcChosen.length >= Math.min(fc.count, fc.pool.length)}
+							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
+								onclick={() => togglePoolSkill(fc.sourceId, skill, fc.count)}>
+								{SKILL_DISPLAY[skill] ?? skill}
+								<span class="table__muted" style="font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/each}
+
+			{#if !backgroundId}
+				<p class="table__muted">Choose a background first to see all skill options.</p>
+			{:else if classAllocs.length === 0}
+				<p class="table__muted">Go back to Classes to add a class first.</p>
+			{/if}
+		</div>
+
+	<!-- ════ Step 4: Ability Scores ════ -->
+	{:else if step === 4}
 		<div class="card" style="max-width:640px;width:100%;box-sizing:border-box;overflow:hidden;">
 			<div class="page__header" style="margin-bottom:0.75rem;">
 				<h3 class="section-title" style="margin:0;">{rolled ? 'Rolled Stats' : standardArray ? 'Standard Array' : 'Point-Buy Stats'}</h3>
@@ -824,7 +1044,7 @@
 		</div>
 
 	<!-- ════ Step 5: Classes ════ -->
-	{:else if step === 4}
+	{:else if step === 5}
 		<div class="wizard-two-col" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:1rem;align-items:start;">
 			<div>
 				<div class="page__header" style="margin-bottom:0.75rem;">
@@ -1300,6 +1520,45 @@
 				<input type="hidden" name="speciesId"     value={speciesId} />
 				<input type="hidden" name="backgroundId"  value={backgroundId} />
 				{#if bgFeatPick}<input type="hidden" name="bgFeatPick" value={bgFeatPick} />{/if}
+				<!-- Skills from wizard step 3 -->
+				{#each chosenClassSkills as skill}
+					<input type="hidden" name="chosenClassSkill" value={skill} />
+				{/each}
+				{#each backgroundFixedSkills as skill}
+					<input type="hidden" name="autoSkill"       value={skill} />
+					<input type="hidden" name="autoSkillSource" value="Background" />
+				{/each}
+				{#each speciesFixedSkills as skill}
+					<input type="hidden" name="autoSkill"       value={skill} />
+					<input type="hidden" name="autoSkillSource" value="Species" />
+				{/each}
+				{#each classSavingThrows as stat}
+					<input type="hidden" name="classSave" value={stat} />
+				{/each}
+				<!-- Background choice pool picks -->
+				{#if backgroundChoiceCount > 0}
+					{#each (chosenPoolSkills[backgroundId ?? ''] ?? []) as skill}
+						<input type="hidden" name="poolSkill"       value={skill} />
+						<input type="hidden" name="poolSkillSource" value="Background" />
+						<input type="hidden" name="poolSkillSourceId" value={backgroundId ?? ''} />
+					{/each}
+				{/if}
+				<!-- Species trait choice pool picks -->
+				{#each speciesTraitChoices as trait}
+					{#each (chosenPoolSkills[trait.id] ?? []) as skill}
+						<input type="hidden" name="poolSkill"         value={skill} />
+						<input type="hidden" name="poolSkillSource"   value="SpeciesTrait" />
+						<input type="hidden" name="poolSkillSourceId" value={trait.id} />
+					{/each}
+				{/each}
+				<!-- Class feature choice pool picks -->
+				{#each featureChoices() as fc}
+					{#each (chosenPoolSkills[fc.sourceId] ?? []) as skill}
+						<input type="hidden" name="poolSkill"         value={skill} />
+						<input type="hidden" name="poolSkillSource"   value={fc.sourceType} />
+						<input type="hidden" name="poolSkillSourceId" value={fc.sourceId} />
+					{/each}
+				{/each}
 				{#each asiChoices as c, i}
 					<input type="hidden" name="asi_sourceClassId" value={c.sourceClassId} />
 					<input type="hidden" name="asi_sourceLevel"   value={c.sourceLevel} />

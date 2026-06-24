@@ -233,10 +233,10 @@
 - `shared/database/dbapi/write/dnd5e/update-character.ts` — uses `syncBackgroundFeatGrant`
 
 ### `shared/database/dbapi/write/dnd5e/classes.ts`
-**Exports:** `createClassFeature`, `createDnd5eClass`, `createDnd5eSubclass`, `createSubclassFeature`, `deleteClassFeature`, `deleteDnd5eClass`, `deleteDnd5eSubclass`, `deleteSubclassFeature`, `updateClassFeature`, `updateDnd5eClass`, `updateDnd5eSubclass`, `updateSubclass` ...
+**Exports:** `createClassFeature`, `createDnd5eClass`, `createDnd5eSubclass`, `createSubclassFeature`, `deleteClassFeature`, `deleteDnd5eClass`, `deleteDnd5eSubclass`, `deleteSubclassFeature`, `updateClassFeature`, `updateDnd5eClass`, `updateDnd5eSubclass`, `updateSubclass`, `updateClassSavingThrows`, `updateClassSkillPool` ...
 
 **Called by:**
-- `shared/database/index.ts` — uses `createDnd5eClass`, `updateDnd5eClass`, `deleteDnd5eClass`, `createClassFeature`, `updateClassFeature`, `deleteClassFeature`
+- `shared/database/index.ts` — uses `createDnd5eClass`, `updateDnd5eClass`, `deleteDnd5eClass`, `createClassFeature`, `updateClassFeature`, `deleteClassFeature`, `updateClassSavingThrows`, `updateClassSkillPool`
 
 ### `shared/database/dbapi/write/dnd5e/create-character.ts`
 **Exports:** `ClassAllocationInput`, `Dnd5eCreateCharacterInput`, `createDnd5eCharacter`

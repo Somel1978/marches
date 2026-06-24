@@ -5,6 +5,17 @@ import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { PageServerLoad, Actions } from './$types';
 
+
+function featGrantFields(data: FormData) {
+	return {
+		grantsSkills:       data.get('grantsSkills')?.toString().trim()       || null,
+		grantsExpertise:    data.get('grantsExpertise')?.toString().trim()    || null,
+		grantsHalfSkills:   data.get('grantsHalfSkills')?.toString().trim()   || null,
+		grantsSavingThrows: data.get('grantsSavingThrows')?.toString().trim() || null,
+		skillChoiceCount:   data.get('skillChoiceCount') ? Number(data.get('skillChoiceCount')) : null,
+		skillChoicePool:    data.get('skillChoicePool')?.toString().trim()    || null,
+	};
+}
 export const load: PageServerLoad = async ({ params }) => {
 	const system = await gameSystems.getById(params.id);
 	if (!system) throw error(404, 'Game system not found');
@@ -35,6 +46,7 @@ export const actions: Actions = {
 				asiAmount:     data.get('asiAmount') ? Number(data.get('asiAmount')) : null,
 				asiStatFixed:  data.get('asiStatFixed')?.toString()  || null,
 				asiStatChoices: data.get('asiStatChoices')?.toString() || null,
+				...featGrantFields(data),
 			}, locals.user!.id);
 			return { success: true };
 		} catch (e) {
@@ -64,6 +76,7 @@ export const actions: Actions = {
 				asiAmount:     data.get('asiAmount') ? Number(data.get('asiAmount')) : null,
 				asiStatFixed:  data.get('asiStatFixed')?.toString()  || null,
 				asiStatChoices: data.get('asiStatChoices')?.toString() || null,
+				...featGrantFields(data),
 			}, locals.user!.id);
 			return { success: true };
 		} catch (e) {

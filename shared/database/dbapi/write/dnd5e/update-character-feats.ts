@@ -46,6 +46,7 @@ export async function addDnd5eCharacterFeat(
         amount2?:       number;
         stat3?:         string;
         amount3?:       number;
+        chosenSkills?:  string[];   // player's chosen skills from skillChoicePool
         actorId?:       string;
     }
 ) {
@@ -117,6 +118,25 @@ export async function addDnd5eCharacterFeat(
         );
     }
 
+    // Apply skill grants from feat (fixed + player choices)
+    const skillGrants: { skill: string; value: number }[] = [];
+    const f = feat as any;
+    if (f.grantsSkills)    for (const s of f.grantsSkills.split(',').filter(Boolean))    skillGrants.push({ skill: s.trim(), value: 1.0 });
+    if (f.grantsExpertise) for (const s of f.grantsExpertise.split(',').filter(Boolean)) skillGrants.push({ skill: s.trim(), value: 2.0 });
+    if (f.grantsHalfSkills) for (const s of f.grantsHalfSkills.split(',').filter(Boolean)) skillGrants.push({ skill: s.trim(), value: 0.5 });
+    if (options?.chosenSkills?.length) for (const s of options.chosenSkills) skillGrants.push({ skill: s, value: 1.0 });
+    if (skillGrants.length) {
+        await db.dnd5eCharacterSkillGrant.createMany({
+            data: skillGrants.map(g => ({ characterId, skill: g.skill as any, value: g.value, sourceType: 'Feat', sourceId: record.id })),
+        });
+    }
+    if (f.grantsSavingThrows) {
+        const stats = f.grantsSavingThrows.split(',').map((s: string) => s.trim()).filter(Boolean);
+        if (stats.length) await db.dnd5eCharacterSavingThrowGrant.createMany({
+            data: stats.map((stat: string) => ({ characterId, stat, sourceType: 'Feat', sourceId: record.id })),
+        });
+    }
+
     return record;
 }
 
@@ -135,6 +155,10 @@ export async function removeDnd5eCharacterFeat(id: string, actorId?: string) {
         actorId,
         isAsiSource,
     );
+
+    // Remove skill and saving throw grants from this feat
+    await db.dnd5eCharacterSkillGrant.deleteMany({ where: { characterId: r.characterId, sourceId: id } });
+    await db.dnd5eCharacterSavingThrowGrant.deleteMany({ where: { characterId: r.characterId, sourceId: id } });
 
     return db.dnd5eCharacterFeat.delete({ where: { id } });
 }

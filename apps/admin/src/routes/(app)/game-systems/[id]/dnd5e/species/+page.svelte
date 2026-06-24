@@ -96,15 +96,66 @@
 				return async ({ update }) => { await update(); await invalidateAll(); };
 			}} style="margin:0;">
 								<input type="hidden" name="id" value={s.id} />
-								<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete "${s.name}"?`).then(ok => { if(ok)(document.getElementById("cf-9d8908") as HTMLFormElement).requestSubmit(); })}>✕</button>
+								<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => window.confirmModal('Confirm', `Delete "${s.name}"?`).then(ok => { if(ok)(document.getElementById("cf-9d8908") as HTMLFormElement).requestSubmit(); })}>✕</button>
 							</form>
 						</div>
 
 						{#if expandedSpecies === s.id}
 							<div style="padding:0.75rem; border-top:1px solid var(--border-muted);">
-								{#if s.description}
-									<p style="margin:0 0 0.75rem; font-size:0.875rem; color:var(--text-secondary); line-height:1.6; word-break:break-word; overflow-wrap:anywhere;">{s.description}</p>
-								{/if}
+								<!-- ── Species edit ──────────────────────────────────────────── -->
+								<form method="post" action="?/updateSpecies" use:enhance={() => {
+									return async ({ update }) => { await update(); await invalidateAll(); };
+								}} style="margin-bottom:0.75rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border-muted);">
+									<input type="hidden" name="id" value={s.id} />
+									<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:0.375rem;">
+										<div class="field" style="flex:2 1 160px; margin:0;">
+											<label class="label" for="sname-{s.id}">Name</label>
+											<input id="sname-{s.id}" name="name" type="text" class="input" value={s.name} required />
+										</div>
+										<div class="field" style="flex:0 0 80px; margin:0;">
+											<label class="label" for="ssort-{s.id}">Sort order</label>
+											<input id="ssort-{s.id}" name="sortOrder" type="number" class="input" value={s.sortOrder ?? 0} />
+										</div>
+										<div class="field" style="flex:0 0 90px; margin:0;">
+											<label class="label" for="savail-{s.id}">Available</label>
+											<select id="savail-{s.id}" name="isAvailable" class="input input--select">
+												<option value="true"  selected={s.isAvailable}>Yes</option>
+												<option value="false" selected={!s.isAvailable}>No</option>
+											</select>
+										</div>
+										<div class="field" style="flex:0 0 90px; margin:0;">
+											<label class="label" for="ssub-{s.id}">Subrace</label>
+											<select id="ssub-{s.id}" name="isSubrace" class="input input--select">
+												<option value="false" selected={!s.isSubrace}>No</option>
+												<option value="true"  selected={s.isSubrace}>Yes</option>
+											</select>
+										</div>
+										<div class="field" style="flex:0 0 90px; margin:0;">
+											<label class="label" for="sleg-{s.id}">Legacy</label>
+											<select id="sleg-{s.id}" name="isLegacy" class="input input--select">
+												<option value="false" selected={!s.isLegacy}>No</option>
+												<option value="true"  selected={s.isLegacy}>Yes</option>
+											</select>
+										</div>
+									</div>
+									<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.375rem;">
+										<div class="field" style="flex:1 1 160px; margin:0;">
+											<label class="label" for="ssource-{s.id}">Source</label>
+											<input id="ssource-{s.id}" name="source" type="text" class="input" value={s.source ?? ''} />
+										</div>
+										<div class="field" style="flex:2 1 200px; margin:0;">
+											<label class="label" for="slink-{s.id}">Link</label>
+											<input id="slink-{s.id}" name="link" type="url" class="input" value={s.link ?? ''} />
+										</div>
+									</div>
+									<div class="field" style="margin:0;">
+										<label class="label" for="sdesc-{s.id}">Description</label>
+										<textarea id="sdesc-{s.id}" name="description" class="input" rows="2">{s.description ?? ''}</textarea>
+									</div>
+									<div style="display:flex; justify-content:flex-end; margin-top:0.375rem;">
+										<button type="submit" class="btn btn-primary btn-sm">Save species</button>
+									</div>
+								</form>
 								{#if s.traits?.length}
 									<div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.5rem;">
 										{#each s.traits as t}
@@ -142,6 +193,15 @@
 																<label class="label" for="td-{t.id}">Description</label>
 																<textarea id="td-{t.id}" name="description" class="input" rows="2">{t.description ?? ''}</textarea>
 															</div>
+														<div class="field" style="flex:1 1 100%; margin:0.25rem 0 0;">
+															<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
+																<input name="grantsSkills"      class="input" style="flex:1 1 140px;" placeholder="e.g. ATHLETICS,INSIGHT" value={t.grantsSkills ?? ''} />
+																<input name="grantsExpertise"   class="input" style="flex:1 1 140px;" placeholder="Expertise" value={t.grantsExpertise ?? ''} />
+																<input name="grantsHalfSkills"  class="input" style="flex:1 1 140px;" placeholder="Half prof or *" value={t.grantsHalfSkills ?? ''} />
+																<input name="skillChoiceCount"  class="input" style="flex:0 0 60px;" type="number" min="0" placeholder="# picks" value={t.skillChoiceCount ?? ''} />
+																<input name="skillChoicePool"   class="input" style="flex:1 1 140px;" placeholder="Pool e.g. ARCANA,HISTORY" value={t.skillChoicePool ?? ''} />
+															</div>
+														</div>
 															<button type="submit" class="btn btn-primary btn-sm">Save</button>
 														</div>
 													</form>

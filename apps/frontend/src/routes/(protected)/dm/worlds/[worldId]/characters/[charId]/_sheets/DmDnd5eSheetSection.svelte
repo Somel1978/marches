@@ -79,6 +79,22 @@
 	async function handleManualScoreAdjust(stat: string, delta: number, note: string) {
 		await post('manualScoreAdjust', [['stat', stat], ['delta', String(delta)], ['note', note]]);
 	}
+
+	async function handleSaveMood(emoji: string, text: string) {
+		await post('saveMood', [['emoji', emoji], ['text', text]]);
+	}
+
+	async function handleToggleSkill(skill: string, next: 'NONE' | 'HALF_PROFICIENT' | 'PROFICIENT' | 'EXPERT') {
+		await post('saveSkills', [['skill', skill], ['proficiency', next]]);
+	}
+
+	async function handleToggleSave(stat: string, proficient: boolean) {
+		await post('saveSavingThrow', [['stat', stat], ['proficient', String(proficient)]]);
+	}
+
+	async function handleSaveDetails(details: Record<string, string | number | null>) {
+		await post('saveDetails', Object.entries(details).filter(([,v]) => v !== null).map(([k,v]) => [k, String(v)]));
+	}
 </script>
 
 <Dnd5eCharacterSheet
@@ -97,4 +113,8 @@
 	onSaveSlot={canManage ? handleSaveSlot : undefined}
 	onRemoveFeat={canManage ? handleRemoveFeat : undefined}
 	onManualScoreAdjust={canManage ? handleManualScoreAdjust : undefined}
+	onSaveMood={canManage ? handleSaveMood : undefined}
+	onToggleSkill={canManage ? handleToggleSkill : undefined}
+	onToggleSave={canManage ? handleToggleSave : undefined}
+	onSaveDetails={canManage ? handleSaveDetails : undefined}
 />

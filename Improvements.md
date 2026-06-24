@@ -136,8 +136,19 @@
 - rarityColors defined in 3 separate svelte files — FIXED ($lib/rarity.ts single source)
 - User theme selection with live preview and persistence — NEW
 
-## Session 76 Completed
-- Admin nav 16 flat items reorganised into collapsible sections — DONE
+## Session 77 Completed
+- Skill grant system: `grantsSkills`, `grantsExpertise`, `grantsHalfSkills`, `grantsSavingThrows`, `skillChoiceCount`, `skillChoicePool` added to all 5 source entities — DONE
+- Class-level saving throws and skill pool editable in class detail admin form — DONE
+- Species full edit form added to admin (name, description, source, link, isAvailable, isSubrace, isLegacy, sortOrder) — DONE
+- Species traits grant fields in admin edit form — DONE
+- Feats grant fields in admin create and edit forms — DONE
+- Class features and subclass features grant fields in admin edit forms — DONE
+- `updateClassSavingThrows` / `updateClassSkillPool` write functions added — DONE
+- Character creation wizard Skills step (step 3) with full choice pool UI — DONE
+- `Dnd5eSkillsPanel.svelte` rewritten for Float skill value system — DONE
+- Character Mood moved to universal character page — DONE
+- Import/Export all 7 tabs consistent with grant fields — DONE
+- Wizard infinite reactive loop (`chosenClassSkills` filter) fixed with `untrack()` — DONE
 - Dynamic child hrefs and activeMatch sub-route support in admin nav — DONE
 - Marketplace filter buttons missing vertical spacing — FIXED
 - Marketplace item detail field labels now use accent colour — FIXED (label-accent class)

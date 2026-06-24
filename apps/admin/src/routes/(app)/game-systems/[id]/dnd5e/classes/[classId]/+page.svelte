@@ -78,6 +78,24 @@
 					</div>
 					<div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
 						<div class="field" style="flex:1 1 200px;">
+							<label class="label" for="grantsSavingThrows">Saving throws granted <span class="optional">(comma-sep)</span></label>
+							<input id="grantsSavingThrows" name="grantsSavingThrows" type="text" class="input"
+								value={((cls.savingThrows ?? []).map((s: any) => s.stat)).join(',')}
+								placeholder="WISDOM,CHARISMA" />
+						</div>
+						<div class="field" style="flex:0 0 100px;">
+							<label class="label" for="skillChoiceCount">Skill choices</label>
+							<input id="skillChoiceCount" name="skillChoiceCount" type="number" class="input" min="0" max="6" value={cls.skillChoiceCount ?? ''} placeholder="2" />
+						</div>
+						<div class="field" style="flex:2 1 260px;">
+							<label class="label" for="skillPool">Skill pool <span class="optional">(comma-sep enum)</span></label>
+							<input id="skillPool" name="skillPool" type="text" class="input"
+								value={((cls.skillOptions ?? []).map((o: any) => o.skill)).join(',')}
+								placeholder="ARCANA,HISTORY,INSIGHT,MEDICINE,NATURE,RELIGION" />
+						</div>
+					</div>
+					<div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+						<div class="field" style="flex:1 1 200px;">
 							<label class="label" for="source">Source <span class="optional">(optional)</span></label>
 							<input id="source" name="source" type="text" class="input" value={cls.source ?? ''} />
 						</div>
@@ -153,6 +171,16 @@
 											<label class="label" for="ef-url-{f.id}">URL</label>
 											<input id="ef-url-{f.id}" name="url" type="url" class="input" value={f.url ?? ''} />
 										</div>
+										<div class="field" style="flex:1 1 100%; margin:0.25rem 0 0;">
+											<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
+												<input name="grantsSkills"       class="input" style="flex:1 1 140px;" placeholder="ATHLETICS,INSIGHT" value={f.grantsSkills ?? ''} />
+												<input name="grantsExpertise"    class="input" style="flex:1 1 140px;" placeholder="Expertise e.g. ARCANA" value={f.grantsExpertise ?? ''} />
+												<input name="grantsHalfSkills"   class="input" style="flex:1 1 140px;" placeholder="Half prof or * for all" value={f.grantsHalfSkills ?? ''} />
+												<input name="grantsSavingThrows" class="input" style="flex:1 1 140px;" placeholder="STRENGTH,CONSTITUTION" value={f.grantsSavingThrows ?? ''} />
+												<input name="skillChoiceCount"   class="input" style="flex:0 0 60px;" type="number" min="0" placeholder="# picks" value={f.skillChoiceCount ?? ''} />
+												<input name="skillChoicePool"    class="input" style="flex:1 1 140px;" placeholder="Pool e.g. ARCANA,HISTORY" value={f.skillChoicePool ?? ''} />
+											</div>
+										</div>
 										<button type="submit" class="btn btn-primary btn-sm" style="flex-shrink:0;">Save</button>
 									</div>
 								</form>
@@ -192,7 +220,6 @@
 							onclick={() => expandedSubclass = expandedSubclass === sub.id ? null : sub.id}>
 							{sub.name}
 							<span class="badge badge-muted" style="margin-left:0.5rem;">{sub.features?.length ?? 0} features</span>
-							{#if !cls.canCastSpells && sub.canCastSpells}<span class="badge badge-accent" style="margin-left:0.25rem;font-size:0.6875rem;">Spellcasting</span>{/if}
 						</button>
 						<!-- Toggle canCastSpells — only relevant if parent class can't cast -->
 						{#if !cls.canCastSpells}
@@ -250,6 +277,16 @@
 														<div class="field" style="flex:2 1 180px; margin:0;">
 															<label class="label" for="sf-desc-{sf.id}">Description</label>
 															<input id="sf-desc-{sf.id}" name="description" type="text" class="input" value={sf.description ?? ''} />
+														</div>
+														<div class="field" style="flex:1 1 100%; margin:0.25rem 0 0;">
+															<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
+																<input name="grantsSkills"       class="input" style="flex:1 1 120px;" placeholder="e.g. ARCANA,HISTORY" value={sf.grantsSkills ?? ''} />
+																<input name="grantsExpertise"    class="input" style="flex:1 1 120px;" placeholder="Expertise" value={sf.grantsExpertise ?? ''} />
+																<input name="grantsHalfSkills"   class="input" style="flex:1 1 120px;" placeholder="Half prof" value={sf.grantsHalfSkills ?? ''} />
+																<input name="grantsSavingThrows" class="input" style="flex:1 1 120px;" placeholder="Saves e.g. STRENGTH" value={sf.grantsSavingThrows ?? ''} />
+																<input name="skillChoiceCount"   class="input" style="flex:0 0 60px;" type="number" placeholder="# picks" value={sf.skillChoiceCount ?? ''} />
+																<input name="skillChoicePool"    class="input" style="flex:1 1 120px;" placeholder="Pool" value={sf.skillChoicePool ?? ''} />
+															</div>
 														</div>
 														<button type="submit" class="btn btn-primary btn-sm">Save</button>
 													</div>

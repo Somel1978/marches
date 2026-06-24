@@ -6,8 +6,10 @@ export async function getDnd5eClasses(gameSystemId: string) {
     return db.dnd5eClass.findMany({
         where:   { gameSystemId, isAvailable: true },
         include: {
-            features:   { orderBy: { requiredLevel: 'asc' } },
-            subclasses: {
+            features:     { orderBy: { requiredLevel: 'asc' } },
+            savingThrows: true,
+            skillOptions: true,
+            subclasses:   {
                 where:   { isAvailable: true },
                 orderBy: { sortOrder: 'asc' },
                 include: { features: { orderBy: { requiredLevel: 'asc' } } },
@@ -63,7 +65,9 @@ export async function getAllDnd5eSpecies(gameSystemId: string) {
 export async function getDnd5eBackgrounds(gameSystemId: string) {
     return db.dnd5eBackground.findMany({
         where:   { gameSystemId, isAvailable: true },
-        include: { grantsFeat: { select: { id: true, name: true, description: true } } },
+        include: {
+            grantsFeat:  { select: { id: true, name: true, description: true } },
+        },
         orderBy: { sortOrder: 'asc' },
     });
 }

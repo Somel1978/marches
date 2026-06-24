@@ -2,6 +2,69 @@
 import { db, Prisma } from '../../../index.ts';
 import { approveCharacter, rejectCharacter } from '../characters/approve.ts';
 
+// Apply auto-granted skills from class features for a character's current level allocation.
+// Called on approval after classes are updated.
+async function applyClassFeatureGrants(characterId: string) {
+    const classes = await db.dnd5eCharacterClass.findMany({ where: { characterId } });
+
+    for (const cc of classes) {
+        // Get all features for this class up to the character's allocated level
+        const features = await db.dnd5eClassFeature.findMany({
+            where: { classId: cc.classId, requiredLevel: { lte: cc.allocatedLevel } },
+        });
+        const subclassFeatures = cc.subclassId ? await db.dnd5eSubclassFeature.findMany({
+            where: { subclassId: cc.subclassId, requiredLevel: { lte: cc.allocatedLevel } },
+        }) : [];
+
+        const allFeatures = [...features, ...subclassFeatures];
+
+        for (const f of allFeatures) {
+            const sourceId = f.id;
+            const sourceType = 'ClassFeature' in f ? 'ClassFeature' : 'SubclassFeature';
+
+            // Remove existing grants from this feature (handles level-down cleanly)
+            await db.dnd5eCharacterSkillGrant.deleteMany({ where: { characterId, sourceId } });
+            await db.dnd5eCharacterSavingThrowGrant.deleteMany({ where: { characterId, sourceId } });
+
+            // Apply fixed skill grants
+            const skillGrants: { skill: string; value: number }[] = [];
+            if ((f as any).grantsSkills) {
+                for (const s of (f as any).grantsSkills.split(',').filter(Boolean)) {
+                    skillGrants.push({ skill: s.trim(), value: 1.0 });
+                }
+            }
+            if ((f as any).grantsExpertise) {
+                for (const s of (f as any).grantsExpertise.split(',').filter(Boolean)) {
+                    skillGrants.push({ skill: s.trim(), value: 2.0 });
+                }
+            }
+            if ((f as any).grantsHalfSkills) {
+                for (const s of (f as any).grantsHalfSkills.split(',').filter(Boolean)) {
+                    skillGrants.push({ skill: s.trim(), value: 0.5 });
+                }
+            }
+            if (skillGrants.length) {
+                await db.dnd5eCharacterSkillGrant.createMany({
+                    data: skillGrants.map(g => ({ characterId, skill: g.skill as any, value: g.value, sourceType, sourceId })),
+                });
+            }
+
+            // Apply fixed saving throw grants
+            if ((f as any).grantsSavingThrows) {
+                const stats = (f as any).grantsSavingThrows.split(',').map((s: string) => s.trim()).filter(Boolean);
+                if (stats.length) {
+                    await db.dnd5eCharacterSavingThrowGrant.createMany({
+                        data: stats.map((stat: string) => ({ characterId, stat, sourceType, sourceId })),
+                    });
+                }
+            }
+
+            // Note: skillChoiceCount/skillChoicePool grants are stored at character creation/level-up
+            // via the wizard or level-up UI — not auto-applied here.
+        }
+    }
+}
+
 // Apply dnd5e pending changes (classes, species, background) then approve
 export async function approveDnd5eCharacter(id: string, actorId: string) {
     const character = await db.character.findUnique({ where: { id }, include: { classes: true, dnd5eSheet: true } });
@@ -52,6 +115,8 @@ export async function approveDnd5eCharacter(id: string, actorId: string) {
                 });
             }
         });
+        // Apply class feature skill/save grants for the new level allocation
+        await applyClassFeatureGrants(id);
     }
 
     // Delegate universal approval (status, audit, notifications)

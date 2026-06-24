@@ -121,6 +121,18 @@
 	async function handleToggleSpellPrepared(entryId: string, prepared: boolean) {
 		await post('toggleSpellPrepared', [['id', entryId], ['prepared', String(prepared)]]);
 	}
+
+	async function handleSaveMood(emoji: string, text: string) {
+		await post('saveMood', [['emoji', emoji], ['text', text]]);
+	}
+
+	async function handleToggleSkill(skill: string, next: 'NONE' | 'HALF_PROFICIENT' | 'PROFICIENT' | 'EXPERT') {
+		await post('saveSkills', [['skill', skill], ['proficiency', next]]);
+	}
+
+	async function handleSaveDetails(details: Record<string, string | number | null>) {
+		await post('saveDetails', Object.entries(details).filter(([,v]) => v !== null).map(([k,v]) => [k, String(v)]));
+	}
 </script>
 
 <Dnd5eCharacterSheet
@@ -145,4 +157,7 @@
 	onAddSpellbookEntry={handleAddSpellbookEntry}
 	onRemoveSpellbookEntry={handleRemoveSpellbookEntry}
 	onToggleSpellPrepared={handleToggleSpellPrepared}
+	onSaveMood={handleSaveMood}
+	onToggleSkill={handleToggleSkill}
+	onSaveDetails={handleSaveDetails}
 />

@@ -38,7 +38,10 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             const all = await dnd5e.classes.getAll(systemId);
             for (const cls of all) {
                 for (const f of (cls.features ?? [])) {
-                    rows.push({ className: cls.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '' });
+                    rows.push({ className: cls.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
+                    grantsSkills: (f as any).grantsSkills ?? '', grantsExpertise: (f as any).grantsExpertise ?? '',
+                    grantsHalfSkills: (f as any).grantsHalfSkills ?? '', grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
+                    skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '' });
                 }
             }
             rows.sort((a, b) => a.className.localeCompare(b.className) || a.requiredLevel - b.requiredLevel);
@@ -61,7 +64,10 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             for (const cls of all) {
                 for (const s of (cls.subclasses ?? [])) {
                     for (const f of (s.features ?? [])) {
-                        rows.push({ className: cls.name, subclassName: s.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '' });
+                        rows.push({ className: cls.name, subclassName: s.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
+                        grantsSkills: (f as any).grantsSkills ?? '', grantsExpertise: (f as any).grantsExpertise ?? '',
+                        grantsHalfSkills: (f as any).grantsHalfSkills ?? '', grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
+                        skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '' });
                     }
                 }
             }
@@ -88,7 +94,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
 
         case 'backgrounds': {
             const all = await dnd5e.backgrounds.getAll(systemId);
-            rows = all.map(b => ({ name: b.name, shortDescription: b.shortDescription ?? '', featureName: b.featureName ?? '', skillProficiencies: b.skillProficiencies ?? '', toolProficiencies: b.toolProficiencies ?? '', languages: b.languages ?? '', url: b.url ?? '', sortOrder: b.sortOrder }));
+            rows = all.map(b => ({ name: b.name, shortDescription: b.shortDescription ?? '', featureName: b.featureName ?? '', grantsSkills: (b as any).grantsSkills ?? '', toolProficiencies: b.toolProficiencies ?? '', languages: b.languages ?? '', url: b.url ?? '', sortOrder: b.sortOrder }));
             break;
         }
 

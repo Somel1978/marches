@@ -18,7 +18,7 @@ const handle: Handle = async ({ event, resolve }) => {
 		// The inline script in app.html reads this cookie before paint — no flash.
 		if (!event.cookies.get('userTheme')) {
 			const dbUser = await users.getById(session.user.id);
-			const theme  = dbUser?.theme ?? 'frontend';
+			const theme  = (dbUser as any)?.theme ?? 'frontend';
 			event.cookies.set('userTheme', theme, {
 				path: '/', maxAge: 60 * 60 * 24 * 365,
 				httpOnly: false, sameSite: 'lax',

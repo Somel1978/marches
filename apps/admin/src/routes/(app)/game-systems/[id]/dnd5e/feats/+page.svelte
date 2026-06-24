@@ -130,6 +130,26 @@
 						</div>
 					</div>
 				</div>
+					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.25rem;">
+						<div class="field" style="flex:1 1 140px;">
+							<input name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" />
+						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<input name="grantsExpertise" class="input" placeholder="ARCANA" />
+						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<input name="grantsHalfSkills" class="input" placeholder="STEALTH" />
+						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<input name="grantsSavingThrows" class="input" placeholder="CONSTITUTION" />
+						</div>
+						<div class="field" style="flex:0 0 60px;">
+							<input name="skillChoiceCount" type="number" min="0" class="input" />
+						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<input name="skillChoicePool" class="input" placeholder="ARCANA,HISTORY" />
+						</div>
+					</div>
 				<div class="form-actions">
 					<button type="button" class="btn btn-ghost btn-sm" onclick={() => showCreate = false}>Cancel</button>
 					<button type="submit" class="btn btn-primary btn-sm">Create</button>
@@ -168,7 +188,7 @@
 				return async ({ update }) => { await update(); await invalidateAll(); };
 			}} style="margin:0;">
 							<input type="hidden" name="id" value={feat.id} />
-							<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete "${feat.name}"?`).then(ok => { if(ok)(document.getElementById("cf-e69637") as HTMLFormElement).requestSubmit(); })}>✕</button>
+							<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => window.confirmModal('Confirm', `Delete "${feat.name}"?`).then(ok => { if(ok)(document.getElementById("cf-e69637") as HTMLFormElement).requestSubmit(); })}>✕</button>
 						</form>
 					</div>
 				</div>
@@ -255,6 +275,26 @@
 										</div>
 									</div>
 								</div>
+									<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.25rem;">
+										<div class="field" style="flex:1 1 140px;">
+											<input name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" value={feat.grantsSkills ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 140px;">
+											<input name="grantsExpertise" class="input" placeholder="ARCANA" value={feat.grantsExpertise ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 140px;">
+											<input name="grantsHalfSkills" class="input" placeholder="STEALTH" value={feat.grantsHalfSkills ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 140px;">
+											<input name="grantsSavingThrows" class="input" placeholder="CONSTITUTION" value={feat.grantsSavingThrows ?? ''} />
+										</div>
+										<div class="field" style="flex:0 0 60px;">
+											<input name="skillChoiceCount" type="number" min="0" class="input" value={feat.skillChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 140px;">
+											<input name="skillChoicePool" class="input" placeholder="ARCANA,HISTORY" value={feat.skillChoicePool ?? ''} />
+										</div>
+									</div>
 								<div class="form-actions">
 									<button type="button" class="btn btn-ghost btn-sm" onclick={() => editing = null}>Cancel</button>
 									<button type="submit" class="btn btn-primary btn-sm">Save</button>

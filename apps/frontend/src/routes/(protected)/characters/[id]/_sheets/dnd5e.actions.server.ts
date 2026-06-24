@@ -76,9 +76,10 @@ export const dnd5eActions = {
 		const amount1       = data.get('amount1') ? Number(data.get('amount1')) : undefined;
 		const stat2         = data.get('stat2')?.toString()   || undefined;
 		const amount2       = data.get('amount2') ? Number(data.get('amount2')) : undefined;
+		const chosenSkills  = data.getAll('chosenSkill').map((v: FormDataEntryValue) => v.toString()).filter(Boolean);
 		if (!featId) return fail(400, { message: 'Feat ID required.' });
 		try {
-			await dnd5e.addCharacterFeat(params.id, featId, { sourceClassId, sourceLevel, stat1, amount1, stat2, amount2, actorId: locals.user!.id });
+			await dnd5e.addCharacterFeat(params.id, featId, { sourceClassId, sourceLevel, stat1, amount1, stat2, amount2, chosenSkills: chosenSkills.length ? chosenSkills : undefined, actorId: locals.user!.id });
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -196,6 +197,65 @@ export const dnd5eActions = {
 		const prepared = data.get('prepared') === 'true';
 		if (!id) return fail(400, { message: 'ID required.' });
 		await dnd5e.spellbooks.togglePrepared(id, prepared);
+		return { success: true };
+	},
+
+	saveMood: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const data  = await request.formData();
+		const emoji = data.get('emoji')?.toString() ?? null;
+		const text  = data.get('text')?.toString()  ?? null;
+		await dnd5e.saveMood(params.id, emoji, text);
+		return { success: true };
+	},
+
+	saveSkills: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const data      = await request.formData();
+		const skill      = data.get('skill')?.toString() ?? '';
+		const proficiency = (data.get('proficiency')?.toString() ?? 'NONE') as 'NONE' | 'HALF_PROFICIENT' | 'PROFICIENT' | 'EXPERT';
+		if (!skill) return fail(400, { message: 'Skill required.' });
+		if (proficiency === 'NONE') {
+				await dnd5e.removeSkillGrantsBySource(params.id, 'dm-manual-' + skill);
+			} else {
+				const value = { 'HALF_PROFICIENT': 0.5, 'PROFICIENT': 1.0, 'EXPERT': 2.0 }[proficiency] ?? 1.0;
+				await dnd5e.upsertDmSkillGrant(params.id, skill, value);
+			}
+		return { success: true };
+	},
+
+	saveSavingThrow: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const data      = await request.formData();
+		const stat      = data.get('stat')?.toString() ?? '';
+		const proficient = data.get('proficient') === 'true';
+		if (!stat) return fail(400, { message: 'Stat required.' });
+		// Saving throws cannot normally be changed by player — DM/admin only
+		return fail(403, { message: 'Saving throw proficiencies cannot be changed here.' });
+	},
+
+	saveDetails: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const data = await request.formData();
+		await dnd5e.saveDetails(params.id, {
+			alignment:         data.get('alignment')?.toString()         ?? null,
+			personalityTraits: data.get('personalityTraits')?.toString() ?? null,
+			ideals:            data.get('ideals')?.toString()            ?? null,
+			bonds:             data.get('bonds')?.toString()             ?? null,
+			flaws:             data.get('flaws')?.toString()             ?? null,
+			appearance:        data.get('appearance')?.toString()        ?? null,
+			age:               data.get('age') ? Number(data.get('age')) : null,
+			height:            data.get('height')?.toString()            ?? null,
+			weight:            data.get('weight')?.toString()            ?? null,
+		});
 		return { success: true };
 	},
 };

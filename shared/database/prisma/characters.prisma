@@ -75,6 +75,8 @@ model Character {
   description  String?                 // backstory / character description
   worldId      String?                 @map("world_id")   // null = unassigned
   isGlobal     Boolean                 @default(true)  @map("is_global") // can join any world quests
+  moodEmoji    String?                 @map("mood_emoji")  // single emoji e.g. "😴"
+  moodText     String?                 @map("mood_text")   // max 80 chars e.g. "Feeling exhausted"
   createdAt    DateTime                @default(now()) @map("created_at")
   updatedAt    DateTime                @updatedAt      @map("updated_at")
 
@@ -82,6 +84,8 @@ model Character {
   feats              Dnd5eCharacterFeat[]
   abilityScores      Dnd5eAbilityScore[]
   scoreAuditEntries  Dnd5eScoreAuditEntry[]
+  skillGrants        Dnd5eCharacterSkillGrant[]
+  savingThrowGrants  Dnd5eCharacterSavingThrowGrant[]
   transactions  CharacterTransaction[]
   inventory    CharacterInventory[]
   dnd5eSheet   Dnd5eCharacterSheet?

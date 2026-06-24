@@ -88,4 +88,8 @@ export const actions: Actions = {
 	removeFeat:         dmDnd5eActions.removeFeat,
 	saveAbilityScores:  dmDnd5eActions.saveAbilityScores,
 	manualScoreAdjust:  dmDnd5eActions.manualScoreAdjust,
+	saveMood:           dmDnd5eActions.saveMood,
+	saveSkills:         dmDnd5eActions.saveSkills,
+	saveSavingThrow:    dmDnd5eActions.saveSavingThrow,
+	saveDetails:        dmDnd5eActions.saveDetails,
 };

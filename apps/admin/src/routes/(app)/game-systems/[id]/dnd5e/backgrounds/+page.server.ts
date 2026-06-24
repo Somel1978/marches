@@ -23,6 +23,8 @@ export const actions: Actions = {
 		const name = data.get('name')?.toString().trim() ?? '';
 		if (!name) return fail(400, { message: 'Name required.' });
 		try {
+			// Convert skill1/skill2 selects to comma-sep grantsSkills
+			const skillArr = [data.get('skill1'), data.get('skill2')].map(v => v?.toString().trim()).filter(Boolean);
 			await dnd5e.backgrounds.create({
 				gameSystemId:       params.id,
 				name,
@@ -30,7 +32,9 @@ export const actions: Actions = {
 				featureName:           data.get('featureName')?.toString().trim()           || undefined,
 				grantsFeatCategory:    data.get('grantsFeatCategory')?.toString().trim()    || undefined,
 				grantsFeatId:          data.get('grantsFeatId')?.toString().trim()          || undefined,
-				skillProficiencies:    data.get('skillProficiencies')?.toString().trim()    || undefined,
+				grantsSkills:       skillArr.join(',') || undefined,
+				skillChoiceCount:   data.get('skillChoiceCount') ? Number(data.get('skillChoiceCount')) : undefined,
+				skillChoicePool:    data.get('skillChoicePool')?.toString().trim() || undefined,
 				toolProficiencies:  data.get('toolProficiencies')?.toString().trim()  || undefined,
 				languages:          data.get('languages')?.toString().trim()          || undefined,
 				url:                data.get('url')?.toString().trim()                || undefined,
@@ -54,12 +58,14 @@ export const actions: Actions = {
 				featureName:           data.get('featureName')?.toString().trim()           || undefined,
 				grantsFeatCategory:    data.get('grantsFeatCategory')?.toString().trim()    || undefined,
 				grantsFeatId:          data.get('grantsFeatId')?.toString().trim()          || undefined,
-				skillProficiencies:    data.get('skillProficiencies')?.toString().trim()    || undefined,
 				toolProficiencies:  data.get('toolProficiencies')?.toString().trim()  || undefined,
 				languages:          data.get('languages')?.toString().trim()          || undefined,
 				url:                data.get('url')?.toString().trim()                || undefined,
 				isAvailable:        data.get('isAvailable') !== 'false',
 			}, locals.user!.id);
+			// Convert skill1/skill2 selects to comma-sep grantsSkills
+			const skillArr2 = [data.get('skill1'), data.get('skill2')].map(v => v?.toString().trim()).filter(Boolean);
+			await dnd5e.backgrounds.update(id, { grantsSkills: skillArr2.join(',') || null }, locals.user!.id);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

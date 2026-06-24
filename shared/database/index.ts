@@ -71,11 +71,13 @@ import { addScoreAuditEntry, addScoreAuditEntries, applyManualScoreAdjustment } 
 import { getScoreAuditForCharacter, getScoreAuditForStat } from './dbapi/read/dnd5e/get-score-audit.ts';
 import { enrichDnd5eSignups } from './dbapi/read/dnd5e/enrich-signups.ts';
 import { getDnd5eClasses, getAllDnd5eClasses, getDnd5eClassById, getDnd5eSpecies, getAllDnd5eSpecies, getDnd5eBackgrounds, getAllDnd5eBackgrounds, getDnd5eSystemData, invalidateDnd5eSystemDataCache } from './dbapi/read/dnd5e/get-classes.ts';
-import { createDnd5eClass, updateDnd5eClass, deleteDnd5eClass, createClassFeature, updateClassFeature, deleteClassFeature, createDnd5eSubclass, updateDnd5eSubclass, updateSubclass, deleteDnd5eSubclass, createSubclassFeature, updateSubclassFeature, deleteSubclassFeature } from './dbapi/write/dnd5e/classes.ts';
+import { createDnd5eClass, updateDnd5eClass, deleteDnd5eClass, createClassFeature, updateClassFeature, deleteClassFeature, createDnd5eSubclass, updateDnd5eSubclass, updateSubclass, deleteDnd5eSubclass, createSubclassFeature, updateSubclassFeature, deleteSubclassFeature, updateClassSavingThrows, updateClassSkillPool } from './dbapi/write/dnd5e/classes.ts';
 import { createDnd5eSpecies, updateDnd5eSpecies, deleteDnd5eSpecies, createSpeciesTrait, updateSpeciesTrait, deleteSpeciesTrait, createDnd5eBackground, updateDnd5eBackground, deleteDnd5eBackground } from './dbapi/write/dnd5e/species.ts';
 import { createDnd5eCharacter } from './dbapi/write/dnd5e/create-character.ts';
 import { approveDnd5eCharacter, rejectDnd5eCharacter } from './dbapi/write/dnd5e/approve-character.ts';
 import { submitDnd5eStructuralChanges, updateDnd5eCharacterFields } from './dbapi/write/dnd5e/update-character.ts';
+import { addCharacterSkillGrants, removeCharacterSkillGrantsBySource, replaceCharacterSkillGrants, upsertDmSkillGrant, addCharacterSavingThrowGrants, removeCharacterSavingThrowGrantsBySource } from './dbapi/write/dnd5e/skills.ts';
+import { saveCharacterMood, saveDnd5eCharacterDetails } from './dbapi/write/dnd5e/character-details.ts';
 import { updateDnd5eCharacterClasses } from './dbapi/write/dnd5e/update-classes.ts';
 import { getAllDnd5eSpells, getDnd5eSpellById, getDnd5eSpellsForCharacter, getDnd5eSpellSlotProgressions, getDnd5eSpellSlotProgressionByClass, getDnd5eSpellsKnownProgressions, getDnd5eSpellsKnownProgressionByClass, getDnd5eSpellbooks } from './dbapi/read/dnd5e/get-spells.ts';
 import { upsertDnd5eSpell, updateDnd5eSpell, deleteDnd5eSpell, upsertSpellSlotProgression, deleteSpellSlotProgressionClass, upsertSpellsKnownProgression, deleteSpellsKnownProgressionClass, createSpellbook, updateSpellbook, deleteSpellbook, addSpellbookEntry, removeSpellbookEntry, toggleSpellbookEntryPrepared } from './dbapi/write/dnd5e/spells.ts';
@@ -559,12 +561,14 @@ export const discord = {
 
 export const dnd5e = {
     classes: {
-        getAll:    getAllDnd5eClasses,
-        getActive: getDnd5eClasses,
-        getById:   getDnd5eClassById,
-        create:    createDnd5eClass,
-        update:    updateDnd5eClass,
-        delete:    deleteDnd5eClass,
+        getAll:              getAllDnd5eClasses,
+        getActive:           getDnd5eClasses,
+        getById:             getDnd5eClassById,
+        create:              createDnd5eClass,
+        update:              updateDnd5eClass,
+        delete:              deleteDnd5eClass,
+        updateSavingThrows:  updateClassSavingThrows,
+        updateSkillPool:     updateClassSkillPool,
     },
     classFeatures: {
         create: createClassFeature,
@@ -622,6 +626,14 @@ export const dnd5e = {
     manualScoreAdjustment:    applyManualScoreAdjustment,
     getScoreAudit:            getScoreAuditForCharacter,
     getScoreAuditForStat:     getScoreAuditForStat,
+    addSkillGrants:              addCharacterSkillGrants,
+    removeSkillGrantsBySource:   removeCharacterSkillGrantsBySource,
+    replaceSkillGrants:          replaceCharacterSkillGrants,
+    upsertDmSkillGrant:          upsertDmSkillGrant,
+    addSavingThrowGrants:        addCharacterSavingThrowGrants,
+    removeSavingThrowsBySource:  removeCharacterSavingThrowGrantsBySource,
+    saveMood:                    saveCharacterMood,
+    saveDetails:                 saveDnd5eCharacterDetails,
     createCharacter:     createDnd5eCharacter,
     approveCharacter:    approveDnd5eCharacter,
     rejectCharacter:     rejectDnd5eCharacter,

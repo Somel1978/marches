@@ -18,14 +18,14 @@
 	let importing   = $state(false);
 
 	const TABS: { key: ImportTab; label: string; action: string; columns: string[] }[] = [
-		{ key: 'classes',         label: 'Classes',          action: '?/importClasses',         columns: ['name','hitDice','canCastSpells','subclassAvailableAtLevel','primaryAbilities','equipmentDescription','description','source','link','sortOrder'] },
-		{ key: 'classFeatures',   label: 'Class Features',   action: '?/importClassFeatures',   columns: ['className','name','requiredLevel','description','url'] },
+		{ key: 'classes',         label: 'Classes',          action: '?/importClasses',         columns: ['name','hitDice','canCastSpells','subclassAvailableAtLevel','primaryAbilities','equipmentDescription','description','source','link','sortOrder','skillChoiceCount','grantsSavingThrows','skillPool'] },
+		{ key: 'classFeatures',   label: 'Class Features',   action: '?/importClassFeatures',   columns: ['className','name','requiredLevel','description','url','grantsSkills','grantsExpertise','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool'] },
 		{ key: 'subclasses',      label: 'Subclasses',       action: '?/importSubclasses',      columns: ['className','name','description','source','link','canCastSpells','sortOrder'] },
-		{ key: 'subclassFeatures',label: 'Subclass Features',action: '?/importSubclassFeatures',columns: ['className','subclassName','name','requiredLevel','description','url'] },
+		{ key: 'subclassFeatures',label: 'Subclass Features',action: '?/importSubclassFeatures',columns: ['className','subclassName','name','requiredLevel','description','url','grantsSkills','grantsExpertise','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool'] },
 		{ key: 'species',         label: 'Species',          action: '?/importSpecies',         columns: ['name','description','source','link','isSubrace','isLegacy','sortOrder'] },
-		{ key: 'speciesTraits',   label: 'Species Traits',   action: '?/importSpeciesTraits',   columns: ['speciesName','name','description','requiredLevel'] },
-		{ key: 'backgrounds',     label: 'Backgrounds',      action: '?/importBackgrounds',     columns: ['name','shortDescription','featureName','grantsFeatCategory','grantsFeatId','skillProficiencies','toolProficiencies','languages','url','sortOrder'] },
-		{ key: 'feats',           label: 'Feats',            action: '?/importFeats',           columns: ['name','description','snippet','repeatable','categories','prerequisites','detailsUrl','isEpicBoon','asiAmount','asiStatFixed','asiStatChoices','sortOrder'] },
+		{ key: 'speciesTraits',   label: 'Species Traits',   action: '?/importSpeciesTraits',   columns: ['speciesName','name','description','requiredLevel','grantsSkills','grantsExpertise','grantsHalfSkills','skillChoiceCount','skillChoicePool'] },
+		{ key: 'backgrounds',     label: 'Backgrounds',      action: '?/importBackgrounds',     columns: ['name','shortDescription','featureName','grantsFeatCategory','grantsFeatId','grantsSkills','skillChoiceCount','skillChoicePool','toolProficiencies','languages','url','sortOrder'] },
+		{ key: 'feats',           label: 'Feats',            action: '?/importFeats',           columns: ['name','description','snippet','repeatable','categories','prerequisites','detailsUrl','isEpicBoon','asiAmount','asiStatFixed','asiStatChoices','grantsSkills','grantsExpertise','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool','sortOrder'] },
 		{ key: 'spells',          label: 'Spells',           action: '?/importSpells',          columns: ['Spell ID','Name','Link','Level','School','Concentration','Ritual','Is Homebrew','Is Legacy','Cantrip Damage','Cantrip Dmg Lvl 5','Cantrip Dmg Lvl 11','Cantrip Dmg Lvl 17','Spell Damage','Upcast Per Slot','Upcast Every 2 Slots','Spell Progression','Progression Note','Range Origin','Range Value (ft)','AoE Type','AoE Value (ft)','Duration Type','Duration Interval','Duration Unit','Requires Saving Throw','Saving Throw','Requires Attack Roll','Can Cast Higher Level','Casting Time','Components','Description','Source Book','Tags','Spell List'] },
 		{ key: 'spellSlots',      label: 'Spell Slots',      action: '?/importSpellSlots',      columns: ['Class Name','Subclass Name','Caster Type','Level','Slot 1','Slot 2','Slot 3','Slot 4','Slot 5','Slot 6','Slot 7','Slot 8','Slot 9'] },
 		{ key: 'spellsKnown',     label: 'Spells Known',     action: '?/importSpellsKnown',     columns: ['Class Name','Subclass Name','Level','Cantrips','Prepared','Additional','Note'] },
@@ -131,6 +131,17 @@
 				<ul style="margin:0.5rem 0 0;padding-left:1.25rem;font-size:0.8125rem;">
 					{#each (form as any).skipReasons as reason}
 						<li>{reason}</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
+		{#if (form as any)?.warnings?.length}
+			<div class="form-warning" style="margin-bottom:1rem;background:var(--color-warning-dim,rgba(234,179,8,0.12));border:1px solid var(--color-warning,#eab308);border-radius:var(--radius-md);padding:0.75rem 1rem;">
+				<strong>⚠ {(form as any).warnings.length} skill/stat value{(form as any).warnings.length !== 1 ? 's' : ''} could not be parsed and were skipped.</strong>
+				<p style="font-size:0.8125rem;margin:0.25rem 0 0.5rem;color:var(--text-secondary);">Fix your spreadsheet and re-import these rows.</p>
+				<ul style="margin:0;padding-left:1.25rem;font-size:0.8125rem;">
+					{#each (form as any).warnings as w}
+						<li>{w}</li>
 					{/each}
 				</ul>
 			</div>

@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/backgrounds/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { ALL_SKILLS, SKILL_DISPLAY } from '@core/ui/gamesystems/dnd5e/skills.ts';
 	import { ConfirmModal } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
@@ -76,8 +77,20 @@
 					</div>
 					<div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
 						<div class="field" style="flex:1 1 180px;">
-							<label class="label" for="bskill">Skill proficiencies</label>
-							<input id="bskill" name="skillProficiencies" type="text" class="input" placeholder="Arcana, History" />
+							<label class="label" for="bskill1">Fixed skill 1</label>
+							<select id="bskill1" name="skill1" class="input input--select">
+								<option value="">— none —</option>
+								{#each ALL_SKILLS as s}<option value={s}>{SKILL_DISPLAY[s] ?? s}</option>{/each}
+							</select>
+							<label class="label" for="bskill2">Fixed skill 2</label>
+							<select id="bskill2" name="skill2" class="input input--select">
+								<option value="">— none —</option>
+								{#each ALL_SKILLS as s}<option value={s}>{SKILL_DISPLAY[s] ?? s}</option>{/each}
+							</select>
+							<label class="label" for="bskillcount">Skill choice count</label>
+							<input id="bskillcount" name="skillChoiceCount" type="number" min="1" max="6" class="input" placeholder="e.g. 2" />
+							<label class="label" for="bskillpool">Skill choice pool (comma-sep enum)</label>
+							<input id="bskillpool" name="skillChoicePool" type="text" class="input" placeholder="ARCANA,HISTORY,NATURE,RELIGION" />
 						</div>
 						<div class="field" style="flex:1 1 180px;">
 							<label class="label" for="btool">Tool proficiencies</label>
@@ -113,7 +126,7 @@
 						<div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{b.name}</div>
 						{#if b.featureName}<div style="font-size:0.8125rem; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{b.featureName}</div>{/if}
 					</div>
-					<div style="flex:2 1 120px; min-width:0; font-size:0.8125rem; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{b.skillProficiencies ?? '—'}</div>
+					<div style="flex:2 1 120px; min-width:0; font-size:0.8125rem; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{(b as any).grantsSkills?.split(',').map((s: string) => SKILL_DISPLAY[s.trim()] ?? s.trim()).join(', ') || '—'}</div>
 					<div style="flex:1 1 80px; min-width:0; font-size:0.8125rem; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{b.languages ?? '—'}</div>
 					<div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;" onclick={(e) => e.stopPropagation()} role="presentation">
 						{#if b.isAvailable}<span class="badge badge-success" style="font-size:0.75rem;">✓</span>{:else}<span class="badge badge-muted" style="font-size:0.75rem;">—</span>{/if}
@@ -121,7 +134,7 @@
 				return async ({ update }) => { await update(); await invalidateAll(); };
 			}} style="margin:0;">
 							<input type="hidden" name="id" value={b.id} />
-							<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete "${b.name}"?`).then(ok => { if(ok)(document.getElementById("cf-2767ad") as HTMLFormElement).requestSubmit(); })}>✕</button>
+							<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => window.confirmModal('Confirm', `Delete "${b.name}"?`).then(ok => { if(ok)(document.getElementById("cf-2767ad") as HTMLFormElement).requestSubmit(); })}>✕</button>
 						</form>
 					</div>
 				</div>
@@ -165,7 +178,18 @@
 									<div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
 										<div class="field" style="flex:1 1 150px;">
 											<label class="label" for="eskill-{b.id}">Skill proficiencies</label>
-											<input id="eskill-{b.id}" name="skillProficiencies" type="text" class="input" value={b.skillProficiencies ?? ''} />
+											<select id="eskill1-{b.id}" name="skill1" class="input input--select">
+												<option value="">— none —</option>
+												{#each ALL_SKILLS as s}<option value={s} selected={(b as any).grantsSkills?.split(',').map((x: string) => x.trim().toUpperCase().replace(/ /g, '_'))[0] === s}>{SKILL_DISPLAY[s] ?? s}</option>{/each}
+											</select>
+											<select id="eskill2-{b.id}" name="skill2" class="input input--select">
+												<option value="">— none —</option>
+												{#each ALL_SKILLS as s}<option value={s} selected={(b as any).grantsSkills?.split(',').map((x: string) => x.trim().toUpperCase().replace(/ /g, '_'))[1] === s}>{SKILL_DISPLAY[s] ?? s}</option>{/each}
+											</select>
+											<label class="label" for="eskillcount-{b.id}">Skill choice count</label>
+											<input id="eskillcount-{b.id}" name="skillChoiceCount" type="number" min="1" max="6" class="input" value={(b as any).skillChoiceCount ?? ''} />
+											<label class="label" for="eskillpool-{b.id}">Skill choice pool</label>
+											<input id="eskillpool-{b.id}" name="skillChoicePool" type="text" class="input" value={(b as any).skillChoicePool ?? ''} placeholder="ARCANA,HISTORY,NATURE,RELIGION" />
 										</div>
 										<div class="field" style="flex:1 1 150px;">
 											<label class="label" for="etool-{b.id}">Tool proficiencies</label>
@@ -202,8 +226,8 @@
 									</div>
 								{/if}
 								<div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
-									{#if b.skillProficiencies}
-										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Skills</p><p style="margin:0; font-size:0.875rem;">{b.skillProficiencies}</p></div>
+									{#if (b as any).grantsSkills}
+										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Skills</p><p style="margin:0; font-size:0.875rem;">{(b as any).grantsSkills.split(',').map((s: string) => SKILL_DISPLAY[s.trim()] ?? s.trim()).join(', ')}</p></div>
 									{/if}
 									{#if b.toolProficiencies}
 										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Tools</p><p style="margin:0; font-size:0.875rem;">{b.toolProficiencies}</p></div>

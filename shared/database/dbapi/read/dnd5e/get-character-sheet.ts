@@ -1,13 +1,16 @@
 // shared/database/dbapi/read/dnd5e/get-character-sheet.ts
 import { db } from '../../../index.ts';
 import { isAsiFeatureName, isEpicBoonFeatureName } from './feature-names.ts';
+import { SKILL_ABILITY, ALL_SKILLS, ALL_STATS, proficiencyBonus, abilityModifier } from './skills.ts';
 
 export async function getDnd5eCharacterSheet(characterId: string) {
-    const [sheet, classes, chosenFeats, abilityScores] = await Promise.all([
+    const [sheet, classes, chosenFeats, abilityScores, skillGrants, saveGrants] = await Promise.all([
         db.dnd5eCharacterSheet.findUnique({ where: { characterId } }),
         db.dnd5eCharacterClass.findMany({ where: { characterId }, orderBy: { allocatedLevel: 'desc' } }),
         db.dnd5eCharacterFeat.findMany({ where: { characterId }, include: { feat: true } }),
         db.dnd5eAbilityScore.findMany({ where: { characterId } }),
+        db.dnd5eCharacterSkillGrant.findMany({ where: { characterId } }),
+        db.dnd5eCharacterSavingThrowGrant.findMany({ where: { characterId } }),
     ]);
 
     if (!sheet && !classes.length) return null;
@@ -58,11 +61,10 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         return { ...cc, classRef, subclassRef, classFeatures, subclassFeatures };
     });
 
-    const totalLevel = classes.reduce((s: number, c: any) => s + c.allocatedLevel, 0);
-
     // Compute ASI slots — each class feature named "Ability Score Improvement" or "Epic Boon Feat"
     const asiSlots: any[] = [];
     const usedFeatRowIds  = new Set<string>();
+    const totalLevel = classes.reduce((s: number, c: any) => s + c.allocatedLevel, 0);
     for (const cc of enrichedClasses) {
         // ASI and Epic Boon slots come only from class features, not subclass features
         const allFeatures = cc.classFeatures ?? [];
@@ -124,15 +126,51 @@ export async function getDnd5eCharacterSheet(characterId: string) {
     const allSlots     = [...asiSlots, ...backgroundSlots];
     const pendingSlots = allSlots.filter(s => !s.resolved).length;
 
+    const pb = proficiencyBonus(totalLevel);
+
+    // ── Skills — grant log, effective = MAX(value) per skill ──────────────
+    const effectiveSkillValue = new Map<string, number>();
+    for (const grant of skillGrants) {
+        const cur = effectiveSkillValue.get(grant.skill as string) ?? 0;
+        if ((grant.value as number) > cur) effectiveSkillValue.set(grant.skill as string, grant.value as number);
+    }
+
+    const enrichedSkills = ALL_SKILLS.map(skill => {
+        const value    = effectiveSkillValue.get(skill) ?? 0;
+        const ability  = SKILL_ABILITY[skill];
+        const scoreRow = abilityScores.find((a: any) => a.stat === ability);
+        const abilMod  = abilityModifier(scoreRow?.baseScore ?? 10);
+        const modifier = abilMod + Math.floor(pb * value);
+        const sources  = [...new Set((skillGrants as any[]).filter(g => g.skill === skill).map(g => g.sourceType))];
+        return { skill, ability, value, modifier, sources };
+    });
+
+    // ── Saving throws — proficient if any grant row exists for this stat ──
+    const proficientStats = new Set((saveGrants as any[]).map(g => g.stat));
+    const enrichedSavingThrows = ALL_STATS.map(stat => {
+        const proficient = proficientStats.has(stat);
+        const scoreRow   = abilityScores.find((a: any) => a.stat === stat);
+        const abilMod    = abilityModifier(scoreRow?.baseScore ?? 10);
+        const modifier   = abilMod + (proficient ? pb : 0);
+        const sources    = [...new Set((saveGrants as any[]).filter(g => g.stat === stat).map(g => g.sourceType))];
+        return { stat, proficient, modifier, sources };
+    });
+
+    const passivePerception = 10 + (enrichedSkills.find(s => s.skill === 'PERCEPTION')?.modifier ?? 0);
+
     return {
         sheet,
         enrichedClasses,
-        speciesRef:    speciesRecord    ?? null,
-        backgroundRef: backgroundRecord ?? null,
-        asiSlots: allSlots,
+        speciesRef:       speciesRecord    ?? null,
+        backgroundRef:    backgroundRecord ?? null,
+        asiSlots:         allSlots,
         pendingSlots,
         chosenFeats,
         abilityScores,
+        skills:           enrichedSkills,
+        savingThrows:     enrichedSavingThrows,
+        passivePerception,
+        proficiencyBonus: pb,
     };
 }
 

@@ -136,6 +136,26 @@ export const actions: Actions = {
 				}
 			}
 
+			// Save skill proficiencies from the Skills step using grant log
+			const chosenClassSkills = data.getAll('chosenClassSkill').map(v => v.toString()).filter(Boolean);
+			const autoSkillSources  = data.getAll('autoSkillSource').map(v => v.toString());
+			const autoSkills        = data.getAll('autoSkill').map(v => v.toString()).filter(Boolean);
+
+			const allSkillGrants: { skill: string; value: number; sourceType: string; sourceId?: string }[] = [];
+			for (const s of chosenClassSkills) allSkillGrants.push({ skill: s, value: 1.0, sourceType: 'PlayerChoice' });
+			for (let i = 0; i < autoSkills.length; i++) {
+				allSkillGrants.push({ skill: autoSkills[i], value: 1.0, sourceType: autoSkillSources[i] ?? 'Background' });
+			}
+			if (allSkillGrants.length) await dnd5e.addSkillGrants(character.id, allSkillGrants);
+
+			// Save saving throw proficiencies from class
+			const classSaves = data.getAll('classSave').map(v => v.toString()).filter(Boolean);
+			if (classSaves.length) {
+				await dnd5e.addSavingThrowGrants(character.id, classSaves.map(stat => ({
+					stat, sourceType: 'Class', sourceId: null,
+				})));
+			}
+
 			redirect(302, '/characters');
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

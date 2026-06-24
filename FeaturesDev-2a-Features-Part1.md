@@ -22,8 +22,7 @@ explicitly via `invalidateUserPermissions(userId)` after role changes.
 ---
 
 
-
-### Site Branding :D
+### Site Branding
 
 **Settings:** `site.name`, `site.logo`, `site.logoIcon`, `site.url`, `site.footer`
 
@@ -69,19 +68,45 @@ if (!locals.user) return { user: null, siteName, siteLogo, siteFooter };
 ```
 Dnd5eClass             — gameSystemId, name, hitDice, canCastSpells, primaryAbilities,
                          equipmentDescription, subclassAvailableAtLevel (default 3),
-                         isAvailable, sortOrder, source, link
+                         isAvailable, sortOrder, source, link,
+                         skillChoiceCount Int?
+                         → savingThrows Dnd5eClassSavingThrow[] (junction)
+                         → skillOptions  Dnd5eClassSkillOption[]  (junction)
+Dnd5eClassSavingThrow  — classId, stat Dnd5eAbilityStat (junction — delete-and-recreate on update)
+Dnd5eClassSkillOption  — classId, skill Dnd5eSkillName (junction — delete-and-recreate on update)
 Dnd5eClassFeature      — classId, name, requiredLevel, description, url
+                         grantsSkills, grantsExpertise, grantsHalfSkills,
+                         grantsSavingThrows, skillChoiceCount, skillChoicePool
                          @@unique([classId, name, requiredLevel])
-Dnd5eSubclass          — classId, name, description, source, link, isAvailable, sortOrder
+Dnd5eSubclass          — classId, name, description, source, link, isAvailable, sortOrder,
+                         canCastSpells Boolean @default(false)
                          @@unique([classId, name])
 Dnd5eSubclassFeature   — subclassId, name, requiredLevel, description, url
+                         grantsSkills, grantsExpertise, grantsHalfSkills,
+                         grantsSavingThrows, skillChoiceCount, skillChoicePool
                          @@unique([subclassId, name, requiredLevel])
 Dnd5eSpecies           — gameSystemId, name, description, source, link,
                          isSubrace, isLegacy, isAvailable, sortOrder
 Dnd5eSpeciesTrait      — speciesId, name, description, requiredLevel
+                         grantsSkills, grantsExpertise, grantsHalfSkills,
+                         skillChoiceCount, skillChoicePool
 Dnd5eBackground        — gameSystemId, name, shortDescription, featureName,
-                         skillProficiencies, toolProficiencies, languages,
+                         grantsSkills String?,   ← fixed skills (comma-sep enum keys)
+                         skillChoiceCount Int?,  ← how many from pool player picks
+                         skillChoicePool  String?, ← comma-sep enum keys (null = no choice)
+                         skillProficiencies (deprecated), toolProficiencies, languages,
+                         grantsFeatCategory, grantsFeatId,
                          url, isAvailable, sortOrder
+Dnd5eFeat              — gameSystemId, name, description, snippet, categories,
+                         prerequisites, repeatable, isEpicBoon, isAvailable, sortOrder,
+                         asiAmount, asiStatFixed, asiStatChoices,
+                         grantsSkills, grantsExpertise, grantsHalfSkills,
+                         grantsSavingThrows, skillChoiceCount, skillChoicePool
+Dnd5eCharacterSkill    — characterId, skill Dnd5eSkillName,
+                         value Float (0=none, 0.5=half, 1.0=proficient, 2.0=expertise),
+                         sources String (comma-sep sourceIds for grant tracking)
+Dnd5eCharacterSavingThrow — characterId, stat Dnd5eAbilityStat,
+                         isProficient Boolean, sourceId String, sourceType String
 ```
 
 **Key decisions:**
@@ -110,14 +135,28 @@ Dnd5eBackground        — gameSystemId, name, shortDescription, featureName,
 ```
 Classes           — name, hitDice, canCastSpells, subclassAvailableAtLevel,
                     primaryAbilities, equipmentDescription, description,
-                    source, link, sortOrder
-Class Features    — className, name, requiredLevel, description, url
-Subclasses        — className, name, description, source, link, sortOrder
-Subclass Features — className, subclassName, name, requiredLevel, description, url
+                    source, link, sortOrder,
+                    grantsSavingThrows (comma-sep), skillChoiceCount, skillPool (comma-sep)
+Class Features    — className, name, requiredLevel, description, url,
+                    grantsSkills, grantsExpertise, grantsHalfSkills,
+                    grantsSavingThrows, skillChoiceCount, skillChoicePool
+Subclasses        — className, name, description, source, link, sortOrder, canCastSpells
+Subclass Features — className, subclassName, name, requiredLevel, description, url,
+                    grantsSkills, grantsExpertise, grantsHalfSkills,
+                    grantsSavingThrows, skillChoiceCount, skillChoicePool
 Species           — name, description, source, link, isSubrace, isLegacy, sortOrder
-Species Traits    — speciesName, name, description, requiredLevel
-Backgrounds       — name, shortDescription, featureName, skillProficiencies,
-                    toolProficiencies, languages, url, sortOrder
+Species Traits    — speciesName, name, description, requiredLevel,
+                    grantsSkills, grantsExpertise, grantsHalfSkills,
+                    skillChoiceCount, skillChoicePool
+Backgrounds       — name, shortDescription, featureName, grantsSkills,
+                    skillChoiceCount, skillChoicePool,
+                    toolProficiencies, languages, url, sortOrder,
+                    grantsFeatCategory, grantsFeatId
+Feats             — name, description, snippet, categories, prerequisites,
+                    repeatable, isEpicBoon, isAvailable, sortOrder,
+                    asiAmount, asiStatFixed, asiStatChoices,
+                    grantsSkills, grantsExpertise, grantsHalfSkills,
+                    grantsSavingThrows, skillChoiceCount, skillChoicePool
 ```
 - Parent lookup: exact name match with whitespace normalization
 - Feature uniqueness: `name + requiredLevel` (same-name features at different levels = distinct)
@@ -129,14 +168,17 @@ Backgrounds       — name, shortDescription, featureName, skillProficiencies,
 
 **DB API:**
 ```
-dnd5e.classes.{getAll, getActive, getById, create, update, delete}
+dnd5e.classes.{getAll, getActive, getById, create, update, delete,
+               updateSavingThrows(classId, stats[]), updateSkillPool(classId, skills[])}
 dnd5e.classFeatures.{create, update, delete}
 dnd5e.subclasses.{create, update, delete}
 dnd5e.subclassFeatures.{create, update, delete}
 dnd5e.species.{getAll, getActive, create, update, delete}
 dnd5e.speciesTraits.{create, update, delete}
 dnd5e.backgrounds.{getAll, getActive, create, update, delete}
-dnd5e.getSystemData(gameSystemId) — returns {classes, species, backgrounds} for a system
+dnd5e.feats.{getAll, getAllForAdmin, getById, create, update, delete}
+dnd5e.getSystemData(gameSystemId) — cached 5 min; returns {classes, species, backgrounds, feats, spells, ...}
+dnd5e.invalidateSystemCache(gameSystemId?)
 gameSystems.{getAll, getActive, getById, create, update, delete}
 gameSystems.progression.{create, update, delete}
 ```

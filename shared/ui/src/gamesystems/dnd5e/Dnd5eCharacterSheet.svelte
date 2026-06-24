@@ -2,7 +2,10 @@
 <!-- Pure UI component — no SvelteKit imports. All actions via callbacks. -->
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import Dnd5eSpellbooks from './Dnd5eSpellbooks.svelte';
+	import Dnd5eSpellbooks      from './Dnd5eSpellbooks.svelte';
+	import Dnd5eSkillsPanel     from './Dnd5eSkillsPanel.svelte';
+	import Dnd5eCharacterDetails from './Dnd5eCharacterDetails.svelte';
+	import MoodEditor           from './MoodEditor.svelte';
 	let {
 		charSheet,
 		systemData,
@@ -27,6 +30,10 @@
 		onAddSpellbookEntry,
 		onRemoveSpellbookEntry,
 		onToggleSpellPrepared,
+		onSaveMood,
+		onToggleSkill,
+		onToggleSave,
+		onSaveDetails,
 	}: {
 		charSheet?:                any;
 		systemData?:               any;
@@ -51,6 +58,10 @@
 		onAddSpellbookEntry?:      (spellbookId: string, spellId: number, classId: string, className: string) => Promise<void>;
 		onRemoveSpellbookEntry?:   (entryId: string) => Promise<void>;
 		onToggleSpellPrepared?:    (entryId: string, prepared: boolean) => Promise<void>;
+		onSaveMood?:               (emoji: string, text: string) => Promise<void>;
+		onToggleSkill?:            (skill: string, next: 'NONE'|'HALF_PROFICIENT'|'PROFICIENT'|'EXPERT') => Promise<void>;
+		onToggleSave?:             (stat: string, proficient: boolean) => Promise<void>;
+		onSaveDetails?:            (details: Record<string, string | number | null>) => Promise<void>;
 	} = $props();
 
 	// ── Constants ────────────────────────────────────────────────────────────
@@ -759,6 +770,33 @@
 			/>
 		</div>
 	{/if}
+
+	<!-- ── Skills & Saving Throws ──────────────────────────────────── -->
+	{#if (charSheet?.skills ?? []).length || (charSheet?.savingThrows ?? []).length}
+		<div style="margin-top:1.5rem;">
+			<h3 class="section-title">Skills & Saving Throws</h3>
+			<div class="card" style="margin-top:0.75rem;">
+				<Dnd5eSkillsPanel
+					{charSheet}
+					canEdit={canEdit}
+					onToggleSkill={onToggleSkill}
+					onToggleSave={onToggleSave}
+				/>
+			</div>
+		</div>
+	{/if}
+
+	<!-- ── Character Details ───────────────────────────────────────── -->
+	<div style="margin-top:1.5rem;">
+		<h3 class="section-title">Character Details</h3>
+		<div class="card" style="margin-top:0.75rem;">
+			<Dnd5eCharacterDetails
+				{charSheet}
+				canEdit={canEdit}
+				onSave={onSaveDetails}
+			/>
+		</div>
+	</div>
 
 </div>
 {/if}
