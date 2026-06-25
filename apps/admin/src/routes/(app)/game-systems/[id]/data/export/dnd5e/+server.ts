@@ -44,7 +44,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                     rows.push({ className: cls.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
                         grantsSkills: (f as any).grantsSkills ?? '', grantsExpertise: (f as any).grantsExpertise ?? '',
                         grantsHalfSkills: (f as any).grantsHalfSkills ?? '', grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
-                        skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '' });
+                        skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '', savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (f as any).savingThrowChoicePool ?? '' });
                 }
             }
             rows.sort((a, b) => a.className.localeCompare(b.className) || a.requiredLevel - b.requiredLevel);
@@ -70,7 +70,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                         rows.push({ className: cls.name, subclassName: s.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
                             grantsSkills: (f as any).grantsSkills ?? '', grantsExpertise: (f as any).grantsExpertise ?? '',
                             grantsHalfSkills: (f as any).grantsHalfSkills ?? '', grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
-                            skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '' });
+                            skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '', savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (f as any).savingThrowChoicePool ?? '' });
                     }
                 }
             }
@@ -89,7 +89,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             for (const sp of all) {
                 for (const t of ((sp as any).traits ?? [])) {
                     rows.push({ speciesName: sp.name, name: t.name, description: t.description ?? '', requiredLevel: t.requiredLevel ?? '', grantsSkills: (t as any).grantsSkills ?? '', grantsExpertise: (t as any).grantsExpertise ?? '', grantsHalfSkills: (t as any).grantsHalfSkills ?? '',
-                    skillChoiceCount: (t as any).skillChoiceCount ?? '', skillChoicePool: (t as any).skillChoicePool ?? '' });
+                    skillChoiceCount: (t as any).skillChoiceCount ?? '', skillChoicePool: (t as any).skillChoicePool ?? '', savingThrowChoiceCount: (t as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (t as any).savingThrowChoicePool ?? '' });
                 }
             }
             rows.sort((a, b) => a.speciesName.localeCompare(b.speciesName) || a.name.localeCompare(b.name));
@@ -105,8 +105,10 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                 grantsFeatCategory: (b as any).grantsFeatCategory ?? '',
                 grantsFeatId:       (b as any).grantsFeatId ?? '',
                 grantsSkills:       (b as any).grantsSkills ?? '',
-                skillChoiceCount:   (b as any).skillChoiceCount ?? '',
-                skillChoicePool:    (b as any).skillChoicePool ?? '',
+                skillChoiceCount:        (b as any).skillChoiceCount        ?? '',
+                skillChoicePool:         (b as any).skillChoicePool         ?? '',
+                savingThrowChoiceCount:  (b as any).savingThrowChoiceCount  ?? '',
+                savingThrowChoicePool:   (b as any).savingThrowChoicePool   ?? '',
                 toolProficiencies:  b.toolProficiencies ?? '',
                 languages:          b.languages ?? '',
                 url:                b.url ?? '',
@@ -129,10 +131,14 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                 asiAmount:       f.asiAmount        ?? '',
                 asiStatFixed:    f.asiStatFixed     ?? '',
                 asiStatChoices:  f.asiStatChoices   ?? '',
-                grantsSkills:       (f as any).grantsSkills       ?? '',
-                grantsExpertise:    (f as any).grantsExpertise    ?? '',
-                grantsHalfSkills:   (f as any).grantsHalfSkills   ?? '',
-                grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
+                grantsSkills:           (f as any).grantsSkills           ?? '',
+                grantsExpertise:        (f as any).grantsExpertise        ?? '',
+                grantsHalfSkills:       (f as any).grantsHalfSkills       ?? '',
+                grantsSavingThrows:     (f as any).grantsSavingThrows     ?? '',
+                skillChoiceCount:       (f as any).skillChoiceCount       ?? '',
+                skillChoicePool:        (f as any).skillChoicePool        ?? '',
+                savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '',
+                savingThrowChoicePool:  (f as any).savingThrowChoicePool  ?? '',
                 sortOrder:       f.sortOrder,
             }));
             break;

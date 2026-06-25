@@ -132,22 +132,36 @@
 				</div>
 					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.25rem;">
 						<div class="field" style="flex:1 1 140px;">
-							<input name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" />
+							<label class="label" for="new-grantsSkills">Grants Skills</label>
+							<input id="new-grantsSkills" name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" />
 						</div>
 						<div class="field" style="flex:1 1 140px;">
-							<input name="grantsExpertise" class="input" placeholder="ARCANA" />
+							<label class="label" for="new-grantsExpertise">Grants Expertise</label>
+							<input id="new-grantsExpertise" name="grantsExpertise" class="input" placeholder="ARCANA" />
 						</div>
 						<div class="field" style="flex:1 1 140px;">
-							<input name="grantsHalfSkills" class="input" placeholder="STEALTH" />
+							<label class="label" for="new-grantsHalfSkills">Grants Half Prof</label>
+							<input id="new-grantsHalfSkills" name="grantsHalfSkills" class="input" placeholder="STEALTH" />
 						</div>
 						<div class="field" style="flex:1 1 140px;">
-							<input name="grantsSavingThrows" class="input" placeholder="CONSTITUTION" />
+							<label class="label" for="new-grantsSavingThrows">Grants Saves</label>
+							<input id="new-grantsSavingThrows" name="grantsSavingThrows" class="input" placeholder="CONSTITUTION" />
 						</div>
-						<div class="field" style="flex:0 0 60px;">
-							<input name="skillChoiceCount" type="number" min="0" class="input" />
+						<div class="field" style="flex:0 0 80px;">
+							<label class="label" for="new-skillChoiceCount">Skill picks</label>
+							<input id="new-skillChoiceCount" name="skillChoiceCount" type="number" min="0" class="input" />
 						</div>
 						<div class="field" style="flex:1 1 140px;">
-							<input name="skillChoicePool" class="input" placeholder="ARCANA,HISTORY" />
+							<label class="label" for="new-skillChoicePool">Skill pool</label>
+							<input id="new-skillChoicePool" name="skillChoicePool" class="input" placeholder="ARCANA,HISTORY" />
+						</div>
+						<div class="field" style="flex:0 0 80px;">
+							<label class="label" for="new-savingThrowChoiceCount">Save picks</label>
+							<input id="new-savingThrowChoiceCount" name="savingThrowChoiceCount" type="number" min="0" class="input" />
+						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<label class="label" for="new-savingThrowChoicePool">Save pool</label>
+							<input id="new-savingThrowChoicePool" name="savingThrowChoicePool" class="input" placeholder="STRENGTH,CONSTITUTION" />
 						</div>
 					</div>
 				<div class="form-actions">
@@ -277,22 +291,36 @@
 								</div>
 									<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.25rem;">
 										<div class="field" style="flex:1 1 140px;">
-											<input name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" value={feat.grantsSkills ?? ''} />
+											<label class="label" for="gs-{feat.id}">Grants Skills</label>
+											<input id="gs-{feat.id}" name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" value={feat.grantsSkills ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 140px;">
-											<input name="grantsExpertise" class="input" placeholder="ARCANA" value={feat.grantsExpertise ?? ''} />
+											<label class="label" for="ge-{feat.id}">Grants Expertise</label>
+											<input id="ge-{feat.id}" name="grantsExpertise" class="input" placeholder="ARCANA" value={feat.grantsExpertise ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 140px;">
-											<input name="grantsHalfSkills" class="input" placeholder="STEALTH" value={feat.grantsHalfSkills ?? ''} />
+											<label class="label" for="gh-{feat.id}">Grants Half Prof</label>
+											<input id="gh-{feat.id}" name="grantsHalfSkills" class="input" placeholder="STEALTH" value={feat.grantsHalfSkills ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 140px;">
-											<input name="grantsSavingThrows" class="input" placeholder="CONSTITUTION" value={feat.grantsSavingThrows ?? ''} />
+											<label class="label" for="gsv-{feat.id}">Grants Saves</label>
+											<input id="gsv-{feat.id}" name="grantsSavingThrows" class="input" placeholder="CONSTITUTION" value={feat.grantsSavingThrows ?? ''} />
 										</div>
-										<div class="field" style="flex:0 0 60px;">
-											<input name="skillChoiceCount" type="number" min="0" class="input" value={feat.skillChoiceCount ?? ''} />
+										<div class="field" style="flex:0 0 80px;">
+											<label class="label" for="scc-{feat.id}">Skill picks</label>
+											<input id="scc-{feat.id}" name="skillChoiceCount" type="number" min="0" class="input" value={feat.skillChoiceCount ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 140px;">
-											<input name="skillChoicePool" class="input" placeholder="ARCANA,HISTORY" value={feat.skillChoicePool ?? ''} />
+											<label class="label" for="scp-{feat.id}">Skill pool</label>
+											<input id="scp-{feat.id}" name="skillChoicePool" class="input" placeholder="ARCANA,HISTORY" value={feat.skillChoicePool ?? ''} />
+										</div>
+										<div class="field" style="flex:0 0 80px;">
+											<label class="label" for="stcc-{feat.id}">Save picks</label>
+											<input id="stcc-{feat.id}" name="savingThrowChoiceCount" type="number" min="0" class="input" value={feat.savingThrowChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 140px;">
+											<label class="label" for="stcp-{feat.id}">Save pool</label>
+											<input id="stcp-{feat.id}" name="savingThrowChoicePool" class="input" placeholder="STRENGTH,CONSTITUTION" value={feat.savingThrowChoicePool ?? ''} />
 										</div>
 									</div>
 								<div class="form-actions">
@@ -314,6 +342,21 @@
 									{/if}
 									{#if feat.categories}
 										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Categories</p><p style="margin:0; font-size:0.875rem;">{feat.categories}</p></div>
+									{/if}
+									{#if feat.grantsSkills}
+										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Grants Skills</p><p style="margin:0; font-size:0.875rem;">{feat.grantsSkills}</p></div>
+									{/if}
+									{#if feat.grantsExpertise}
+										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Expertise</p><p style="margin:0; font-size:0.875rem;">{feat.grantsExpertise}</p></div>
+									{/if}
+									{#if feat.grantsHalfSkills}
+										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Half Prof</p><p style="margin:0; font-size:0.875rem;">{feat.grantsHalfSkills}</p></div>
+									{/if}
+									{#if feat.grantsSavingThrows}
+										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Grants Saves</p><p style="margin:0; font-size:0.875rem;">{feat.grantsSavingThrows}</p></div>
+									{/if}
+									{#if feat.skillChoiceCount}
+										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Skill Choice</p><p style="margin:0; font-size:0.875rem;">Pick {feat.skillChoiceCount}{feat.skillChoicePool ? ` from ${feat.skillChoicePool}` : ""}</p></div>
 									{/if}
 									{#if feat.detailsUrl}
 										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Reference</p><a href={feat.detailsUrl} target="_blank" style="font-size:0.875rem;">↗ Link</a></div>

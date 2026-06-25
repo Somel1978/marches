@@ -76,7 +76,7 @@ import { createDnd5eSpecies, updateDnd5eSpecies, deleteDnd5eSpecies, createSpeci
 import { createDnd5eCharacter } from './dbapi/write/dnd5e/create-character.ts';
 import { approveDnd5eCharacter, rejectDnd5eCharacter } from './dbapi/write/dnd5e/approve-character.ts';
 import { submitDnd5eStructuralChanges, updateDnd5eCharacterFields } from './dbapi/write/dnd5e/update-character.ts';
-import { addCharacterSkillGrants, removeCharacterSkillGrantsBySource, replaceCharacterSkillGrants, upsertDmSkillGrant, addCharacterSavingThrowGrants, removeCharacterSavingThrowGrantsBySource } from './dbapi/write/dnd5e/skills.ts';
+import { addCharacterSkillGrants, removeCharacterSkillGrantsBySource, replaceCharacterSkillGrants, upsertDmSkillGrant, upsertOverrideSkillGrant, removeOverrideSkillGrant, addCharacterSavingThrowGrants, removeCharacterSavingThrowGrantsBySource, upsertOverrideSavingThrowGrant, removeOverrideSavingThrowGrant } from './dbapi/write/dnd5e/skills.ts';
 import { saveCharacterMood, saveDnd5eCharacterDetails } from './dbapi/write/dnd5e/character-details.ts';
 import { updateDnd5eCharacterClasses } from './dbapi/write/dnd5e/update-classes.ts';
 import { getAllDnd5eSpells, getDnd5eSpellById, getDnd5eSpellsForCharacter, getDnd5eSpellSlotProgressions, getDnd5eSpellSlotProgressionByClass, getDnd5eSpellsKnownProgressions, getDnd5eSpellsKnownProgressionByClass, getDnd5eSpellbooks } from './dbapi/read/dnd5e/get-spells.ts';
@@ -630,6 +630,10 @@ export const dnd5e = {
     removeSkillGrantsBySource:   removeCharacterSkillGrantsBySource,
     replaceSkillGrants:          replaceCharacterSkillGrants,
     upsertDmSkillGrant:          upsertDmSkillGrant,
+    upsertOverrideSkillGrant:    upsertOverrideSkillGrant,
+    removeOverrideSkillGrant:    removeOverrideSkillGrant,
+    upsertOverrideSavingThrowGrant: upsertOverrideSavingThrowGrant,
+    removeOverrideSavingThrowGrant: removeOverrideSavingThrowGrant,
     addSavingThrowGrants:        addCharacterSavingThrowGrants,
     removeSavingThrowsBySource:  removeCharacterSavingThrowGrantsBySource,
     saveMood:                    saveCharacterMood,

@@ -14,6 +14,8 @@ function featGrantFields(data: FormData) {
 		grantsSavingThrows: data.get('grantsSavingThrows')?.toString().trim() || null,
 		skillChoiceCount:   data.get('skillChoiceCount') ? Number(data.get('skillChoiceCount')) : null,
 		skillChoicePool:    data.get('skillChoicePool')?.toString().trim()    || null,
+		savingThrowChoiceCount: data.get('savingThrowChoiceCount') ? Number(data.get('savingThrowChoiceCount')) : null,
+		savingThrowChoicePool:  data.get('savingThrowChoicePool')?.toString().trim()  || null,
 	};
 }
 export const load: PageServerLoad = async ({ params }) => {

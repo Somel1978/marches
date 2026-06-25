@@ -195,11 +195,34 @@
 															</div>
 														<div class="field" style="flex:1 1 100%; margin:0.25rem 0 0;">
 															<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
-																<input name="grantsSkills"      class="input" style="flex:1 1 140px;" placeholder="e.g. ATHLETICS,INSIGHT" value={t.grantsSkills ?? ''} />
-																<input name="grantsExpertise"   class="input" style="flex:1 1 140px;" placeholder="Expertise" value={t.grantsExpertise ?? ''} />
-																<input name="grantsHalfSkills"  class="input" style="flex:1 1 140px;" placeholder="Half prof or *" value={t.grantsHalfSkills ?? ''} />
-																<input name="skillChoiceCount"  class="input" style="flex:0 0 60px;" type="number" min="0" placeholder="# picks" value={t.skillChoiceCount ?? ''} />
-																<input name="skillChoicePool"   class="input" style="flex:1 1 140px;" placeholder="Pool e.g. ARCANA,HISTORY" value={t.skillChoicePool ?? ''} />
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tgs-{t.id}">Grants Skills</label>
+																	<input id="tgs-{t.id}" name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" value={t.grantsSkills ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tge-{t.id}">Expertise</label>
+																	<input id="tge-{t.id}" name="grantsExpertise" class="input" placeholder="ARCANA" value={t.grantsExpertise ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tgh-{t.id}">Half Prof</label>
+																	<input id="tgh-{t.id}" name="grantsHalfSkills" class="input" placeholder="* or STEALTH" value={t.grantsHalfSkills ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 80px; margin:0;">
+																	<label class="label" for="tscc-{t.id}">Skill picks</label>
+																	<input id="tscc-{t.id}" name="skillChoiceCount" class="input" type="number" min="0" value={t.skillChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tscp-{t.id}">Skill pool</label>
+																	<input id="tscp-{t.id}" name="skillChoicePool" class="input" placeholder="ARCANA,HISTORY" value={t.skillChoicePool ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 80px; margin:0;">
+																	<label class="label" for="tstcc-{t.id}">Save picks</label>
+																	<input id="tstcc-{t.id}" name="savingThrowChoiceCount" class="input" type="number" min="0" value={t.savingThrowChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tstcp-{t.id}">Save pool</label>
+																	<input id="tstcp-{t.id}" name="savingThrowChoicePool" class="input" placeholder="STRENGTH,CONSTITUTION" value={t.savingThrowChoicePool ?? ''} />
+																</div>
 															</div>
 														</div>
 															<button type="submit" class="btn btn-primary btn-sm">Save</button>

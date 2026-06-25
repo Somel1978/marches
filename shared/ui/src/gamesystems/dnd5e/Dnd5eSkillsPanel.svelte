@@ -12,8 +12,8 @@
 	}: {
 		charSheet:       any;
 		canEdit?:        boolean;
-		onToggleSkill?:  (skill: string, next: Proficiency) => Promise<void>;
-		onToggleSave?:   (stat: string, proficient: boolean) => Promise<void>;
+		onToggleSkill?:  (skill: string, next: Proficiency, note?: string) => Promise<void>;
+		onToggleSave?:   (stat: string, proficient: boolean, note?: string) => Promise<void>;
 	} = $props();
 
 	const skills       = $derived((charSheet?.skills       ?? []) as any[]);
@@ -47,6 +47,23 @@
 		return 'NONE';
 	}
 
+	function handleSkillClick(skill: string, currentProf: Proficiency) {
+		if (!canEdit) return;
+		const next = profCycle(currentProf);
+		const note = window.prompt(`Override reason for ${skill} → ${next.replace(/_/g, ' ').toLowerCase()} (optional):`, '');
+		// null = user cancelled the prompt → abort
+		if (note === null) return;
+		onToggleSkill?.(skill, next, note.trim() || undefined);
+	}
+
+	function handleSaveClick(stat: string, currentlyProficient: boolean) {
+		if (!canEdit) return;
+		const next = !currentlyProficient;
+		const note = window.prompt(`Override reason for ${stat} save → ${next ? 'proficient' : 'not proficient'} (optional):`, '');
+		if (note === null) return;
+		onToggleSave?.(stat, next, note.trim() || undefined);
+	}
+
 	function pipClass(prof: Proficiency) {
 		if (prof === 'EXPERT')          return 'pip pip--expert';
 		if (prof === 'PROFICIENT')      return 'pip pip--prof';
@@ -75,7 +92,7 @@
 					type="button"
 					class="save-cell {sv.proficient ? 'save-cell--prof' : ''}"
 					disabled={!canEdit}
-					onclick={() => canEdit && onToggleSave?.(sv.stat, !sv.proficient)}
+					onclick={() => handleSaveClick(sv.stat, sv.proficient)}
 					aria-label="{sv.stat} {sv.proficient ? 'proficient' : 'none'}"
 				>
 					<span class="pip {sv.proficient ? 'pip--prof' : ''}">
@@ -108,7 +125,7 @@
 					type="button"
 					class={rowClass(prof)}
 					disabled={!canEdit}
-					onclick={() => canEdit && onToggleSkill?.(sk.skill, profCycle(prof))}
+					onclick={() => handleSkillClick(sk.skill, prof)}
 					aria-label="{sk.skill} {prof}"
 					title="{SKILL_DISPLAY[sk.skill] ?? sk.skill}: {prof.replace(/_/g, ' ').toLowerCase()}"
 				>

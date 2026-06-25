@@ -37,8 +37,10 @@ export async function getDnd5eClassById(id: string) {
     return db.dnd5eClass.findUnique({
         where:   { id },
         include: {
-            features:   { orderBy: { requiredLevel: 'asc' } },
-            subclasses: {
+            features:     { orderBy: { requiredLevel: 'asc' } },
+            savingThrows: true,
+            skillOptions: true,
+            subclasses:   {
                 orderBy: { sortOrder: 'asc' },
                 include: { features: { orderBy: { requiredLevel: 'asc' } } },
             },

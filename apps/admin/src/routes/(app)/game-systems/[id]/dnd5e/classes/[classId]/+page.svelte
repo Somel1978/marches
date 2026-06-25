@@ -171,14 +171,38 @@
 											<label class="label" for="ef-url-{f.id}">URL</label>
 											<input id="ef-url-{f.id}" name="url" type="url" class="input" value={f.url ?? ''} />
 										</div>
-										<div class="field" style="flex:1 1 100%; margin:0.25rem 0 0;">
-											<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
-												<input name="grantsSkills"       class="input" style="flex:1 1 140px;" placeholder="ATHLETICS,INSIGHT" value={f.grantsSkills ?? ''} />
-												<input name="grantsExpertise"    class="input" style="flex:1 1 140px;" placeholder="Expertise e.g. ARCANA" value={f.grantsExpertise ?? ''} />
-												<input name="grantsHalfSkills"   class="input" style="flex:1 1 140px;" placeholder="Half prof or * for all" value={f.grantsHalfSkills ?? ''} />
-												<input name="grantsSavingThrows" class="input" style="flex:1 1 140px;" placeholder="STRENGTH,CONSTITUTION" value={f.grantsSavingThrows ?? ''} />
-												<input name="skillChoiceCount"   class="input" style="flex:0 0 60px;" type="number" min="0" placeholder="# picks" value={f.skillChoiceCount ?? ''} />
-												<input name="skillChoicePool"    class="input" style="flex:1 1 140px;" placeholder="Pool e.g. ARCANA,HISTORY" value={f.skillChoicePool ?? ''} />
+										<div style="flex:1 1 100%; display:flex; gap:0.375rem; flex-wrap:wrap; margin:0.25rem 0 0;">
+											<div class="field" style="flex:1 1 140px; margin:0;">
+												<label class="label" for="fgs-{f.id}">Grants Skills</label>
+												<input id="fgs-{f.id}" name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" value={f.grantsSkills ?? ''} />
+											</div>
+											<div class="field" style="flex:1 1 140px; margin:0;">
+												<label class="label" for="fge-{f.id}">Expertise</label>
+												<input id="fge-{f.id}" name="grantsExpertise" class="input" placeholder="ARCANA" value={f.grantsExpertise ?? ''} />
+											</div>
+											<div class="field" style="flex:1 1 140px; margin:0;">
+												<label class="label" for="fgh-{f.id}">Half Prof</label>
+												<input id="fgh-{f.id}" name="grantsHalfSkills" class="input" placeholder="* or STEALTH" value={f.grantsHalfSkills ?? ''} />
+											</div>
+											<div class="field" style="flex:1 1 140px; margin:0;">
+												<label class="label" for="fgsv-{f.id}">Grants Saves</label>
+												<input id="fgsv-{f.id}" name="grantsSavingThrows" class="input" placeholder="STRENGTH,CONSTITUTION" value={f.grantsSavingThrows ?? ''} />
+											</div>
+											<div class="field" style="flex:0 0 80px; margin:0;">
+												<label class="label" for="fscc-{f.id}">Skill picks</label>
+												<input id="fscc-{f.id}" name="skillChoiceCount" class="input" type="number" min="0" value={f.skillChoiceCount ?? ''} />
+											</div>
+											<div class="field" style="flex:1 1 140px; margin:0;">
+												<label class="label" for="fscp-{f.id}">Skill pool</label>
+												<input id="fscp-{f.id}" name="skillChoicePool" class="input" placeholder="ARCANA,HISTORY" value={f.skillChoicePool ?? ''} />
+											</div>
+											<div class="field" style="flex:0 0 80px; margin:0;">
+												<label class="label" for="fstcc-{f.id}">Save picks</label>
+												<input id="fstcc-{f.id}" name="savingThrowChoiceCount" class="input" type="number" min="0" value={f.savingThrowChoiceCount ?? ''} />
+											</div>
+											<div class="field" style="flex:1 1 140px; margin:0;">
+												<label class="label" for="fstcp-{f.id}">Save pool</label>
+												<input id="fstcp-{f.id}" name="savingThrowChoicePool" class="input" placeholder="STRENGTH,CONSTITUTION" value={f.savingThrowChoicePool ?? ''} />
 											</div>
 										</div>
 										<button type="submit" class="btn btn-primary btn-sm" style="flex-shrink:0;">Save</button>
@@ -280,12 +304,38 @@
 														</div>
 														<div class="field" style="flex:1 1 100%; margin:0.25rem 0 0;">
 															<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
-																<input name="grantsSkills"       class="input" style="flex:1 1 120px;" placeholder="e.g. ARCANA,HISTORY" value={sf.grantsSkills ?? ''} />
-																<input name="grantsExpertise"    class="input" style="flex:1 1 120px;" placeholder="Expertise" value={sf.grantsExpertise ?? ''} />
-																<input name="grantsHalfSkills"   class="input" style="flex:1 1 120px;" placeholder="Half prof" value={sf.grantsHalfSkills ?? ''} />
-																<input name="grantsSavingThrows" class="input" style="flex:1 1 120px;" placeholder="Saves e.g. STRENGTH" value={sf.grantsSavingThrows ?? ''} />
-																<input name="skillChoiceCount"   class="input" style="flex:0 0 60px;" type="number" placeholder="# picks" value={sf.skillChoiceCount ?? ''} />
-																<input name="skillChoicePool"    class="input" style="flex:1 1 120px;" placeholder="Pool" value={sf.skillChoicePool ?? ''} />
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sfgs-{sf.id}">Grants Skills</label>
+																	<input id="sfgs-{sf.id}" name="grantsSkills" class="input" placeholder="ARCANA,HISTORY" value={sf.grantsSkills ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sfge-{sf.id}">Expertise</label>
+																	<input id="sfge-{sf.id}" name="grantsExpertise" class="input" placeholder="ARCANA" value={sf.grantsExpertise ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sfgh-{sf.id}">Half Prof</label>
+																	<input id="sfgh-{sf.id}" name="grantsHalfSkills" class="input" placeholder="* or STEALTH" value={sf.grantsHalfSkills ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sfgsv-{sf.id}">Grants Saves</label>
+																	<input id="sfgsv-{sf.id}" name="grantsSavingThrows" class="input" placeholder="STRENGTH" value={sf.grantsSavingThrows ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 80px; margin:0;">
+																	<label class="label" for="sfscc-{sf.id}">Skill picks</label>
+																	<input id="sfscc-{sf.id}" name="skillChoiceCount" class="input" type="number" min="0" value={sf.skillChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sfscp-{sf.id}">Skill pool</label>
+																	<input id="sfscp-{sf.id}" name="skillChoicePool" class="input" placeholder="ARCANA,HISTORY" value={sf.skillChoicePool ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 80px; margin:0;">
+																	<label class="label" for="sfstcc-{sf.id}">Save picks</label>
+																	<input id="sfstcc-{sf.id}" name="savingThrowChoiceCount" class="input" type="number" min="0" value={sf.savingThrowChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sfstcp-{sf.id}">Save pool</label>
+																	<input id="sfstcp-{sf.id}" name="savingThrowChoicePool" class="input" placeholder="STRENGTH,CONSTITUTION" value={sf.savingThrowChoicePool ?? ''} />
+																</div>
 															</div>
 														</div>
 														<button type="submit" class="btn btn-primary btn-sm">Save</button>

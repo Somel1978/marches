@@ -13,7 +13,9 @@ function grantFields(data: FormData) {
 		grantsHalfSkills:  data.get('grantsHalfSkills')?.toString().trim()  || undefined,
 		grantsSavingThrows:data.get('grantsSavingThrows')?.toString().trim()|| undefined,
 		skillChoiceCount:  data.get('skillChoiceCount') ? Number(data.get('skillChoiceCount')) : undefined,
-		skillChoicePool:   data.get('skillChoicePool')?.toString().trim()   || undefined,
+		skillChoicePool:        data.get('skillChoicePool')?.toString().trim()        || undefined,
+		savingThrowChoiceCount: data.get('savingThrowChoiceCount') ? Number(data.get('savingThrowChoiceCount')) : undefined,
+		savingThrowChoicePool:  data.get('savingThrowChoicePool')?.toString().trim()  || undefined,
 	};
 }
 export const load: PageServerLoad = async ({ params }) => {

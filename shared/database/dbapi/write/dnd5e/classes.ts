@@ -54,6 +54,7 @@ export async function createClassFeature(input: {
     classId: string; name: string; description?: string; requiredLevel: number; url?: string;
     grantsSkills?: string; grantsExpertise?: string; grantsHalfSkills?: string; grantsSavingThrows?: string;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
+    savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
 }, actorId: string) {
     return db.dnd5eClassFeature.create({ data: {
         classId:            input.classId,
@@ -65,8 +66,10 @@ export async function createClassFeature(input: {
         grantsExpertise:    input.grantsExpertise    ?? null,
         grantsHalfSkills:   input.grantsHalfSkills   ?? null,
         grantsSavingThrows: input.grantsSavingThrows ?? null,
-        skillChoiceCount:   input.skillChoiceCount   ?? null,
-        skillChoicePool:    input.skillChoicePool    ?? null,
+        skillChoiceCount:         input.skillChoiceCount         ?? null,
+        skillChoicePool:          input.skillChoicePool          ?? null,
+        savingThrowChoiceCount:   input.savingThrowChoiceCount   ?? null,
+        savingThrowChoicePool:    input.savingThrowChoicePool    ?? null,
     }});
 }
 
@@ -75,6 +78,7 @@ export async function updateClassFeature(id: string, input: {
     grantsSkills?: string | null; grantsExpertise?: string | null;
     grantsHalfSkills?: string | null; grantsSavingThrows?: string | null;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
+    savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
 }) {
     return db.dnd5eClassFeature.update({ where: { id }, data: input });
 }
@@ -114,6 +118,7 @@ export async function createSubclassFeature(input: {
     subclassId: string; name: string; description?: string; requiredLevel: number; url?: string;
     grantsSkills?: string; grantsExpertise?: string; grantsHalfSkills?: string; grantsSavingThrows?: string;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
+    savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
 }) {
     return db.dnd5eSubclassFeature.create({ data: {
         subclassId:         input.subclassId,
@@ -125,8 +130,10 @@ export async function createSubclassFeature(input: {
         grantsExpertise:    input.grantsExpertise    ?? null,
         grantsHalfSkills:   input.grantsHalfSkills   ?? null,
         grantsSavingThrows: input.grantsSavingThrows ?? null,
-        skillChoiceCount:   input.skillChoiceCount   ?? null,
-        skillChoicePool:    input.skillChoicePool    ?? null,
+        skillChoiceCount:         input.skillChoiceCount         ?? null,
+        skillChoicePool:          input.skillChoicePool          ?? null,
+        savingThrowChoiceCount:   input.savingThrowChoiceCount   ?? null,
+        savingThrowChoicePool:    input.savingThrowChoicePool    ?? null,
     }});
 }
 
@@ -135,6 +142,7 @@ export async function updateSubclassFeature(id: string, input: {
     grantsSkills?: string | null; grantsExpertise?: string | null;
     grantsHalfSkills?: string | null; grantsSavingThrows?: string | null;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
+    savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
 }) {
     return db.dnd5eSubclassFeature.update({ where: { id }, data: input });
 }

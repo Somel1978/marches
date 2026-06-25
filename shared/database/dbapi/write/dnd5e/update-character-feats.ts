@@ -47,6 +47,7 @@ export async function addDnd5eCharacterFeat(
         stat3?:         string;
         amount3?:       number;
         chosenSkills?:  string[];   // player's chosen skills from skillChoicePool
+        chosenSaves?:   string[];   // player's chosen saving throws from savingThrowChoicePool
         actorId?:       string;
     }
 ) {
@@ -134,6 +135,11 @@ export async function addDnd5eCharacterFeat(
         const stats = f.grantsSavingThrows.split(',').map((s: string) => s.trim()).filter(Boolean);
         if (stats.length) await db.dnd5eCharacterSavingThrowGrant.createMany({
             data: stats.map((stat: string) => ({ characterId, stat, sourceType: 'Feat', sourceId: record.id })),
+        });
+    }
+    if (options?.chosenSaves?.length) {
+        await db.dnd5eCharacterSavingThrowGrant.createMany({
+            data: options.chosenSaves.map((stat: string) => ({ characterId, stat, sourceType: 'Feat', sourceId: record.id })),
         });
     }
 

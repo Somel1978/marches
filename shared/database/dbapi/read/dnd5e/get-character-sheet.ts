@@ -126,13 +126,71 @@ export async function getDnd5eCharacterSheet(characterId: string) {
     const allSlots     = [...asiSlots, ...backgroundSlots];
     const pendingSlots = allSlots.filter(s => !s.resolved).length;
 
+    // ── Pending skill/save choice pools from features ─────────────────────
+    // Features that have skillChoicePool or savingThrowChoicePool but haven't
+    // been resolved yet (no skill/save grant with that sourceId exists).
+    const resolvedSkillSourceIds = new Set((skillGrants as any[]).map(g => g.sourceId).filter(Boolean));
+    const resolvedSaveSourceIds  = new Set((saveGrants  as any[]).map(g => g.sourceId).filter(Boolean));
+
+    const pendingChoices: {
+        sourceId:               string;
+        sourceType:             string;
+        label:                  string;
+        skillChoiceCount:       number | null;
+        skillChoicePool:        string | null;
+        savingThrowChoiceCount: number | null;
+        savingThrowChoicePool:  string | null;
+    }[] = [];
+
+    for (const cc of enrichedClasses) {
+        const allFeatures = [
+            ...(cc.classFeatures    ?? []).map((f: any) => ({ ...f, sourceType: 'ClassFeature',    sourceName: cc.classRef?.name    ?? '' })),
+            ...(cc.subclassFeatures ?? []).map((f: any) => ({ ...f, sourceType: 'SubclassFeature', sourceName: cc.subclassRef?.name ?? '' })),
+        ];
+        for (const f of allFeatures) {
+            const hasSkillChoice = f.skillChoiceCount       && f.skillChoicePool;
+            const hasSaveChoice  = f.savingThrowChoiceCount && f.savingThrowChoicePool;
+            if (!hasSkillChoice && !hasSaveChoice) continue;
+            const skillDone = !hasSkillChoice || resolvedSkillSourceIds.has(f.id);
+            const saveDone  = !hasSaveChoice  || resolvedSaveSourceIds.has(f.id);
+            if (skillDone && saveDone) continue;
+            pendingChoices.push({
+                sourceId:               f.id,
+                sourceType:             f.sourceType,
+                label:                  `${f.sourceName}: ${f.name} (level ${f.requiredLevel})`,
+                skillChoiceCount:       hasSkillChoice && !skillDone ? f.skillChoiceCount : null,
+                skillChoicePool:        hasSkillChoice && !skillDone ? f.skillChoicePool  : null,
+                savingThrowChoiceCount: hasSaveChoice  && !saveDone  ? f.savingThrowChoiceCount : null,
+                savingThrowChoicePool:  hasSaveChoice  && !saveDone  ? f.savingThrowChoicePool  : null,
+            });
+        }
+    }
+
     const pb = proficiencyBonus(totalLevel);
 
-    // ── Skills — grant log, effective = MAX(value) per skill ──────────────
+    // ── Skills — grant log, effective = MAX(value), overrides take priority ───
+    // Override priority: Admin > DM > Player. Each role can hold its own override row.
+    // All grants remain tracked rows; when a feature/feat is removed at level-down,
+    // its grant row is deleted via the standard cleanup flow.
+    const OVERRIDE_PRIORITY = { Player: 1, DM: 2, Admin: 3 } as const;
     const effectiveSkillValue = new Map<string, number>();
+    const overrideSkillValue  = new Map<string, { value: number; priority: number }>();
     for (const grant of skillGrants) {
+        const st = (grant as any).sourceType as string;
+        if (st === 'Player' || st === 'DM' || st === 'Admin') {
+            const priority = OVERRIDE_PRIORITY[st as keyof typeof OVERRIDE_PRIORITY];
+            const cur      = overrideSkillValue.get(grant.skill as string);
+            if (!cur || priority > cur.priority) {
+                overrideSkillValue.set(grant.skill as string, { value: grant.value as number, priority });
+            }
+            continue;
+        }
         const cur = effectiveSkillValue.get(grant.skill as string) ?? 0;
         if ((grant.value as number) > cur) effectiveSkillValue.set(grant.skill as string, grant.value as number);
+    }
+    // Highest-priority override (if any) replaces the MAX
+    for (const [skill, { value }] of overrideSkillValue) {
+        effectiveSkillValue.set(skill, value);
     }
 
     const enrichedSkills = ALL_SKILLS.map(skill => {
@@ -145,10 +203,28 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         return { skill, ability, value, modifier, sources };
     });
 
-    // ── Saving throws — proficient if any grant row exists for this stat ──
-    const proficientStats = new Set((saveGrants as any[]).map(g => g.stat));
+    // ── Saving throws — proficient if any grant row exists, overrides take priority ──
+    // Override priority: Admin > DM > Player. A row alone makes proficient.
+    // sourceId === '__SUPPRESS__' forces non-proficient even if other sources grant it.
+    const otherProfStats = new Set(
+        (saveGrants as any[])
+            .filter(g => g.sourceType !== 'Player' && g.sourceType !== 'DM' && g.sourceType !== 'Admin')
+            .map(g => g.stat)
+    );
+    const overrideProf = new Map<string, { proficient: boolean; priority: number }>();
+    for (const grant of saveGrants as any[]) {
+        const st = grant.sourceType as string;
+        if (st === 'Player' || st === 'DM' || st === 'Admin') {
+            const priority   = OVERRIDE_PRIORITY[st as keyof typeof OVERRIDE_PRIORITY];
+            const proficient = grant.sourceId !== '__SUPPRESS__';
+            const cur        = overrideProf.get(grant.stat);
+            if (!cur || priority > cur.priority) {
+                overrideProf.set(grant.stat, { proficient, priority });
+            }
+        }
+    }
     const enrichedSavingThrows = ALL_STATS.map(stat => {
-        const proficient = proficientStats.has(stat);
+        const proficient = overrideProf.has(stat) ? overrideProf.get(stat)!.proficient : otherProfStats.has(stat);
         const scoreRow   = abilityScores.find((a: any) => a.stat === stat);
         const abilMod    = abilityModifier(scoreRow?.baseScore ?? 10);
         const modifier   = abilMod + (proficient ? pb : 0);
@@ -165,6 +241,7 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         backgroundRef:    backgroundRecord ?? null,
         asiSlots:         allSlots,
         pendingSlots,
+        pendingChoices,
         chosenFeats,
         abilityScores,
         skills:           enrichedSkills,

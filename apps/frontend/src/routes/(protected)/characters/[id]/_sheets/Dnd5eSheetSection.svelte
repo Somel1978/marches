@@ -78,11 +78,13 @@
 
 	async function handleSaveSlot(opts: any) {
 		const entries: [string,string][] = [
-			['featId',       opts.featId],
+			['featId',        opts.featId],
 			['sourceClassId', opts.sourceClassId ?? ''],
 			['sourceLevel',   String(opts.sourceLevel ?? '')],
 			...(opts.stat1   ? [['stat1',   opts.stat1],   ['amount1', String(opts.amount1)]] as [string,string][] : []),
 			...(opts.stat2   ? [['stat2',   opts.stat2],   ['amount2', String(opts.amount2)]] as [string,string][] : []),
+			...(opts.chosenSkills?.length ? (opts.chosenSkills as string[]).map((s: string) => ['chosenSkill', s] as [string,string]) : []),
+			...(opts.chosenSaves?.length  ? (opts.chosenSaves  as string[]).map((s: string) => ['chosenSave',  s] as [string,string]) : []),
 		];
 		await post('addFeat', entries);
 	}
@@ -126,12 +128,37 @@
 		await post('saveMood', [['emoji', emoji], ['text', text]]);
 	}
 
-	async function handleToggleSkill(skill: string, next: 'NONE' | 'HALF_PROFICIENT' | 'PROFICIENT' | 'EXPERT') {
-		await post('saveSkills', [['skill', skill], ['proficiency', next]]);
+	async function handleToggleSkill(skill: string, next: 'NONE' | 'HALF_PROFICIENT' | 'PROFICIENT' | 'EXPERT', note?: string) {
+		const entries: [string,string][] = [['skill', skill], ['proficiency', next]];
+		if (note) entries.push(['note', note]);
+		await post('saveSkills', entries);
+	}
+
+	async function handleToggleSave(stat: string, proficient: boolean, note?: string) {
+		const entries: [string,string][] = [['stat', stat], ['proficient', String(proficient)]];
+		if (note) entries.push(['note', note]);
+		await post('saveSavingThrow', entries);
 	}
 
 	async function handleSaveDetails(details: Record<string, string | number | null>) {
 		await post('saveDetails', Object.entries(details).filter(([,v]) => v !== null).map(([k,v]) => [k, String(v)]));
+	}
+
+	async function handleSaveChoicePoolGrants(opts: { skills: any[]; saves: any[] }) {
+		const entries: [string,string][] = [
+			...opts.skills.flatMap(g => [
+				['poolSkill',         g.skill],
+				['poolSkillSource',   g.sourceType],
+				['poolSkillSourceId', g.sourceId],
+				['poolSkillValue',    String(g.value)],
+			] as [string,string][]),
+			...opts.saves.flatMap(g => [
+				['poolSave',         g.stat],
+				['poolSaveSource',   g.sourceType],
+				['poolSaveSourceId', g.sourceId],
+			] as [string,string][]),
+		];
+		await post('saveChoicePoolGrants', entries);
 	}
 </script>
 
@@ -159,5 +186,7 @@
 	onToggleSpellPrepared={handleToggleSpellPrepared}
 	onSaveMood={handleSaveMood}
 	onToggleSkill={handleToggleSkill}
+	onToggleSave={handleToggleSave}
 	onSaveDetails={handleSaveDetails}
+	onSaveChoicePoolGrants={handleSaveChoicePoolGrants}
 />

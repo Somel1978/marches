@@ -27,6 +27,38 @@ export const adminDnd5eActions = {
 		}
 	},
 
+
+	saveChoicePoolGrants: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const { isMarchesError } = await import('@core/errors');
+		const data = await request.formData();
+		const poolSkills         = data.getAll('poolSkill').map((v: any) => v.toString()).filter(Boolean);
+		const poolSkillSources   = data.getAll('poolSkillSource').map((v: any) => v.toString());
+		const poolSkillSourceIds = data.getAll('poolSkillSourceId').map((v: any) => v.toString());
+		const poolSkillValues    = data.getAll('poolSkillValue').map((v: any) => parseFloat(v.toString()) || 1.0);
+		const poolSaves          = data.getAll('poolSave').map((v: any) => v.toString()).filter(Boolean);
+		const poolSaveSources    = data.getAll('poolSaveSource').map((v: any) => v.toString());
+		const poolSaveSourceIds  = data.getAll('poolSaveSourceId').map((v: any) => v.toString());
+		try {
+			if (poolSkills.length) {
+				await dnd5e.addSkillGrants(params.id, poolSkills.map((skill: string, i: number) => ({
+					skill, value: poolSkillValues[i] ?? 1.0,
+					sourceType: poolSkillSources[i] ?? 'PlayerChoice',
+					sourceId:   poolSkillSourceIds[i] || undefined,
+				})));
+			}
+			if (poolSaves.length) {
+				await dnd5e.addSavingThrowGrants(params.id, poolSaves.map((stat: string, i: number) => ({
+					stat, sourceType: poolSaveSources[i] ?? 'PlayerChoice', sourceId: poolSaveSourceIds[i] || undefined,
+				})));
+			}
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
 	addFeat: async ({ params, request, locals }: any) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
@@ -40,9 +72,10 @@ export const adminDnd5eActions = {
 		const stat2         = data.get('stat2')?.toString()  || undefined;
 		const amount2       = data.get('amount2') ? Number(data.get('amount2')) : undefined;
 		const chosenSkills  = data.getAll('chosenSkill').map((v: FormDataEntryValue) => v.toString()).filter(Boolean);
+		const chosenSaves   = data.getAll('chosenSave').map((v: FormDataEntryValue) => v.toString()).filter(Boolean);
 		if (!featId) return fail(400, { message: 'Feat ID required.' });
 		try {
-			await dnd5e.addCharacterFeat(params.id, featId, { sourceClassId, sourceLevel, stat1, amount1, stat2, amount2, chosenSkills: chosenSkills.length ? chosenSkills : undefined, actorId: locals.user!.id });
+			await dnd5e.addCharacterFeat(params.id, featId, { sourceClassId, sourceLevel, stat1, amount1, stat2, amount2, chosenSkills: chosenSkills.length ? chosenSkills : undefined, chosenSaves: chosenSaves.length ? chosenSaves : undefined, actorId: locals.user!.id });
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -125,13 +158,14 @@ export const adminDnd5eActions = {
 		const data        = await request.formData();
 		const skill       = data.get('skill')?.toString() ?? '';
 		const proficiency = (data.get('proficiency')?.toString() ?? 'NONE') as 'NONE' | 'HALF_PROFICIENT' | 'PROFICIENT' | 'EXPERT';
+		const note        = data.get('note')?.toString().trim() || null;
 		if (!skill) return fail(400, { message: 'Skill required.' });
 		try {
 			if (proficiency === 'NONE') {
-				await dnd5e.removeSkillGrantsBySource(params.id, 'dm-manual-' + skill);
+				await dnd5e.removeOverrideSkillGrant(params.id, skill, 'Admin');
 			} else {
 				const value = ({ 'HALF_PROFICIENT': 0.5, 'PROFICIENT': 1.0, 'EXPERT': 2.0 } as Record<string,number>)[proficiency] ?? 1.0;
-				await dnd5e.upsertDmSkillGrant(params.id, skill, value);
+				await dnd5e.upsertOverrideSkillGrant(params.id, skill, value, 'Admin', note);
 			}
 			return { success: true };
 		} catch (e) {
@@ -144,15 +178,17 @@ export const adminDnd5eActions = {
 		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
 		const { dnd5e } = await import('@core/database');
-		const data      = await request.formData();
-		const stat      = data.get('stat')?.toString() ?? '';
+		const data       = await request.formData();
+		const stat       = data.get('stat')?.toString() ?? '';
 		const proficient = data.get('proficient') === 'true';
+		const action     = data.get('action')?.toString() ?? '';
+		const note       = data.get('note')?.toString().trim() || null;
 		if (!stat) return fail(400, { message: 'Stat required.' });
 		try {
-			if (proficient) {
-				await dnd5e.addSavingThrowGrants(params.id, [{ stat, sourceType: 'Admin', sourceId: 'dm-manual-' + stat }]);
+			if (action === 'clear') {
+				await dnd5e.removeOverrideSavingThrowGrant(params.id, stat, 'Admin');
 			} else {
-				await dnd5e.removeSavingThrowsBySource(params.id, 'dm-manual-' + stat);
+				await dnd5e.upsertOverrideSavingThrowGrant(params.id, stat, proficient, 'Admin', note);
 			}
 			return { success: true };
 		} catch (e) {

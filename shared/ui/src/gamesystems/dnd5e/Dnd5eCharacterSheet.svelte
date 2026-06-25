@@ -6,6 +6,7 @@
 	import Dnd5eSkillsPanel     from './Dnd5eSkillsPanel.svelte';
 	import Dnd5eCharacterDetails from './Dnd5eCharacterDetails.svelte';
 	import MoodEditor           from './MoodEditor.svelte';
+	import { SKILL_DISPLAY, SKILL_ABILITY, STAT_ABBR } from './skills';
 	let {
 		charSheet,
 		systemData,
@@ -34,6 +35,7 @@
 		onToggleSkill,
 		onToggleSave,
 		onSaveDetails,
+		onSaveChoicePoolGrants,
 	}: {
 		charSheet?:                any;
 		systemData?:               any;
@@ -59,9 +61,10 @@
 		onRemoveSpellbookEntry?:   (entryId: string) => Promise<void>;
 		onToggleSpellPrepared?:    (entryId: string, prepared: boolean) => Promise<void>;
 		onSaveMood?:               (emoji: string, text: string) => Promise<void>;
-		onToggleSkill?:            (skill: string, next: 'NONE'|'HALF_PROFICIENT'|'PROFICIENT'|'EXPERT') => Promise<void>;
-		onToggleSave?:             (stat: string, proficient: boolean) => Promise<void>;
+		onToggleSkill?:            (skill: string, next: 'NONE'|'HALF_PROFICIENT'|'PROFICIENT'|'EXPERT', note?: string) => Promise<void>;
+		onToggleSave?:             (stat: string, proficient: boolean, note?: string) => Promise<void>;
 		onSaveDetails?:            (details: Record<string, string | number | null>) => Promise<void>;
+		onSaveChoicePoolGrants?:   (opts: { skills: {skill:string;value:number;sourceType:string;sourceId:string}[]; saves: {stat:string;sourceType:string;sourceId:string}[] }) => Promise<void>;
 	} = $props();
 
 	// ── Constants ────────────────────────────────────────────────────────────
@@ -192,9 +195,51 @@
 	}
 
 	// ── ASI/Feat slots ───────────────────────────────────────────────────────
-	type SlotState = { open:boolean; mode:string; asiStat:string; asi2a:string; asi2b:string; featSearch:string; featPick:string; featGrantedStat:string; saving:boolean; };
+	type SlotState = { open:boolean; mode:string; asiStat:string; asi2a:string; asi2b:string; featSearch:string; featPick:string; featGrantedStat:string; saving:boolean; chosenSavePicks:string[]; };
 
 	let slots = $state<Record<string,SlotState>>({});
+
+	// ── Pending choice pool state ─────────────────────────────────────────
+	let pendingSkillPicks = $state<Record<string, string[]>>({});  // keyed by feature sourceId
+	let pendingSavePicks  = $state<Record<string, string[]>>({});  // keyed by feature sourceId
+	let savingChoices     = $state(false);
+
+	const pendingChoices  = $derived((charSheet?.pendingChoices ?? []) as any[]);
+
+	// Skills already granted (value > 0) — used to disable already-taken skills in pickers
+	const grantedSkillSet = $derived(new Set(
+		(charSheet?.skills ?? []).filter((s: any) => s.value > 0).map((s: any) => s.skill as string)
+	));
+	const grantedSaveSet  = $derived(new Set(
+		(charSheet?.savingThrows ?? []).filter((s: any) => s.proficient).map((s: any) => s.stat as string)
+	));
+
+	async function saveChoicePoolGrants(sourceId: string, sourceType: string) {
+		savingChoices = true;
+		const skills = (pendingSkillPicks[sourceId] ?? []).map(skill => ({
+			skill, value: 1.0, sourceType, sourceId,
+		}));
+		const saves = (pendingSavePicks[sourceId] ?? []).map(stat => ({
+			stat, sourceType, sourceId,
+		}));
+		await onSaveChoicePoolGrants?.({ skills, saves });
+		// Clear local state for this feature after save
+		pendingSkillPicks = { ...pendingSkillPicks, [sourceId]: [] };
+		pendingSavePicks  = { ...pendingSavePicks,  [sourceId]: [] };
+		savingChoices = false;
+	}
+
+	function togglePendingSkill(sourceId: string, skill: string, max: number) {
+		const cur = pendingSkillPicks[sourceId] ?? [];
+		if (cur.includes(skill)) pendingSkillPicks = { ...pendingSkillPicks, [sourceId]: cur.filter(s => s !== skill) };
+		else if (cur.length < max) pendingSkillPicks = { ...pendingSkillPicks, [sourceId]: [...cur, skill] };
+	}
+
+	function togglePendingSave(sourceId: string, stat: string, max: number) {
+		const cur = pendingSavePicks[sourceId] ?? [];
+		if (cur.includes(stat)) pendingSavePicks = { ...pendingSavePicks, [sourceId]: cur.filter(s => s !== stat) };
+		else if (cur.length < max) pendingSavePicks = { ...pendingSavePicks, [sourceId]: [...cur, stat] };
+	}
 
 	function sk(slot:any, i?:number) { return `${slot.sourceClassId}_${slot.sourceLevel}_${i ?? slot.slotIndex ?? 0}`; }
 
@@ -208,14 +253,14 @@
 		for (const [idx, slot] of newSlots.entries()) {
 			const k = sk(slot, asiSlots.indexOf(slot));
 			const defaultMode = (slot.type === 'background_feat' || slot.type === 'epic_boon') ? 'feat' : 'asi';
-			next[k] = {open:false,mode:defaultMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',featGrantedStat:'',saving:false};
+			next[k] = {open:false,mode:defaultMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',featGrantedStat:'',saving:false,chosenSavePicks:[]};
 		}
 		slots = next;
 	});
 
 	function ss(slot:any, i?:number): SlotState {
 			const fallbackMode = (slot.type === 'background_feat' || slot.type === 'epic_boon') ? 'feat' : 'asi';
-		return slots[sk(slot,i)] ?? {open:false,mode:fallbackMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',featGrantedStat:'',saving:false};
+		return slots[sk(slot,i)] ?? {open:false,mode:fallbackMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',featGrantedStat:'',saving:false,chosenSavePicks:[]};
 	}
 	function updateSlot(slot:any, patch: Partial<SlotState>, i?:number) {
 		const k = sk(slot, i);
@@ -255,6 +300,10 @@
 			if (asiAmount && !chosenStat) return; // need stat choice first
 			opts.featId = s.featPick;
 			if (asiAmount && chosenStat) { opts.stat1 = chosenStat; opts.amount1 = asiAmount; }
+			// Pass saving throw choices if the feat has a savingThrowChoicePool
+			if (featDef?.savingThrowChoiceCount && s.chosenSavePicks?.length) {
+				opts.chosenSaves = s.chosenSavePicks;
+			}
 		} else if (s.mode === 'asi') {
 			if (!s.asiStat || !asiFeat) return;
 			opts = {...opts, featId: asiFeat.id, stat1: s.asiStat, amount1: 2};
@@ -265,7 +314,7 @@
 
 		updateSlot(slot, {saving:true}, i);
 		await onSaveSlot?.(opts);
-		updateSlot(slot, {saving:false, open:false, featPick:'', featGrantedStat:'', asiStat:'', asi2a:'', asi2b:'', featSearch:''}, i);
+		updateSlot(slot, {saving:false, open:false, featPick:'', featGrantedStat:'', asiStat:'', asi2a:'', asi2b:'', featSearch:'', chosenSavePicks:[]}, i);
 	}
 </script>
 
@@ -275,6 +324,77 @@
 	{#if !canEdit && editBlockedReason}
 		<div class="pending-banner" style="margin-bottom:0;">
 			⏳ {editBlockedReason}
+		</div>
+	{/if}
+
+	<!-- ── Pending Choice Pools ───────────────────────────────────────────── -->
+	{#if pendingChoices.length > 0 && canEdit}
+		<div class="card" style="border:2px solid var(--color-warning);padding:1rem;">
+			<h3 class="section-title" style="color:var(--color-warning);margin:0 0 0.25rem;">⚠ Pending Skill / Saving Throw Choices</h3>
+			<p style="font-size:0.875rem;color:var(--text-muted);margin:0 0 1rem;">You have unresolved proficiency choices from class features. Make your selections below and save each one.</p>
+			<div style="display:flex;flex-direction:column;gap:1.25rem;">
+				{#each pendingChoices as pc}
+					{@const skillPool   = pc.skillChoicePool   ? pc.skillChoicePool.split(',').map((s:string) => s.trim()).filter(Boolean)   : []}
+					{@const savePool    = pc.savingThrowChoicePool ? pc.savingThrowChoicePool.split(',').map((s:string) => s.trim().toUpperCase()).filter(Boolean) : []}
+					{@const pickedSkills = pendingSkillPicks[pc.sourceId] ?? []}
+					{@const pickedSaves  = pendingSavePicks[pc.sourceId]  ?? []}
+					{@const skillDone   = !pc.skillChoiceCount       || pickedSkills.length >= Math.min(pc.skillChoiceCount, skillPool.length)}
+					{@const saveDone    = !pc.savingThrowChoiceCount || pickedSaves.length  >= Math.min(pc.savingThrowChoiceCount, savePool.length)}
+					<div style="padding:0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
+						<p style="font-size:0.8125rem;font-weight:700;color:var(--brand-accent);margin:0 0 0.625rem;">{pc.label}</p>
+
+						{#if skillPool.length > 0}
+							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+								Choose {pc.skillChoiceCount} skill{pc.skillChoiceCount !== 1 ? 's' : ''}
+								<span style="font-weight:400;color:var(--text-secondary);">({pickedSkills.length}/{Math.min(pc.skillChoiceCount, skillPool.length)} chosen)</span>
+							</p>
+							<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+								{#each skillPool as skill}
+									{@const chosen = pickedSkills.includes(skill)}
+									{@const alreadyGranted = !chosen && grantedSkillSet.has(skill)}
+									{@const full   = !chosen && pickedSkills.length >= Math.min(pc.skillChoiceCount, skillPool.length)}
+									<button type="button"
+										class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}"
+										disabled={full || alreadyGranted}
+										title={alreadyGranted ? 'Already proficient' : ''}
+										onclick={() => togglePendingSkill(pc.sourceId, skill, pc.skillChoiceCount)}>
+										{SKILL_DISPLAY[skill] ?? skill}
+										<span style="opacity:0.65;font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
+									</button>
+								{/each}
+							</div>
+						{/if}
+
+						{#if savePool.length > 0}
+							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+								Choose {pc.savingThrowChoiceCount} saving throw{pc.savingThrowChoiceCount !== 1 ? 's' : ''}
+								<span style="font-weight:400;color:var(--text-secondary);">({pickedSaves.length}/{Math.min(pc.savingThrowChoiceCount, savePool.length)} chosen)</span>
+							</p>
+							<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+								{#each savePool as stat}
+									{@const chosen = pickedSaves.includes(stat)}
+									{@const alreadyGranted = !chosen && grantedSaveSet.has(stat)}
+									{@const full   = !chosen && pickedSaves.length >= Math.min(pc.savingThrowChoiceCount, savePool.length)}
+									<button type="button"
+										class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}"
+										disabled={full || alreadyGranted}
+										title={alreadyGranted ? 'Already proficient' : ''}
+										onclick={() => togglePendingSave(pc.sourceId, stat, pc.savingThrowChoiceCount)}>
+										{STAT_ABBR[stat] ?? stat}
+									</button>
+								{/each}
+							</div>
+						{/if}
+
+						<button
+							class="btn btn-primary btn-sm"
+							disabled={!skillDone || !saveDone || savingChoices}
+							onclick={() => saveChoicePoolGrants(pc.sourceId, pc.sourceType)}>
+							{savingChoices ? 'Saving…' : 'Save choices'}
+						</button>
+					</div>
+				{/each}
+			</div>
 		</div>
 	{/if}
 
@@ -736,8 +856,36 @@
 							{#if true}
 								{@const selFeat2 = s.featPick ? (systemData?.feats ?? []).find((f:any) => f.id === s.featPick) : null}
 								{@const needsStat = selFeat2?.asiAmount && !selFeat2?.asiStatFixed && !s.featGrantedStat}
+								{@const savePool2 = selFeat2?.savingThrowChoicePool ? selFeat2.savingThrowChoicePool.split(',').map((st:string) => st.trim().toUpperCase()).filter(Boolean) : []}
+								{@const saveCount2 = selFeat2?.savingThrowChoiceCount ?? 0}
+								{@const needsSave = saveCount2 > 0 && (s.chosenSavePicks?.length ?? 0) < Math.min(saveCount2, savePool2.length)}
+								{#if savePool2.length > 0}
+									<div style="margin-top:0.5rem;">
+										<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+											Choose {saveCount2} saving throw{saveCount2 !== 1 ? 's' : ''}
+											<span style="font-weight:400;">({(s.chosenSavePicks?.length ?? 0)}/{Math.min(saveCount2, savePool2.length)})</span>
+										</p>
+										<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
+											{#each savePool2 as stat}
+												{@const chosen2 = (s.chosenSavePicks ?? []).includes(stat)}
+												{@const full2   = !chosen2 && (s.chosenSavePicks?.length ?? 0) >= Math.min(saveCount2, savePool2.length)}
+												{@const taken2  = !chosen2 && grantedSaveSet.has(stat)}
+												<button type="button"
+													class="btn btn-xs {chosen2 ? 'btn-primary' : 'btn-ghost'}"
+													disabled={full2 || taken2}
+													onclick={() => {
+														const cur = s.chosenSavePicks ?? [];
+														const next = chosen2 ? cur.filter((x:string) => x !== stat) : [...cur, stat];
+														updateSlot(slot, { chosenSavePicks: next }, slotIdx);
+													}}>
+													{STAT_ABBR[stat] ?? stat}
+												</button>
+											{/each}
+										</div>
+									</div>
+								{/if}
 								<div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-									<button class="btn btn-primary btn-sm" disabled={!s.featPick||!!needsStat||s.saving} onclick={() => saveSlot(slot, slotIdx)}>
+									<button class="btn btn-primary btn-sm" disabled={!s.featPick||!!needsStat||!!needsSave||s.saving} onclick={() => saveSlot(slot, slotIdx)}>
 										{s.saving ? 'Saving…' : 'Choose Feat'}
 									</button>
 									{#if r}<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot, {open:false}, slotIdx)}>Cancel</button>{/if}

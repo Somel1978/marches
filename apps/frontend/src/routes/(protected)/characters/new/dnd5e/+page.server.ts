@@ -40,7 +40,8 @@ export const actions: Actions = {
 		const avatarUrl    = data.get('avatarUrl')?.toString().trim()   || undefined;
 		const portraitUrl  = data.get('portraitUrl')?.toString().trim() || undefined;
 		const worldId      = data.get('worldId')?.toString() || undefined;
-		const bgFeatPick   = data.get('bgFeatPick')?.toString() || undefined;
+		const bgFeatPick     = data.get('bgFeatPick')?.toString()      || undefined;
+		const bgGrantedFeatId = data.get('bgGrantedFeatId')?.toString() || undefined;
 
 		// Classes
 		const classIds    = data.getAll('classId').map(v => v.toString()).filter(Boolean);
@@ -77,6 +78,14 @@ export const actions: Actions = {
 
 			// Save ability scores (scores already include bonus points from client)
 			await dnd5e.saveAbilityScores(character.id, scores as any);
+
+			// If background auto-grants a fixed feat, save it
+			if (bgGrantedFeatId) {
+				await dnd5e.addCharacterFeat(character.id, bgGrantedFeatId, {
+					sourceClassId: 'background',
+					sourceLevel:   1,
+				});
+			}
 
 			// If background grants a category feat and player picked one, save it
 			if (bgFeatPick) {
@@ -137,14 +146,22 @@ export const actions: Actions = {
 			}
 
 			// Save skill proficiencies from the Skills step using grant log
-			const chosenClassSkills = data.getAll('chosenClassSkill').map(v => v.toString()).filter(Boolean);
-			const autoSkillSources  = data.getAll('autoSkillSource').map(v => v.toString());
-			const autoSkills        = data.getAll('autoSkill').map(v => v.toString()).filter(Boolean);
+			const chosenClassSkills  = data.getAll('chosenClassSkill').map(v => v.toString()).filter(Boolean);
+			const autoSkillSources   = data.getAll('autoSkillSource').map(v => v.toString());
+			const autoSkillValues    = data.getAll('autoSkillValue').map(v => v.toString());
+			const autoSkills         = data.getAll('autoSkill').map(v => v.toString()).filter(Boolean);
+			const poolSkills         = data.getAll('poolSkill').map(v => v.toString()).filter(Boolean);
+			const poolSkillSources   = data.getAll('poolSkillSource').map(v => v.toString());
+			const poolSkillSourceIds = data.getAll('poolSkillSourceId').map(v => v.toString());
 
 			const allSkillGrants: { skill: string; value: number; sourceType: string; sourceId?: string }[] = [];
 			for (const s of chosenClassSkills) allSkillGrants.push({ skill: s, value: 1.0, sourceType: 'PlayerChoice' });
 			for (let i = 0; i < autoSkills.length; i++) {
-				allSkillGrants.push({ skill: autoSkills[i], value: 1.0, sourceType: autoSkillSources[i] ?? 'Background' });
+				const val = autoSkillValues[i] ? parseFloat(autoSkillValues[i]) : 1.0;
+				allSkillGrants.push({ skill: autoSkills[i], value: isNaN(val) ? 1.0 : val, sourceType: autoSkillSources[i] ?? 'Background' });
+			}
+			for (let i = 0; i < poolSkills.length; i++) {
+				allSkillGrants.push({ skill: poolSkills[i], value: 1.0, sourceType: poolSkillSources[i] ?? 'PlayerChoice', sourceId: poolSkillSourceIds[i] || undefined });
 			}
 			if (allSkillGrants.length) await dnd5e.addSkillGrants(character.id, allSkillGrants);
 

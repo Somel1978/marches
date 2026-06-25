@@ -45,6 +45,7 @@ export async function createSpeciesTrait(input: {
     speciesId: string; name: string; description?: string; requiredLevel?: number;
     grantsSkills?: string; grantsExpertise?: string; grantsHalfSkills?: string;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
+    savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
 }) {
     return db.dnd5eSpeciesTrait.create({ data: {
         speciesId:        input.speciesId,
@@ -54,8 +55,10 @@ export async function createSpeciesTrait(input: {
         grantsSkills:     input.grantsSkills      ?? null,
         grantsExpertise:  input.grantsExpertise   ?? null,
         grantsHalfSkills: input.grantsHalfSkills  ?? null,
-        skillChoiceCount: input.skillChoiceCount  ?? null,
-        skillChoicePool:  input.skillChoicePool   ?? null,
+        skillChoiceCount:        input.skillChoiceCount        ?? null,
+        skillChoicePool:         input.skillChoicePool         ?? null,
+        savingThrowChoiceCount:  input.savingThrowChoiceCount  ?? null,
+        savingThrowChoicePool:   input.savingThrowChoicePool   ?? null,
     }});
 }
 
@@ -63,6 +66,7 @@ export async function updateSpeciesTrait(id: string, input: {
     name?: string; description?: string | null; requiredLevel?: number | null;
     grantsSkills?: string | null; grantsExpertise?: string | null; grantsHalfSkills?: string | null;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
+    savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
 }) {
     return db.dnd5eSpeciesTrait.update({ where: { id }, data: input });
 }
@@ -78,6 +82,7 @@ export async function createDnd5eBackground(input: {
     languages?: string; url?: string; sortOrder?: number;
     grantsFeatCategory?: string; grantsFeatId?: string;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
+    savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
 }, actorId: string) {
     const b = await db.dnd5eBackground.create({ data: {
         gameSystemId:       input.gameSystemId,
@@ -91,8 +96,10 @@ export async function createDnd5eBackground(input: {
         sortOrder:          input.sortOrder            ?? 0,
         grantsFeatCategory: input.grantsFeatCategory  ?? null,
         grantsFeatId:       input.grantsFeatId         ?? null,
-        skillChoiceCount:   input.skillChoiceCount     ?? null,
-        skillChoicePool:    input.skillChoicePool      ?? null,
+        skillChoiceCount:        input.skillChoiceCount        ?? null,
+        skillChoicePool:         input.skillChoicePool         ?? null,
+        savingThrowChoiceCount:  input.savingThrowChoiceCount  ?? null,
+        savingThrowChoicePool:   input.savingThrowChoicePool   ?? null,
     }});
     await logAudit(db, { actorId, action: 'CREATE', resourceKey: 'GameSystem', resourceId: b.id, after: b });
     return b;
@@ -104,6 +111,7 @@ export async function updateDnd5eBackground(id: string, input: Partial<{
     languages: string | null; url: string | null; isAvailable: boolean; sortOrder: number;
     grantsFeatCategory: string | null; grantsFeatId: string | null;
     skillChoiceCount: number | null; skillChoicePool: string | null;
+    savingThrowChoiceCount: number | null; savingThrowChoicePool: string | null;
 }>, actorId: string) {
     const before = await db.dnd5eBackground.findUnique({ where: { id } });
     if (!before) throw new NotFoundError('Dnd5eBackground', id);

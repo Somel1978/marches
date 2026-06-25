@@ -172,6 +172,8 @@ export const actions: Actions = {
 						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name),
 						skillChoiceCount:   row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : null,
 						skillChoicePool:    normalizeSkills(row.skillChoicePool, warnings, row.name),
+						savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
+						savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
 					});
 					updated++;
 				} else {
@@ -187,6 +189,8 @@ export const actions: Actions = {
 						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name) ?? undefined,
 						skillChoiceCount:   row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : undefined,
 						skillChoicePool:    normalizeSkills(row.skillChoicePool, warnings, row.name) ?? undefined,
+						savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
+						savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
 					}, locals.user!.id);
 					created++;
 				}
@@ -307,6 +311,8 @@ export const actions: Actions = {
 						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name),
 						skillChoiceCount:   row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : null,
 						skillChoicePool:    normalizeSkills(row.skillChoicePool, warnings, row.name),
+						savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
+						savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
 					});
 					updated++;
 				} else {
@@ -418,6 +424,8 @@ export const actions: Actions = {
 					grantsHalfSkills: normalizeSkills(row.grantsHalfSkills, warnings, row.name),
 					skillChoiceCount: row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : null,
 					skillChoicePool:  normalizeSkills(row.skillChoicePool, warnings, row.name),
+					savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
+					savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
 				};
 				// Use DB upsert keyed on @@unique([speciesId, name]) — avoids stale in-memory cache issues
 				const existing = await db.dnd5eSpeciesTrait.findFirst({
@@ -478,6 +486,8 @@ export const actions: Actions = {
 						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name),
 						skillChoiceCount:   row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : null,
 						skillChoicePool:    normalizeSkills(row.skillChoicePool, warnings, row.name),
+						savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
+						savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
 						sortOrder:          Number(row.sortOrder) || 0,
 					}, locals.user!.id);
 					updated++;
@@ -501,6 +511,8 @@ export const actions: Actions = {
 						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name) ?? undefined,
 						skillChoiceCount:   row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : undefined,
 						skillChoicePool:    normalizeSkills(row.skillChoicePool, warnings, row.name) ?? undefined,
+						savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
+						savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
 						sortOrder:          Number(row.sortOrder) || 0,
 					}, locals.user!.id);
 					created++;
