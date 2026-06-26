@@ -604,6 +604,28 @@ Override pattern: single `sourceType='Override'` row per skill/stat per characte
 
 ## DB Read — Token Store
 
+### `shared/database/dbapi/read/tavern/get-channels.ts`
+**Exports:** `getTavernChannels`, `getTavernChannel(id)`, `getTavernChannelByWorldId(worldId)`
+
+**Called by:** `shared/database/index.ts` — `tavern.getChannels`, `tavern.getChannel`, `tavern.getChannelByWorldId`
+
+---
+
+### `shared/database/dbapi/write/tavern/messages.ts`
+**Exports:** `sendTavernMessage(input)`, `deleteTavernMessage(id)`, `getTavernMessages(channelId, opts?)`
+Enforces 200 message cap per channel (trims oldest). Author types: `CHARACTER | DM | ADMIN`.
+
+**Called by:** `shared/database/index.ts` — `tavern.sendMessage`, `tavern.deleteMessage`, `tavern.getMessages`
+
+---
+
+### `shared/database/dbapi/transactions/register-user.ts`
+**Exports:** `registerUser(input)` — single transaction: creates user, assigns roles, creates password account via `better-auth/crypto`. Only entry point for admin-side user creation.
+
+**Called by:** `shared/database/index.ts` — `users.register`; `apps/admin` user creation actions
+
+---
+
 ### `shared/database/dbapi/read/token-store/get-items.ts`
 **Exports:** `getActiveBoostsForCharacter`, `getAllTokenStoreItemsForExport`, `getTokenStoreItemById`, `getTokenStoreItems`, `getTokenStoreTransactionById`, `getTokenStoreTransactions`
 
@@ -738,6 +760,20 @@ Override pattern: single `sourceType='Override'` row per skill/stat per characte
 - `shared/database/index.ts` — uses `getPlatformStats`, `getPublicStats`, `getUserStats`
 
 ## DB Read — Audit
+
+### `shared/database/dbapi/analytics/get-platform-metrics.ts`
+**Exports:** `getPlatformMetrics` — returns `{ totalUsers, totalRoles, totalResources, activeSessions }` via single `$transaction`.
+
+**Called by:** `shared/database/index.ts` — `analytics.getPlatformMetrics`
+
+---
+
+### `shared/database/dbapi/analytics/get-user-growth.ts`
+**Exports:** `getUserGrowth(days?)` — daily user registration counts for last N days using raw SQL (`date_trunc`). Returns `UserGrowthPoint[]` with `{ date, count, total }`.
+
+**Called by:** `shared/database/index.ts` — `analytics.getUserGrowth`
+
+---
 
 ### `shared/database/dbapi/read/audit/get-logs.ts`
 **Exports:** `GetAuditLogsOptions`, `getAuditLogs`
@@ -946,12 +982,75 @@ Override pattern: single `sourceType='Override'` row per skill/stat per characte
 > ⚠ No direct import callers (may be via `@core/database` barrel)
 
 ### `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte`
+Pure UI component. Renders ability scores, species/background/classes, ASI/feat slots, skills & saving throws, spell counts, character details, mood. All interaction via callbacks (no SvelteKit imports).
 
-> ⚠ No direct import callers (may be via `@core/database` barrel)
+**Internal imports:**
+- `./Dnd5eSkillsPanel.svelte` — skills & saving throws section
+- `./Dnd5eCharacterDetails.svelte` — character details panel
+- `./Dnd5eAsiFeatsPanel.svelte` — ASI/feat slot editor
+- `./MoodEditor.svelte` — mood emoji + text editor
+- `./Dnd5eSpellbooks.svelte` — spellbook section
+
+**Key props:** `charSheet`, `systemData`, `scoreAudit`, `canEdit`, `canManage`, `canViewDescriptions`, `onSaveAbilityScores`, `onSubmitChanges`, `onSubmitLevelUp`, `onSaveSlot`, `onRemoveFeat`, `onToggleSkill`, `onToggleSave`, `onManualScoreAdjust`, `onSaveMood`, `onSaveDetails`, `onSaveChoicePoolGrants`
+
+**Exported from:** `shared/ui/index.ts`
+
+**Used by:** `_sheets/Dnd5eSheetSection.svelte` (player), `_sheets/DmDnd5eSheetSection.svelte` (DM), `_sheets/AdminDnd5eSheetSection.svelte` (admin)
+
+### `shared/ui/src/gamesystems/dnd5e/Dnd5eSkillsPanel.svelte`
+Renders skills & saving throws section of the character sheet. In edit mode: click any skill/save row to open an inline editor with proficiency buttons (None/Half/Prof/Expert), optional note field, Save/Cancel. Tooltip shows resolved grant sources. Orange dot indicates active Override row.
+
+**Props:** `charSheet`, `canEdit`, `onToggleSkill(skill, proficiency, note?)`, `onToggleSave(stat, proficient, note?)`
+
+**Internal imports:** `./skills.ts` — `SKILL_DISPLAY`, `STAT_ABBR`
+
+**Used by:** `Dnd5eCharacterSheet.svelte` (internal import, not via barrel)
+
+---
+
+### `shared/ui/src/gamesystems/dnd5e/Dnd5eCharacterDetails.svelte`
+Renders character details panel: alignment, personality traits, ideals, bonds, flaws, physical description, backstory. Editable in canEdit mode with save-on-change via `onSave` callback.
+
+**Props:** `charSheet`, `canEdit`, `onSave(details)`
+
+**Internal imports:** `./skills.ts` — `SKILL_DISPLAY`, `SKILL_ABILITY`, `STAT_ABBR`
+
+**Used by:** `Dnd5eCharacterSheet.svelte` (internal import, not via barrel)
+
+---
+
+### `shared/ui/src/gamesystems/dnd5e/MoodEditor.svelte`
+Inline emoji + text mood editor with save-on-blur behaviour. Emoji picker from `MOOD_EMOJIS` constant.
+
+**Props:** `emoji` (bindable), `text` (bindable), `readonly`, `onSave(emoji, text)`
+
+**Internal imports:** `./skills.ts` — `MOOD_EMOJIS`
+
+**Used by:** `Dnd5eCharacterSheet.svelte` (internal import, not via barrel)
+
+---
 
 ### `shared/ui/src/gamesystems/dnd5e/Dnd5eSpellbooks.svelte`
 
 > ⚠ No direct import callers (may be via `@core/database` barrel)
+
+### `shared/ui/src/gamesystems/dnd5e/skills.ts`
+Skill and stat definitions for the UI layer. Intentionally duplicated from `shared/database/dbapi/read/dnd5e/skills.ts` — `@core/ui` and `@core/database` cannot cross-depend.
+
+**Exports:** `SKILL_ABILITY`, `ALL_SKILLS`, `ALL_STATS`, `STAT_ABBR`, `SKILL_DISPLAY`, `MOOD_EMOJIS`, `proficiencyBonus`, `abilityModifier`
+
+**Used by:** `Dnd5eSkillsPanel.svelte`, `Dnd5eCharacterDetails.svelte`, `MoodEditor.svelte`, `Dnd5eCharacterSheet.svelte`, `Dnd5eCharacterCard.svelte`
+
+---
+
+### `shared/database/dbapi/read/dnd5e/skills.ts`
+DB-layer skill and stat definitions. Intentionally duplicated from `shared/ui/src/gamesystems/dnd5e/skills.ts`.
+
+**Exports:** `SKILL_ABILITY`, `ALL_SKILLS`, `ALL_STATS`, `STAT_ABBR`, `SKILL_DISPLAY`, `proficiencyBonus`, `abilityModifier`
+
+**Used by:** `shared/database/dbapi/read/dnd5e/get-character-sheet.ts`
+
+---
 
 ### `shared/ui/src/gamesystems/dnd5e/feature-names.ts`
 **Exports:** `isAsiFeatureName`, `isEpicBoonFeatureName`, `normalizeFeatureName`
