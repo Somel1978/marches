@@ -162,13 +162,14 @@ export const adminDnd5eActions = {
 		if (!skill) return fail(400, { message: 'Skill required.' });
 		try {
 			if (proficiency === 'NONE') {
-				await dnd5e.removeOverrideSkillGrant(params.id, skill, 'Admin');
+				await dnd5e.removeOverrideSkillGrant(params.id, skill);
 			} else {
 				const value = ({ 'HALF_PROFICIENT': 0.5, 'PROFICIENT': 1.0, 'EXPERT': 2.0 } as Record<string,number>)[proficiency] ?? 1.0;
-				await dnd5e.upsertOverrideSkillGrant(params.id, skill, value, 'Admin', note);
+				await dnd5e.upsertOverrideSkillGrant(params.id, skill, value, note);
 			}
 			return { success: true };
 		} catch (e) {
+			console.error('[saveSkills] ERROR', e);
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;
 		}
@@ -186,9 +187,9 @@ export const adminDnd5eActions = {
 		if (!stat) return fail(400, { message: 'Stat required.' });
 		try {
 			if (action === 'clear') {
-				await dnd5e.removeOverrideSavingThrowGrant(params.id, stat, 'Admin');
+				await dnd5e.removeOverrideSavingThrowGrant(params.id, stat);
 			} else {
-				await dnd5e.upsertOverrideSavingThrowGrant(params.id, stat, proficient, 'Admin', note);
+				await dnd5e.upsertOverrideSavingThrowGrant(params.id, stat, proficient, note);
 			}
 			return { success: true };
 		} catch (e) {

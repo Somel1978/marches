@@ -263,10 +263,10 @@ export const dnd5eActions = {
 		const note       = data.get('note')?.toString().trim() || null;
 		if (!skill) return fail(400, { message: 'Skill required.' });
 		if (proficiency === 'NONE') {
-			await dnd5e.removeOverrideSkillGrant(params.id, skill, 'Player');
+			await dnd5e.removeOverrideSkillGrant(params.id, skill);
 		} else {
 			const value = { 'HALF_PROFICIENT': 0.5, 'PROFICIENT': 1.0, 'EXPERT': 2.0 }[proficiency] ?? 1.0;
-			await dnd5e.upsertOverrideSkillGrant(params.id, skill, value, 'Player', note);
+			await dnd5e.upsertOverrideSkillGrant(params.id, skill, value, note);
 		}
 		return { success: true };
 	},
@@ -282,9 +282,9 @@ export const dnd5eActions = {
 		const note       = data.get('note')?.toString().trim() || null;
 		if (!stat) return fail(400, { message: 'Stat required.' });
 		if (action === 'clear') {
-			await dnd5e.removeOverrideSavingThrowGrant(params.id, stat, 'Player');
+			await dnd5e.removeOverrideSavingThrowGrant(params.id, stat);
 		} else {
-			await dnd5e.upsertOverrideSavingThrowGrant(params.id, stat, proficient, 'Player', note);
+			await dnd5e.upsertOverrideSavingThrowGrant(params.id, stat, proficient, note);
 		}
 		return { success: true };
 	},

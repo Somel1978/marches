@@ -481,7 +481,7 @@
 			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
 			if (!feat?.grantsSavingThrows) return [];
 			return feat.grantsSavingThrows.split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean)
-				.map((stat: string) => ({ stat, sourceName: feat.name }));
+				.map((stat: string) => ({ stat, sourceName: feat.name, sourceType: 'Feat', sourceId: feat.id }));
 		})
 	);
 
@@ -490,16 +490,20 @@
 		classAllocs.flatMap(alloc => {
 			const cls = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
 			if (!cls) return [];
+			// Exclude stats this class already grants via its base savingThrows junction —
+			// prevents feature data duplicating what the class junction already covers.
+			const thisClassBaseSaves = new Set((cls.savingThrows ?? []).map((s: any) => s.stat as string));
 			const allFeatures = [
-				...(cls.features ?? []).map((f: any) => ({ ...f, sourceName: cls.name })),
+				...(cls.features ?? []).map((f: any) => ({ ...f, sourceName: cls.name, sourceType: 'ClassFeature' })),
 				...(cls.subclasses ?? []).filter((s: any) => s.id === alloc.subclassId)
-					.flatMap((s: any) => (s.features ?? []).map((f: any) => ({ ...f, sourceName: s.name }))),
+					.flatMap((s: any) => (s.features ?? []).map((f: any) => ({ ...f, sourceName: s.name, sourceType: 'SubclassFeature' }))),
 			];
 			return allFeatures
 				.filter((f: any) => f.requiredLevel <= alloc.allocatedLevel && f.grantsSavingThrows)
 				.flatMap((f: any) =>
 					f.grantsSavingThrows.split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean)
-						.map((stat: string) => ({ stat, sourceName: `${f.sourceName}: ${f.name}` }))
+						.filter((stat: string) => !thisClassBaseSaves.has(stat)) // skip if already in class junction
+						.map((stat: string) => ({ stat, sourceName: `${f.sourceName}: ${f.name}`, sourceType: f.sourceType, sourceId: f.id }))
 				);
 		})
 	);
@@ -540,7 +544,8 @@
 			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
 			if (!feat?.savingThrowChoiceCount || !feat?.savingThrowChoicePool) return [];
 			const pool = feat.savingThrowChoicePool.split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean);
-			return [{ sourceId: `${sourceKey}-saves`, label: feat.name, count: feat.savingThrowChoiceCount, pool }];
+			// poolKey is used for chosenSavePools state; sourceId is the feat UUID written to the DB
+			return [{ sourceId: `${sourceKey}-saves`, sourceDbId: feat.id, sourceType: 'Feat', label: feat.name, count: feat.savingThrowChoiceCount, pool }];
 		})
 	);
 
@@ -556,7 +561,8 @@
 			return allFeatures
 				.filter((f: any) => f.requiredLevel <= alloc.allocatedLevel && f.savingThrowChoiceCount && f.savingThrowChoicePool)
 				.map((f: any) => ({
-					sourceId: `${f.id}-saves`,
+					sourceId:   `${f.id}-saves`,  // pool tracking key
+					sourceDbId: f.id,             // actual feature UUID written to DB
 					label: `${f.sourceName}: ${f.name} (level ${f.requiredLevel})`,
 					count: f.savingThrowChoiceCount,
 					pool: f.savingThrowChoicePool.split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean),
@@ -569,14 +575,16 @@
 		const bg = selectedBackground as any;
 		if (!bg?.savingThrowChoiceCount || !bg?.savingThrowChoicePool) return [];
 		const pool = bg.savingThrowChoicePool.split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean);
-		return [{ sourceId: 'bg-saves', label: selectedBackground?.name ?? 'Background', count: bg.savingThrowChoiceCount, pool }];
+		return [{ sourceId: 'bg-saves', sourceDbId: (selectedBackground as any)?.id ?? null, sourceType: 'Background', label: selectedBackground?.name ?? 'Background', count: bg.savingThrowChoiceCount, pool }];
 	});
 
 	const speciesSaveChoices = $derived(
 		(selectedSpecies?.traits ?? []).filter((t: any) =>
 			t.savingThrowChoiceCount && t.savingThrowChoicePool && (t.requiredLevel ?? 1) <= 1
 		).map((t: any) => ({
-			sourceId: `${t.id}-saves`,
+			sourceId:   `${t.id}-saves`,
+			sourceDbId: t.id,
+			sourceType: 'SpeciesTrait',
 			label: `${selectedSpecies?.name}: ${t.name}`,
 			count: t.savingThrowChoiceCount,
 			pool: t.savingThrowChoicePool.split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean),
@@ -1965,14 +1973,20 @@
 					<input type="hidden" name="autoSkillValue"  value="0.5" />
 				{/each}
 				{#each classSavingThrows as stat}
-					<input type="hidden" name="classSave" value={stat} />
+					<input type="hidden" name="classSave"           value={stat} />
+					<input type="hidden" name="classSaveSourceType" value="Class" />
+					<input type="hidden" name="classSaveSourceId"   value="" />
 				{/each}
-				{#each extraSavingThrows as { stat }}
-					<input type="hidden" name="classSave" value={stat} />
+				{#each extraSavingThrows as sv}
+					<input type="hidden" name="classSave"           value={sv.stat} />
+					<input type="hidden" name="classSaveSourceType" value={sv.sourceType ?? 'Feat'} />
+					<input type="hidden" name="classSaveSourceId"   value={sv.sourceId ?? ''} />
 				{/each}
 				{#each allSaveChoices as sc}
 					{#each (chosenSavePools[sc.sourceId] ?? []) as stat}
-						<input type="hidden" name="classSave" value={stat} />
+						<input type="hidden" name="classSave"           value={stat} />
+						<input type="hidden" name="classSaveSourceType" value={sc.sourceType ?? 'PlayerChoice'} />
+						<input type="hidden" name="classSaveSourceId"   value={sc.sourceDbId ?? sc.sourceId ?? ''} />
 					{/each}
 				{/each}
 				<!-- Background choice pool picks -->

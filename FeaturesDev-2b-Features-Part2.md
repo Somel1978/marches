@@ -513,3 +513,43 @@ subclassName      String    @default("")   // denormalized
 **Fix:** `worldId` now resolved via `regionId → db.region.worldId` before calling the availability query.
 
 **File:** `apps/frontend/src/routes/(protected)/dm/quests/[id]/+page.server.ts`
+---
+
+### 37. Skill & Saving Throw Override System ✅
+
+**Overview:** DMs and Admins can manually override any character's skill proficiency or saving throw proficiency directly from the character sheet. The override is tracked as a single row with an optional note recording who changed it and why. Removing the override restores the natural grants from class, background, species, feats, etc.
+
+**Grant model:**
+- `Dnd5eCharacterSkillGrant` — multiple rows per skill (one per source). `sourceType` identifies origin: `Background`, `Class`, `ClassFeature`, `SubclassFeature`, `SpeciesTrait`, `Feat`, `PlayerChoice`, `Override`. `sourceId` is the UUID of the granting entity (null for junction-based rows). `note` stores audit text on Override rows.
+- `Dnd5eCharacterSavingThrowGrant` — same pattern. `sourceId = '__SUPPRESS__'` forces non-proficient even if other sources grant it.
+- Effective skill value = MAX across all non-Override source rows; a single Override row replaces the MAX entirely.
+- Override rows keyed by `sourceType = 'Override'` — only one per skill per character. Remove also sweeps legacy `Player/DM/Admin` rows from earlier implementations.
+
+**UI — `Dnd5eSkillsPanel.svelte`:**
+- Click a skill row → inline editor opens below the grid showing: skill name, "Manual Override" amber badge, context hint (current value + note + "Setting to None restores natural grants"), four proficiency buttons (None / Half / Prof / Expert) pre-selected from current override, optional note field, Save / Cancel.
+- Click same row again or Cancel → closes without saving.
+- Enter in note field → commits.
+- Saving throw editor: click a stat cell → inline editor with proficient toggle + note + Save/Cancel.
+- Tooltip (`title`) on every skill/save cell shows resolved source names: "Ranger: Natural Explorer: Proficient | Background: Outlander: Proficient". Override tooltip shows "Manual override: Expert | Note: ... | Natural grants: ...".
+- Orange `●` dot on skill name / save stat when an active Override row exists (edit mode only).
+
+**Prop chain:** `canEdit` + `onToggleSkill(skill, proficiency, note?)` + `onToggleSave(stat, proficient, note?)` → `Dnd5eCharacterSheet` → `Dnd5eSkillsPanel`. Actions: `saveSkills` (admin/DM/player `dnd5e.actions.server.ts`) → `dnd5e.upsertOverrideSkillGrant` / `dnd5e.removeOverrideSkillGrant`.
+
+**Source label resolution in `get-character-sheet.ts`:**
+- Builds `sourceLabels` map from already-loaded data: background, species traits, class features, subclass features, feats — mapping UUIDs to readable strings like `"Ranger: Natural Explorer"`.
+- `sourceTypeFallback` handles null-sourceId rows: `Background` → background name, `Class` → class name + "(class saves)", `PlayerChoice` → "Class skill choice", etc.
+- `resolveGrantLabel(g)` used for both skill `grantSources` and saving throw `grantSources`.
+
+---
+
+### 38. Character Creation Wizard — Saving Throw Grant Fixes ✅
+
+**Problem 1 — Wrong sourceType:** All saving throw grants were written with `sourceType: 'Class', sourceId: null` regardless of actual origin (feat, class feature, background choice pool, etc.). Tooltip showed "Class skill choice" for Resilient.
+
+**Fix:** Wizard form now submits three parallel fields per save grant — `classSave`, `classSaveSourceType`, `classSaveSourceId`. Each source category carries its own `sourceType` and `sourceId`/`sourceDbId` (real entity UUID). Save choice pools carry both `sourceId` (composite pool-tracking key like `'asi-feat-0-saves'`) and `sourceDbId` (the actual feat/feature UUID written to DB).
+
+**Problem 2 — Multiclass save leakage:** `featureAutoSaves` iterated all `classAllocs`, so a second class's features with `grantsSavingThrows` could sneak saves through even when they duplicate that class's own junction table.
+
+**Fix:** `featureAutoSaves` now filters each feature's `grantsSavingThrows` against `thisClassBaseSaves` — the set of stats already in that class's own `savingThrows` junction — before emitting grants. Only genuinely additional saves (not covered by the class junction) pass through.
+
+**Files:** `apps/frontend/src/routes/(protected)/characters/new/dnd5e/+page.svelte`, `+page.server.ts`

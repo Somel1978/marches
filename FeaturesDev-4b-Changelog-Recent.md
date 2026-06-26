@@ -790,3 +790,28 @@
 - `shared/ui/styles/components/site.css` — `.nav-section-label` `min-height: 44px` for accessibility touch target compliance
 
 **Note:** `AppShell.svelte` now imports `afterNavigate` from `$app/navigation` — a pragmatic exception to the no-SvelteKit-imports rule in `@core/ui`. AppShell is inherently tied to SvelteKit's routing model and the mobile UX fix requires it.
+### Session 78 — Skill & Saving Throw Override System + Wizard Save Grant Fixes (2026-06-26)
+
+**Skill/Saving Throw Override — Root Cause & Fix**
+- Root cause of "stuck at Expertise" bug: multiple override rows per skill (one per role — Player/DM/Admin) meant removing one role's row left another role's stale row still winning the MAX aggregation. Also, the original alpha code used `sourceId: 'dm-manual-SKILL'` for delete but `sourceId: null` on create, so the delete never matched.
+- `shared/database/dbapi/write/dnd5e/skills.ts` — replaced Player/DM/Admin multi-row approach with single `sourceType: 'Override'` row per skill per character. `upsertOverrideSkillGrant` and `removeOverrideSkillGrant` no longer take a role argument. Remove also sweeps legacy `Player/DM/Admin` rows for backwards compatibility. Same pattern applied to `upsertOverrideSavingThrowGrant` / `removeOverrideSavingThrowGrant`.
+- `shared/database/dbapi/read/dnd5e/get-character-sheet.ts` — aggregation simplified to `OVERRIDE_TYPES = {'Override', 'Player', 'DM', 'Admin'}` set treated identically. Exposes `overrideValue`, `overrideNote`, `grantSources` on each enriched skill and `hasOverride`, `overrideNote`, `grantSources` on each enriched saving throw. Builds `sourceLabels` map from already-loaded data (background, species/traits, class features, subclass features, feats) resolving UUIDs to readable names. `sourceTypeFallback` handles null-sourceId rows (Background, Class, PlayerChoice). `resolveGrantLabel` used for both skill and saving throw grant sources.
+- Three `dnd5e.actions.server.ts` files (admin, player, DM) — role argument removed from all `upsertOverrideSkillGrant`, `removeOverrideSkillGrant`, `upsertOverrideSavingThrowGrant`, `removeOverrideSavingThrowGrant` call sites.
+
+**Skill/Saving Throw Override — UX**
+- `shared/ui/src/gamesystems/dnd5e/Dnd5eSkillsPanel.svelte` — full rewrite of interaction model: replaced click-to-cycle + window.prompt with click-to-open inline editor. Clicking a skill row opens an editor panel below the grid showing the skill name, four proficiency buttons (None/Half/Prof/Expert) pre-selected from current override value, optional note field, and Save/Cancel. Clicking same row or Cancel closes without saving. Enter commits. One DB write per deliberate save, one audit record.
+- Saving throw editor: click a save cell to open inline editor with proficient toggle + note + Save/Cancel.
+- Tooltip (`title`) on every skill row shows grant sources — for overrides: "Manual override: Expert | Note: ... | Natural grants: Ranger: Natural Explorer (Proficient)"; for natural grants: lists all sources with proficiency level. Same tooltip on saving throw cells.
+- "Manual Override" amber badge in editor header. Context hint explains current value, note, and that setting None restores natural grants.
+- Orange `●` superscript on skill name (and save stat) when an active override exists, only visible in edit mode.
+
+**`approve-character.ts` — sourceType bug fix**
+- `'ClassFeature' in f` check was always `false` (plain DB object, not a typed instance) so all features got `sourceType: 'SubclassFeature'`. Fixed by tagging each array before merging: `features.map(f => ({ ...f, sourceType: 'ClassFeature' }))` and `subclassFeatures.map(f => ({ ...f, sourceType: 'SubclassFeature' }))`.
+
+**Character Creation Wizard — Saving Throw Grant Fixes**
+- `apps/frontend/src/routes/(protected)/characters/new/dnd5e/+page.svelte`:
+  - `featureAutoSaves` now filters each feature's `grantsSavingThrows` against `thisClassBaseSaves` (the class's own junction table stats) — prevents class feature data duplicating what the class junction already covers, and prevents multiclass second-class features sneaking in saves they shouldn't grant.
+  - `featureAutoSaves` and `featAutoSaves` now carry `sourceType` and `sourceId` on each item.
+  - All save choice pools (`featSaveChoices`, `featureSaveChoices`, `bgSaveChoices`, `speciesSaveChoices`) now carry both `sourceId` (composite pool tracking key for `chosenSavePools` state) and `sourceDbId` (real UUID written to DB).
+  - Form hidden inputs now submit three fields per save grant: `classSave`, `classSaveSourceType`, `classSaveSourceId` — so Resilient (Feat + feat UUID), class feature saves (ClassFeature + feature UUID), and class junction saves (Class + null) are properly distinguished.
+- `apps/frontend/src/routes/(protected)/characters/new/dnd5e/+page.server.ts` — reads parallel arrays `classSaveSourceType` and `classSaveSourceId`; each grant written with correct `sourceType` and `sourceId` instead of always `sourceType: 'Class', sourceId: null`. Tooltip now correctly shows "Feat: Resilient" instead of "Class skill choice".

@@ -16,11 +16,14 @@ async function applyClassFeatureGrants(characterId: string) {
             where: { subclassId: cc.subclassId, requiredLevel: { lte: cc.allocatedLevel } },
         }) : [];
 
-        const allFeatures = [...features, ...subclassFeatures];
+        const allFeatures = [
+            ...features.map(f => ({ ...f, sourceType: 'ClassFeature' as const })),
+            ...subclassFeatures.map(f => ({ ...f, sourceType: 'SubclassFeature' as const })),
+        ];
 
         for (const f of allFeatures) {
-            const sourceId = f.id;
-            const sourceType = 'ClassFeature' in f ? 'ClassFeature' : 'SubclassFeature';
+            const sourceId   = f.id;
+            const sourceType = f.sourceType;
 
             // Remove existing grants from this feature (handles level-down cleanly)
             await db.dnd5eCharacterSkillGrant.deleteMany({ where: { characterId, sourceId } });

@@ -154,3 +154,13 @@
 - Marketplace item detail field labels now use accent colour — FIXED (label-accent class)
 - Mobile drawer stays open after navigation — FIXED (afterNavigate in AppShell)
 - Section toggle buttons below 44px touch target — FIXED
+## Session 78 Completed
+- Skill/save override stuck at Expertise — FIXED (single Override sourceType replaces Player/DM/Admin multi-row; remove sweeps all legacy rows)
+- window.prompt on skill edit — REPLACED with inline editor (proficiency buttons + note field + Save/Cancel)
+- Skill/save tooltip showing grant sources (Background, Species trait, Class feature, Subclass feature, Feat) — NEW
+- "Manual Override" badge + context hint in inline editor — NEW
+- Orange dot indicator on overridden skills/saves — NEW
+- `approve-character.ts` always writing `sourceType: 'SubclassFeature'` for class features — FIXED
+- Wizard saving throws: Resilient showing as "Class skill choice" — FIXED (sourceDbId carries feat UUID to DB)
+- Wizard saving throws: multiclass second-class features leaking saves — FIXED (filter against thisClassBaseSaves)
+- Wizard saving throws: all saves written as sourceType: 'Class' — FIXED (each grant now carries correct sourceType + sourceId)

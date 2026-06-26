@@ -13,6 +13,7 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         db.dnd5eCharacterSavingThrowGrant.findMany({ where: { characterId } }),
     ]);
 
+
     if (!sheet && !classes.length) return null;
 
     // Clean up duplicate orphan rows (same featId, no sourceClassId) — keep only one per featId
@@ -168,68 +169,101 @@ export async function getDnd5eCharacterSheet(characterId: string) {
 
     const pb = proficiencyBonus(totalLevel);
 
-    // ── Skills — grant log, effective = MAX(value), overrides take priority ───
-    // Override priority: Admin > DM > Player. Each role can hold its own override row.
-    // All grants remain tracked rows; when a feature/feat is removed at level-down,
-    // its grant row is deleted via the standard cleanup flow.
-    const OVERRIDE_PRIORITY = { Player: 1, DM: 2, Admin: 3 } as const;
+    // ── Skills — source grants MAX(value); single Override row wins outright ─────
+    // Legacy sourceTypes Player/DM/Admin treated same as Override for back-compat.
+    const OVERRIDE_TYPES = new Set(['Override', 'Player', 'DM', 'Admin']);
     const effectiveSkillValue = new Map<string, number>();
-    const overrideSkillValue  = new Map<string, { value: number; priority: number }>();
+    const overrideSkillGrant  = new Map<string, any>(); // skill → grant row
     for (const grant of skillGrants) {
         const st = (grant as any).sourceType as string;
-        if (st === 'Player' || st === 'DM' || st === 'Admin') {
-            const priority = OVERRIDE_PRIORITY[st as keyof typeof OVERRIDE_PRIORITY];
-            const cur      = overrideSkillValue.get(grant.skill as string);
-            if (!cur || priority > cur.priority) {
-                overrideSkillValue.set(grant.skill as string, { value: grant.value as number, priority });
-            }
+        if (OVERRIDE_TYPES.has(st)) {
+            overrideSkillGrant.set(grant.skill as string, grant);
             continue;
         }
         const cur = effectiveSkillValue.get(grant.skill as string) ?? 0;
         if ((grant.value as number) > cur) effectiveSkillValue.set(grant.skill as string, grant.value as number);
     }
-    // Highest-priority override (if any) replaces the MAX
-    for (const [skill, { value }] of overrideSkillValue) {
-        effectiveSkillValue.set(skill, value);
+    // Override replaces source MAX entirely
+    for (const [skill, grant] of overrideSkillGrant) {
+        effectiveSkillValue.set(skill, grant.value as number);
+    }
+
+    // Build sourceId → label map for tooltip display (feature/trait/feat UUID → readable name)
+    const sourceLabels = new Map<string, string>();
+    if (backgroundRecord) {
+        sourceLabels.set((backgroundRecord as any).id, `Background: ${(backgroundRecord as any).name}`);
+    }
+    if (speciesRecord) {
+        sourceLabels.set((speciesRecord as any).id, `Species: ${(speciesRecord as any).name}`);
+        for (const t of (speciesRecord as any).traits ?? []) {
+            sourceLabels.set(t.id, `${(speciesRecord as any).name} — ${t.name}`);
+        }
+    }
+    for (const cc of enrichedClasses) {
+        for (const f of cc.classFeatures    ?? []) sourceLabels.set(f.id, `${cc.classRef?.name ?? 'Class'}: ${f.name}`);
+        for (const f of cc.subclassFeatures ?? []) sourceLabels.set(f.id, `${cc.subclassRef?.name ?? 'Subclass'}: ${f.name}`);
+    }
+    for (const cf of chosenFeats) {
+        const name = cf.feat?.name ?? null;
+        if (name && cf.featId) sourceLabels.set(cf.featId, `Feat: ${name}`);
+    }
+
+    // Fallback labels for sourceTypes that have no sourceId
+    const sourceTypeFallback: Record<string, string> = {
+        Background:      backgroundRecord ? `Background: ${(backgroundRecord as any).name}` : 'Background',
+        Class:           enrichedClasses[0]?.classRef?.name ? `${enrichedClasses[0].classRef.name} (class saves)` : 'Class',
+        PlayerChoice:    'Class skill choice',
+        SpeciesTrait:    speciesRecord ? `Species: ${(speciesRecord as any).name}` : 'Species trait',
+        ClassFeature:    'Class feature',
+        SubclassFeature: 'Subclass feature',
+        Feat:            'Feat',
+    };
+
+    function resolveGrantLabel(g: any): string {
+        if (g.sourceId && sourceLabels.has(g.sourceId)) return sourceLabels.get(g.sourceId)!;
+        return sourceTypeFallback[g.sourceType] ?? g.sourceType;
     }
 
     const enrichedSkills = ALL_SKILLS.map(skill => {
-        const value    = effectiveSkillValue.get(skill) ?? 0;
+        const value         = effectiveSkillValue.get(skill) ?? 0;
+        const overrideGrant = overrideSkillGrant.get(skill) ?? null;
+        const overrideValue = overrideGrant ? (overrideGrant.value as number) : null; // null = no override
+        const overrideNote  = overrideGrant ? (overrideGrant.note as string | null) : null;
         const ability  = SKILL_ABILITY[skill];
         const scoreRow = abilityScores.find((a: any) => a.stat === ability);
         const abilMod  = abilityModifier(scoreRow?.baseScore ?? 10);
         const modifier = abilMod + Math.floor(pb * value);
-        const sources  = [...new Set((skillGrants as any[]).filter(g => g.skill === skill).map(g => g.sourceType))];
-        return { skill, ability, value, modifier, sources };
+        // Source grants for tooltip — all non-override rows, resolved to human labels
+        const grantSources = (skillGrants as any[])
+            .filter(g => g.skill === skill && !OVERRIDE_TYPES.has(g.sourceType))
+            .map(g => ({ label: resolveGrantLabel(g), value: g.value as number }));
+        return { skill, ability, value, overrideValue, overrideNote, modifier, grantSources };
     });
 
-    // ── Saving throws — proficient if any grant row exists, overrides take priority ──
-    // Override priority: Admin > DM > Player. A row alone makes proficient.
-    // sourceId === '__SUPPRESS__' forces non-proficient even if other sources grant it.
+    // ── Saving throws — Override row wins; sourceId='__SUPPRESS__' = not proficient ──
     const otherProfStats = new Set(
         (saveGrants as any[])
-            .filter(g => g.sourceType !== 'Player' && g.sourceType !== 'DM' && g.sourceType !== 'Admin')
+            .filter(g => !OVERRIDE_TYPES.has(g.sourceType))
             .map(g => g.stat)
     );
-    const overrideProf = new Map<string, { proficient: boolean; priority: number }>();
+    const overrideProf = new Map<string, boolean>(); // stat → proficient
     for (const grant of saveGrants as any[]) {
-        const st = grant.sourceType as string;
-        if (st === 'Player' || st === 'DM' || st === 'Admin') {
-            const priority   = OVERRIDE_PRIORITY[st as keyof typeof OVERRIDE_PRIORITY];
-            const proficient = grant.sourceId !== '__SUPPRESS__';
-            const cur        = overrideProf.get(grant.stat);
-            if (!cur || priority > cur.priority) {
-                overrideProf.set(grant.stat, { proficient, priority });
-            }
+        if (OVERRIDE_TYPES.has(grant.sourceType as string)) {
+            overrideProf.set(grant.stat, grant.sourceId !== '__SUPPRESS__');
         }
     }
     const enrichedSavingThrows = ALL_STATS.map(stat => {
-        const proficient = overrideProf.has(stat) ? overrideProf.get(stat)!.proficient : otherProfStats.has(stat);
-        const scoreRow   = abilityScores.find((a: any) => a.stat === stat);
-        const abilMod    = abilityModifier(scoreRow?.baseScore ?? 10);
-        const modifier   = abilMod + (proficient ? pb : 0);
-        const sources    = [...new Set((saveGrants as any[]).filter(g => g.stat === stat).map(g => g.sourceType))];
-        return { stat, proficient, modifier, sources };
+        const proficient    = overrideProf.has(stat) ? overrideProf.get(stat)! : otherProfStats.has(stat);
+        const overrideGrant = (saveGrants as any[]).find(g => g.stat === stat && OVERRIDE_TYPES.has(g.sourceType)) ?? null;
+        const overrideNote  = overrideGrant ? (overrideGrant.note as string | null) : null;
+        const scoreRow      = abilityScores.find((a: any) => a.stat === stat);
+        const abilMod       = abilityModifier(scoreRow?.baseScore ?? 10);
+        const modifier      = abilMod + (proficient ? pb : 0);
+        const grantSources  = (saveGrants as any[])
+            .filter(g => g.stat === stat && !OVERRIDE_TYPES.has(g.sourceType))
+            .map(g => ({ label: resolveGrantLabel(g) }));
+        const hasOverride   = overrideGrant !== null;
+        return { stat, proficient, modifier, overrideNote, grantSources, hasOverride };
     });
 
     const passivePerception = 10 + (enrichedSkills.find(s => s.skill === 'PERCEPTION')?.modifier ?? 0);

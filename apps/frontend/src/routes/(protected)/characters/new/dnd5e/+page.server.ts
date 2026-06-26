@@ -165,11 +165,15 @@ export const actions: Actions = {
 			}
 			if (allSkillGrants.length) await dnd5e.addSkillGrants(character.id, allSkillGrants);
 
-			// Save saving throw proficiencies from class
-			const classSaves = data.getAll('classSave').map(v => v.toString()).filter(Boolean);
+			// Save saving throw proficiencies — each has its own sourceType and sourceId
+			const classSaves       = data.getAll('classSave').map(v => v.toString()).filter(Boolean);
+			const classSaveTypes   = data.getAll('classSaveSourceType').map(v => v.toString());
+			const classSaveIds     = data.getAll('classSaveSourceId').map(v => v.toString());
 			if (classSaves.length) {
-				await dnd5e.addSavingThrowGrants(character.id, classSaves.map(stat => ({
-					stat, sourceType: 'Class', sourceId: null,
+				await dnd5e.addSavingThrowGrants(character.id, classSaves.map((stat, i) => ({
+					stat,
+					sourceType: classSaveTypes[i] || 'Class',
+					sourceId:   classSaveIds[i]   || null,
 				})));
 			}
 

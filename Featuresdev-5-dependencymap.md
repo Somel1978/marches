@@ -188,6 +188,11 @@
 
 ### `shared/database/dbapi/read/dnd5e/get-character-sheet.ts`
 **Exports:** `getDnd5eCharacterSheet`
+Returns enriched character sheet including:
+- `skills[]` — `{ skill, ability, value, overrideValue, overrideNote, grantSources, modifier }` per skill; `overrideValue` null if no manual override; `grantSources` resolved to human labels (Background name, feature name, feat name, etc.)
+- `savingThrows[]` — `{ stat, proficient, hasOverride, overrideNote, grantSources, modifier }` per stat
+- `pendingChoices[]` — unresolved skill/save choice pools from features
+- Source label resolution: builds `sourceLabels` map from loaded background/species/features/feats; `sourceTypeFallback` handles null-sourceId rows (Class, PlayerChoice, etc.)
 
 **Called by:**
 - `shared/database/index.ts` — uses `getDnd5eCharacterSheet`
@@ -221,6 +226,7 @@
 
 ### `shared/database/dbapi/write/dnd5e/approve-character.ts`
 **Exports:** `approveDnd5eCharacter`, `rejectDnd5eCharacter`
+Contains `applyClassFeatureGrants(characterId)` — iterates all character classes, applies `grantsSkills`/`grantsExpertise`/`grantsHalfSkills`/`grantsSavingThrows` from class and subclass features up to `allocatedLevel`. Features tagged with correct `sourceType` ('ClassFeature' or 'SubclassFeature') before merging — fixed bug where all features previously got 'SubclassFeature'.
 
 **Called by:**
 - `shared/database/dbapi/write/characters/approve.ts` — uses `approveDnd5eCharacter`, `rejectDnd5eCharacter`
@@ -249,6 +255,20 @@
 
 **Called by:**
 - `shared/database/index.ts` — uses `createDnd5eFeat`, `updateDnd5eFeat`, `deleteDnd5eFeat`
+
+### `shared/database/dbapi/write/dnd5e/skills.ts`
+**Exports:** `addCharacterSkillGrants`, `removeCharacterSkillGrantsBySource`, `replaceCharacterSkillGrants`, `upsertOverrideSkillGrant`, `removeOverrideSkillGrant`, `upsertDmSkillGrant` (back-compat), `addCharacterSavingThrowGrants`, `removeCharacterSavingThrowGrantsBySource`, `upsertOverrideSavingThrowGrant`, `removeOverrideSavingThrowGrant`
+
+Override pattern: single `sourceType='Override'` row per skill/stat per character. `upsertOverrideSkillGrant(characterId, skill, value, note?)` — findFirst + update or create. `removeOverrideSkillGrant(characterId, skill)` — deleteMany on Override + legacy Player/DM/Admin rows for back-compat. Same for saving throws; `__SUPPRESS__` sourceId forces non-proficient.
+
+**Called by:**
+- `shared/database/index.ts` — exports all functions on `dnd5e` namespace
+- `apps/admin/src/routes/(app)/characters/[id]/_sheets/dnd5e.actions.server.ts` — `saveSkills`, `saveSavingThrow` actions
+- `apps/frontend/src/routes/(protected)/characters/[id]/_sheets/dnd5e.actions.server.ts` — player skill/save actions
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/characters/[charId]/_sheets/dnd5e.actions.server.ts` — DM skill/save actions
+- `apps/frontend/src/routes/(protected)/characters/new/dnd5e/+page.server.ts` — character creation wizard
+- `shared/database/dbapi/write/dnd5e/approve-character.ts` — `applyClassFeatureGrants`
+- `shared/database/dbapi/write/dnd5e/update-character-feats.ts` — feat skill/save grants
 
 ### `shared/database/dbapi/write/dnd5e/score-audit.ts`
 **Exports:** `ScoreAuditInput`, `addScoreAuditEntries`, `addScoreAuditEntry`, `applyManualScoreAdjustment`

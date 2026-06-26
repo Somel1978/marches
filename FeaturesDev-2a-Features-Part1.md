@@ -102,11 +102,22 @@ Dnd5eFeat              — gameSystemId, name, description, snippet, categories,
                          asiAmount, asiStatFixed, asiStatChoices,
                          grantsSkills, grantsExpertise, grantsHalfSkills,
                          grantsSavingThrows, skillChoiceCount, skillChoicePool
-Dnd5eCharacterSkill    — characterId, skill Dnd5eSkillName,
+Dnd5eCharacterSkillGrant — characterId, skill Dnd5eSkillName,
                          value Float (0=none, 0.5=half, 1.0=proficient, 2.0=expertise),
-                         sources String (comma-sep sourceIds for grant tracking)
-Dnd5eCharacterSavingThrow — characterId, stat Dnd5eAbilityStat,
-                         isProficient Boolean, sourceId String, sourceType String
+                         sourceType String ("Background"|"ClassFeature"|"SubclassFeature"|
+                           "SpeciesTrait"|"Feat"|"PlayerChoice"|"Override"),
+                         sourceId String? (UUID of granting entity; null for class/player/override rows),
+                         note String? (free-text reason for Override rows — who changed it and why)
+                         — Multiple rows per skill per character (one per grant source).
+                         — Exactly one "Override" row allowed per skill; written by DM/Admin inline editor.
+                         — Effective value = MAX(source rows); Override row wins outright.
+Dnd5eCharacterSavingThrowGrant — characterId, stat String,
+                         sourceType String ("Class"|"ClassFeature"|"SubclassFeature"|
+                           "Feat"|"Background"|"SpeciesTrait"|"PlayerChoice"|"Override"),
+                         sourceId String? (UUID of granting entity; "__SUPPRESS__" forces non-proficient),
+                         note String? (free-text reason for Override rows)
+                         — A row's presence = proficient; sourceId="__SUPPRESS__" = forced not proficient.
+                         — Override row written by DM/Admin inline editor wins outright.
 ```
 
 **Key decisions:**
