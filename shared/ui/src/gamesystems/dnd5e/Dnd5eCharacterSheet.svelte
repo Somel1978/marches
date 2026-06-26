@@ -32,8 +32,12 @@
 		onRemoveSpellbookEntry,
 		onToggleSpellPrepared,
 		onSaveMood,
+		onSaveSize,
 		onToggleSkill,
 		onToggleSave,
+		onToggleTool,
+		onToggleLanguage,
+		onToggleDamageModifier,
 		onSaveDetails,
 		onSaveChoicePoolGrants,
 	}: {
@@ -61,8 +65,12 @@
 		onRemoveSpellbookEntry?:   (entryId: string) => Promise<void>;
 		onToggleSpellPrepared?:    (entryId: string, prepared: boolean) => Promise<void>;
 		onSaveMood?:               (emoji: string, text: string) => Promise<void>;
+		onSaveSize?:               (size: string) => Promise<void>;
 		onToggleSkill?:            (skill: string, next: 'NONE'|'HALF_PROFICIENT'|'PROFICIENT'|'EXPERT', note?: string) => Promise<void>;
 		onToggleSave?:             (stat: string, proficient: boolean, note?: string) => Promise<void>;
+		onToggleTool?:             (tool: string, active: boolean, note?: string) => Promise<void>;
+		onToggleLanguage?:         (language: string, active: boolean, note?: string) => Promise<void>;
+		onToggleDamageModifier?:   (modifierType: string, damageType: string, active: boolean, note?: string) => Promise<void>;
 		onSaveDetails?:            (details: Record<string, string | number | null>) => Promise<void>;
 		onSaveChoicePoolGrants?:   (opts: { skills: {skill:string;value:number;sourceType:string;sourceId:string}[]; saves: {stat:string;sourceType:string;sourceId:string}[] }) => Promise<void>;
 	} = $props();
@@ -578,6 +586,33 @@
 								{#each charSheet.speciesRef.traits as t}<span class="badge badge-muted" title={canViewDescriptions ? (t.description??'') : ''}>{t.name}</span>{/each}
 							</span>
 						{/if}
+						<!-- Size, Speed, Senses -->
+						{#if charSheet.sheet?.size || charSheet.traitSize || charSheet.traitSizeChoices || (charSheet.aggregatedSpeeds ?? []).length || charSheet.traitSenses}
+							<div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.25rem;">
+								{#if charSheet.sheet?.size}
+									<span class="badge badge-muted">Size: {charSheet.sheet.size}</span>
+								{:else if charSheet.traitSize}
+									<span class="badge badge-muted">Size: {charSheet.traitSize}</span>
+								{:else if charSheet.traitSizeChoices}
+									<span class="badge badge-warning" style="cursor:default;">Size: not chosen</span>
+								{/if}
+								{#if charSheet.traitSizeChoices && onSaveSize}
+									<div style="display:flex;gap:0.25rem;flex-wrap:wrap;margin-top:0.125rem;">
+										{#each charSheet.traitSizeChoices.split(',').map((s: string) => s.trim()).filter(Boolean) as opt}
+											<button type="button"
+												class="btn btn-sm {charSheet.sheet?.size === opt ? 'btn-primary' : 'btn-ghost'}"
+												onclick={() => onSaveSize!(opt)}>
+												{opt}
+											</button>
+										{/each}
+									</div>
+								{/if}
+								{#each (charSheet.aggregatedSpeeds ?? []) as sp}
+									<span class="badge badge-muted">{sp.movementType.charAt(0) + sp.movementType.slice(1).toLowerCase()}: {sp.speed} ft</span>
+								{/each}
+								{#if charSheet.traitSenses}<span class="badge badge-muted">👁 {charSheet.traitSenses}</span>{/if}
+							</div>
+						{/if}
 					</div>
 				{/if}
 				{#if charSheet.backgroundRef}
@@ -919,6 +954,34 @@
 		</div>
 	{/if}
 
+	<!-- ── Innate Spellcasting ───────────────────────────────────────── -->
+	{#if charSheet?.innateSpellbook?.entries?.length}
+		<div style="margin-top:1.5rem;">
+			<h3 class="section-title">Innate Spellcasting</h3>
+			<div class="card" style="margin-top:0.75rem;padding:0.875rem;">
+				<div style="display:flex;flex-direction:column;gap:0.375rem;">
+					{#each charSheet.innateSpellbook.entries as entry}
+						{@const sp = (systemData?.spells ?? []).find((s: any) => s.spellId === entry.spellId)}
+						{#if sp}
+							<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
+								<span style="font-weight:600;flex:1;min-width:140px;">{sp.name}</span>
+								<span class="badge badge-muted">{sp.level === 0 ? 'Cantrip' : `${sp.level}. level`}</span>
+								{#if entry.minCharLevel > 1}<span class="badge badge-muted">From Lv {entry.minCharLevel}</span>{/if}
+								{#if entry.usesPerDay === null}
+									<span class="badge badge-accent">At will</span>
+								{:else}
+									<span class="badge badge-accent">{entry.usesPerDay}/day</span>
+								{/if}
+								{#if entry.canUseSpellSlots}<span class="badge badge-muted">Can use slots</span>{/if}
+								{#if entry.sourceType}<span class="table__muted" style="font-size:0.75rem;">{entry.sourceType}</span>{/if}
+							</div>
+						{/if}
+					{/each}
+				</div>
+			</div>
+		</div>
+	{/if}
+
 	<!-- ── Skills & Saving Throws ──────────────────────────────────── -->
 	{#if (charSheet?.skills ?? []).length || (charSheet?.savingThrows ?? []).length}
 		<div style="margin-top:1.5rem;">
@@ -930,6 +993,80 @@
 					onToggleSkill={onToggleSkill}
 					onToggleSave={onToggleSave}
 				/>
+			</div>
+		</div>
+	{/if}
+
+	<!-- ── Tools & Languages ────────────────────────────────────────── -->
+	{#if (charSheet?.tools ?? []).length || (charSheet?.languages ?? []).length}
+		<div style="margin-top:1.5rem;">
+			<h3 class="section-title">Tools & Languages</h3>
+			<div class="card" style="margin-top:0.75rem;padding:0.875rem;">
+				{#if (charSheet?.tools ?? []).length}
+					<div style="margin-bottom:0.625rem;">
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin:0 0 0.375rem;">Tool Proficiencies</p>
+						<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+							{#each charSheet.tools as t}
+								<span class="badge badge-accent" title={t.grantSources?.map((g: any) => g.label).join(', ') || t.tool}>
+									{t.tool}
+									{#if canEdit && t.hasOverride}<span style="font-size:0.5rem;vertical-align:super;color:var(--color-warning);">●</span>{/if}
+								</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+				{#if (charSheet?.languages ?? []).length}
+					<div>
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin:0 0 0.375rem;">Languages</p>
+						<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+							{#each charSheet.languages as l}
+								<span class="badge badge-muted" title={l.grantSources?.map((g: any) => g.label).join(', ') || l.language}>
+									{l.language}
+									{#if canEdit && l.hasOverride}<span style="font-size:0.5rem;vertical-align:super;color:var(--color-warning);">●</span>{/if}
+								</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
+	<!-- ── Resistances, Immunities & Vulnerabilities ─────────────────── -->
+	{#if (charSheet?.resistances ?? []).length || (charSheet?.immunities ?? []).length || (charSheet?.vulnerabilities ?? []).length}
+		<div style="margin-top:1.5rem;">
+			<h3 class="section-title">Damage Modifiers</h3>
+			<div class="card" style="margin-top:0.75rem;padding:0.875rem;display:flex;flex-direction:column;gap:0.625rem;">
+				{#if (charSheet?.resistances ?? []).length}
+					<div>
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--color-success);margin:0 0 0.375rem;">Resistances</p>
+						<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+							{#each charSheet.resistances as r}
+								<span class="badge" style="background:rgba(39,174,96,0.15);color:var(--color-success);" title={r.grantSources?.map((g: any) => g.label).join(', ') || r.damageType}>{r.damageType}</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+				{#if (charSheet?.immunities ?? []).length}
+					<div>
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--accent-light);margin:0 0 0.375rem;">Immunities</p>
+						<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+							{#each charSheet.immunities as im}
+								<span class="badge badge-accent" title={im.grantSources?.map((g: any) => g.label).join(', ') || im.damageType}>{im.damageType}</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+				{#if (charSheet?.vulnerabilities ?? []).length}
+					<div>
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--color-danger);margin:0 0 0.375rem;">Vulnerabilities</p>
+						<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+							{#each charSheet.vulnerabilities as v}
+								<span class="badge" style="background:rgba(231,76,60,0.15);color:var(--color-danger);" title={v.grantSources?.map((g: any) => g.label).join(', ') || v.damageType}>{v.damageType}</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
 			</div>
 		</div>
 	{/if}

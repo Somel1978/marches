@@ -86,6 +86,9 @@ model Character {
   scoreAuditEntries  Dnd5eScoreAuditEntry[]
   skillGrants        Dnd5eCharacterSkillGrant[]
   savingThrowGrants  Dnd5eCharacterSavingThrowGrant[]
+  toolGrants         Dnd5eCharacterToolGrant[]
+  languageGrants     Dnd5eCharacterLanguageGrant[]
+  damageModifierGrants Dnd5eCharacterDamageModifierGrant[]
   transactions  CharacterTransaction[]
   inventory    CharacterInventory[]
   dnd5eSheet   Dnd5eCharacterSheet?

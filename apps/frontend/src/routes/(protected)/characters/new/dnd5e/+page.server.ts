@@ -76,6 +76,12 @@ export const actions: Actions = {
 				worldId,
 			}, locals.user!.id);
 
+			// Save chosen size to character sheet if applicable
+			const chosenSize = data.get('chosenSize')?.toString().trim() || null;
+			if (chosenSize) {
+				await dnd5e.updateFields(character.id, { size: chosenSize }, locals.user!.id);
+			}
+
 			// Save ability scores (scores already include bonus points from client)
 			await dnd5e.saveAbilityScores(character.id, scores as any);
 
@@ -174,6 +180,61 @@ export const actions: Actions = {
 					stat,
 					sourceType: classSaveTypes[i] || 'Class',
 					sourceId:   classSaveIds[i]   || null,
+				})));
+			}
+
+			// Save tool grants
+			const autoTools           = data.getAll('autoTool').map(v => v.toString()).filter(Boolean);
+			const autoToolSourceTypes = data.getAll('autoToolSourceType').map(v => v.toString());
+			const autoToolSourceIds   = data.getAll('autoToolSourceId').map(v => v.toString());
+			if (autoTools.length) {
+				await dnd5e.addToolGrants(character.id, autoTools.map((tool, i) => ({
+					tool,
+					sourceType: autoToolSourceTypes[i] || 'Background',
+					sourceId:   autoToolSourceIds[i]   || null,
+				})));
+			}
+
+			// Save language grants
+			const autoLangs           = data.getAll('autoLanguage').map(v => v.toString()).filter(Boolean);
+			const autoLangSourceTypes = data.getAll('autoLanguageSourceType').map(v => v.toString());
+			const autoLangSourceIds   = data.getAll('autoLanguageSourceId').map(v => v.toString());
+			if (autoLangs.length) {
+				await dnd5e.addLanguageGrants(character.id, autoLangs.map((language, i) => ({
+					language,
+					sourceType: autoLangSourceTypes[i] || 'Background',
+					sourceId:   autoLangSourceIds[i]   || null,
+				})));
+			}
+
+			// Save innate spell grants (background, species traits, feats — at creation)
+			// One hidden input group per source: innateSpellRaw + innateSpellSourceType + innateSpellSourceId
+			const innateRaws      = data.getAll('innateSpellRaw').map(v => v.toString()).filter(Boolean);
+			const innateSourceTs  = data.getAll('innateSpellSourceType').map(v => v.toString());
+			const innateSourceIds = data.getAll('innateSpellSourceId').map(v => v.toString());
+			if (innateRaws.length) {
+				const characterLevel = classes.reduce((s, c) => s + c.allocatedLevel, 0);
+				for (let i = 0; i < innateRaws.length; i++) {
+					const sourceId   = innateSourceIds[i] ?? '';
+					const sourceType = innateSourceTs[i]  ?? 'Background';
+					const grants = await dnd5e.parseAndFilterInnateSpells(
+						innateRaws[i], character.gameSystemId, characterLevel, sourceType, sourceId,
+					);
+					if (grants.length) await dnd5e.addInnateSpellGrants(character.id, grants);
+				}
+			}
+
+			// Save damage modifier grants
+			const dmgModTypes       = data.getAll('dmgModType').map(v => v.toString()).filter(Boolean);
+			const dmgModDamageTypes = data.getAll('dmgModDamageType').map(v => v.toString());
+			const dmgModSourceTypes = data.getAll('dmgModSourceType').map(v => v.toString());
+			const dmgModSourceIds   = data.getAll('dmgModSourceId').map(v => v.toString());
+			if (dmgModTypes.length) {
+				await dnd5e.addDamageModifierGrants(character.id, dmgModTypes.map((modifierType, i) => ({
+					modifierType: modifierType as 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY',
+					damageType:   dmgModDamageTypes[i] || '',
+					sourceType:   dmgModSourceTypes[i] || 'Background',
+					sourceId:     dmgModSourceIds[i]   || null,
 				})));
 			}
 

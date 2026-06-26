@@ -1,14 +1,15 @@
 // shared/database/dbapi/write/dnd5e/approve-character.ts
 import { db, Prisma } from '../../../index.ts';
+import { parseAndFilterInnateSpells, addInnateSpellGrants, removeInnateSpellGrantsBySource } from './innate-spells.ts';
 import { approveCharacter, rejectCharacter } from '../characters/approve.ts';
 
-// Apply auto-granted skills from class features for a character's current level allocation.
+// Apply auto-granted skills, saves, tools, languages, and damage modifiers
+// from class features for a character's current level allocation.
 // Called on approval after classes are updated.
-async function applyClassFeatureGrants(characterId: string) {
+async function applyClassFeatureGrants(characterId: string, characterLevel: number, gameSystemId: string) {
     const classes = await db.dnd5eCharacterClass.findMany({ where: { characterId } });
 
     for (const cc of classes) {
-        // Get all features for this class up to the character's allocated level
         const features = await db.dnd5eClassFeature.findMany({
             where: { classId: cc.classId, requiredLevel: { lte: cc.allocatedLevel } },
         });
@@ -28,23 +29,23 @@ async function applyClassFeatureGrants(characterId: string) {
             // Remove existing grants from this feature (handles level-down cleanly)
             await db.dnd5eCharacterSkillGrant.deleteMany({ where: { characterId, sourceId } });
             await db.dnd5eCharacterSavingThrowGrant.deleteMany({ where: { characterId, sourceId } });
+            await db.dnd5eCharacterToolGrant.deleteMany({ where: { characterId, sourceId } });
+            await db.dnd5eCharacterLanguageGrant.deleteMany({ where: { characterId, sourceId } });
+            await db.dnd5eCharacterDamageModifierGrant.deleteMany({ where: { characterId, sourceId } });
 
-            // Apply fixed skill grants
+            // ── Skill grants ──────────────────────────────────────────────────
             const skillGrants: { skill: string; value: number }[] = [];
             if ((f as any).grantsSkills) {
-                for (const s of (f as any).grantsSkills.split(',').filter(Boolean)) {
+                for (const s of (f as any).grantsSkills.split(',').filter(Boolean))
                     skillGrants.push({ skill: s.trim(), value: 1.0 });
-                }
             }
             if ((f as any).grantsExpertise) {
-                for (const s of (f as any).grantsExpertise.split(',').filter(Boolean)) {
+                for (const s of (f as any).grantsExpertise.split(',').filter(Boolean))
                     skillGrants.push({ skill: s.trim(), value: 2.0 });
-                }
             }
             if ((f as any).grantsHalfSkills) {
-                for (const s of (f as any).grantsHalfSkills.split(',').filter(Boolean)) {
+                for (const s of (f as any).grantsHalfSkills.split(',').filter(Boolean))
                     skillGrants.push({ skill: s.trim(), value: 0.5 });
-                }
             }
             if (skillGrants.length) {
                 await db.dnd5eCharacterSkillGrant.createMany({
@@ -52,7 +53,7 @@ async function applyClassFeatureGrants(characterId: string) {
                 });
             }
 
-            // Apply fixed saving throw grants
+            // ── Saving throw grants ───────────────────────────────────────────
             if ((f as any).grantsSavingThrows) {
                 const stats = (f as any).grantsSavingThrows.split(',').map((s: string) => s.trim()).filter(Boolean);
                 if (stats.length) {
@@ -62,8 +63,62 @@ async function applyClassFeatureGrants(characterId: string) {
                 }
             }
 
-            // Note: skillChoiceCount/skillChoicePool grants are stored at character creation/level-up
-            // via the wizard or level-up UI — not auto-applied here.
+            // ── Tool grants ───────────────────────────────────────────────────
+            if ((f as any).grantsTools) {
+                const tools = (f as any).grantsTools.split(',').map((s: string) => s.trim()).filter(Boolean);
+                if (tools.length) {
+                    await db.dnd5eCharacterToolGrant.createMany({
+                        data: tools.map((tool: string) => ({ characterId, tool, sourceType, sourceId })),
+                    });
+                }
+            }
+
+            // ── Language grants ───────────────────────────────────────────────
+            if ((f as any).grantsLanguages) {
+                const langs = (f as any).grantsLanguages.split(',').map((s: string) => s.trim()).filter(Boolean);
+                if (langs.length) {
+                    await db.dnd5eCharacterLanguageGrant.createMany({
+                        data: langs.map((language: string) => ({ characterId, language, sourceType, sourceId })),
+                    });
+                }
+            }
+
+            // ── Damage modifier grants ────────────────────────────────────────
+            const dmgGrants: { modifierType: string; damageType: string }[] = [];
+            if ((f as any).grantsResistances) {
+                for (const t of (f as any).grantsResistances.split(',').filter(Boolean))
+                    dmgGrants.push({ modifierType: 'RESISTANCE', damageType: t.trim() });
+            }
+            if ((f as any).grantsImmunities) {
+                for (const t of (f as any).grantsImmunities.split(',').filter(Boolean))
+                    dmgGrants.push({ modifierType: 'IMMUNITY', damageType: t.trim() });
+            }
+            if ((f as any).grantsVulnerabilities) {
+                for (const t of (f as any).grantsVulnerabilities.split(',').filter(Boolean))
+                    dmgGrants.push({ modifierType: 'VULNERABILITY', damageType: t.trim() });
+            }
+            if (dmgGrants.length) {
+                await db.dnd5eCharacterDamageModifierGrant.createMany({
+                    data: dmgGrants.map(g => ({ characterId, modifierType: g.modifierType, damageType: g.damageType, sourceType, sourceId })),
+                });
+            }
+
+            // Note: choice pools (skillChoiceCount/Pool, toolChoiceCount/Pool, etc.)
+            // are resolved at character creation/level-up via the wizard or level-up UI.
+
+            // ── Innate spells ─────────────────────────────────────────────────
+            if ((f as any).grantsInnateSpells) {
+                // Delete existing grants from this source, re-apply filtered to current level
+                await removeInnateSpellGrantsBySource(characterId, sourceId);
+                const innateGrants = await parseAndFilterInnateSpells(
+                    (f as any).grantsInnateSpells,
+                    gameSystemId,
+                    characterLevel,
+                    sourceType,
+                    sourceId,
+                );
+                if (innateGrants.length) await addInnateSpellGrants(characterId, innateGrants);
+            }
         }
     }
 }
@@ -107,7 +162,6 @@ export async function approveDnd5eCharacter(id: string, actorId: string) {
                 });
             }
 
-            // Apply universal pending fields (worldId, isGlobal) directly on character
             if (pending.worldId !== undefined || pending.isGlobal !== undefined) {
                 await tx.character.update({
                     where: { id },
@@ -118,11 +172,10 @@ export async function approveDnd5eCharacter(id: string, actorId: string) {
                 });
             }
         });
-        // Apply class feature skill/save grants for the new level allocation
-        await applyClassFeatureGrants(id);
+        const freshChar = await db.character.findUnique({ where: { id }, select: { level: true, gameSystemId: true } });
+        await applyClassFeatureGrants(id, freshChar?.level ?? newLevel, freshChar?.gameSystemId ?? '');
     }
 
-    // Delegate universal approval (status, audit, notifications)
     return approveCharacter(id, actorId, newLevel);
 }
 

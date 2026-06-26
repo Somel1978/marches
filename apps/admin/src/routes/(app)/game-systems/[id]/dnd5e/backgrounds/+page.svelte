@@ -93,12 +93,29 @@
 							<input id="bskillpool" name="skillChoicePool" type="text" class="input" placeholder="ARCANA,HISTORY,NATURE,RELIGION" />
 						</div>
 						<div class="field" style="flex:1 1 180px;">
-							<label class="label" for="btool">Tool proficiencies</label>
-							<input id="btool" name="toolProficiencies" type="text" class="input" />
+							<label class="label" for="bgtool">Grants Tools</label>
+							<input id="bgtool" name="grantsTools" type="text" class="input" placeholder="Thieves's Tools" />
 						</div>
 						<div class="field" style="flex:1 1 180px;">
-							<label class="label" for="blang">Languages</label>
-							<input id="blang" name="languages" type="text" class="input" placeholder="Any two" />
+							<label class="label" for="bglang">Grants Languages</label>
+							<input id="bglang" name="grantsLanguages" type="text" class="input" placeholder="Elvish,Dwarvish" />
+						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<label class="label" for="bgres">Resistances</label>
+							<input id="bgres" name="grantsResistances" type="text" class="input" placeholder="Fire,Cold" />
+						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<label class="label" for="bgimm">Immunities</label>
+							<input id="bgimm" name="grantsImmunities" type="text" class="input" placeholder="Necrotic,Radiant" />
+						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<label class="label" for="bgvul">Vulnerabilities</label>
+							<input id="bgvul" name="grantsVulnerabilities" type="text" class="input" placeholder="Bludgeoning" />
+						</div>
+						<div class="field" style="flex:2 1 200px;">
+							<label class="label" for="bgis">Innate Spells</label>
+							<input id="bgis" name="grantsInnateSpells" type="text" class="input" placeholder="Faerie Fire:1:0,Darkness:3:1" />
+							<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>SpellName:minLvl:uses[/:true]</code> · uses 0=at will · last seg=can use slots · e.g. <code>Faerie Fire:1:0,Darkness:3:1,Daylight:5:1:true</code></p>
 						</div>
 						<div class="field" style="flex:1 1 180px;">
 							<label class="label" for="burl">URL <span class="optional">(optional)</span></label>
@@ -192,12 +209,12 @@
 											<input id="eskillpool-{b.id}" name="skillChoicePool" type="text" class="input" value={(b as any).skillChoicePool ?? ''} placeholder="ARCANA,HISTORY,NATURE,RELIGION" />
 										</div>
 										<div class="field" style="flex:1 1 150px;">
-											<label class="label" for="etool-{b.id}">Tool proficiencies</label>
-											<input id="etool-{b.id}" name="toolProficiencies" type="text" class="input" value={b.toolProficiencies ?? ''} />
+											<label class="label" for="etool-{b.id}">Grants Tools</label>
+											<input id="etool-{b.id}" name="grantsTools" type="text" class="input" value={(b as any).grantsTools ?? b.toolProficiencies ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 150px;">
-											<label class="label" for="elang-{b.id}">Languages</label>
-											<input id="elang-{b.id}" name="languages" type="text" class="input" value={b.languages ?? ''} />
+											<label class="label" for="elang-{b.id}">Grants Languages</label>
+											<input id="elang-{b.id}" name="grantsLanguages" type="text" class="input" value={(b as any).grantsLanguages ?? b.languages ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 150px;">
 											<label class="label" for="eurl-{b.id}">URL</label>
@@ -210,6 +227,23 @@
 												<option value="false" selected={!b.isAvailable}>No</option>
 											</select>
 										</div>
+									</div>
+									<div class="field" style="flex:1 1 140px;">
+										<label class="label" for="eres-{b.id}">Resistances</label>
+										<input id="eres-{b.id}" name="grantsResistances" type="text" class="input" placeholder="Fire,Cold" value={(b as any).grantsResistances ?? ''} />
+									</div>
+									<div class="field" style="flex:1 1 140px;">
+										<label class="label" for="eimm-{b.id}">Immunities</label>
+										<input id="eimm-{b.id}" name="grantsImmunities" type="text" class="input" placeholder="Necrotic,Radiant" value={(b as any).grantsImmunities ?? ''} />
+									</div>
+									<div class="field" style="flex:1 1 140px;">
+										<label class="label" for="evul-{b.id}">Vulnerabilities</label>
+										<input id="evul-{b.id}" name="grantsVulnerabilities" type="text" class="input" placeholder="Bludgeoning" value={(b as any).grantsVulnerabilities ?? ''} />
+									</div>
+									<div class="field" style="flex:2 1 200px;">
+										<label class="label" for="gis-{b.id}">Innate Spells</label>
+										<input id="gis-{b.id}" name="grantsInnateSpells" type="text" class="input" placeholder="Faerie Fire:1:0,Darkness:3:1" value={(b as any).grantsInnateSpells ?? ''} />
+										<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>SpellName:minLvl:uses[/:true]</code> · uses 0=at will · last seg=can use slots · e.g. <code>Faerie Fire:1:0,Darkness:3:1,Daylight:5:1:true</code></p>
 									</div>
 								</div>
 								<div class="form-actions">

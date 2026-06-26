@@ -26,6 +26,10 @@ export async function createDnd5eFeat(input: {
     skillChoicePool?:          string | null;
     savingThrowChoiceCount?:   number | null;
     savingThrowChoicePool?:    string | null;
+    grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
+    grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
+    grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    grantsInnateSpells?: string | null;
 }, actorId?: string) {
     return db.$transaction(async (tx) => {
         const feat = await tx.dnd5eFeat.create({ data: { ...input } });
@@ -56,6 +60,10 @@ export async function updateDnd5eFeat(id: string, input: {
     skillChoicePool?:          string | null;
     savingThrowChoiceCount?:   number | null;
     savingThrowChoicePool?:    string | null;
+    grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
+    grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
+    grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    grantsInnateSpells?: string | null;
 }, actorId?: string) {
     const feat = await db.dnd5eFeat.findUnique({ where: { id } });
     if (!feat) throw new NotFoundError('Dnd5eFeat', id);

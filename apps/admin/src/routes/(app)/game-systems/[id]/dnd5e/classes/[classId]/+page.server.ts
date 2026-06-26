@@ -7,15 +7,29 @@ import type { PageServerLoad, Actions } from './$types';
 
 
 function grantFields(data: FormData) {
+	// Returns undefined (not null) so it works for both create (string|undefined)
+	// and update (string|null|undefined) signatures.
+	const s = (k: string) => data.get(k)?.toString().trim() || undefined;
+	const n = (k: string) => data.get(k) ? Number(data.get(k)) : undefined;
 	return {
-		grantsSkills:      data.get('grantsSkills')?.toString().trim()      || undefined,
-		grantsExpertise:   data.get('grantsExpertise')?.toString().trim()   || undefined,
-		grantsHalfSkills:  data.get('grantsHalfSkills')?.toString().trim()  || undefined,
-		grantsSavingThrows:data.get('grantsSavingThrows')?.toString().trim()|| undefined,
-		skillChoiceCount:  data.get('skillChoiceCount') ? Number(data.get('skillChoiceCount')) : undefined,
-		skillChoicePool:        data.get('skillChoicePool')?.toString().trim()        || undefined,
-		savingThrowChoiceCount: data.get('savingThrowChoiceCount') ? Number(data.get('savingThrowChoiceCount')) : undefined,
-		savingThrowChoicePool:  data.get('savingThrowChoicePool')?.toString().trim()  || undefined,
+		grantsSkills:           s('grantsSkills'),
+		grantsExpertise:        s('grantsExpertise'),
+		grantsHalfSkills:       s('grantsHalfSkills'),
+		grantsSavingThrows:     s('grantsSavingThrows'),
+		skillChoiceCount:       n('skillChoiceCount'),
+		skillChoicePool:        s('skillChoicePool'),
+		savingThrowChoiceCount: n('savingThrowChoiceCount'),
+		savingThrowChoicePool:  s('savingThrowChoicePool'),
+		grantsTools:            s('grantsTools'),
+		toolChoiceCount:        n('toolChoiceCount'),
+		toolChoicePool:         s('toolChoicePool'),
+		grantsLanguages:        s('grantsLanguages'),
+		languageChoiceCount:    n('languageChoiceCount'),
+		languageChoicePool:     s('languageChoicePool'),
+		grantsResistances:      s('grantsResistances'),
+		grantsImmunities:       s('grantsImmunities'),
+		grantsVulnerabilities:  s('grantsVulnerabilities'),
+		grantsInnateSpells:     s('grantsInnateSpells'),
 	};
 }
 export const load: PageServerLoad = async ({ params }) => {

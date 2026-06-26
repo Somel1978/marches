@@ -4,13 +4,21 @@ import { isAsiFeatureName, isEpicBoonFeatureName } from './feature-names.ts';
 import { SKILL_ABILITY, ALL_SKILLS, ALL_STATS, proficiencyBonus, abilityModifier } from './skills.ts';
 
 export async function getDnd5eCharacterSheet(characterId: string) {
-    const [sheet, classes, chosenFeats, abilityScores, skillGrants, saveGrants] = await Promise.all([
+    const [sheet, classes, chosenFeats, abilityScores, skillGrants, saveGrants,
+           toolGrants, languageGrants, damageModifierGrants, innateSpellbook] = await Promise.all([
         db.dnd5eCharacterSheet.findUnique({ where: { characterId } }),
         db.dnd5eCharacterClass.findMany({ where: { characterId }, orderBy: { allocatedLevel: 'desc' } }),
         db.dnd5eCharacterFeat.findMany({ where: { characterId }, include: { feat: true } }),
         db.dnd5eAbilityScore.findMany({ where: { characterId } }),
         db.dnd5eCharacterSkillGrant.findMany({ where: { characterId } }),
         db.dnd5eCharacterSavingThrowGrant.findMany({ where: { characterId } }),
+        db.dnd5eCharacterToolGrant.findMany({ where: { characterId } }),
+        db.dnd5eCharacterLanguageGrant.findMany({ where: { characterId } }),
+        db.dnd5eCharacterDamageModifierGrant.findMany({ where: { characterId } }),
+        db.dnd5eSpellbook.findFirst({
+            where: { characterId, isInnate: true },
+            include: { entries: { orderBy: [{ minCharLevel: 'asc' }, { spellId: 'asc' }] } },
+        }),
     ]);
 
 
@@ -47,7 +55,7 @@ export async function getDnd5eCharacterSheet(characterId: string) {
             where:   { id: { in: subclassIds } },
             include: { features: { orderBy: { requiredLevel: 'asc' } } },
         }) : [],
-        sheet?.speciesId    ? db.dnd5eSpecies.findUnique({ where: { id: sheet.speciesId }, include: { traits: true } }) : null,
+        sheet?.speciesId    ? db.dnd5eSpecies.findUnique({ where: { id: sheet.speciesId }, include: { traits: { include: { speeds: { orderBy: { movementType: 'asc' } } } } } }) : null,
         sheet?.backgroundId ? db.dnd5eBackground.findUnique({ where: { id: sheet.backgroundId }, include: { grantsFeat: { select: { id: true, name: true } } } }) : null,
     ]);
 
@@ -268,6 +276,79 @@ export async function getDnd5eCharacterSheet(characterId: string) {
 
     const passivePerception = 10 + (enrichedSkills.find(s => s.skill === 'PERCEPTION')?.modifier ?? 0);
 
+    // ── Tools ─────────────────────────────────────────────────────────────────
+    const OVERRIDE_TYPES_SET = new Set(['Override', 'Player', 'DM', 'Admin']);
+    const toolOverrides = new Map<string, any>(); // tool → grant row
+    const toolSourceGrants: any[] = [];
+    for (const g of toolGrants as any[]) {
+        if (OVERRIDE_TYPES_SET.has(g.sourceType)) { toolOverrides.set(g.tool, g); }
+        else toolSourceGrants.push(g);
+    }
+    const enrichedTools = [...new Set([
+        ...toolSourceGrants.map((g: any) => g.tool),
+        ...[...toolOverrides.keys()],
+    ])].map(tool => {
+        const overrideGrant = toolOverrides.get(tool) ?? null;
+        const sources = (toolGrants as any[]).filter(g => g.tool === tool && !OVERRIDE_TYPES_SET.has(g.sourceType))
+            .map(g => ({ label: resolveGrantLabel(g) }));
+        return { tool, overrideNote: overrideGrant?.note ?? null, hasOverride: !!overrideGrant, grantSources: sources };
+    });
+
+    // ── Languages ──────────────────────────────────────────────────────────────
+    const langOverrides = new Map<string, any>();
+    const langSourceGrants: any[] = [];
+    for (const g of languageGrants as any[]) {
+        if (OVERRIDE_TYPES_SET.has(g.sourceType)) { langOverrides.set(g.language, g); }
+        else langSourceGrants.push(g);
+    }
+    const enrichedLanguages = [...new Set([
+        ...langSourceGrants.map((g: any) => g.language),
+        ...[...langOverrides.keys()],
+    ])].map(language => {
+        const overrideGrant = langOverrides.get(language) ?? null;
+        const sources = (languageGrants as any[]).filter(g => g.language === language && !OVERRIDE_TYPES_SET.has(g.sourceType))
+            .map(g => ({ label: resolveGrantLabel(g) }));
+        return { language, overrideNote: overrideGrant?.note ?? null, hasOverride: !!overrideGrant, grantSources: sources };
+    });
+
+    // ── Damage modifiers ───────────────────────────────────────────────────────
+    // Group by modifierType, deduplicate by damageType within each group
+    const dmgByType: Record<string, { damageType: string; hasOverride: boolean; overrideNote: string | null; grantSources: any[] }[]> = {
+        RESISTANCE: [], IMMUNITY: [], VULNERABILITY: [],
+    };
+    for (const modType of ['RESISTANCE', 'IMMUNITY', 'VULNERABILITY'] as const) {
+        const rows = (damageModifierGrants as any[]).filter(g => g.modifierType === modType);
+        const overrideMap = new Map<string, any>();
+        const sourceRows: any[] = [];
+        for (const g of rows) {
+            if (OVERRIDE_TYPES_SET.has(g.sourceType)) overrideMap.set(g.damageType, g);
+            else sourceRows.push(g);
+        }
+        const damageTypes = [...new Set([...sourceRows.map(g => g.damageType), ...[...overrideMap.keys()]])];
+        dmgByType[modType] = damageTypes.map(damageType => ({
+            damageType,
+            hasOverride:  overrideMap.has(damageType),
+            overrideNote: overrideMap.get(damageType)?.note ?? null,
+            grantSources: sourceRows.filter(g => g.damageType === damageType).map(g => ({ label: resolveGrantLabel(g) })),
+        }));
+    }
+
+    // ── Aggregate size, senses, speeds from species traits ───────────────────
+    const activeTraits = (speciesRecord as any)?.traits ?? [];
+    // Fixed size from first trait that grants one, else null (player's choice is in sheet.size)
+    const traitSize        = activeTraits.map((t: any) => t.size).find((s: any) => s) ?? null;
+    const traitSizeChoices = activeTraits.map((t: any) => t.sizeChoices).filter(Boolean).join(',') || null;
+    // Aggregate senses (join all non-empty)
+    const traitSenses      = activeTraits.map((t: any) => t.senses).filter(Boolean).join(', ') || null;
+    // Aggregate speeds — sum by movementType across all traits
+    const speedMap = new Map<string, number>();
+    for (const t of activeTraits) {
+        for (const sp of t.speeds ?? []) {
+            speedMap.set(sp.movementType, (speedMap.get(sp.movementType) ?? 0) + sp.speed);
+        }
+    }
+    const aggregatedSpeeds = [...speedMap.entries()].map(([movementType, speed]) => ({ movementType, speed }));
+
     return {
         sheet,
         enrichedClasses,
@@ -280,8 +361,19 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         abilityScores,
         skills:           enrichedSkills,
         savingThrows:     enrichedSavingThrows,
+        tools:            enrichedTools,
+        languages:        enrichedLanguages,
+        resistances:      dmgByType.RESISTANCE,
+        immunities:       dmgByType.IMMUNITY,
+        vulnerabilities:  dmgByType.VULNERABILITY,
+        innateSpellbook:  innateSpellbook ?? null,
         passivePerception,
         proficiencyBonus: pb,
+        // Aggregated from species traits
+        traitSize,
+        traitSizeChoices,
+        traitSenses,
+        aggregatedSpeeds,
     };
 }
 

@@ -51,7 +51,7 @@ export async function getDnd5eClassById(id: string) {
 export async function getDnd5eSpecies(gameSystemId: string) {
     return db.dnd5eSpecies.findMany({
         where:   { gameSystemId, isAvailable: true },
-        include: { traits: true },
+        include: { traits: { include: { speeds: { orderBy: { movementType: 'asc' } } } } },
         orderBy: { sortOrder: 'asc' },
     });
 }
@@ -59,7 +59,7 @@ export async function getDnd5eSpecies(gameSystemId: string) {
 export async function getAllDnd5eSpecies(gameSystemId: string) {
     return db.dnd5eSpecies.findMany({
         where:   { gameSystemId },
-        include: { traits: true },
+        include: { traits: { include: { speeds: { orderBy: { movementType: 'asc' } } } } },
         orderBy: { sortOrder: 'asc' },
     });
 }

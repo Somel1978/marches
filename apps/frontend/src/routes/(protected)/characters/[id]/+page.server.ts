@@ -194,5 +194,9 @@ export const actions: Actions = {
 	saveMood:             dnd5eActions.saveMood,
 	saveSkills:           dnd5eActions.saveSkills,
 	saveSavingThrow:      dnd5eActions.saveSavingThrow,
+	saveSize:             dnd5eActions.saveSize,
+	saveTool:             dnd5eActions.saveTool,
+	saveLanguage:         dnd5eActions.saveLanguage,
+	saveDamageModifier:   dnd5eActions.saveDamageModifier,
 	saveDetails:          dnd5eActions.saveDetails,
 };

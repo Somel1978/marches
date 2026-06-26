@@ -55,6 +55,10 @@ export async function createClassFeature(input: {
     grantsSkills?: string; grantsExpertise?: string; grantsHalfSkills?: string; grantsSavingThrows?: string;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
     savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
+    grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
+    grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
+    grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    grantsInnateSpells?: string | null;
 }, actorId: string) {
     return db.dnd5eClassFeature.create({ data: {
         classId:            input.classId,
@@ -70,6 +74,16 @@ export async function createClassFeature(input: {
         skillChoicePool:          input.skillChoicePool          ?? null,
         savingThrowChoiceCount:   input.savingThrowChoiceCount   ?? null,
         savingThrowChoicePool:    input.savingThrowChoicePool    ?? null,
+        grantsTools:             input.grantsTools             ?? null,
+        toolChoiceCount:         input.toolChoiceCount         ?? null,
+        toolChoicePool:          input.toolChoicePool          ?? null,
+        grantsLanguages:         input.grantsLanguages         ?? null,
+        languageChoiceCount:     input.languageChoiceCount     ?? null,
+        languageChoicePool:      input.languageChoicePool      ?? null,
+        grantsResistances:       input.grantsResistances       ?? null,
+        grantsImmunities:        input.grantsImmunities        ?? null,
+        grantsVulnerabilities:   input.grantsVulnerabilities   ?? null,
+        grantsInnateSpells:      input.grantsInnateSpells      ?? null,
     }});
 }
 
@@ -79,7 +93,11 @@ export async function updateClassFeature(id: string, input: {
     grantsHalfSkills?: string | null; grantsSavingThrows?: string | null;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
     savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
-}) {
+    grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
+    grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
+    grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    grantsInnateSpells?: string | null;
+} ) {
     return db.dnd5eClassFeature.update({ where: { id }, data: input });
 }
 
@@ -119,7 +137,11 @@ export async function createSubclassFeature(input: {
     grantsSkills?: string; grantsExpertise?: string; grantsHalfSkills?: string; grantsSavingThrows?: string;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
     savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
-}) {
+    grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
+    grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
+    grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    grantsInnateSpells?: string | null;
+} ) {
     return db.dnd5eSubclassFeature.create({ data: {
         subclassId:         input.subclassId,
         name:               input.name,
@@ -134,6 +156,16 @@ export async function createSubclassFeature(input: {
         skillChoicePool:          input.skillChoicePool          ?? null,
         savingThrowChoiceCount:   input.savingThrowChoiceCount   ?? null,
         savingThrowChoicePool:    input.savingThrowChoicePool    ?? null,
+        grantsTools:             input.grantsTools             ?? null,
+        toolChoiceCount:         input.toolChoiceCount         ?? null,
+        toolChoicePool:          input.toolChoicePool          ?? null,
+        grantsLanguages:         input.grantsLanguages         ?? null,
+        languageChoiceCount:     input.languageChoiceCount     ?? null,
+        languageChoicePool:      input.languageChoicePool      ?? null,
+        grantsResistances:       input.grantsResistances       ?? null,
+        grantsImmunities:        input.grantsImmunities        ?? null,
+        grantsVulnerabilities:   input.grantsVulnerabilities   ?? null,
+        grantsInnateSpells:      input.grantsInnateSpells      ?? null,
     }});
 }
 
@@ -143,7 +175,11 @@ export async function updateSubclassFeature(id: string, input: {
     grantsHalfSkills?: string | null; grantsSavingThrows?: string | null;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
     savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
-}) {
+    grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
+    grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
+    grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    grantsInnateSpells?: string | null;
+} ) {
     return db.dnd5eSubclassFeature.update({ where: { id }, data: input });
 }
 

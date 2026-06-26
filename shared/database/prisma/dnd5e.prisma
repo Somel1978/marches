@@ -68,8 +68,20 @@ model Dnd5eClassFeature {
   grantsSavingThrows  String?    @map("grants_saving_throws")  // comma-sep e.g. "STRENGTH,CONSTITUTION"
   skillChoiceCount  Int?     @map("skill_choice_count")  // how many the player picks
   skillChoicePool   String?  @map("skill_choice_pool")   // comma-sep pool; null = no choice
-  savingThrowChoiceCount  Int?     @map("saving_throw_choice_count")  // how many saves the player picks
-  savingThrowChoicePool   String?  @map("saving_throw_choice_pool")   // comma-sep stat pool; null = no choice
+  savingThrowChoiceCount  Int?     @map("saving_throw_choice_count")
+  savingThrowChoicePool   String?  @map("saving_throw_choice_pool")
+  // Tool & Language grants
+  grantsTools          String?  @map("grants_tools")
+  toolChoiceCount      Int?     @map("tool_choice_count")
+  toolChoicePool       String?  @map("tool_choice_pool")
+  grantsLanguages      String?  @map("grants_languages")
+  languageChoiceCount  Int?     @map("language_choice_count")
+  languageChoicePool   String?  @map("language_choice_pool")
+  // Damage modifier grants
+  grantsResistances     String?  @map("grants_resistances")
+  grantsImmunities      String?  @map("grants_immunities")
+  grantsVulnerabilities String?  @map("grants_vulnerabilities")
+  grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
   createdAt           DateTime   @default(now()) @map("created_at")
   updatedAt           DateTime   @updatedAt      @map("updated_at")
 
@@ -113,8 +125,20 @@ model Dnd5eSubclassFeature {
   grantsSavingThrows  String?       @map("grants_saving_throws")
   skillChoiceCount  Int?     @map("skill_choice_count")  // how many the player picks
   skillChoicePool   String?  @map("skill_choice_pool")   // comma-sep pool; null = no choice
-  savingThrowChoiceCount  Int?     @map("saving_throw_choice_count")  // how many saves the player picks
-  savingThrowChoicePool   String?  @map("saving_throw_choice_pool")   // comma-sep stat pool; null = no choice
+  savingThrowChoiceCount  Int?     @map("saving_throw_choice_count")
+  savingThrowChoicePool   String?  @map("saving_throw_choice_pool")
+  // Tool & Language grants
+  grantsTools          String?  @map("grants_tools")
+  toolChoiceCount      Int?     @map("tool_choice_count")
+  toolChoicePool       String?  @map("tool_choice_pool")
+  grantsLanguages      String?  @map("grants_languages")
+  languageChoiceCount  Int?     @map("language_choice_count")
+  languageChoicePool   String?  @map("language_choice_pool")
+  // Damage modifier grants
+  grantsResistances     String?  @map("grants_resistances")
+  grantsImmunities      String?  @map("grants_immunities")
+  grantsVulnerabilities String?  @map("grants_vulnerabilities")
+  grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt      @map("updated_at")
 
@@ -124,20 +148,20 @@ model Dnd5eSubclassFeature {
 }
 
 model Dnd5eSpecies {
-  id          String   @id @default(uuid())
-  gameSystemId String  @map("game_system_id")
-  name        String
-  description String?
-  source      String?
-  link        String?
-  isAvailable Boolean  @default(true)  @map("is_available")
-  isSubrace   Boolean  @default(false) @map("is_subrace")
-  isLegacy    Boolean  @default(false) @map("is_legacy")
-  sortOrder   Int      @default(0)     @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
+  id           String   @id @default(uuid())
+  gameSystemId String   @map("game_system_id")
+  name         String
+  description  String?
+  source       String?
+  link         String?
+  isAvailable  Boolean  @default(true)  @map("is_available")
+  isSubrace    Boolean  @default(false) @map("is_subrace")
+  isLegacy     Boolean  @default(false) @map("is_legacy")
+  sortOrder    Int      @default(0)     @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt      @map("updated_at")
 
-  traits Dnd5eSpeciesTrait[]
+  traits  Dnd5eSpeciesTrait[]
 
   @@unique([gameSystemId, name])
   @@map("species")
@@ -153,16 +177,47 @@ model Dnd5eSpeciesTrait {
   grantsSkills      String?  @map("grants_skills")      // comma-sep e.g. "PERCEPTION,INSIGHT"
   grantsExpertise   String?  @map("grants_expertise")   // comma-sep
   grantsHalfSkills  String?  @map("grants_half_skills") // comma-sep
-  skillChoiceCount  Int?     @map("skill_choice_count")  // how many the player picks
-  skillChoicePool   String?  @map("skill_choice_pool")   // comma-sep pool; null = no choice
-  savingThrowChoiceCount  Int?     @map("saving_throw_choice_count")  // how many saves the player picks
-  savingThrowChoicePool   String?  @map("saving_throw_choice_pool")   // comma-sep stat pool; null = no choice
+  skillChoiceCount  Int?     @map("skill_choice_count")
+  skillChoicePool   String?  @map("skill_choice_pool")
+  savingThrowChoiceCount  Int?     @map("saving_throw_choice_count")
+  savingThrowChoicePool   String?  @map("saving_throw_choice_pool")
+  // Tool & Language grants
+  grantsTools          String?  @map("grants_tools")           // comma-sep fixed tool grants
+  toolChoiceCount      Int?     @map("tool_choice_count")
+  toolChoicePool       String?  @map("tool_choice_pool")
+  grantsLanguages      String?  @map("grants_languages")       // comma-sep fixed language grants
+  languageChoiceCount  Int?     @map("language_choice_count")
+  languageChoicePool   String?  @map("language_choice_pool")
+  // Damage modifier grants
+  grantsResistances     String?  @map("grants_resistances")    // comma-sep damage types
+  grantsImmunities      String?  @map("grants_immunities")     // comma-sep damage types
+  grantsVulnerabilities String?  @map("grants_vulnerabilities") // comma-sep damage types
+  grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:minCharLevel:usesPerDay" 0=at-will
+  // Physical characteristics granted by this trait
+  size         String?  @map("size")          // fixed size e.g. "Medium"
+  sizeChoices  String?  @map("size_choices")  // comma-sep pool if player picks e.g. "Small,Medium"
+  senses       String?  @map("senses")        // free text e.g. "Darkvision 60 ft, Tremorsense 30 ft"
   requiredLevel     Int?     @map("required_level")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt      @map("updated_at")
 
+  speeds  Dnd5eSpeciesTraitSpeed[]
+
   @@unique([speciesId, name])
   @@map("species_traits")
+  @@schema("dnd5e")
+}
+
+model Dnd5eSpeciesTraitSpeed {
+  id           String            @id @default(uuid())
+  traitId      String            @map("trait_id")
+  trait        Dnd5eSpeciesTrait @relation(fields: [traitId], references: [id], onDelete: Cascade)
+  movementType String            @map("movement_type") // "WALK"|"FLY"|"SWIM"|"CLIMB"|"BURROW"
+  speed        Int                                     // additive — two traits can both grant WALK speed
+  createdAt    DateTime          @default(now())       @map("created_at")
+
+  @@index([traitId])
+  @@map("species_trait_speeds")
   @@schema("dnd5e")
 }
 
@@ -183,11 +238,24 @@ model Dnd5eBackground {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt      @map("updated_at")
 
-  grantsSkills      String?  @map("grants_skills")      // comma-sep always-granted skills
-  skillChoiceCount  Int?     @map("skill_choice_count")  // how many the player picks
-  skillChoicePool   String?  @map("skill_choice_pool")   // comma-sep pool; null = no choice
-  savingThrowChoiceCount  Int?     @map("saving_throw_choice_count")  // how many saves the player picks
-  savingThrowChoicePool   String?  @map("saving_throw_choice_pool")   // comma-sep stat pool; null = no choice
+  grantsSkills      String?  @map("grants_skills")
+  skillChoiceCount  Int?     @map("skill_choice_count")
+  skillChoicePool   String?  @map("skill_choice_pool")
+  savingThrowChoiceCount  Int?     @map("saving_throw_choice_count")
+  savingThrowChoicePool   String?  @map("saving_throw_choice_pool")
+  // Tool grants (replaces plain toolProficiencies string — kept for back-compat read)
+  grantsTools          String?  @map("grants_tools")
+  toolChoiceCount      Int?     @map("tool_choice_count")
+  toolChoicePool       String?  @map("tool_choice_pool")
+  // Language grants (replaces plain languages string — kept for back-compat read)
+  grantsLanguages      String?  @map("grants_languages")
+  languageChoiceCount  Int?     @map("language_choice_count")
+  languageChoicePool   String?  @map("language_choice_pool")
+  // Damage modifier grants
+  grantsResistances     String?  @map("grants_resistances")
+  grantsImmunities      String?  @map("grants_immunities")
+  grantsVulnerabilities String?  @map("grants_vulnerabilities")
+  grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
 
   @@unique([gameSystemId, name])
   @@map("backgrounds")
@@ -201,6 +269,7 @@ model Dnd5eCharacterSheet {
   speciesId      String?   @map("species_id")
   backgroundId   String?   @map("background_id")
   pendingChanges Json?     @map("pending_changes")
+  size           String?   @map("size")  // chosen/overridden size (from trait sizeChoices pool or DM override)
 
   // Character details
   alignment         String?  @map("alignment")           // e.g. "Lawful Good"
@@ -256,8 +325,20 @@ model Dnd5eFeat {
   grantsSavingThrows  String?  @map("grants_saving_throws")  // comma-sep saving throw grants
   skillChoiceCount  Int?     @map("skill_choice_count")  // how many the player picks
   skillChoicePool   String?  @map("skill_choice_pool")   // comma-sep pool; null = no choice
-  savingThrowChoiceCount  Int?     @map("saving_throw_choice_count")  // how many saves the player picks
-  savingThrowChoicePool   String?  @map("saving_throw_choice_pool")   // comma-sep stat pool; null = no choice
+  savingThrowChoiceCount  Int?     @map("saving_throw_choice_count")
+  savingThrowChoicePool   String?  @map("saving_throw_choice_pool")
+  // Tool & Language grants
+  grantsTools          String?  @map("grants_tools")
+  toolChoiceCount      Int?     @map("tool_choice_count")
+  toolChoicePool       String?  @map("tool_choice_pool")
+  grantsLanguages      String?  @map("grants_languages")
+  languageChoiceCount  Int?     @map("language_choice_count")
+  languageChoicePool   String?  @map("language_choice_pool")
+  // Damage modifier grants
+  grantsResistances     String?  @map("grants_resistances")
+  grantsImmunities      String?  @map("grants_immunities")
+  grantsVulnerabilities String?  @map("grants_vulnerabilities")
+  grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
   sortOrder     Int      @default(0)     @map("sort_order")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt      @map("updated_at")
@@ -388,6 +469,7 @@ model Dnd5eSpellbook {
   characterId String                @map("character_id")
   character   Character             @relation(fields: [characterId], references: [id], onDelete: Cascade)
   name        String                @default("Spellbook")
+  isInnate    Boolean               @default(false) @map("is_innate") // true = innate spellcasting spellbook
   createdAt   DateTime              @default(now()) @map("created_at")
   updatedAt   DateTime              @updatedAt      @map("updated_at")
   entries     Dnd5eSpellbookEntry[]
@@ -400,13 +482,21 @@ model Dnd5eSpellbookEntry {
   id          String         @id @default(uuid())
   spellbookId String         @map("spellbook_id")
   spellbook   Dnd5eSpellbook @relation(fields: [spellbookId], references: [id], onDelete: Cascade)
-  spellId     Int            @map("spell_id")   // references Dnd5eSpell.spellId
-  classId     String         @map("class_id")
-  className   String         @map("class_name") // denormalized
+  spellId     Int            @map("spell_id")      // references Dnd5eSpell.spellId
+  classId     String?        @map("class_id")      // null for innate spellcasting entries
+  className   String?        @map("class_name")    // denormalized; null for innate
   prepared    Boolean        @default(false)
+  // Innate spellcasting fields (only relevant when spellbook.isInnate = true)
+  usesPerDay       Int?     @map("uses_per_day")      // null = at will
+  canUseSpellSlots Boolean  @default(false) @map("can_use_spell_slots")
+  minCharLevel     Int?     @map("min_char_level")    // character level required to have this spell
+  sourceType  String?  @map("source_type")   // "SpeciesTrait"|"ClassFeature"|"Feat"|"Background" etc.
+  sourceId    String?  @map("source_id")     // UUID of granting entity — deletion key
   createdAt   DateTime       @default(now()) @map("created_at")
 
-  @@unique([spellbookId, spellId, classId])
+  // No unique constraint — one row per grant per source (same spell from two sources = two rows)
+  @@index([spellbookId])
+  @@index([spellbookId, sourceId])  // for efficient delete-by-source
   @@map("spellbook_entries")
   @@schema("dnd5e")
 }
@@ -515,5 +605,57 @@ model Dnd5eCharacterSavingThrowGrant {
   @@index([characterId])
   @@index([characterId, stat])
   @@map("character_saving_throw_grants")
+  @@schema("dnd5e")
+}
+
+// ── Tool, Language & Damage Modifier grant tables ────────────────────────────
+// Follow the same pattern as Dnd5eCharacterSkillGrant.
+// sourceType: "Background"|"ClassFeature"|"SubclassFeature"|"SpeciesTrait"|"Feat"|"PlayerChoice"|"Override"
+// Override rows: one per tool/language/type per character; note = who changed it and why.
+
+model Dnd5eCharacterToolGrant {
+  id          String    @id @default(uuid())
+  characterId String    @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  tool        String                          // tool name e.g. "Thieves' Tools", "Smith's Tools"
+  sourceType  String    @map("source_type")
+  sourceId    String?   @map("source_id")
+  note        String?                         // free-text reason for Override rows
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([characterId])
+  @@map("character_tool_grants")
+  @@schema("dnd5e")
+}
+
+model Dnd5eCharacterLanguageGrant {
+  id          String    @id @default(uuid())
+  characterId String    @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  language    String                          // language name e.g. "Common", "Elvish", "Dwarvish"
+  sourceType  String    @map("source_type")
+  sourceId    String?   @map("source_id")
+  note        String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([characterId])
+  @@map("character_language_grants")
+  @@schema("dnd5e")
+}
+
+model Dnd5eCharacterDamageModifierGrant {
+  id           String    @id @default(uuid())
+  characterId  String    @map("character_id")
+  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  modifierType String    @map("modifier_type") // "RESISTANCE"|"IMMUNITY"|"VULNERABILITY"
+  damageType   String    @map("damage_type")   // e.g. "Fire", "Necrotic", "Radiant", "Bludgeoning"
+  sourceType   String    @map("source_type")
+  sourceId     String?   @map("source_id")
+  note         String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([characterId])
+  @@index([characterId, modifierType])
+  @@map("character_damage_modifier_grants")
   @@schema("dnd5e")
 }

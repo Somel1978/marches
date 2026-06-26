@@ -204,6 +204,31 @@
 												<label class="label" for="fstcp-{f.id}">Save pool</label>
 												<input id="fstcp-{f.id}" name="savingThrowChoicePool" class="input" placeholder="STRENGTH,CONSTITUTION" value={f.savingThrowChoicePool ?? ''} />
 											</div>
+										<div class="field" style="flex:1 1 120px; margin:0;">
+											<label class="label" for="cf-{f.id}-gt">Grants Tools</label>
+											<input id="cf-{f.id}-gt" name="grantsTools" class="input" placeholder="Thieves's Tools" value={f.grantsTools ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 120px; margin:0;">
+											<label class="label" for="cf-{f.id}-gl">Grants Languages</label>
+											<input id="cf-{f.id}-gl" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" value={f.grantsLanguages ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 120px; margin:0;">
+											<label class="label" for="cf-{f.id}-gr">Resistances</label>
+											<input id="cf-{f.id}-gr" name="grantsResistances" class="input" placeholder="Fire,Cold" value={f.grantsResistances ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 120px; margin:0;">
+											<label class="label" for="cf-{f.id}-gi">Immunities</label>
+											<input id="cf-{f.id}-gi" name="grantsImmunities" class="input" placeholder="Necrotic,Radiant" value={f.grantsImmunities ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 120px; margin:0;">
+											<label class="label" for="cf-{f.id}-gv">Vulnerabilities</label>
+											<input id="cf-{f.id}-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" value={f.grantsVulnerabilities ?? ''} />
+										</div>
+										<div class="field" style="flex:2 1 180px; margin:0;">
+											<label class="label" for="cf-{f.id}-gis">Innate Spells</label>
+											<input id="cf-{f.id}-gis" name="grantsInnateSpells" class="input" placeholder="Faerie Fire:1:0,Darkness:3:1" value={f.grantsInnateSpells ?? ''} />
+											<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>SpellName:minLvl:uses[/:true]</code> · uses 0=at will · last seg=can use slots · e.g. <code>Faerie Fire:1:0,Darkness:3:1,Daylight:5:1:true</code></p>
+										</div>
 										</div>
 										<button type="submit" class="btn btn-primary btn-sm" style="flex-shrink:0;">Save</button>
 									</div>
@@ -231,6 +256,31 @@
 					</div>
 					<button type="submit" class="btn btn-primary btn-sm" style="flex-shrink:0;">Add</button>
 				</div>
+					<div class="field" style="flex:1 1 130px; margin:0;">
+						<label class="label" for="cf-gt">Grants Tools</label>
+						<input id="cf-gt" name="grantsTools" class="input" placeholder="Thieves's Tools" />
+					</div>
+					<div class="field" style="flex:1 1 130px; margin:0;">
+						<label class="label" for="cf-gl">Grants Languages</label>
+						<input id="cf-gl" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" />
+					</div>
+					<div class="field" style="flex:1 1 130px; margin:0;">
+						<label class="label" for="cf-gr">Resistances</label>
+						<input id="cf-gr" name="grantsResistances" class="input" placeholder="Fire,Cold" />
+					</div>
+					<div class="field" style="flex:1 1 130px; margin:0;">
+						<label class="label" for="cf-gi">Immunities</label>
+						<input id="cf-gi" name="grantsImmunities" class="input" placeholder="Necrotic,Radiant" />
+					</div>
+					<div class="field" style="flex:1 1 130px; margin:0;">
+						<label class="label" for="cf-gv">Vulnerabilities</label>
+						<input id="cf-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" />
+					</div>
+					<div class="field" style="flex:2 1 180px; margin:0;">
+						<label class="label" for="cf-gis">Innate Spells</label>
+						<input id="cf-gis" name="grantsInnateSpells" class="input" placeholder="Faerie Fire:1:0,Darkness:3:1" />
+						<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>SpellName:minLvl:uses[/:true]</code> · uses 0=at will · last seg=can use slots · e.g. <code>Faerie Fire:1:0,Darkness:3:1,Daylight:5:1:true</code></p>
+					</div>
 			</form>
 		</div>
 
@@ -336,6 +386,31 @@
 																	<label class="label" for="sfstcp-{sf.id}">Save pool</label>
 																	<input id="sfstcp-{sf.id}" name="savingThrowChoicePool" class="input" placeholder="STRENGTH,CONSTITUTION" value={sf.savingThrowChoicePool ?? ''} />
 																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sf-gt-{sf.id}">Grants Tools</label>
+																	<input id="sf-gt-{sf.id}" name="grantsTools" class="input" placeholder="Thieves's Tools" value={sf.grantsTools ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sf-gl-{sf.id}">Grants Languages</label>
+																	<input id="sf-gl-{sf.id}" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" value={sf.grantsLanguages ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sf-gr-{sf.id}">Resistances</label>
+																	<input id="sf-gr-{sf.id}" name="grantsResistances" class="input" placeholder="Fire,Cold" value={sf.grantsResistances ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sf-gi-{sf.id}">Immunities</label>
+																	<input id="sf-gi-{sf.id}" name="grantsImmunities" class="input" placeholder="Necrotic,Radiant" value={sf.grantsImmunities ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sf-gv-{sf.id}">Vulnerabilities</label>
+																	<input id="sf-gv-{sf.id}" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" value={sf.grantsVulnerabilities ?? ''} />
+																</div>
+																<div class="field" style="flex:2 1 180px; margin:0;">
+																	<label class="label" for="sf-gis-{sf.id}">Innate Spells</label>
+																	<input id="sf-gis-{sf.id}" name="grantsInnateSpells" class="input" placeholder="Faerie Fire:1:0,Darkness:3:1" value={sf.grantsInnateSpells ?? ''} />
+																	<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>SpellName:minLvl:uses[/:true]</code> · uses 0=at will · last seg=can use slots · e.g. <code>Faerie Fire:1:0,Darkness:3:1,Daylight:5:1:true</code></p>
+																</div>
 															</div>
 														</div>
 														<button type="submit" class="btn btn-primary btn-sm">Save</button>
@@ -361,6 +436,31 @@
 									</div>
 									<button type="submit" class="btn btn-ghost btn-sm">Add feature</button>
 								</div>
+									<div class="field" style="flex:1 1 130px; margin:0;">
+										<label class="label" for="sf-gt">Grants Tools</label>
+										<input id="sf-gt" name="grantsTools" class="input" placeholder="Thieves's Tools" />
+									</div>
+									<div class="field" style="flex:1 1 130px; margin:0;">
+										<label class="label" for="sf-gl">Grants Languages</label>
+										<input id="sf-gl" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" />
+									</div>
+									<div class="field" style="flex:1 1 130px; margin:0;">
+										<label class="label" for="sf-gr">Resistances</label>
+										<input id="sf-gr" name="grantsResistances" class="input" placeholder="Fire,Cold" />
+									</div>
+									<div class="field" style="flex:1 1 130px; margin:0;">
+										<label class="label" for="sf-gi">Immunities</label>
+										<input id="sf-gi" name="grantsImmunities" class="input" placeholder="Necrotic,Radiant" />
+									</div>
+									<div class="field" style="flex:1 1 130px; margin:0;">
+										<label class="label" for="sf-gv">Vulnerabilities</label>
+										<input id="sf-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" />
+									</div>
+									<div class="field" style="flex:2 1 180px; margin:0;">
+										<label class="label" for="sf-gis">Innate Spells</label>
+										<input id="sf-gis" name="grantsInnateSpells" class="input" placeholder="Faerie Fire:1:0,Darkness:3:1" />
+										<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>SpellName:minLvl:uses[/:true]</code> · uses 0=at will · last seg=can use slots · e.g. <code>Faerie Fire:1:0,Darkness:3:1,Daylight:5:1:true</code></p>
+									</div>
 							</form>
 						</div>
 					{/if}

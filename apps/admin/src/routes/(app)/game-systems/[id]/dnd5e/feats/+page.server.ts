@@ -16,6 +16,16 @@ function featGrantFields(data: FormData) {
 		skillChoicePool:    data.get('skillChoicePool')?.toString().trim()    || null,
 		savingThrowChoiceCount: data.get('savingThrowChoiceCount') ? Number(data.get('savingThrowChoiceCount')) : null,
 		savingThrowChoicePool:  data.get('savingThrowChoicePool')?.toString().trim()  || null,
+		grantsTools:          data.get('grantsTools')?.toString().trim()          || null,
+		toolChoiceCount:      data.get('toolChoiceCount') ? Number(data.get('toolChoiceCount')) : null,
+		toolChoicePool:       data.get('toolChoicePool')?.toString().trim()       || null,
+		grantsLanguages:      data.get('grantsLanguages')?.toString().trim()      || null,
+		languageChoiceCount:  data.get('languageChoiceCount') ? Number(data.get('languageChoiceCount')) : null,
+		languageChoicePool:   data.get('languageChoicePool')?.toString().trim()   || null,
+		grantsResistances:    data.get('grantsResistances')?.toString().trim()    || null,
+		grantsImmunities:     data.get('grantsImmunities')?.toString().trim()     || null,
+		grantsVulnerabilities: data.get('grantsVulnerabilities')?.toString().trim() || null,
+		grantsInnateSpells:    data.get('grantsInnateSpells')?.toString().trim()    || null,
 	};
 }
 export const load: PageServerLoad = async ({ params }) => {

@@ -54,6 +54,7 @@ export async function updateDnd5eCharacterFields(
     input: {
         speciesId?:    string | null;
         backgroundId?: string | null;
+        size?:         string | null;
     },
     actorId?: string,
 ) {
@@ -65,10 +66,11 @@ export async function updateDnd5eCharacterFields(
     return db.$transaction(async (tx) => {
         await tx.dnd5eCharacterSheet.upsert({
             where:  { characterId: id },
-            create: { characterId: id, speciesId: input.speciesId ?? null, backgroundId: input.backgroundId ?? null },
+            create: { characterId: id, speciesId: input.speciesId ?? null, backgroundId: input.backgroundId ?? null, size: input.size ?? null },
             update: {
                 ...(input.speciesId    !== undefined && { speciesId:    input.speciesId    }),
                 ...(input.backgroundId !== undefined && { backgroundId: input.backgroundId }),
+                ...(input.size         !== undefined && { size:         input.size         }),
             },
         });
         // Sync auto-granted background feat when background changes

@@ -289,6 +289,83 @@ export const dnd5eActions = {
 		return { success: true };
 	},
 
+
+	saveTool: async ({ params, request, locals }: any) => {
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const { dnd5e } = await import('@core/database');
+		const data   = await request.formData();
+		const tool   = data.get('tool')?.toString() ?? '';
+		const action = data.get('action')?.toString() ?? '';
+		const note   = data.get('note')?.toString().trim() || null;
+		if (!tool) return fail(400, { message: 'Tool required.' });
+		try {
+			if (action === 'clear') {
+				await dnd5e.removeOverrideToolGrant(params.id, tool);
+			} else {
+				await dnd5e.upsertOverrideToolGrant(params.id, tool, note);
+			}
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveLanguage: async ({ params, request, locals }: any) => {
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const { dnd5e } = await import('@core/database');
+		const data     = await request.formData();
+		const language = data.get('language')?.toString() ?? '';
+		const action   = data.get('action')?.toString() ?? '';
+		const note     = data.get('note')?.toString().trim() || null;
+		if (!language) return fail(400, { message: 'Language required.' });
+		try {
+			if (action === 'clear') {
+				await dnd5e.removeOverrideLanguageGrant(params.id, language);
+			} else {
+				await dnd5e.upsertOverrideLanguageGrant(params.id, language, note);
+			}
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveDamageModifier: async ({ params, request, locals }: any) => {
+		const character = await characters.getById(params.id);
+		if (!character || character.userId !== locals.user!.id) return fail(403, { message: 'Forbidden.' });
+		const { dnd5e } = await import('@core/database');
+		const data         = await request.formData();
+		const modifierType = (data.get('modifierType')?.toString() ?? '') as 'RESISTANCE'|'IMMUNITY'|'VULNERABILITY';
+		const damageType   = data.get('damageType')?.toString() ?? '';
+		const action       = data.get('action')?.toString() ?? '';
+		const note         = data.get('note')?.toString().trim() || null;
+		if (!modifierType || !damageType) return fail(400, { message: 'modifierType and damageType required.' });
+		try {
+			if (action === 'clear') {
+				await dnd5e.removeOverrideDamageModifier(params.id, modifierType, damageType);
+			} else {
+				await dnd5e.upsertOverrideDamageModifier(params.id, modifierType, damageType, note);
+			}
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+
+	saveSize: async ({ params, request, locals }: any) => {
+		const { dnd5e } = await import('@core/database');
+		const data = await request.formData();
+		const size = data.get('size')?.toString().trim() || null;
+		await dnd5e.updateFields(params.id, { size }, locals.user!.id);
+		return { success: true };
+	},
+
 	saveDetails: async ({ params, request, locals }: any) => {
 		const { dnd5e } = await import('@core/database');
 		const character = await characters.getById(params.id);

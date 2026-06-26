@@ -223,6 +223,56 @@
 																	<label class="label" for="tstcp-{t.id}">Save pool</label>
 																	<input id="tstcp-{t.id}" name="savingThrowChoicePool" class="input" placeholder="STRENGTH,CONSTITUTION" value={t.savingThrowChoicePool ?? ''} />
 																</div>
+																<div class="field" style="flex:0 0 110px; margin:0;">
+																	<label class="label" for="tsize-{t.id}">Size</label>
+																	<input id="tsize-{t.id}" name="size" class="input" placeholder="Medium" value={t.size ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tsizech-{t.id}">Size choices</label>
+																	<input id="tsizech-{t.id}" name="sizeChoices" class="input" placeholder="Small,Medium" value={t.sizeChoices ?? ''} />
+																</div>
+																<div class="field" style="flex:2 1 180px; margin:0;">
+																	<label class="label" for="tsenses-{t.id}">Senses</label>
+																	<input id="tsenses-{t.id}" name="senses" class="input" placeholder="Darkvision 60 ft" value={t.senses ?? ''} />
+																</div>
+																<div style="flex:1 1 100%; margin:0.25rem 0 0;">
+																	<p class="label" style="margin-bottom:0.25rem; font-size:0.75rem;">Movement Speeds</p>
+																	<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+																		{#each ['WALK','FLY','SWIM','CLIMB','BURROW'] as mType}
+																			{@const sp = (t.speeds ?? []).find((s: any) => s.movementType === mType)}
+																			<div style="display:flex;align-items:center;gap:0.25rem;">
+																				<span style="font-size:0.7rem;color:var(--text-muted);width:52px;text-transform:uppercase;">{mType}</span>
+																				<input type="hidden" name="speedType" value={mType} />
+																				<input name="speedValue" type="number" min="0" step="5" class="input" style="width:72px;" placeholder="0" value={sp?.speed ?? 0} />
+																			</div>
+																		{/each}
+																	</div>
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tg-{t.id}-gt">Grants Tools</label>
+																	<input id="tg-{t.id}-gt" name="grantsTools" class="input" placeholder="Thieves's Tools" value={t.grantsTools ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tg-{t.id}-gl">Grants Languages</label>
+																	<input id="tg-{t.id}-gl" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" value={t.grantsLanguages ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tg-{t.id}-gr">Resistances</label>
+																	<input id="tg-{t.id}-gr" name="grantsResistances" class="input" placeholder="Fire,Cold" value={t.grantsResistances ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tg-{t.id}-gi">Immunities</label>
+																	<input id="tg-{t.id}-gi" name="grantsImmunities" class="input" placeholder="Necrotic,Radiant" value={t.grantsImmunities ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tg-{t.id}-gv">Vulnerabilities</label>
+																	<input id="tg-{t.id}-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" value={t.grantsVulnerabilities ?? ''} />
+																</div>
+																<div class="field" style="flex:2 1 200px; margin:0;">
+																	<label class="label" for="tg-{t.id}-gis">Innate Spells</label>
+																	<input id="tg-{t.id}-gis" name="grantsInnateSpells" class="input" placeholder="Faerie Fire:1:0,Darkness:3:1" value={t.grantsInnateSpells ?? ''} />
+																	<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>SpellName:minLvl:uses[/:true]</code> · uses 0=at will · last seg=can use slots · e.g. <code>Faerie Fire:1:0,Darkness:3:1,Daylight:5:1:true</code></p>
+																</div>
 															</div>
 														</div>
 															<button type="submit" class="btn btn-primary btn-sm">Save</button>
@@ -250,6 +300,30 @@
 											<label class="label" for="td-{s.id}">Description</label>
 											<input id="td-{s.id}" name="description" type="text" class="input" />
 										</div>
+									</div>
+									<!-- Trait physical + grant fields -->
+									<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-top:0.375rem;">
+										<div class="field" style="flex:0 0 100px; margin:0;"><label class="label" for="ntsize-{s.id}">Size</label><input id="ntsize-{s.id}" name="size" class="input" placeholder="Medium" /></div>
+										<div class="field" style="flex:1 1 140px; margin:0;"><label class="label" for="ntsizech-{s.id}">Size choices</label><input id="ntsizech-{s.id}" name="sizeChoices" class="input" placeholder="Small,Medium" /></div>
+										<div class="field" style="flex:2 1 180px; margin:0;"><label class="label" for="ntsenses-{s.id}">Senses</label><input id="ntsenses-{s.id}" name="senses" class="input" placeholder="Darkvision 60 ft" /></div>
+										<div style="flex:1 1 100%; margin:0.25rem 0 0; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+											<span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Speeds:</span>
+											{#each ['WALK','FLY','SWIM','CLIMB','BURROW'] as mType}
+												<div style="display:flex;align-items:center;gap:0.25rem;">
+													<span style="font-size:0.7rem;color:var(--text-muted);width:52px;text-transform:uppercase;">{mType}</span>
+													<input type="hidden" name="speedType" value={mType} />
+													<input name="speedValue" type="number" min="0" step="5" class="input" style="width:72px;" placeholder="0" />
+												</div>
+											{/each}
+										</div>
+										<div class="field" style="flex:1 1 130px; margin:0;"><label class="label" for="ntgt-{s.id}">Grants Tools</label><input id="ntgt-{s.id}" name="grantsTools" class="input" placeholder="Thieves's Tools" /></div>
+										<div class="field" style="flex:1 1 130px; margin:0;"><label class="label" for="ntgl-{s.id}">Grants Languages</label><input id="ntgl-{s.id}" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" /></div>
+										<div class="field" style="flex:1 1 130px; margin:0;"><label class="label" for="ntgr-{s.id}">Resistances</label><input id="ntgr-{s.id}" name="grantsResistances" class="input" placeholder="Fire,Cold" /></div>
+										<div class="field" style="flex:1 1 130px; margin:0;"><label class="label" for="ntgi-{s.id}">Immunities</label><input id="ntgi-{s.id}" name="grantsImmunities" class="input" placeholder="Necrotic,Radiant" /></div>
+										<div class="field" style="flex:1 1 130px; margin:0;"><label class="label" for="ntgv-{s.id}">Vulnerabilities</label><input id="ntgv-{s.id}" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" /></div>
+										<div class="field" style="flex:2 1 200px; margin:0;"><label class="label" for="ntgis-{s.id}">Innate Spells</label><input id="ntgis-{s.id}" name="grantsInnateSpells" class="input" placeholder="Faerie Fire:1:0,Darkness:3:1" /><p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>SpellName:minLvl:uses[/:true]</code> · uses 0=at will · last seg=can use slots · e.g. <code>Faerie Fire:1:0,Darkness:3:1,Daylight:5:1:true</code></p></div>
+									</div>
+									<div style="display:flex;justify-content:flex-end;margin-top:0.375rem;">
 										<button type="submit" class="btn btn-ghost btn-sm">Add trait</button>
 									</div>
 								</form>

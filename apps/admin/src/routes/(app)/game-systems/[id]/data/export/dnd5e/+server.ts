@@ -44,7 +44,11 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                     rows.push({ className: cls.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
                         grantsSkills: (f as any).grantsSkills ?? '', grantsExpertise: (f as any).grantsExpertise ?? '',
                         grantsHalfSkills: (f as any).grantsHalfSkills ?? '', grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
-                        skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '', savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (f as any).savingThrowChoicePool ?? '' });
+                        skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '',
+                        savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (f as any).savingThrowChoicePool ?? '',
+                        grantsTools: (f as any).grantsTools ?? '', toolChoiceCount: (f as any).toolChoiceCount ?? '', toolChoicePool: (f as any).toolChoicePool ?? '',
+                        grantsLanguages: (f as any).grantsLanguages ?? '', languageChoiceCount: (f as any).languageChoiceCount ?? '', languageChoicePool: (f as any).languageChoicePool ?? '',
+                        grantsResistances: (f as any).grantsResistances ?? '', grantsImmunities: (f as any).grantsImmunities ?? '', grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '', grantsInnateSpells: (f as any).grantsInnateSpells ?? '' });
                 }
             }
             rows.sort((a, b) => a.className.localeCompare(b.className) || a.requiredLevel - b.requiredLevel);
@@ -70,7 +74,11 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                         rows.push({ className: cls.name, subclassName: s.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
                             grantsSkills: (f as any).grantsSkills ?? '', grantsExpertise: (f as any).grantsExpertise ?? '',
                             grantsHalfSkills: (f as any).grantsHalfSkills ?? '', grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
-                            skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '', savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (f as any).savingThrowChoicePool ?? '' });
+                            skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '',
+                            savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (f as any).savingThrowChoicePool ?? '',
+                            grantsTools: (f as any).grantsTools ?? '', toolChoiceCount: (f as any).toolChoiceCount ?? '', toolChoicePool: (f as any).toolChoicePool ?? '',
+                            grantsLanguages: (f as any).grantsLanguages ?? '', languageChoiceCount: (f as any).languageChoiceCount ?? '', languageChoicePool: (f as any).languageChoicePool ?? '',
+                            grantsResistances: (f as any).grantsResistances ?? '', grantsImmunities: (f as any).grantsImmunities ?? '', grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '', grantsInnateSpells: (f as any).grantsInnateSpells ?? '' });
                     }
                 }
             }
@@ -80,7 +88,15 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
 
         case 'species': {
             const all = await dnd5e.species.getAll(systemId);
-            rows = all.map(s => ({ name: s.name, description: s.description ?? '', source: s.source ?? '', link: s.link ?? '', isSubrace: s.isSubrace, isLegacy: s.isLegacy, sortOrder: s.sortOrder }));
+            rows = all.map(s => ({
+                name:        s.name,
+                description: s.description ?? '',
+                source:      s.source      ?? '',
+                link:        s.link        ?? '',
+                isSubrace:   s.isSubrace,
+                isLegacy:    s.isLegacy,
+                sortOrder:   s.sortOrder,
+            }));
             break;
         }
 
@@ -88,8 +104,19 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             const all = await dnd5e.species.getAll(systemId);
             for (const sp of all) {
                 for (const t of ((sp as any).traits ?? [])) {
-                    rows.push({ speciesName: sp.name, name: t.name, description: t.description ?? '', requiredLevel: t.requiredLevel ?? '', grantsSkills: (t as any).grantsSkills ?? '', grantsExpertise: (t as any).grantsExpertise ?? '', grantsHalfSkills: (t as any).grantsHalfSkills ?? '',
-                    skillChoiceCount: (t as any).skillChoiceCount ?? '', skillChoicePool: (t as any).skillChoicePool ?? '', savingThrowChoiceCount: (t as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (t as any).savingThrowChoicePool ?? '' });
+                    rows.push({ speciesName: sp.name, name: t.name, description: t.description ?? '', requiredLevel: t.requiredLevel ?? '',
+                        size: (t as any).size ?? '', sizeChoices: (t as any).sizeChoices ?? '', senses: (t as any).senses ?? '',
+                        WALK:   ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'WALK')?.speed   ?? '',
+                        FLY:    ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'FLY')?.speed    ?? '',
+                        SWIM:   ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'SWIM')?.speed   ?? '',
+                        CLIMB:  ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'CLIMB')?.speed  ?? '',
+                        BURROW: ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'BURROW')?.speed ?? '',
+                        grantsSkills: (t as any).grantsSkills ?? '', grantsExpertise: (t as any).grantsExpertise ?? '', grantsHalfSkills: (t as any).grantsHalfSkills ?? '',
+                        skillChoiceCount: (t as any).skillChoiceCount ?? '', skillChoicePool: (t as any).skillChoicePool ?? '',
+                        savingThrowChoiceCount: (t as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (t as any).savingThrowChoicePool ?? '',
+                        grantsTools: (t as any).grantsTools ?? '', toolChoiceCount: (t as any).toolChoiceCount ?? '', toolChoicePool: (t as any).toolChoicePool ?? '',
+                        grantsLanguages: (t as any).grantsLanguages ?? '', languageChoiceCount: (t as any).languageChoiceCount ?? '', languageChoicePool: (t as any).languageChoicePool ?? '',
+                        grantsResistances: (t as any).grantsResistances ?? '', grantsImmunities: (t as any).grantsImmunities ?? '', grantsVulnerabilities: (t as any).grantsVulnerabilities ?? '', grantsInnateSpells: (t as any).grantsInnateSpells ?? '' });
                 }
             }
             rows.sort((a, b) => a.speciesName.localeCompare(b.speciesName) || a.name.localeCompare(b.name));
@@ -113,6 +140,16 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                 languages:          b.languages ?? '',
                 url:                b.url ?? '',
                 sortOrder:          b.sortOrder,
+                grantsTools:           (b as any).grantsTools           ?? '',
+                toolChoiceCount:       (b as any).toolChoiceCount       ?? '',
+                toolChoicePool:        (b as any).toolChoicePool        ?? '',
+                grantsLanguages:       (b as any).grantsLanguages       ?? '',
+                languageChoiceCount:   (b as any).languageChoiceCount   ?? '',
+                languageChoicePool:    (b as any).languageChoicePool    ?? '',
+                grantsResistances:     (b as any).grantsResistances     ?? '',
+                grantsImmunities:      (b as any).grantsImmunities      ?? '',
+                grantsVulnerabilities: (b as any).grantsVulnerabilities ?? '',
+                grantsInnateSpells:     (b as any).grantsInnateSpells     ?? '',
             }));
             break;
         }
@@ -139,6 +176,16 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                 skillChoicePool:        (f as any).skillChoicePool        ?? '',
                 savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '',
                 savingThrowChoicePool:  (f as any).savingThrowChoicePool  ?? '',
+                grantsTools:           (f as any).grantsTools           ?? '',
+                toolChoiceCount:       (f as any).toolChoiceCount       ?? '',
+                toolChoicePool:        (f as any).toolChoicePool        ?? '',
+                grantsLanguages:       (f as any).grantsLanguages       ?? '',
+                languageChoiceCount:   (f as any).languageChoiceCount   ?? '',
+                languageChoicePool:    (f as any).languageChoicePool    ?? '',
+                grantsResistances:     (f as any).grantsResistances     ?? '',
+                grantsImmunities:      (f as any).grantsImmunities      ?? '',
+                grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '',
+                grantsInnateSpells:     (f as any).grantsInnateSpells     ?? '',
                 sortOrder:       f.sortOrder,
             }));
             break;

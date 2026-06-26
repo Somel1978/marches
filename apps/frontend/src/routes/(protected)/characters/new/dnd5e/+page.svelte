@@ -594,6 +594,191 @@
 	// All saving throw choice pools combined
 	const allSaveChoices = $derived([...bgSaveChoices, ...speciesSaveChoices, ...featureSaveChoices, ...featSaveChoices]);
 
+	// ── Tool grants ───────────────────────────────────────────────────────────
+	const autoGrantedTools = $derived(() => {
+		const tools: { tool: string; sourceType: string; sourceId: string | null }[] = [];
+		const bg = selectedBackground as any;
+		// Background fixed tools
+		if (bg?.grantsTools) {
+			for (const t of bg.grantsTools.split(',').map((s: string) => s.trim()).filter(Boolean))
+				tools.push({ tool: t, sourceType: 'Background', sourceId: bg.id ?? null });
+		}
+		// Species trait fixed tools
+		for (const t of (selectedSpecies?.traits ?? [])) {
+			if ((t as any).grantsTools) {
+				for (const tool of (t as any).grantsTools.split(',').map((s: string) => s.trim()).filter(Boolean))
+					tools.push({ tool, sourceType: 'SpeciesTrait', sourceId: t.id });
+			}
+		}
+		// Feat fixed tools
+		for (const { featId } of allGrantedFeatIds) {
+			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
+			if (feat?.grantsTools) {
+				for (const tool of feat.grantsTools.split(',').map((s: string) => s.trim()).filter(Boolean))
+					tools.push({ tool, sourceType: 'Feat', sourceId: feat.id });
+			}
+		}
+		// Feature fixed tools (all classes)
+		for (const alloc of classAllocs) {
+			const cls = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			if (!cls) continue;
+			const allFeatures = [
+				...(cls.features ?? []).map((f: any) => ({ ...f, sourceType: 'ClassFeature' })),
+				...(cls.subclasses ?? []).filter((s: any) => s.id === alloc.subclassId)
+					.flatMap((s: any) => (s.features ?? []).map((f: any) => ({ ...f, sourceType: 'SubclassFeature' }))),
+			];
+			for (const f of allFeatures.filter((f: any) => f.requiredLevel <= alloc.allocatedLevel && f.grantsTools)) {
+				for (const tool of f.grantsTools.split(',').map((s: string) => s.trim()).filter(Boolean))
+					tools.push({ tool, sourceType: f.sourceType, sourceId: f.id });
+			}
+		}
+		return tools;
+	});
+
+	// Tool choice pools (background + species traits + feats + features)
+	const allToolChoices = $derived((() => {
+		const pools: { sourceId: string; sourceDbId: string | null; sourceType: string; label: string; count: number; pool: string[] }[] = [];
+		const bg = selectedBackground as any;
+		if (bg?.toolChoiceCount && bg?.toolChoicePool) {
+			pools.push({ sourceId: 'bg-tools', sourceDbId: bg.id, sourceType: 'Background', label: bg.name ?? 'Background', count: bg.toolChoiceCount, pool: bg.toolChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
+		}
+		for (const t of (selectedSpecies?.traits ?? [])) {
+			if ((t as any).toolChoiceCount && (t as any).toolChoicePool)
+				pools.push({ sourceId: `${t.id}-tools`, sourceDbId: t.id, sourceType: 'SpeciesTrait', label: t.name, count: (t as any).toolChoiceCount, pool: (t as any).toolChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
+		}
+		for (const { featId } of allGrantedFeatIds) {
+			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
+			if (feat?.toolChoiceCount && feat?.toolChoicePool)
+				pools.push({ sourceId: `${featId}-tools`, sourceDbId: feat.id, sourceType: 'Feat', label: `Feat: ${feat.name}`, count: feat.toolChoiceCount, pool: feat.toolChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
+		}
+		return pools;
+	})());
+
+	// ── Language grants ────────────────────────────────────────────────────────
+	const autoGrantedLanguages = $derived(() => {
+		const langs: { language: string; sourceType: string; sourceId: string | null }[] = [];
+		const bg = selectedBackground as any;
+		if (bg?.grantsLanguages) {
+			for (const l of bg.grantsLanguages.split(',').map((s: string) => s.trim()).filter(Boolean))
+				langs.push({ language: l, sourceType: 'Background', sourceId: bg.id ?? null });
+		}
+		for (const t of (selectedSpecies?.traits ?? [])) {
+			if ((t as any).grantsLanguages) {
+				for (const l of (t as any).grantsLanguages.split(',').map((s: string) => s.trim()).filter(Boolean))
+					langs.push({ language: l, sourceType: 'SpeciesTrait', sourceId: t.id });
+			}
+		}
+		for (const { featId } of allGrantedFeatIds) {
+			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
+			if (feat?.grantsLanguages) {
+				for (const l of feat.grantsLanguages.split(',').map((s: string) => s.trim()).filter(Boolean))
+					langs.push({ language: l, sourceType: 'Feat', sourceId: feat.id });
+			}
+		}
+		return langs;
+	});
+
+	const allLanguageChoices = $derived((() => {
+		const pools: { sourceId: string; sourceDbId: string | null; sourceType: string; label: string; count: number; pool: string[] }[] = [];
+		const bg = selectedBackground as any;
+		if (bg?.languageChoiceCount && bg?.languageChoicePool)
+			pools.push({ sourceId: 'bg-langs', sourceDbId: bg.id, sourceType: 'Background', label: bg.name ?? 'Background', count: bg.languageChoiceCount, pool: bg.languageChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
+		for (const t of (selectedSpecies?.traits ?? [])) {
+			if ((t as any).languageChoiceCount && (t as any).languageChoicePool)
+				pools.push({ sourceId: `${t.id}-langs`, sourceDbId: t.id, sourceType: 'SpeciesTrait', label: t.name, count: (t as any).languageChoiceCount, pool: (t as any).languageChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
+		}
+		for (const { featId } of allGrantedFeatIds) {
+			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
+			if (feat?.languageChoiceCount && feat?.languageChoicePool)
+				pools.push({ sourceId: `${featId}-langs`, sourceDbId: feat.id, sourceType: 'Feat', label: `Feat: ${feat.name}`, count: feat.languageChoiceCount, pool: feat.languageChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
+		}
+		return pools;
+	})());
+
+	// ── Size choice — from species traits ────────────────────────────────────
+	const sizeChoiceOptions = $derived(() => {
+		const pool: string[] = [];
+		for (const t of (selectedSpecies?.traits ?? [])) {
+			if ((t as any).sizeChoices) {
+				for (const s of (t as any).sizeChoices.split(',').map((x: string) => x.trim()).filter(Boolean))
+					if (!pool.includes(s)) pool.push(s);
+			}
+		}
+		return pool;
+	});
+	const traitFixedSize = $derived(
+		(selectedSpecies?.traits ?? []).map((t: any) => t.size).find((s: any) => s) ?? null
+	);
+	let chosenSize: string = $state('');
+
+	// ── Damage modifiers (auto-granted only — no choice pools for these) ───────
+	const autoGrantedDamageModifiers = $derived(() => {
+		const mods: { modifierType: string; damageType: string; sourceType: string; sourceId: string | null }[] = [];
+		const addMods = (source: any, sourceType: string, sourceId: string | null) => {
+			for (const t of (source?.grantsResistances ?? '').split(',').map((s: string) => s.trim()).filter(Boolean))
+				mods.push({ modifierType: 'RESISTANCE', damageType: t, sourceType, sourceId });
+			for (const t of (source?.grantsImmunities ?? '').split(',').map((s: string) => s.trim()).filter(Boolean))
+				mods.push({ modifierType: 'IMMUNITY', damageType: t, sourceType, sourceId });
+			for (const t of (source?.grantsVulnerabilities ?? '').split(',').map((s: string) => s.trim()).filter(Boolean))
+				mods.push({ modifierType: 'VULNERABILITY', damageType: t, sourceType, sourceId });
+		};
+		addMods(selectedBackground, 'Background', (selectedBackground as any)?.id ?? null);
+		for (const t of (selectedSpecies?.traits ?? [])) addMods(t, 'SpeciesTrait', t.id);
+		for (const { featId } of allGrantedFeatIds) {
+			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
+			if (feat) addMods(feat, 'Feat', feat.id);
+		}
+		for (const alloc of classAllocs) {
+			const cls = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			if (!cls) continue;
+			const allFeatures = [
+				...(cls.features ?? []).map((f: any) => ({ ...f, sourceType: 'ClassFeature' })),
+				...(cls.subclasses ?? []).filter((s: any) => s.id === alloc.subclassId)
+					.flatMap((s: any) => (s.features ?? []).map((f: any) => ({ ...f, sourceType: 'SubclassFeature' }))),
+			];
+			for (const f of allFeatures.filter((f: any) => f.requiredLevel <= alloc.allocatedLevel))
+				addMods(f, f.sourceType, f.id);
+		}
+		return mods;
+	});
+
+	// ── Innate spells ────────────────────────────────────────────────────────
+	// Groups by source — raw string submitted to server which parses, looks up
+	// spellIds, and filters by character level.
+	const autoGrantedInnateSpellSources = $derived(() => {
+		const sources: { raw: string; sourceType: string; sourceId: string }[] = [];
+		const bg = selectedBackground as any;
+		if (bg?.grantsInnateSpells) sources.push({ raw: bg.grantsInnateSpells, sourceType: 'Background', sourceId: bg.id ?? '' });
+		for (const t of (selectedSpecies?.traits ?? [])) {
+			if ((t as any).grantsInnateSpells) sources.push({ raw: (t as any).grantsInnateSpells, sourceType: 'SpeciesTrait', sourceId: t.id });
+		}
+		for (const { featId } of allGrantedFeatIds) {
+			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
+			if (feat?.grantsInnateSpells) sources.push({ raw: feat.grantsInnateSpells, sourceType: 'Feat', sourceId: feat.id });
+		}
+		return sources;
+	});
+
+	// Expanded for display in summary/review — format: SpellName:minCharLevel:usesPerDay[:canUseSlots]
+	const autoGrantedInnateSpells = $derived(() => {
+		const spells: { name: string; minCharLevel: number; usesPerDay: number | null; sourceType: string; sourceId: string }[] = [];
+		for (const src of autoGrantedInnateSpellSources()) {
+			for (const entry of src.raw.split(',').map((s: string) => s.trim()).filter(Boolean)) {
+				const parts        = entry.split(':').map((s: string) => s.trim());
+				const name         = parts[0];
+				const minCharLevel = parseInt(parts[1] ?? '1', 10) || 1;
+				const usesRaw      = parseInt(parts[2] ?? '0', 10);
+				const usesPerDay   = usesRaw === 0 ? null : usesRaw;
+				spells.push({ name, minCharLevel, usesPerDay, sourceType: src.sourceType, sourceId: src.sourceId });
+			}
+		}
+		return spells;
+	});
+
+	// Tool/language pool choices state (keyed by sourceId)
+	let chosenToolPools:     Record<string, string[]> = $state({});
+	let chosenLanguagePools: Record<string, string[]> = $state({});
+
 	// Already-granted saving throws (class + auto) to exclude from choice pools
 	const allGrantedSavesSet = $derived(new Set([
 		...classSavingThrows,
@@ -609,7 +794,10 @@
 		(backgroundChoiceCount === 0 || (chosenPoolSkills[backgroundId ?? ''] ?? []).length >= Math.min(backgroundChoiceCount, backgroundChoicePool.length)) &&
 		speciesTraitChoices.every((t: any) => (chosenPoolSkills[t.id] ?? []).length >= Math.min(t.skillChoiceCount, t.skillChoicePool.split(',').filter(Boolean).length)) &&
 		featSkillChoices.every(fc => (chosenPoolSkills[fc.sourceId] ?? []).length >= Math.min(fc.count, fc.pool.length)) &&
-		allSaveChoices.every(sc => (chosenSavePools[sc.sourceId] ?? []).length >= Math.min(sc.count, sc.pool.length))
+		allSaveChoices.every(sc => (chosenSavePools[sc.sourceId] ?? []).length >= Math.min(sc.count, sc.pool.length)) &&
+		allToolChoices.every(tc => (chosenToolPools[tc.sourceId] ?? []).length >= Math.min(tc.count, tc.pool.length)) &&
+		allLanguageChoices.every(lc => (chosenLanguagePools[lc.sourceId] ?? []).length >= Math.min(lc.count, lc.pool.length)) &&
+		(sizeChoiceOptions().length === 0 || !!chosenSize || !!traitFixedSize)
 	);
 
 	$effect(() => {
@@ -876,9 +1064,32 @@
 								<div style="padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
 									<p style="margin:0 0 0.125rem;font-size:0.8125rem;font-weight:700;color:var(--brand-accent);">{t.name}</p>
 									{#if canViewDescriptions}{#if t.description}<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);">{t.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
+									<!-- Physical grants from this trait -->
+									{#if (t as any).size || (t as any).sizeChoices || (t as any).senses || (t as any).speeds?.length}
+										<div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.375rem;">
+											{#if (t as any).size}<span class="badge badge-muted">Size: {(t as any).size}</span>{/if}
+											{#if (t as any).sizeChoices}<span class="badge badge-muted">Size choice: {(t as any).sizeChoices}</span>{/if}
+											{#each ((t as any).speeds ?? []) as sp}<span class="badge badge-muted">{sp.movementType.charAt(0)+sp.movementType.slice(1).toLowerCase()}: {sp.speed} ft</span>{/each}
+											{#if (t as any).senses}<span class="badge badge-muted">👁 {(t as any).senses}</span>{/if}
+										</div>
+									{/if}
 								</div>
 							{/each}
 						</div>
+						<!-- Size choice picker -->
+						{#if sizeChoiceOptions().length > 0}
+							<div style="margin-top:0.75rem;">
+								<p class="label label-accent" style="margin-bottom:0.375rem;">Choose your Size</p>
+								<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
+									{#each sizeChoiceOptions() as opt}
+										<button type="button" class="btn btn-sm {chosenSize === opt ? 'btn-primary' : 'btn-ghost'}"
+											onclick={() => { chosenSize = opt; }}>
+											{opt}
+										</button>
+									{/each}
+								</div>
+							</div>
+						{/if}
 					{/if}
 				{:else}
 					<p class="table__empty">Select a species to view traits.</p>
@@ -1590,6 +1801,90 @@
 					</div>
 				</div>
 			{/each}
+			<!-- Tool choice pools -->
+			{#each allToolChoices as tc}
+				{@const tcChosen = chosenToolPools[tc.sourceId] ?? []}
+				<div style="margin-bottom:1.25rem;">
+					<p class="label label-accent" style="margin-bottom:0.25rem;">
+						{tc.label}: Choose {tc.count} Tool Proficiencie{tc.count !== 1 ? 's' : ''}
+						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({tcChosen.length}/{Math.min(tc.count, tc.pool.length)} chosen)</span>
+					</p>
+					<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-top:0.5rem;">
+						{#each tc.pool as tool}
+							{@const chosen = tcChosen.includes(tool)}
+							{@const full   = !chosen && tcChosen.length >= Math.min(tc.count, tc.pool.length)}
+							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
+								onclick={() => {
+									const cur = chosenToolPools[tc.sourceId] ?? [];
+									if (chosen) chosenToolPools = { ...chosenToolPools, [tc.sourceId]: cur.filter(t => t !== tool) };
+									else if (!full) chosenToolPools = { ...chosenToolPools, [tc.sourceId]: [...cur, tool] };
+								}}>
+								{tool}
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/each}
+
+			<!-- Language choice pools -->
+			{#each allLanguageChoices as lc}
+				{@const lcChosen = chosenLanguagePools[lc.sourceId] ?? []}
+				<div style="margin-bottom:1.25rem;">
+					<p class="label label-accent" style="margin-bottom:0.25rem;">
+						{lc.label}: Choose {lc.count} Language{lc.count !== 1 ? 's' : ''}
+						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({lcChosen.length}/{Math.min(lc.count, lc.pool.length)} chosen)</span>
+					</p>
+					<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-top:0.5rem;">
+						{#each lc.pool as language}
+							{@const chosen = lcChosen.includes(language)}
+							{@const full   = !chosen && lcChosen.length >= Math.min(lc.count, lc.pool.length)}
+							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
+								onclick={() => {
+									const cur = chosenLanguagePools[lc.sourceId] ?? [];
+									if (chosen) chosenLanguagePools = { ...chosenLanguagePools, [lc.sourceId]: cur.filter(l => l !== language) };
+									else if (!full) chosenLanguagePools = { ...chosenLanguagePools, [lc.sourceId]: [...cur, language] };
+								}}>
+								{language}
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/each}
+
+			<!-- Auto-granted tools, languages, resistances summary -->
+			{#if autoGrantedTools().length || autoGrantedLanguages().length || autoGrantedDamageModifiers().length || autoGrantedInnateSpells().length}
+				<div style="background:var(--bg-overlay);border-radius:var(--radius-md);padding:0.625rem 0.875rem;display:flex;flex-direction:column;gap:0.375rem;">
+					<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0;">Automatic Grants</p>
+					{#if autoGrantedTools().length}
+						<p style="font-size:0.8125rem;margin:0;"><strong>Tools:</strong> {autoGrantedTools().map(g => g.tool).join(', ')}</p>
+					{/if}
+					{#if autoGrantedLanguages().length}
+						<p style="font-size:0.8125rem;margin:0;"><strong>Languages:</strong> {autoGrantedLanguages().map(g => g.language).join(', ')}</p>
+					{/if}
+					{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'RESISTANCE')}
+						<p style="font-size:0.8125rem;margin:0;"><strong>Resistances:</strong> {autoGrantedDamageModifiers().filter(g => g.modifierType === 'RESISTANCE').map(g => g.damageType).join(', ')}</p>
+					{/if}
+					{#if autoGrantedInnateSpells().length}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--accent-light);min-width:110px;">Innate Spells</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedInnateSpells() as g}
+							<span class="badge badge-accent">{g.name} · Lv{g.minCharLevel} · {g.usesPerDay === null ? 'at will' : `${g.usesPerDay}/day`}</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'IMMUNITY')}
+						<p style="font-size:0.8125rem;margin:0;"><strong>Immunities:</strong> {autoGrantedDamageModifiers().filter(g => g.modifierType === 'IMMUNITY').map(g => g.damageType).join(', ')}</p>
+					{/if}
+					{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'VULNERABILITY')}
+						<p style="font-size:0.8125rem;margin:0;"><strong>Vulnerabilities:</strong> {autoGrantedDamageModifiers().filter(g => g.modifierType === 'VULNERABILITY').map(g => g.damageType).join(', ')}</p>
+					{/if}
+					{#if autoGrantedInnateSpells().length}
+						<p style="font-size:0.8125rem;margin:0;"><strong>Innate Spells:</strong> {autoGrantedInnateSpells().map(g => `${g.name} (Lv${g.minCharLevel}${g.usesPerDay === null ? ', at will' : `, ${g.usesPerDay}/day`})`).join(', ')}</p>
+					{/if}
+				</div>
+			{/if}
 		</div>
 
 	<!-- ════ Step 6: ASI / Feats ════ -->
@@ -1907,6 +2202,62 @@
 				</div>
 			{/if}
 
+			<!-- Tools, Languages, Damage Modifiers review -->
+			{#if chosenSize || traitFixedSize}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Size</span>
+					<span class="badge badge-muted">{chosenSize || traitFixedSize}</span>
+				</div>
+			{/if}
+			{#if autoGrantedTools().length || allToolChoices.some(tc => (chosenToolPools[tc.sourceId] ?? []).length > 0)}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Tools</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedTools() as g}<span class="badge badge-muted">{g.tool}</span>{/each}
+						{#each allToolChoices as tc}{#each (chosenToolPools[tc.sourceId] ?? []) as t}<span class="badge badge-muted">{t}</span>{/each}{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedLanguages().length || allLanguageChoices.some(lc => (chosenLanguagePools[lc.sourceId] ?? []).length > 0)}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Languages</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedLanguages() as g}<span class="badge badge-muted">{g.language}</span>{/each}
+						{#each allLanguageChoices as lc}{#each (chosenLanguagePools[lc.sourceId] ?? []) as l}<span class="badge badge-muted">{l}</span>{/each}{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'RESISTANCE')}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--color-success);min-width:110px;">Resistances</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedDamageModifiers().filter(g => g.modifierType === 'RESISTANCE') as g}
+							<span class="badge" style="background:rgba(39,174,96,0.15);color:var(--color-success);">{g.damageType}</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedInnateSpells().length}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--accent-light);min-width:110px;">Innate Spells</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedInnateSpells() as g}
+							<span class="badge badge-accent">{g.name} · Lv{g.minCharLevel} · {g.usesPerDay === null ? 'at will' : `${g.usesPerDay}/day`}</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'IMMUNITY')}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--accent-light);min-width:110px;">Immunities</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedDamageModifiers().filter(g => g.modifierType === 'IMMUNITY') as g}
+							<span class="badge badge-accent">{g.damageType}</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
 			{#if hasAsiStep && asiChoices.length}
 				<h4 class="section-title">ASI / Feats</h4>
 				<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
@@ -2020,6 +2371,49 @@
 						<input type="hidden" name="poolSkillSource"   value={fc.sourceType} />
 						<input type="hidden" name="poolSkillSourceId" value={fc.sourceId} />
 					{/each}
+				{/each}
+				<!-- Size choice -->
+				{#if chosenSize}
+					<input type="hidden" name="chosenSize" value={chosenSize} />
+				{/if}
+				<!-- Tool grants -->
+				{#each autoGrantedTools() as g}
+					<input type="hidden" name="autoTool"           value={g.tool} />
+					<input type="hidden" name="autoToolSourceType" value={g.sourceType} />
+					<input type="hidden" name="autoToolSourceId"   value={g.sourceId ?? ''} />
+				{/each}
+				{#each allToolChoices as tc}
+					{#each (chosenToolPools[tc.sourceId] ?? []) as tool}
+						<input type="hidden" name="autoTool"           value={tool} />
+						<input type="hidden" name="autoToolSourceType" value={tc.sourceType} />
+						<input type="hidden" name="autoToolSourceId"   value={tc.sourceDbId ?? tc.sourceId ?? ''} />
+					{/each}
+				{/each}
+				<!-- Language grants -->
+				{#each autoGrantedLanguages() as g}
+					<input type="hidden" name="autoLanguage"           value={g.language} />
+					<input type="hidden" name="autoLanguageSourceType" value={g.sourceType} />
+					<input type="hidden" name="autoLanguageSourceId"   value={g.sourceId ?? ''} />
+				{/each}
+				{#each allLanguageChoices as lc}
+					{#each (chosenLanguagePools[lc.sourceId] ?? []) as language}
+						<input type="hidden" name="autoLanguage"           value={language} />
+						<input type="hidden" name="autoLanguageSourceType" value={lc.sourceType} />
+						<input type="hidden" name="autoLanguageSourceId"   value={lc.sourceDbId ?? lc.sourceId ?? ''} />
+					{/each}
+				{/each}
+				<!-- Innate spell grants — one group per source, server parses and filters by char level -->
+				{#each autoGrantedInnateSpellSources() as src}
+					<input type="hidden" name="innateSpellRaw"        value={src.raw} />
+					<input type="hidden" name="innateSpellSourceType" value={src.sourceType} />
+					<input type="hidden" name="innateSpellSourceId"   value={src.sourceId} />
+				{/each}
+				<!-- Damage modifier grants -->
+				{#each autoGrantedDamageModifiers() as g}
+					<input type="hidden" name="dmgModType"       value={g.modifierType} />
+					<input type="hidden" name="dmgModDamageType" value={g.damageType} />
+					<input type="hidden" name="dmgModSourceType" value={g.sourceType} />
+					<input type="hidden" name="dmgModSourceId"   value={g.sourceId ?? ''} />
 				{/each}
 				{#each asiChoices as c, i}
 					<input type="hidden" name="asi_sourceClassId" value={c.sourceClassId} />

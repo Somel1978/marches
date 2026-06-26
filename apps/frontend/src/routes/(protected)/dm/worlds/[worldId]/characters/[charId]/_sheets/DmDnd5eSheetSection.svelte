@@ -113,6 +113,28 @@
 		await post('saveChoicePoolGrants', entries);
 	}
 
+
+	async function handleToggleTool(tool: string, active: boolean, note?: string) {
+		const entries: [string,string][] = [['tool', tool], ['action', active ? 'set' : 'clear']];
+		if (note) entries.push(['note', note]);
+		await post('saveTool', entries);
+	}
+
+	async function handleToggleLanguage(language: string, active: boolean, note?: string) {
+		const entries: [string,string][] = [['language', language], ['action', active ? 'set' : 'clear']];
+		if (note) entries.push(['note', note]);
+		await post('saveLanguage', entries);
+	}
+
+	async function handleToggleDamageModifier(modifierType: string, damageType: string, active: boolean, note?: string) {
+		const entries: [string,string][] = [['modifierType', modifierType], ['damageType', damageType], ['action', active ? 'set' : 'clear']];
+		if (note) entries.push(['note', note]);
+		await post('saveDamageModifier', entries);
+	}
+
+	async function handleSaveSize(size: string) {
+		await post('saveSize', [['size', size]]);
+	}
 	async function handleSaveDetails(details: Record<string, string | number | null>) {
 		await post('saveDetails', Object.entries(details).filter(([,v]) => v !== null).map(([k,v]) => [k, String(v)]));
 	}
@@ -135,8 +157,12 @@
 	onRemoveFeat={canManage ? handleRemoveFeat : undefined}
 	onManualScoreAdjust={canManage ? handleManualScoreAdjust : undefined}
 	onSaveMood={canManage ? handleSaveMood : undefined}
+	onSaveSize={canManage ? handleSaveSize : undefined}
 	onToggleSkill={canManage ? handleToggleSkill : undefined}
 	onToggleSave={canManage ? handleToggleSave : undefined}
+	onToggleTool={canManage ? handleToggleTool : undefined}
+	onToggleLanguage={canManage ? handleToggleLanguage : undefined}
+	onToggleDamageModifier={canManage ? handleToggleDamageModifier : undefined}
 	onSaveDetails={canManage ? handleSaveDetails : undefined}
 	onSaveChoicePoolGrants={canManage ? handleSaveChoicePoolGrants : undefined}
 />

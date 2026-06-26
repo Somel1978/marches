@@ -72,11 +72,13 @@ import { getScoreAuditForCharacter, getScoreAuditForStat } from './dbapi/read/dn
 import { enrichDnd5eSignups } from './dbapi/read/dnd5e/enrich-signups.ts';
 import { getDnd5eClasses, getAllDnd5eClasses, getDnd5eClassById, getDnd5eSpecies, getAllDnd5eSpecies, getDnd5eBackgrounds, getAllDnd5eBackgrounds, getDnd5eSystemData, invalidateDnd5eSystemDataCache } from './dbapi/read/dnd5e/get-classes.ts';
 import { createDnd5eClass, updateDnd5eClass, deleteDnd5eClass, createClassFeature, updateClassFeature, deleteClassFeature, createDnd5eSubclass, updateDnd5eSubclass, updateSubclass, deleteDnd5eSubclass, createSubclassFeature, updateSubclassFeature, deleteSubclassFeature, updateClassSavingThrows, updateClassSkillPool } from './dbapi/write/dnd5e/classes.ts';
-import { createDnd5eSpecies, updateDnd5eSpecies, deleteDnd5eSpecies, createSpeciesTrait, updateSpeciesTrait, deleteSpeciesTrait, createDnd5eBackground, updateDnd5eBackground, deleteDnd5eBackground } from './dbapi/write/dnd5e/species.ts';
+import { createDnd5eSpecies, updateDnd5eSpecies, deleteDnd5eSpecies, createSpeciesTrait, updateSpeciesTrait, deleteSpeciesTrait, updateSpeciesTraitSpeeds, createDnd5eBackground, updateDnd5eBackground, deleteDnd5eBackground } from './dbapi/write/dnd5e/species.ts';
 import { createDnd5eCharacter } from './dbapi/write/dnd5e/create-character.ts';
 import { approveDnd5eCharacter, rejectDnd5eCharacter } from './dbapi/write/dnd5e/approve-character.ts';
 import { submitDnd5eStructuralChanges, updateDnd5eCharacterFields } from './dbapi/write/dnd5e/update-character.ts';
 import { addCharacterSkillGrants, removeCharacterSkillGrantsBySource, replaceCharacterSkillGrants, upsertDmSkillGrant, upsertOverrideSkillGrant, removeOverrideSkillGrant, addCharacterSavingThrowGrants, removeCharacterSavingThrowGrantsBySource, upsertOverrideSavingThrowGrant, removeOverrideSavingThrowGrant } from './dbapi/write/dnd5e/skills.ts';
+import { addInnateSpellGrants, removeInnateSpellGrantsBySource, parseAndFilterInnateSpells } from './dbapi/write/dnd5e/innate-spells.ts';
+import { addCharacterToolGrants, removeCharacterToolGrantsBySource, upsertOverrideToolGrant, removeOverrideToolGrant, addCharacterLanguageGrants, removeCharacterLanguageGrantsBySource, upsertOverrideLanguageGrant, removeOverrideLanguageGrant, addCharacterDamageModifierGrants, removeCharacterDamageModifierGrantsBySource, upsertOverrideDamageModifierGrant, removeOverrideDamageModifierGrant } from './dbapi/write/dnd5e/tools-languages.ts';
 import { saveCharacterMood, saveDnd5eCharacterDetails } from './dbapi/write/dnd5e/character-details.ts';
 import { updateDnd5eCharacterClasses } from './dbapi/write/dnd5e/update-classes.ts';
 import { getAllDnd5eSpells, getDnd5eSpellById, getDnd5eSpellsForCharacter, getDnd5eSpellSlotProgressions, getDnd5eSpellSlotProgressionByClass, getDnd5eSpellsKnownProgressions, getDnd5eSpellsKnownProgressionByClass, getDnd5eSpellbooks } from './dbapi/read/dnd5e/get-spells.ts';
@@ -594,9 +596,10 @@ export const dnd5e = {
         delete:    deleteDnd5eSpecies,
     },
     speciesTraits: {
-        create: createSpeciesTrait,
-        update: updateSpeciesTrait,
-        delete: deleteSpeciesTrait,
+        create:       createSpeciesTrait,
+        update:       updateSpeciesTrait,
+        delete:       deleteSpeciesTrait,
+        updateSpeeds: updateSpeciesTraitSpeeds,
     },
     backgrounds: {
         getAll:    getAllDnd5eBackgrounds,
@@ -636,6 +639,25 @@ export const dnd5e = {
     removeOverrideSavingThrowGrant: removeOverrideSavingThrowGrant,
     addSavingThrowGrants:        addCharacterSavingThrowGrants,
     removeSavingThrowsBySource:  removeCharacterSavingThrowGrantsBySource,
+    // Tool grants
+    addToolGrants:               addCharacterToolGrants,
+    removeToolGrantsBySource:    removeCharacterToolGrantsBySource,
+    upsertOverrideToolGrant:     upsertOverrideToolGrant,
+    removeOverrideToolGrant:     removeOverrideToolGrant,
+    // Language grants
+    addLanguageGrants:           addCharacterLanguageGrants,
+    removeLanguageGrantsBySource: removeCharacterLanguageGrantsBySource,
+    upsertOverrideLanguageGrant: upsertOverrideLanguageGrant,
+    removeOverrideLanguageGrant: removeOverrideLanguageGrant,
+    // Damage modifier grants (resistance/immunity/vulnerability)
+    addDamageModifierGrants:         addCharacterDamageModifierGrants,
+    removeDamageModifiersBySource:   removeCharacterDamageModifierGrantsBySource,
+    upsertOverrideDamageModifier:    upsertOverrideDamageModifierGrant,
+    removeOverrideDamageModifier:    removeOverrideDamageModifierGrant,
+    // Innate spell grants
+    addInnateSpellGrants:            addInnateSpellGrants,
+    removeInnateSpellGrantsBySource: removeInnateSpellGrantsBySource,
+    parseAndFilterInnateSpells:      parseAndFilterInnateSpells,
     saveMood:                    saveCharacterMood,
     saveDetails:                 saveDnd5eCharacterDetails,
     createCharacter:     createDnd5eCharacter,

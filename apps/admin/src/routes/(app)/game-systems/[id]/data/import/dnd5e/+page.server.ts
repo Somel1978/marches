@@ -60,6 +60,54 @@ function normalizeStats(raw: string | null | undefined, warnings: string[], cont
     return parts.length ? parts.join(',') : null;
 }
 
+// Normalise free-text comma-sep strings (tools, languages, damage types) — pass through as-is,
+// trimmed and rejoined. No enum mapping needed for these fields.
+function normalizeList(raw: string | null | undefined): string | null {
+    if (!raw) return null;
+    const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+    return parts.length ? parts.join(',') : null;
+}
+
+// Parse speeds from a row: expects columns WALK, FLY, SWIM, CLIMB, BURROW (or walk_speed etc.)
+// Returns array of { movementType, speed } for non-zero entries.
+function parseSpeeds(row: any): { movementType: string; speed: number }[] {
+    const MOVE_TYPES = ['WALK','FLY','SWIM','CLIMB','BURROW'];
+    const speeds: { movementType: string; speed: number }[] = [];
+    for (const mt of MOVE_TYPES) {
+        const raw = row[mt] ?? row[mt.toLowerCase()] ?? row[`${mt.toLowerCase()}_speed`] ?? row[`${mt} Speed`] ?? 0;
+        const val = parseInt(String(raw).replace(/[^0-9]/g, ''), 10);
+        if (val > 0) speeds.push({ movementType: mt, speed: val });
+    }
+    return speeds;
+}
+
+// Common grant fields shared by ClassFeature, SubclassFeature, SpeciesTrait, Background, Feat.
+// Returns undefined (not null) for missing values — compatible with both create (undefined) and
+// update (null) signatures. Callers spread these directly: ...grantFields(row, warnings, name)
+function grantFields(row: any, warnings: string[], context: string) {
+    const n = <T>(v: T | null): T | undefined => v ?? undefined;
+    return {
+        grantsSkills:           n(normalizeSkills(row.grantsSkills, warnings, context)),
+        grantsExpertise:        n(normalizeSkills(row.grantsExpertise, warnings, context)),
+        grantsHalfSkills:       n(normalizeSkills(row.grantsHalfSkills, warnings, context)),
+        grantsSavingThrows:     n(normalizeStats(row.grantsSavingThrows, warnings, context)),
+        skillChoiceCount:       row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : undefined,
+        skillChoicePool:        n(normalizeSkills(row.skillChoicePool, warnings, context)),
+        savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : undefined,
+        savingThrowChoicePool:  n(normalizeStats(row.savingThrowChoicePool, warnings, context)),
+        grantsTools:            n(normalizeList(row.grantsTools)),
+        toolChoiceCount:        row.toolChoiceCount != null && row.toolChoiceCount !== '' ? Number(row.toolChoiceCount) : undefined,
+        toolChoicePool:         n(normalizeList(row.toolChoicePool)),
+        grantsLanguages:        n(normalizeList(row.grantsLanguages)),
+        languageChoiceCount:    row.languageChoiceCount != null && row.languageChoiceCount !== '' ? Number(row.languageChoiceCount) : undefined,
+        languageChoicePool:     n(normalizeList(row.languageChoicePool)),
+        grantsResistances:      n(normalizeList(row.grantsResistances)),
+        grantsImmunities:       n(normalizeList(row.grantsImmunities)),
+        grantsVulnerabilities:  n(normalizeList(row.grantsVulnerabilities)),
+        grantsInnateSpells:     normalizeList(row.grantsInnateSpells) ?? undefined,
+    };
+}
+
 export const actions: Actions = {
 
 	// ── Classes ───────────────────────────────────────────────────────────────
@@ -163,34 +211,20 @@ export const actions: Actions = {
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.classFeatures.update(existing.id, {
-						description:        row.description        || null,
-						requiredLevel:      toInt(row.requiredLevel),
-						url:                row.url                || null,
-						grantsSkills:       normalizeSkills(row.grantsSkills, warnings, row.name),
-						grantsExpertise:    normalizeSkills(row.grantsExpertise, warnings, row.name),
-						grantsHalfSkills:   normalizeSkills(row.grantsHalfSkills, warnings, row.name),
-						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name),
-						skillChoiceCount:   row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : null,
-						skillChoicePool:    normalizeSkills(row.skillChoicePool, warnings, row.name),
-						savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
-						savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
+						description:   row.description || null,
+						requiredLevel: toInt(row.requiredLevel),
+						url:           row.url         || null,
+						...grantFields(row, warnings, row.name),
 					});
 					updated++;
 				} else {
 					await dnd5e.classFeatures.create({
-						classId:            cls.id,
-						name:               row.name,
-						description:        row.description        || undefined,
-						requiredLevel:      toInt(row.requiredLevel),
-						url:                row.url                || undefined,
-						grantsSkills:       normalizeSkills(row.grantsSkills, warnings, row.name) ?? undefined,
-						grantsExpertise:    normalizeSkills(row.grantsExpertise, warnings, row.name) ?? undefined,
-						grantsHalfSkills:   normalizeSkills(row.grantsHalfSkills, warnings, row.name) ?? undefined,
-						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name) ?? undefined,
-						skillChoiceCount:   row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : undefined,
-						skillChoicePool:    normalizeSkills(row.skillChoicePool, warnings, row.name) ?? undefined,
-						savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
-						savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
+						classId:       cls.id,
+						name:          row.name,
+						description:   row.description || undefined,
+						requiredLevel: toInt(row.requiredLevel),
+						url:           row.url         || undefined,
+						...grantFields(row, warnings, row.name),
 					}, locals.user!.id);
 					created++;
 				}
@@ -302,30 +336,20 @@ export const actions: Actions = {
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.subclassFeatures.update(existing.id, {
-						description:        row.description        || null,
-						requiredLevel:      toInt(row.requiredLevel),
-						url:                row.url                || null,
-						grantsSkills:       normalizeSkills(row.grantsSkills, warnings, row.name),
-						grantsExpertise:    normalizeSkills(row.grantsExpertise, warnings, row.name),
-						grantsHalfSkills:   normalizeSkills(row.grantsHalfSkills, warnings, row.name),
-						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name),
-						skillChoiceCount:   row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : null,
-						skillChoicePool:    normalizeSkills(row.skillChoicePool, warnings, row.name),
-						savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
-						savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
+						description:   row.description || null,
+						requiredLevel: toInt(row.requiredLevel),
+						url:           row.url         || null,
+						...grantFields(row, warnings, row.name),
 					});
 					updated++;
 				} else {
 					await dnd5e.subclassFeatures.create({
-						subclassId:         sub.id,
-						name:               row.name,
-						description:        row.description        || undefined,
-						requiredLevel:      toInt(row.requiredLevel),
-						url:                row.url                || undefined,
-						grantsSkills:       normalizeSkills(row.grantsSkills, warnings, row.name) ?? undefined,
-						grantsExpertise:    normalizeSkills(row.grantsExpertise, warnings, row.name) ?? undefined,
-						grantsHalfSkills:   normalizeSkills(row.grantsHalfSkills, warnings, row.name) ?? undefined,
-						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name) ?? undefined,
+						subclassId:    sub.id,
+						name:          row.name,
+						description:   row.description || undefined,
+						requiredLevel: toInt(row.requiredLevel),
+						url:           row.url         || undefined,
+						...grantFields(row, warnings, row.name),
 					});
 					created++;
 				}
@@ -417,17 +441,13 @@ export const actions: Actions = {
 					skipped++; continue;
 				}
 				const traitData = {
-					description:      row.description   || null,
-					requiredLevel:    toInt(row.requiredLevel, 0) || null,
-					grantsSkills:     normalizeSkills(row.grantsSkills, warnings, row.name),
-					grantsExpertise:  normalizeSkills(row.grantsExpertise, warnings, row.name),
-					grantsHalfSkills: normalizeSkills(row.grantsHalfSkills, warnings, row.name),
-					skillChoiceCount: row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : null,
-					skillChoicePool:  normalizeSkills(row.skillChoicePool, warnings, row.name),
-					savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
-					savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
+					description:   row.description || null,
+					requiredLevel: toInt(row.requiredLevel, 0) || undefined,
+					size:        normalize(row.size)        || null,
+					sizeChoices: normalize(row.sizeChoices) || null,
+					senses:      normalize(row.senses)      || null,
+					...grantFields(row, warnings, row.name),
 				};
-				// Use DB upsert keyed on @@unique([speciesId, name]) — avoids stale in-memory cache issues
 				const existing = await db.dnd5eSpeciesTrait.findFirst({
 					where: { speciesId: sp.id, name: { equals: traitName, mode: 'insensitive' } },
 					select: { id: true },
@@ -435,9 +455,13 @@ export const actions: Actions = {
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await db.dnd5eSpeciesTrait.update({ where: { id: existing.id }, data: traitData });
+					const speeds = parseSpeeds(row);
+					await dnd5e.speciesTraits.updateSpeeds(existing.id, speeds);
 					updated++;
 				} else {
-					await db.dnd5eSpeciesTrait.create({ data: { speciesId: sp.id, name: traitName, ...traitData } });
+					const newTrait = await dnd5e.speciesTraits.create({ speciesId: sp.id, name: traitName, ...traitData });
+					const speeds = parseSpeeds(row);
+					if (speeds.length) await dnd5e.speciesTraits.updateSpeeds(newTrait.id, speeds);
 					created++;
 				}
 			}
@@ -477,43 +501,29 @@ export const actions: Actions = {
 						prerequisites:  row.prerequisites  || null,
 						detailsUrl:     row.detailsUrl      || null,
 						isEpicBoon:     String(row.isEpicBoon).toLowerCase() === 'true',
-						asiAmount:          row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : null,
-						asiStatFixed:       row.asiStatFixed       || null,
-						asiStatChoices:     row.asiStatChoices     || null,
-						grantsSkills:       normalizeSkills(row.grantsSkills, warnings, row.name),
-						grantsExpertise:    normalizeSkills(row.grantsExpertise, warnings, row.name),
-						grantsHalfSkills:   normalizeSkills(row.grantsHalfSkills, warnings, row.name),
-						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name),
-						skillChoiceCount:   row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : null,
-						skillChoicePool:    normalizeSkills(row.skillChoicePool, warnings, row.name),
-						savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
-						savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
-						sortOrder:          Number(row.sortOrder) || 0,
+						asiAmount:      row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : null,
+						asiStatFixed:   row.asiStatFixed   || null,
+						asiStatChoices: row.asiStatChoices || null,
+						sortOrder:      Number(row.sortOrder) || 0,
+						...grantFields(row, warnings, row.name),
 					}, locals.user!.id);
 					updated++;
 				} else {
 					await dnd5e.feats.create({
-						gameSystemId:       params.id,
-						name:               row.name,
-						description:        row.description   || undefined,
-						snippet:            row.snippet        || undefined,
-						repeatable:         String(row.repeatable).toLowerCase() === 'true',
-						categories:         row.categories     || undefined,
-						prerequisites:      row.prerequisites  || undefined,
-						detailsUrl:         row.detailsUrl      || undefined,
-						isEpicBoon:         String(row.isEpicBoon).toLowerCase() === 'true',
-						asiAmount:          row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : undefined,
-						asiStatFixed:       row.asiStatFixed       || undefined,
-						asiStatChoices:     row.asiStatChoices     || undefined,
-						grantsSkills:       normalizeSkills(row.grantsSkills, warnings, row.name) ?? undefined,
-						grantsExpertise:    normalizeSkills(row.grantsExpertise, warnings, row.name) ?? undefined,
-						grantsHalfSkills:   normalizeSkills(row.grantsHalfSkills, warnings, row.name) ?? undefined,
-						grantsSavingThrows: normalizeStats(row.grantsSavingThrows, warnings, row.name) ?? undefined,
-						skillChoiceCount:   row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : undefined,
-						skillChoicePool:    normalizeSkills(row.skillChoicePool, warnings, row.name) ?? undefined,
-						savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : null,
-						savingThrowChoicePool:  normalizeStats(row.savingThrowChoicePool, warnings, row.name) ?? null,
-						sortOrder:          Number(row.sortOrder) || 0,
+						gameSystemId:   params.id,
+						name:           row.name,
+						description:    row.description   || undefined,
+						snippet:        row.snippet        || undefined,
+						repeatable:     String(row.repeatable).toLowerCase() === 'true',
+						categories:     row.categories     || undefined,
+						prerequisites:  row.prerequisites  || undefined,
+						detailsUrl:     row.detailsUrl      || undefined,
+						isEpicBoon:     String(row.isEpicBoon).toLowerCase() === 'true',
+						asiAmount:      row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : undefined,
+						asiStatFixed:   row.asiStatFixed   || undefined,
+						asiStatChoices: row.asiStatChoices || undefined,
+						sortOrder:      Number(row.sortOrder) || 0,
+						...grantFields(row, warnings, row.name),
 					}, locals.user!.id);
 					created++;
 				}
@@ -549,11 +559,11 @@ export const actions: Actions = {
 						featureName:        row.featureName        || null,
 						grantsFeatCategory: row.grantsFeatCategory || null,
 						grantsFeatId:       row.grantsFeatId       || null,
-						grantsSkills:       normalizeSkills(row.grantsSkills, warnings, row.name),
-						toolProficiencies:  row.toolProficiencies  || null,
-						languages:          row.languages          || null,
 						url:                row.url                || null,
 						sortOrder:          Number(row.sortOrder)  || 0,
+						toolProficiencies:  normalizeList(row.grantsTools ?? row.toolProficiencies),
+						languages:          normalizeList(row.grantsLanguages ?? row.languages),
+						...grantFields(row, warnings, row.name),
 					}, locals.user!.id);
 					updated++;
 				} else {
@@ -564,11 +574,11 @@ export const actions: Actions = {
 						featureName:        row.featureName        || undefined,
 						grantsFeatCategory: row.grantsFeatCategory || undefined,
 						grantsFeatId:       row.grantsFeatId       || undefined,
-						grantsSkills:       normalizeSkills(row.grantsSkills, warnings, row.name) ?? undefined,
-						toolProficiencies:  row.toolProficiencies  || undefined,
-						languages:          row.languages          || undefined,
 						url:                row.url                || undefined,
 						sortOrder:          Number(row.sortOrder)  || 0,
+						toolProficiencies:  normalizeList(row.grantsTools ?? row.toolProficiencies) ?? undefined,
+						languages:          normalizeList(row.grantsLanguages ?? row.languages) ?? undefined,
+						...grantFields(row, warnings, row.name),
 					}, locals.user!.id);
 					created++;
 				}
