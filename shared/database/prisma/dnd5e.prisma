@@ -82,6 +82,8 @@ model Dnd5eClassFeature {
   grantsImmunities      String?  @map("grants_immunities")
   grantsVulnerabilities String?  @map("grants_vulnerabilities")
   grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
+  grantsSpeed       String?  @map("grants_speed")   // "WALK:10,SWIM:30" — additive speed bonuses
+  grantsSenses      String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
   createdAt           DateTime   @default(now()) @map("created_at")
   updatedAt           DateTime   @updatedAt      @map("updated_at")
 
@@ -139,6 +141,8 @@ model Dnd5eSubclassFeature {
   grantsImmunities      String?  @map("grants_immunities")
   grantsVulnerabilities String?  @map("grants_vulnerabilities")
   grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
+  grantsSpeed       String?  @map("grants_speed")   // "WALK:10,SWIM:30" — additive speed bonuses
+  grantsSenses      String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt      @map("updated_at")
 
@@ -193,6 +197,8 @@ model Dnd5eSpeciesTrait {
   grantsImmunities      String?  @map("grants_immunities")     // comma-sep damage types
   grantsVulnerabilities String?  @map("grants_vulnerabilities") // comma-sep damage types
   grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:minCharLevel:usesPerDay" 0=at-will
+  grantsSpeed       String?  @map("grants_speed")   // "WALK:10,SWIM:30" — additive speed bonuses
+  grantsSenses      String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
   // Physical characteristics granted by this trait
   size         String?  @map("size")          // fixed size e.g. "Medium"
   sizeChoices  String?  @map("size_choices")  // comma-sep pool if player picks e.g. "Small,Medium"
@@ -256,6 +262,8 @@ model Dnd5eBackground {
   grantsImmunities      String?  @map("grants_immunities")
   grantsVulnerabilities String?  @map("grants_vulnerabilities")
   grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
+  grantsSpeed       String?  @map("grants_speed")   // "WALK:10,SWIM:30" — additive speed bonuses
+  grantsSenses      String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
 
   @@unique([gameSystemId, name])
   @@map("backgrounds")
@@ -339,6 +347,8 @@ model Dnd5eFeat {
   grantsImmunities      String?  @map("grants_immunities")
   grantsVulnerabilities String?  @map("grants_vulnerabilities")
   grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
+  grantsSpeed       String?  @map("grants_speed")   // "WALK:10,SWIM:30" — additive speed bonuses
+  grantsSenses      String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
   sortOrder     Int      @default(0)     @map("sort_order")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt      @map("updated_at")

@@ -105,6 +105,8 @@ function grantFields(row: any, warnings: string[], context: string) {
         grantsImmunities:       n(normalizeList(row.grantsImmunities)),
         grantsVulnerabilities:  n(normalizeList(row.grantsVulnerabilities)),
         grantsInnateSpells:     normalizeList(row.grantsInnateSpells) ?? undefined,
+        grantsSpeed:           normalizeList(row.grantsSpeed)         ?? undefined,
+        grantsSenses:          row.grantsSenses ? String(row.grantsSenses).trim() : undefined,
     };
 }
 

@@ -38,15 +38,11 @@
 	// ── Step 2: Species ──────────────────────────────────────────────────────
 	let speciesId     = $state('');
 	let speciesSearch = $state('');
-	let sheetSpecies  = $state<any>(null); // mobile bottom sheet
 
 	const selectedSpecies   = $derived((sys?.species ?? []).find((s: any) => s.id === speciesId) ?? null);
 	const filteredSpecies   = $derived(
 		(sys?.species ?? []).filter((s: any) => !speciesSearch || s.name.toLowerCase().includes(speciesSearch.toLowerCase()))
 	);
-	function openSpeciesSheet(sp: any) { sheetSpecies = sp; }
-	function closeSpeciesSheet()       { sheetSpecies = null; }
-	function selectSpecies(id: string) { speciesId = id; closeSpeciesSheet(); }
 	function randomSpecies() {
 		const pool = filteredSpecies.length ? filteredSpecies : (sys?.species ?? []);
 		if (pool.length) speciesId = pool[Math.floor(Math.random() * pool.length)].id;
@@ -742,6 +738,54 @@
 		return mods;
 	});
 
+	// ── Speed bonuses from features/background/feats ─────────────────────────
+	const autoGrantedSpeeds = $derived(() => {
+		const speedMap = new Map<string, number>();
+		const parse = (raw: string | null | undefined) => {
+			if (!raw) return;
+			for (const entry of raw.split(',').map((s: string) => s.trim()).filter(Boolean)) {
+				const [mt, val] = entry.split(':').map((s: string) => s.trim());
+				const speed = parseInt(val ?? '0', 10);
+				if (mt && speed > 0) speedMap.set(mt.toUpperCase(), (speedMap.get(mt.toUpperCase()) ?? 0) + speed);
+			}
+		};
+		const bg = selectedBackground as any;
+		parse(bg?.grantsSpeed);
+		for (const { featId } of allGrantedFeatIds) {
+			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
+			if (feat) parse((feat as any).grantsSpeed);
+		}
+		for (const alloc of classAllocs) {
+			const classRef = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			const features = [
+				...((classRef?.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel)),
+				...((classRef?.subclasses?.find((s: any) => s.id === alloc.subclassId)?.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel)),
+			];
+			for (const f of features) parse((f as any).grantsSpeed);
+		}
+		return [...speedMap.entries()].map(([movementType, speed]) => ({ movementType, speed }));
+	});
+
+	const autoGrantedSenses = $derived(() => {
+		const senses: string[] = [];
+		const add = (raw: string | null | undefined) => { if (raw?.trim()) senses.push(raw.trim()); };
+		const bg = selectedBackground as any;
+		add(bg?.grantsSenses);
+		for (const { featId } of allGrantedFeatIds) {
+			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
+			if (feat) add((feat as any).grantsSenses);
+		}
+		for (const alloc of classAllocs) {
+			const classRef = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			const features = [
+				...((classRef?.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel)),
+				...((classRef?.subclasses?.find((s: any) => s.id === alloc.subclassId)?.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel)),
+			];
+			for (const f of features) add((f as any).grantsSenses);
+		}
+		return senses;
+	});
+
 	// ── Innate spells ────────────────────────────────────────────────────────
 	// Groups by source — raw string submitted to server which parses, looks up
 	// spellIds, and filters by character level.
@@ -1028,45 +1072,91 @@
 
 	<!-- ════ Step 2: Species ════ -->
 	{:else if step === 1}
-		<div class="wizard-two-col" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:1rem;align-items:start;">
-			<div>
-				<div class="page__header" style="margin-bottom:0.75rem;">
-					<input type="text" class="input" style="flex:1;max-width:260px;" placeholder="Search species…" bind:value={speciesSearch} />
-					<button class="btn btn-ghost btn-sm" onclick={randomSpecies}>🎲 Random</button>
+		<div style="display:grid;grid-template-columns:280px 1fr;gap:0;height:calc(100vh - 280px);min-height:420px;">
+			<!-- LEFT: scrollable species list -->
+			<div style="display:flex;flex-direction:column;border-right:1px solid var(--border-subtle);overflow:hidden;">
+				<!-- Search + random -->
+				<div style="padding:0.625rem 0.75rem;border-bottom:1px solid var(--border-subtle);display:flex;gap:0.5rem;align-items:center;">
+					<input type="text" class="input" style="flex:1;font-size:0.8125rem;" placeholder="Search…" bind:value={speciesSearch} />
+					<button class="btn btn-ghost btn-sm" title="Random" onclick={randomSpecies}>🎲</button>
 				</div>
-				<div class="wizard-species-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.75rem;">
+				<!-- List -->
+				<div style="overflow-y:auto;flex:1;">
 					{#each filteredSpecies as sp}
-						<button class="tarot" class:tarot--active={speciesId===sp.id}
-							onclick={() => { speciesId=sp.id; openSpeciesSheet(sp); }}>
-							<div class="tarot__badges">
-								{#if sp.isLegacy}<span class="wizard-pill">Legacy</span>{/if}
-								{#if sp.isSubrace}<span class="wizard-pill">Subrace</span>{/if}
+						<button
+							type="button"
+							onclick={() => { speciesId = sp.id; }}
+							style="
+								display:flex;align-items:center;gap:0.625rem;
+								width:100%;text-align:left;
+								padding:0.5rem 0.75rem;
+								border:none;border-bottom:1px solid var(--border-subtle);
+								background:{speciesId === sp.id ? 'var(--bg-overlay)' : 'transparent'};
+								border-left:3px solid {speciesId === sp.id ? 'var(--brand-accent)' : 'transparent'};
+								cursor:pointer;transition:background 0.1s;
+							">
+							<!-- Avatar -->
+							<div style="width:32px;height:32px;border-radius:50%;background:var(--bg-overlay-2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;overflow:hidden;">
+								{#if (sp as any).avatarUrl}
+									<img src={(sp as any).avatarUrl} alt={sp.name} style="width:100%;height:100%;object-fit:cover;" />
+								{:else}
+									🧝
+								{/if}
 							</div>
-							<div class="tarot__icon">🧝</div>
-							<h4 class="tarot__name">{sp.name}</h4>
-							{#if canViewDescriptions}{#if sp.description}<p class="tarot__desc">{sp.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
+							<!-- Name + badges -->
+							<div style="flex:1;min-width:0;">
+								<p style="margin:0;font-size:0.875rem;font-weight:{speciesId===sp.id?'700':'500'};color:{speciesId===sp.id?'var(--text-primary)':'var(--text-secondary)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{sp.name}</p>
+								{#if sp.isLegacy || sp.isSubrace}
+									<div style="display:flex;gap:0.25rem;margin-top:0.125rem;flex-wrap:wrap;">
+										{#if sp.isLegacy}<span class="wizard-pill" style="font-size:0.625rem;padding:0.1rem 0.375rem;">Legacy</span>{/if}
+										{#if sp.isSubrace}<span class="wizard-pill" style="font-size:0.625rem;padding:0.1rem 0.375rem;">Subrace</span>{/if}
+									</div>
+								{/if}
+							</div>
+							<!-- Selected checkmark -->
+							{#if speciesId === sp.id}<span style="color:var(--brand-accent);font-size:0.875rem;flex-shrink:0;">✓</span>{/if}
 						</button>
 					{:else}
-						<p class="table__empty" style="grid-column:1/-1;">No species match.</p>
+						<p class="table__empty" style="padding:1rem 0.75rem;">No species match.</p>
 					{/each}
 				</div>
 			</div>
-			<div class="card wizard-drawer">
+			<!-- RIGHT: detail panel -->
+			<div style="overflow-y:auto;padding:1.25rem 1.5rem;">
 				{#if selectedSpecies}
-					<h3 class="section-title">{selectedSpecies.name}</h3>
+					<!-- Header -->
+					<div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem;">
+						<div style="width:56px;height:56px;border-radius:50%;background:var(--bg-overlay);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.75rem;overflow:hidden;">
+							{#if (selectedSpecies as any).avatarUrl}
+								<img src={(selectedSpecies as any).avatarUrl} alt={selectedSpecies.name} style="width:100%;height:100%;object-fit:cover;" />
+							{:else}
+								🧝
+							{/if}
+						</div>
+						<div style="flex:1;min-width:0;">
+							<h3 style="margin:0 0 0.25rem;font-size:1.125rem;">{selectedSpecies.name}</h3>
+							{#if selectedSpecies.isLegacy || selectedSpecies.isSubrace}
+								<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+									{#if selectedSpecies.isLegacy}<span class="wizard-pill">Legacy</span>{/if}
+									{#if selectedSpecies.isSubrace}<span class="wizard-pill">Subrace</span>{/if}
+								</div>
+							{/if}
+						</div>
+					</div>
+					<!-- Description -->
 					{#if canViewDescriptions && selectedSpecies.description}
-						<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{selectedSpecies.description}</p>
+						<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 1rem;line-height:1.6;">{selectedSpecies.description}</p>
 					{/if}
+					<!-- Traits -->
 					{#if selectedSpecies.traits?.length}
-						<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.5rem;">Traits</p>
-						<div style="display:flex;flex-direction:column;gap:0.5rem;">
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin:0 0 0.5rem;">Traits</p>
+						<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;">
 							{#each selectedSpecies.traits as t}
-								<div style="padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
-									<p style="margin:0 0 0.125rem;font-size:0.8125rem;font-weight:700;color:var(--brand-accent);">{t.name}</p>
-									{#if canViewDescriptions}{#if t.description}<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);">{t.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
-									<!-- Physical grants from this trait -->
+								<div style="padding:0.625rem 0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);border-left:3px solid var(--brand-accent);">
+									<p style="margin:0 0 0.25rem;font-size:0.8125rem;font-weight:700;color:var(--brand-accent);">{t.name}{#if (t as any).requiredLevel > 1} <span style="font-weight:400;color:var(--text-muted);">(Lv {(t as any).requiredLevel})</span>{/if}</p>
+									{#if canViewDescriptions && t.description}<p style="margin:0 0 0.375rem;font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;">{t.description}</p>{:else if !canViewDescriptions}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;margin:0 0 0.375rem;">📖 Description not available — contact your DM.</p>{/if}
 									{#if (t as any).size || (t as any).sizeChoices || (t as any).senses || (t as any).speeds?.length}
-										<div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.375rem;">
+										<div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;">
 											{#if (t as any).size}<span class="badge badge-muted">Size: {(t as any).size}</span>{/if}
 											{#if (t as any).sizeChoices}<span class="badge badge-muted">Size choice: {(t as any).sizeChoices}</span>{/if}
 											{#each ((t as any).speeds ?? []) as sp}<span class="badge badge-muted">{sp.movementType.charAt(0)+sp.movementType.slice(1).toLowerCase()}: {sp.speed} ft</span>{/each}
@@ -1078,62 +1168,26 @@
 						</div>
 						<!-- Size choice picker -->
 						{#if sizeChoiceOptions().length > 0}
-							<div style="margin-top:0.75rem;">
+							<div style="margin-bottom:1rem;">
 								<p class="label label-accent" style="margin-bottom:0.375rem;">Choose your Size</p>
 								<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
 									{#each sizeChoiceOptions() as opt}
 										<button type="button" class="btn btn-sm {chosenSize === opt ? 'btn-primary' : 'btn-ghost'}"
-											onclick={() => { chosenSize = opt; }}>
-											{opt}
-										</button>
+											onclick={() => { chosenSize = opt; }}>{opt}</button>
 									{/each}
 								</div>
 							</div>
 						{/if}
 					{/if}
 				{:else}
-					<p class="table__empty">Select a species to view traits.</p>
+					<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);gap:0.75rem;">
+						<span style="font-size:2.5rem;">🧝</span>
+						<p style="margin:0;font-size:0.875rem;">Select a species from the list</p>
+					</div>
 				{/if}
 			</div>
 		</div>
 
-		{#if sheetSpecies}
-			<button class="wizard-sheet-backdrop" onclick={closeSpeciesSheet} aria-label="Close"></button>
-			<div class="wizard-sheet">
-				<div class="wizard-sheet__handle">
-					<div class="wizard-sheet__handle-bar"></div>
-					<button class="btn btn-ghost btn-sm" onclick={closeSpeciesSheet}>✕</button>
-				</div>
-				<div class="wizard-sheet__body">
-					<h3 class="section-title">{sheetSpecies.name}</h3>
-					{#if sheetSpecies.isLegacy || sheetSpecies.isSubrace}
-						<div style="display:flex;gap:0.25rem;margin-bottom:0.5rem;">
-							{#if sheetSpecies.isLegacy}<span class="wizard-pill">Legacy</span>{/if}
-							{#if sheetSpecies.isSubrace}<span class="wizard-pill">Subrace</span>{/if}
-						</div>
-					{/if}
-					{#if canViewDescriptions && sheetSpecies.description}
-						<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{sheetSpecies.description}</p>
-					{/if}
-					{#if sheetSpecies.traits?.length}
-						<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.5rem;">Traits</p>
-						<div style="display:flex;flex-direction:column;gap:0.5rem;">
-							{#each sheetSpecies.traits as t}
-								<div style="padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
-									<p style="margin:0 0 0.125rem;font-size:0.8125rem;font-weight:700;color:var(--brand-accent);">{t.name}</p>
-									{#if t.description}<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);">{t.description}</p>{/if}
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</div>
-				<div class="wizard-sheet__footer">
-					<button class="btn btn-primary btn-full" onclick={() => selectSpecies(sheetSpecies.id)}>
-						{speciesId === sheetSpecies.id ? '✓ Selected' : `Select ${sheetSpecies.name}`}
-					</button>
-				</div>
-			</div>
-		{/if}
 
 	<!-- ════ Step 3: Background ════ -->
 	{:else if step === 2}
@@ -1864,7 +1918,33 @@
 					{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'RESISTANCE')}
 						<p style="font-size:0.8125rem;margin:0;"><strong>Resistances:</strong> {autoGrantedDamageModifiers().filter(g => g.modifierType === 'RESISTANCE').map(g => g.damageType).join(', ')}</p>
 					{/if}
-					{#if autoGrantedInnateSpells().length}
+					{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'VULNERABILITY')}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--color-error);min-width:110px;">Vulnerabilities</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedDamageModifiers().filter(g => g.modifierType === 'VULNERABILITY') as g}
+							<span class="badge" style="background:rgba(231,76,60,0.15);color:var(--color-error);">{g.damageType}</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedSpeeds().length}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Speed Bonuses</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedSpeeds() as sp}<span class="badge badge-muted">{sp.movementType.charAt(0)+sp.movementType.slice(1).toLowerCase()} +{sp.speed} ft</span>{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedSenses().length}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Senses</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedSenses() as s}<span class="badge badge-muted">👁 {s}</span>{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedInnateSpells().length}
 				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
 					<span style="font-size:0.75rem;font-weight:700;color:var(--accent-light);min-width:110px;">Innate Spells</span>
 					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
@@ -2199,6 +2279,54 @@
 							</div>
 						</div>
 					{/each}
+					{#if featureAutoExpertise.length}
+						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Expertise</span>
+							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+								{#each featureAutoExpertise as { skill }}<span class="badge badge-accent">{SKILL_DISPLAY[skill] ?? skill} ×2</span>{/each}
+							</div>
+						</div>
+					{/if}
+					{#if featureAutoHalfSkills.length}
+						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Half Prof</span>
+							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+								{#each featureAutoHalfSkills as { skill }}<span class="badge badge-muted">{SKILL_DISPLAY[skill] ?? skill} ×½</span>{/each}
+							</div>
+						</div>
+					{/if}
+					{#if featAutoSaves.length}
+						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Feat Saves</span>
+							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+								{#each featAutoSaves as { stat }}<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>{/each}
+							</div>
+						</div>
+					{/if}
+					{#if featureAutoSaves.length}
+						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Feature Saves</span>
+							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+								{#each featureAutoSaves as { stat }}<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>{/each}
+							</div>
+						</div>
+					{/if}
+					{#if featSaveChoices.some(sc => (chosenSavePools[sc.sourceId] ?? []).length > 0)}
+						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Feat Save Picks</span>
+							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+								{#each featSaveChoices as sc}{#each (chosenSavePools[sc.sourceId] ?? []) as stat}<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>{/each}{/each}
+							</div>
+						</div>
+					{/if}
+					{#if featureSaveChoices.some(sc => (chosenSavePools[sc.sourceId] ?? []).length > 0)}
+						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Feature Save Picks</span>
+							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+								{#each featureSaveChoices as sc}{#each (chosenSavePools[sc.sourceId] ?? []) as stat}<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>{/each}{/each}
+							</div>
+						</div>
+					{/if}
 				</div>
 			{/if}
 
@@ -2234,6 +2362,32 @@
 						{#each autoGrantedDamageModifiers().filter(g => g.modifierType === 'RESISTANCE') as g}
 							<span class="badge" style="background:rgba(39,174,96,0.15);color:var(--color-success);">{g.damageType}</span>
 						{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'VULNERABILITY')}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--color-error);min-width:110px;">Vulnerabilities</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedDamageModifiers().filter(g => g.modifierType === 'VULNERABILITY') as g}
+							<span class="badge" style="background:rgba(231,76,60,0.15);color:var(--color-error);">{g.damageType}</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedSpeeds().length}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Speed Bonuses</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedSpeeds() as sp}<span class="badge badge-muted">{sp.movementType.charAt(0)+sp.movementType.slice(1).toLowerCase()} +{sp.speed} ft</span>{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedSenses().length}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Senses</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedSenses() as s}<span class="badge badge-muted">👁 {s}</span>{/each}
 					</div>
 				</div>
 			{/if}

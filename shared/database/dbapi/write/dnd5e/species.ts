@@ -114,6 +114,8 @@ type BackgroundGrantInput = Partial<{
     grantsLanguages: string | null; languageChoiceCount: number | null; languageChoicePool: string | null;
     grantsResistances: string | null; grantsImmunities: string | null; grantsVulnerabilities: string | null;
     grantsInnateSpells: string | null;
+    grantsSpeed: string | null;
+    grantsSenses: string | null;
 }>;
 
 export async function createDnd5eBackground(input: {
@@ -148,6 +150,8 @@ export async function createDnd5eBackground(input: {
         grantsImmunities:        input.grantsImmunities        ?? null,
         grantsVulnerabilities:   input.grantsVulnerabilities   ?? null,
         grantsInnateSpells:      input.grantsInnateSpells      ?? null,
+        grantsSpeed:             input.grantsSpeed             ?? null,
+        grantsSenses:            input.grantsSenses            ?? null,
     }});
     await logAudit(db, { actorId, action: 'CREATE', resourceKey: 'GameSystem', resourceId: b.id, after: b });
     return b;

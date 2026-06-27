@@ -21,6 +21,8 @@ function bgGrantFields(data: FormData) {
 		grantsImmunities:       data.get('grantsImmunities')?.toString().trim()      || null,
 		grantsVulnerabilities:  data.get('grantsVulnerabilities')?.toString().trim() || null,
 		grantsInnateSpells:     data.get('grantsInnateSpells')?.toString().trim()    || null,
+		grantsSpeed:            data.get('grantsSpeed')?.toString().trim()           || null,
+		grantsSenses:           data.get('grantsSenses')?.toString().trim()          || null,
 	};
 }
 

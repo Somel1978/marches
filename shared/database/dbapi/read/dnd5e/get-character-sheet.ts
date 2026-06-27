@@ -335,10 +335,8 @@ export async function getDnd5eCharacterSheet(characterId: string) {
 
     // ── Aggregate size, senses, speeds from species traits ───────────────────
     const activeTraits = (speciesRecord as any)?.traits ?? [];
-    // Fixed size from first trait that grants one, else null (player's choice is in sheet.size)
     const traitSize        = activeTraits.map((t: any) => t.size).find((s: any) => s) ?? null;
     const traitSizeChoices = activeTraits.map((t: any) => t.sizeChoices).filter(Boolean).join(',') || null;
-    // Aggregate senses (join all non-empty)
     const traitSenses      = activeTraits.map((t: any) => t.senses).filter(Boolean).join(', ') || null;
     // Aggregate speeds — sum by movementType across all traits
     const speedMap = new Map<string, number>();
@@ -347,7 +345,42 @@ export async function getDnd5eCharacterSheet(characterId: string) {
             speedMap.set(sp.movementType, (speedMap.get(sp.movementType) ?? 0) + sp.speed);
         }
     }
+
+    // ── Add speed/senses from class/subclass features, background, feats ─────
+    // Parse "WALK:10,SWIM:30" format and add additively to speedMap
+    const parseGrantSpeed = (raw: string | null | undefined) => {
+        if (!raw) return;
+        for (const entry of raw.split(',').map(s => s.trim()).filter(Boolean)) {
+            const [mt, val] = entry.split(':').map(s => s.trim());
+            const speed = parseInt(val ?? '0', 10);
+            if (mt && speed > 0) speedMap.set(mt.toUpperCase(), (speedMap.get(mt.toUpperCase()) ?? 0) + speed);
+        }
+    };
+    // Collect extra senses from features/background/feats
+    const extraSenses: string[] = [];
+    const addGrantSenses = (raw: string | null | undefined) => { if (raw?.trim()) extraSenses.push(raw.trim()); };
+
+    // Background
+    if (backgroundRecord) {
+        parseGrantSpeed((backgroundRecord as any).grantsSpeed);
+        addGrantSenses((backgroundRecord as any).grantsSenses);
+    }
+    // Chosen feats
+    for (const cf of chosenFeats) {
+        parseGrantSpeed((cf.feat as any).grantsSpeed);
+        addGrantSenses((cf.feat as any).grantsSenses);
+    }
+    // Class + subclass features
+    for (const cc of enrichedClasses) {
+        for (const f of [...(cc.classFeatures ?? []), ...(cc.subclassFeatures ?? [])]) {
+            parseGrantSpeed((f as any).grantsSpeed);
+            addGrantSenses((f as any).grantsSenses);
+        }
+    }
+
     const aggregatedSpeeds = [...speedMap.entries()].map(([movementType, speed]) => ({ movementType, speed }));
+    // Combine trait senses + feature senses
+    const allSenses = [traitSenses, ...extraSenses].filter(Boolean).join(', ') || null;
 
     return {
         sheet,
@@ -373,6 +406,7 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         traitSize,
         traitSizeChoices,
         traitSenses,
+        allSenses,
         aggregatedSpeeds,
     };
 }

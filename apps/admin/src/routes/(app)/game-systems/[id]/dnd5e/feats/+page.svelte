@@ -167,9 +167,25 @@
 							<label class="label" for="new-grantsTools">Grants Tools</label>
 							<input id="new-grantsTools" name="grantsTools" class="input" placeholder="Thieves' Tools" />
 						</div>
+						<div class="field" style="flex:0 0 70px;">
+							<label class="label" for="feat-toolChoiceCount">Tool #</label>
+							<input id="feat-toolChoiceCount" name="toolChoiceCount" type="number" min="0" class="input" placeholder="1" />
+						</div>
+						<div class="field" style="flex:1 1 150px;">
+							<label class="label" for="feat-toolChoicePool">Tool pool</label>
+							<input id="feat-toolChoicePool" name="toolChoicePool" class="input" placeholder="Thieves's Tools,Smith's Tools" />
+						</div>
 						<div class="field" style="flex:1 1 140px;">
 							<label class="label" for="new-grantsLanguages">Grants Languages</label>
 							<input id="new-grantsLanguages" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" />
+						</div>
+						<div class="field" style="flex:0 0 70px;">
+							<label class="label" for="feat-langChoiceCount">Lang #</label>
+							<input id="feat-langChoiceCount" name="languageChoiceCount" type="number" min="0" class="input" placeholder="1" />
+						</div>
+						<div class="field" style="flex:1 1 150px;">
+							<label class="label" for="feat-langChoicePool">Lang pool</label>
+							<input id="feat-langChoicePool" name="languageChoicePool" class="input" placeholder="Any,Elvish,Dwarvish" />
 						</div>
 						<div class="field" style="flex:1 1 140px;">
 							<label class="label" for="new-grantsResistances">Resistances</label>
@@ -182,6 +198,24 @@
 						<div class="field" style="flex:1 1 140px;">
 							<label class="label" for="new-grantsVulnerabilities">Vulnerabilities</label>
 							<input id="new-grantsVulnerabilities" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" />
+						</div>
+						<div class="field" style="flex:1 1 160px;">
+							<label class="label" for="new-grantsSpeed">Speed Bonuses</label>
+							<input id="new-grantsSpeed" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" />
+							<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>WALK:10,FLY:30</code> — additive speed bonus in feet per movement type</p>
+						</div>
+						<div class="field" style="flex:1 1 160px;">
+							<label class="label" for="new-grantsSenses">Grants Senses</label>
+							<input id="new-grantsSenses" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" />
+						</div>
+						<div class="field" style="flex:1 1 160px;">
+							<label class="label" for="new-grantsSpeed">Speed Bonuses</label>
+							<input id="new-grantsSpeed" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" />
+							<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>WALK:10,FLY:30</code> — additive speed bonus in feet per movement type</p>
+						</div>
+						<div class="field" style="flex:1 1 160px;">
+							<label class="label" for="new-grantsSenses">Grants Senses</label>
+							<input id="new-grantsSenses" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" />
 						</div>
 						<div class="field" style="flex:2 1 200px;">
 							<label class="label" for="new-grantsInnateSpells">Innate Spells</label>
@@ -351,9 +385,25 @@
 											<label class="label" for="fe-{feat.id}-gt">Grants Tools</label>
 											<input id="fe-{feat.id}-gt" name="grantsTools" class="input" placeholder="Thieves' Tools" value={feat.grantsTools ?? ''} />
 										</div>
+										<div class="field" style="flex:0 0 70px; margin:0;">
+											<label class="label" for="feat-e-toolChoiceCount-{feat.id}">Tool #</label>
+											<input id="feat-e-toolChoiceCount-{feat.id}" name="toolChoiceCount" type="number" min="0" class="input" placeholder="1" value={feat.toolChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 150px; margin:0;">
+											<label class="label" for="feat-e-toolChoicePool-{feat.id}">Tool pool</label>
+											<input id="feat-e-toolChoicePool-{feat.id}" name="toolChoicePool" class="input" placeholder="Thieves's Tools,Smith's Tools" value={feat.toolChoicePool ?? ''} />
+										</div>
 										<div class="field" style="flex:1 1 140px; ">
 											<label class="label" for="fe-{feat.id}-gl">Grants Languages</label>
 											<input id="fe-{feat.id}-gl" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" value={feat.grantsLanguages ?? ''} />
+										</div>
+										<div class="field" style="flex:0 0 70px; margin:0;">
+											<label class="label" for="feat-e-langChoiceCount-{feat.id}">Lang #</label>
+											<input id="feat-e-langChoiceCount-{feat.id}" name="languageChoiceCount" type="number" min="0" class="input" placeholder="1" value={feat.languageChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 150px; margin:0;">
+											<label class="label" for="feat-e-langChoicePool-{feat.id}">Lang pool</label>
+											<input id="feat-e-langChoicePool-{feat.id}" name="languageChoicePool" class="input" placeholder="Any,Elvish,Dwarvish" value={feat.languageChoicePool ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 140px; ">
 											<label class="label" for="fe-{feat.id}-gr">Resistances</label>
@@ -366,6 +416,15 @@
 										<div class="field" style="flex:1 1 140px; ">
 											<label class="label" for="fe-{feat.id}-gv">Vulnerabilities</label>
 											<input id="fe-{feat.id}-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" value={feat.grantsVulnerabilities ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 160px; margin:0;">
+											<label class="label" for="fe-{feat.id}-gsp">Speed Bonuses</label>
+											<input id="fe-{feat.id}-gsp" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" value={feat.grantsSpeed ?? ''} />
+											<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>WALK:10,FLY:30</code> — additive speed bonus in feet per movement type</p>
+										</div>
+										<div class="field" style="flex:1 1 160px; margin:0;">
+											<label class="label" for="fe-{feat.id}-gse">Grants Senses</label>
+											<input id="fe-{feat.id}-gse" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" value={feat.grantsSenses ?? ''} />
 										</div>
 										<div class="field" style="flex:2 1 200px; ">
 											<label class="label" for="fe-{feat.id}-gis">Innate Spells</label>

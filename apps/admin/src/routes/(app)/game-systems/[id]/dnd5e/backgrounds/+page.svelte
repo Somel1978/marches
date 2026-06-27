@@ -96,10 +96,14 @@
 							<label class="label" for="bgtool">Grants Tools</label>
 							<input id="bgtool" name="grantsTools" type="text" class="input" placeholder="Thieves's Tools" />
 						</div>
+						<div class="field" style="flex:0 0 80px; margin:0;"><label class="label" for="choice-toolChoiceCount-8983">Tool #</label><input id="choice-toolChoiceCount-8983" name="toolChoiceCount" type="number" min="0" class="input" placeholder="1" /></div>
+						<div class="field" style="flex:1 1 160px; margin:0;"><label class="label" for="choice-toolChoicePool-18185">Tool pool</label><input id="choice-toolChoicePool-18185" name="toolChoicePool" class="input" placeholder="Thieves's Tools,Smith's Tools" /></div>
 						<div class="field" style="flex:1 1 180px;">
 							<label class="label" for="bglang">Grants Languages</label>
 							<input id="bglang" name="grantsLanguages" type="text" class="input" placeholder="Elvish,Dwarvish" />
 						</div>
+						<div class="field" style="flex:0 0 80px; margin:0;"><label class="label" for="choice-languageChoiceCount-66046">Lang #</label><input id="choice-languageChoiceCount-66046" name="languageChoiceCount" type="number" min="0" class="input" placeholder="1" /></div>
+						<div class="field" style="flex:1 1 160px; margin:0;"><label class="label" for="choice-languageChoicePool-87357">Lang pool</label><input id="choice-languageChoicePool-87357" name="languageChoicePool" class="input" placeholder="Any,Elvish,Dwarvish" /></div>
 						<div class="field" style="flex:1 1 140px;">
 							<label class="label" for="bgres">Resistances</label>
 							<input id="bgres" name="grantsResistances" type="text" class="input" placeholder="Fire,Cold" />
@@ -111,6 +115,15 @@
 						<div class="field" style="flex:1 1 140px;">
 							<label class="label" for="bgvul">Vulnerabilities</label>
 							<input id="bgvul" name="grantsVulnerabilities" type="text" class="input" placeholder="Bludgeoning" />
+						</div>
+						<div class="field" style="flex:1 1 160px;">
+							<label class="label" for="bg-gsp">Speed Bonuses</label>
+							<input id="bg-gsp" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" />
+							<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>WALK:10,FLY:30</code> — additive speed bonus in feet per movement type</p>
+						</div>
+						<div class="field" style="flex:1 1 160px;">
+							<label class="label" for="bg-gse">Grants Senses</label>
+							<input id="bg-gse" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" />
 						</div>
 						<div class="field" style="flex:2 1 200px;">
 							<label class="label" for="bgis">Innate Spells</label>
@@ -212,6 +225,8 @@
 											<label class="label" for="etool-{b.id}">Grants Tools</label>
 											<input id="etool-{b.id}" name="grantsTools" type="text" class="input" value={(b as any).grantsTools ?? b.toolProficiencies ?? ''} />
 										</div>
+										<div class="field" style="flex:0 0 80px; margin:0;"><label class="label" for="choice-toolChoiceCount-69310">Tool #</label><input id="choice-toolChoiceCount-69310" name="toolChoiceCount" type="number" min="0" class="input" placeholder="1" value={(b as any).toolChoiceCount ?? ''} /></div>
+										<div class="field" style="flex:1 1 160px; margin:0;"><label class="label" for="choice-toolChoicePool-70169">Tool pool</label><input id="choice-toolChoicePool-70169" name="toolChoicePool" class="input" placeholder="Thieves's Tools,Smith's Tools" value={(b as any).toolChoicePool ?? ''} /></div>
 										<div class="field" style="flex:1 1 150px;">
 											<label class="label" for="elang-{b.id}">Grants Languages</label>
 											<input id="elang-{b.id}" name="grantsLanguages" type="text" class="input" value={(b as any).grantsLanguages ?? b.languages ?? ''} />
@@ -228,6 +243,8 @@
 											</select>
 										</div>
 									</div>
+									<div class="field" style="flex:0 0 80px; margin:0;"><label class="label" for="choice-languageChoiceCount-8062">Lang #</label><input id="choice-languageChoiceCount-8062" name="languageChoiceCount" type="number" min="0" class="input" placeholder="1" value={(b as any).languageChoiceCount ?? ''} /></div>
+									<div class="field" style="flex:1 1 160px; margin:0;"><label class="label" for="choice-languageChoicePool-72534">Lang pool</label><input id="choice-languageChoicePool-72534" name="languageChoicePool" class="input" placeholder="Any,Elvish,Dwarvish" value={(b as any).languageChoicePool ?? ''} /></div>
 									<div class="field" style="flex:1 1 140px;">
 										<label class="label" for="eres-{b.id}">Resistances</label>
 										<input id="eres-{b.id}" name="grantsResistances" type="text" class="input" placeholder="Fire,Cold" value={(b as any).grantsResistances ?? ''} />
@@ -239,6 +256,15 @@
 									<div class="field" style="flex:1 1 140px;">
 										<label class="label" for="evul-{b.id}">Vulnerabilities</label>
 										<input id="evul-{b.id}" name="grantsVulnerabilities" type="text" class="input" placeholder="Bludgeoning" value={(b as any).grantsVulnerabilities ?? ''} />
+									</div>
+									<div class="field" style="flex:1 1 160px; ">
+										<label class="label" for="bg-{b.id}-gsp">Speed Bonuses</label>
+										<input id="bg-{b.id}-gsp" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" value={b.grantsSpeed ?? ''} />
+										<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>WALK:10,FLY:30</code> — additive speed bonus in feet per movement type</p>
+									</div>
+									<div class="field" style="flex:1 1 160px; ">
+										<label class="label" for="bg-{b.id}-gse">Grants Senses</label>
+										<input id="bg-{b.id}-gse" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" value={b.grantsSenses ?? ''} />
 									</div>
 									<div class="field" style="flex:2 1 200px;">
 										<label class="label" for="gis-{b.id}">Innate Spells</label>

@@ -252,9 +252,25 @@
 																	<label class="label" for="tg-{t.id}-gt">Grants Tools</label>
 																	<input id="tg-{t.id}-gt" name="grantsTools" class="input" placeholder="Thieves's Tools" value={t.grantsTools ?? ''} />
 																</div>
+																<div class="field" style="flex:0 0 70px; margin:0;">
+																	<label class="label" for="tg-{t.id}-toolc">Tool #</label>
+																	<input id="tg-{t.id}-toolc" name="toolChoiceCount" type="number" min="0" class="input" placeholder="1" value={t.toolChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 150px; margin:0;">
+																	<label class="label" for="tg-{t.id}-toolp">Tool pool</label>
+																	<input id="tg-{t.id}-toolp" name="toolChoicePool" class="input" placeholder="Thieves's Tools,Smith's Tools" value={t.toolChoicePool ?? ''} />
+																</div>
 																<div class="field" style="flex:1 1 140px; margin:0;">
 																	<label class="label" for="tg-{t.id}-gl">Grants Languages</label>
 																	<input id="tg-{t.id}-gl" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" value={t.grantsLanguages ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 70px; margin:0;">
+																	<label class="label" for="tg-{t.id}-langc">Lang #</label>
+																	<input id="tg-{t.id}-langc" name="languageChoiceCount" type="number" min="0" class="input" placeholder="1" value={t.languageChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 150px; margin:0;">
+																	<label class="label" for="tg-{t.id}-langp">Lang pool</label>
+																	<input id="tg-{t.id}-langp" name="languageChoicePool" class="input" placeholder="Any,Elvish,Dwarvish" value={t.languageChoicePool ?? ''} />
 																</div>
 																<div class="field" style="flex:1 1 140px; margin:0;">
 																	<label class="label" for="tg-{t.id}-gr">Resistances</label>
@@ -317,7 +333,11 @@
 											{/each}
 										</div>
 										<div class="field" style="flex:1 1 130px; margin:0;"><label class="label" for="ntgt-{s.id}">Grants Tools</label><input id="ntgt-{s.id}" name="grantsTools" class="input" placeholder="Thieves's Tools" /></div>
+<div class="field" style="flex:0 0 70px; margin:0;"><label class="label" for="choice-toolChoiceCount-8983">Tool #</label><input id="choice-toolChoiceCount-8983" name="toolChoiceCount" type="number" min="0" class="input" placeholder="1" /></div>
+										<div class="field" style="flex:1 1 150px; margin:0;"><label class="label" for="choice-toolChoicePool-18185">Tool pool</label><input id="choice-toolChoicePool-18185" name="toolChoicePool" class="input" placeholder="Thieves's Tools,Smith's Tools" /></div>
 										<div class="field" style="flex:1 1 130px; margin:0;"><label class="label" for="ntgl-{s.id}">Grants Languages</label><input id="ntgl-{s.id}" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" /></div>
+										<div class="field" style="flex:0 0 70px; margin:0;"><label class="label" for="choice-languageChoiceCount-66046">Lang #</label><input id="choice-languageChoiceCount-66046" name="languageChoiceCount" type="number" min="0" class="input" placeholder="1" /></div>
+										<div class="field" style="flex:1 1 150px; margin:0;"><label class="label" for="choice-languageChoicePool-87357">Lang pool</label><input id="choice-languageChoicePool-87357" name="languageChoicePool" class="input" placeholder="Any,Elvish,Dwarvish" /></div>
 										<div class="field" style="flex:1 1 130px; margin:0;"><label class="label" for="ntgr-{s.id}">Resistances</label><input id="ntgr-{s.id}" name="grantsResistances" class="input" placeholder="Fire,Cold" /></div>
 										<div class="field" style="flex:1 1 130px; margin:0;"><label class="label" for="ntgi-{s.id}">Immunities</label><input id="ntgi-{s.id}" name="grantsImmunities" class="input" placeholder="Necrotic,Radiant" /></div>
 										<div class="field" style="flex:1 1 130px; margin:0;"><label class="label" for="ntgv-{s.id}">Vulnerabilities</label><input id="ntgv-{s.id}" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" /></div>

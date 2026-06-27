@@ -587,7 +587,7 @@
 							</span>
 						{/if}
 						<!-- Size, Speed, Senses -->
-						{#if charSheet.sheet?.size || charSheet.traitSize || charSheet.traitSizeChoices || (charSheet.aggregatedSpeeds ?? []).length || charSheet.traitSenses}
+						{#if charSheet.sheet?.size || charSheet.traitSize || charSheet.traitSizeChoices || (charSheet.aggregatedSpeeds ?? []).length || charSheet.allSenses}
 							<div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.25rem;">
 								{#if charSheet.sheet?.size}
 									<span class="badge badge-muted">Size: {charSheet.sheet.size}</span>
@@ -610,7 +610,7 @@
 								{#each (charSheet.aggregatedSpeeds ?? []) as sp}
 									<span class="badge badge-muted">{sp.movementType.charAt(0) + sp.movementType.slice(1).toLowerCase()}: {sp.speed} ft</span>
 								{/each}
-								{#if charSheet.traitSenses}<span class="badge badge-muted">👁 {charSheet.traitSenses}</span>{/if}
+								{#if charSheet.allSenses}<span class="badge badge-muted">👁 {charSheet.allSenses}</span>{/if}
 							</div>
 						{/if}
 					</div>

@@ -208,10 +208,14 @@
 											<label class="label" for="cf-{f.id}-gt">Grants Tools</label>
 											<input id="cf-{f.id}-gt" name="grantsTools" class="input" placeholder="Thieves's Tools" value={f.grantsTools ?? ''} />
 										</div>
+										<div class="field" style="flex:0 0 60px; margin:0;"><label class="label" for="choice-toolChoiceCount-49713">Tool #</label><input id="choice-toolChoiceCount-49713" name="toolChoiceCount" type="number" min="0" class="input" value={f.toolChoiceCount ?? ''} /></div>
+										<div class="field" style="flex:1 1 140px; margin:0;"><label class="label" for="choice-toolChoicePool-61918">Tool pool</label><input id="choice-toolChoicePool-61918" name="toolChoicePool" class="input" placeholder="Thieves's Tools,Smith's Tools" value={f.toolChoicePool ?? ''} /></div>
 										<div class="field" style="flex:1 1 120px; margin:0;">
 											<label class="label" for="cf-{f.id}-gl">Grants Languages</label>
 											<input id="cf-{f.id}-gl" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" value={f.grantsLanguages ?? ''} />
 										</div>
+										<div class="field" style="flex:0 0 60px; margin:0;"><label class="label" for="choice-languageChoiceCount-66388">Lang #</label><input id="choice-languageChoiceCount-66388" name="languageChoiceCount" type="number" min="0" class="input" value={f.languageChoiceCount ?? ''} /></div>
+										<div class="field" style="flex:1 1 140px; margin:0;"><label class="label" for="choice-languageChoicePool-72023">Lang pool</label><input id="choice-languageChoicePool-72023" name="languageChoicePool" class="input" placeholder="Any,Elvish,Dwarvish" value={f.languageChoicePool ?? ''} /></div>
 										<div class="field" style="flex:1 1 120px; margin:0;">
 											<label class="label" for="cf-{f.id}-gr">Resistances</label>
 											<input id="cf-{f.id}-gr" name="grantsResistances" class="input" placeholder="Fire,Cold" value={f.grantsResistances ?? ''} />
@@ -223,6 +227,15 @@
 										<div class="field" style="flex:1 1 120px; margin:0;">
 											<label class="label" for="cf-{f.id}-gv">Vulnerabilities</label>
 											<input id="cf-{f.id}-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" value={f.grantsVulnerabilities ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 160px; margin:0;">
+											<label class="label" for="cf-{f.id}-gsp">Speed Bonuses</label>
+											<input id="cf-{f.id}-gsp" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" value={f.grantsSpeed ?? ''} />
+											<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>WALK:10,FLY:30</code> — additive speed bonus in feet per movement type</p>
+										</div>
+										<div class="field" style="flex:1 1 160px; margin:0;">
+											<label class="label" for="cf-{f.id}-gse">Grants Senses</label>
+											<input id="cf-{f.id}-gse" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" value={f.grantsSenses ?? ''} />
 										</div>
 										<div class="field" style="flex:2 1 180px; margin:0;">
 											<label class="label" for="cf-{f.id}-gis">Innate Spells</label>
@@ -260,10 +273,14 @@
 						<label class="label" for="cf-gt">Grants Tools</label>
 						<input id="cf-gt" name="grantsTools" class="input" placeholder="Thieves's Tools" />
 					</div>
+					<div class="field" style="flex:0 0 60px; margin:0;"><label class="label" for="choice-toolChoiceCount-52306">Tool #</label><input id="choice-toolChoiceCount-52306" name="toolChoiceCount" type="number" min="0" class="input" /></div>
+					<div class="field" style="flex:1 1 140px; margin:0;"><label class="label" for="choice-toolChoicePool-18185">Tool pool</label><input id="choice-toolChoicePool-18185" name="toolChoicePool" class="input" placeholder="Thieves's Tools,Smith's Tools" /></div>
 					<div class="field" style="flex:1 1 130px; margin:0;">
 						<label class="label" for="cf-gl">Grants Languages</label>
 						<input id="cf-gl" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" />
 					</div>
+					<div class="field" style="flex:0 0 60px; margin:0;"><label class="label" for="choice-languageChoiceCount-22355">Lang #</label><input id="choice-languageChoiceCount-22355" name="languageChoiceCount" type="number" min="0" class="input" /></div>
+					<div class="field" style="flex:1 1 140px; margin:0;"><label class="label" for="choice-languageChoicePool-87357">Lang pool</label><input id="choice-languageChoicePool-87357" name="languageChoicePool" class="input" placeholder="Any,Elvish,Dwarvish" /></div>
 					<div class="field" style="flex:1 1 130px; margin:0;">
 						<label class="label" for="cf-gr">Resistances</label>
 						<input id="cf-gr" name="grantsResistances" class="input" placeholder="Fire,Cold" />
@@ -275,6 +292,15 @@
 					<div class="field" style="flex:1 1 130px; margin:0;">
 						<label class="label" for="cf-gv">Vulnerabilities</label>
 						<input id="cf-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" />
+					</div>
+					<div class="field" style="flex:1 1 160px; margin:0;">
+						<label class="label" for="cf-gsp">Speed Bonuses</label>
+						<input id="cf-gsp" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" />
+						<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>WALK:10,FLY:30</code> — additive speed bonus in feet per movement type</p>
+					</div>
+					<div class="field" style="flex:1 1 160px; margin:0;">
+						<label class="label" for="cf-gse">Grants Senses</label>
+						<input id="cf-gse" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" />
 					</div>
 					<div class="field" style="flex:2 1 180px; margin:0;">
 						<label class="label" for="cf-gis">Innate Spells</label>
@@ -390,10 +416,14 @@
 																	<label class="label" for="sf-gt-{sf.id}">Grants Tools</label>
 																	<input id="sf-gt-{sf.id}" name="grantsTools" class="input" placeholder="Thieves's Tools" value={sf.grantsTools ?? ''} />
 																</div>
+																<div class="field" style="flex:0 0 60px; margin:0;"><label class="label" for="choice-toolChoiceCount-56425">Tool #</label><input id="choice-toolChoiceCount-56425" name="toolChoiceCount" type="number" min="0" class="input" value={sf.toolChoiceCount ?? ''} /></div>
+																<div class="field" style="flex:1 1 140px; margin:0;"><label class="label" for="choice-toolChoicePool-16654">Tool pool</label><input id="choice-toolChoicePool-16654" name="toolChoicePool" class="input" placeholder="Thieves's Tools,Smith's Tools" value={sf.toolChoicePool ?? ''} /></div>
 																<div class="field" style="flex:1 1 120px; margin:0;">
 																	<label class="label" for="sf-gl-{sf.id}">Grants Languages</label>
 																	<input id="sf-gl-{sf.id}" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" value={sf.grantsLanguages ?? ''} />
 																</div>
+																<div class="field" style="flex:0 0 60px; margin:0;"><label class="label" for="choice-languageChoiceCount-89886">Lang #</label><input id="choice-languageChoiceCount-89886" name="languageChoiceCount" type="number" min="0" class="input" value={sf.languageChoiceCount ?? ''} /></div>
+																<div class="field" style="flex:1 1 140px; margin:0;"><label class="label" for="choice-languageChoicePool-55593">Lang pool</label><input id="choice-languageChoicePool-55593" name="languageChoicePool" class="input" placeholder="Any,Elvish,Dwarvish" value={sf.languageChoicePool ?? ''} /></div>
 																<div class="field" style="flex:1 1 120px; margin:0;">
 																	<label class="label" for="sf-gr-{sf.id}">Resistances</label>
 																	<input id="sf-gr-{sf.id}" name="grantsResistances" class="input" placeholder="Fire,Cold" value={sf.grantsResistances ?? ''} />
@@ -405,6 +435,15 @@
 																<div class="field" style="flex:1 1 120px; margin:0;">
 																	<label class="label" for="sf-gv-{sf.id}">Vulnerabilities</label>
 																	<input id="sf-gv-{sf.id}" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" value={sf.grantsVulnerabilities ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 160px; margin:0;">
+																	<label class="label" for="sf-{sf.id}-gsp">Speed Bonuses</label>
+																	<input id="sf-{sf.id}-gsp" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" value={sf.grantsSpeed ?? ''} />
+																	<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>WALK:10,FLY:30</code> — additive speed bonus in feet per movement type</p>
+																</div>
+																<div class="field" style="flex:1 1 160px; margin:0;">
+																	<label class="label" for="sf-{sf.id}-gse">Grants Senses</label>
+																	<input id="sf-{sf.id}-gse" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" value={sf.grantsSenses ?? ''} />
 																</div>
 																<div class="field" style="flex:2 1 180px; margin:0;">
 																	<label class="label" for="sf-gis-{sf.id}">Innate Spells</label>
@@ -440,10 +479,14 @@
 										<label class="label" for="sf-gt">Grants Tools</label>
 										<input id="sf-gt" name="grantsTools" class="input" placeholder="Thieves's Tools" />
 									</div>
+									<div class="field" style="flex:0 0 60px; margin:0;"><label class="label" for="choice-toolChoiceCount-52306">Tool #</label><input id="choice-toolChoiceCount-52306" name="toolChoiceCount" type="number" min="0" class="input" /></div>
+									<div class="field" style="flex:1 1 140px; margin:0;"><label class="label" for="choice-toolChoicePool-18185">Tool pool</label><input id="choice-toolChoicePool-18185" name="toolChoicePool" class="input" placeholder="Thieves's Tools,Smith's Tools" /></div>
 									<div class="field" style="flex:1 1 130px; margin:0;">
 										<label class="label" for="sf-gl">Grants Languages</label>
 										<input id="sf-gl" name="grantsLanguages" class="input" placeholder="Elvish,Dwarvish" />
 									</div>
+									<div class="field" style="flex:0 0 60px; margin:0;"><label class="label" for="choice-languageChoiceCount-22355">Lang #</label><input id="choice-languageChoiceCount-22355" name="languageChoiceCount" type="number" min="0" class="input" /></div>
+									<div class="field" style="flex:1 1 140px; margin:0;"><label class="label" for="choice-languageChoicePool-87357">Lang pool</label><input id="choice-languageChoicePool-87357" name="languageChoicePool" class="input" placeholder="Any,Elvish,Dwarvish" /></div>
 									<div class="field" style="flex:1 1 130px; margin:0;">
 										<label class="label" for="sf-gr">Resistances</label>
 										<input id="sf-gr" name="grantsResistances" class="input" placeholder="Fire,Cold" />
@@ -455,6 +498,15 @@
 									<div class="field" style="flex:1 1 130px; margin:0;">
 										<label class="label" for="sf-gv">Vulnerabilities</label>
 										<input id="sf-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" />
+									</div>
+									<div class="field" style="flex:1 1 160px;">
+										<label class="label" for="sf-gsp">Speed Bonuses</label>
+										<input id="sf-gsp" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" />
+										<p style="font-size:0.6875rem;color:var(--text-muted);margin:0.25rem 0 0;">Format: <code>WALK:10,FLY:30</code> — additive speed bonus in feet per movement type</p>
+									</div>
+									<div class="field" style="flex:1 1 160px;">
+										<label class="label" for="sf-gse">Grants Senses</label>
+										<input id="sf-gse" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" />
 									</div>
 									<div class="field" style="flex:2 1 180px; margin:0;">
 										<label class="label" for="sf-gis">Innate Spells</label>

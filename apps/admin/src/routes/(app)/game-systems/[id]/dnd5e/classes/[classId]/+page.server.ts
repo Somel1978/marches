@@ -30,6 +30,8 @@ function grantFields(data: FormData) {
 		grantsImmunities:       s('grantsImmunities'),
 		grantsVulnerabilities:  s('grantsVulnerabilities'),
 		grantsInnateSpells:     s('grantsInnateSpells'),
+		grantsSpeed:            s('grantsSpeed'),
+		grantsSenses:           s('grantsSenses'),
 	};
 }
 export const load: PageServerLoad = async ({ params }) => {
