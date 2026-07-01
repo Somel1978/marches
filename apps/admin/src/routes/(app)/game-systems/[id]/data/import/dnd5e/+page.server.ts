@@ -112,6 +112,11 @@ function grantFields(row: any, warnings: string[], context: string) {
 
 export const actions: Actions = {
 
+	// ── Lookup helpers ────────────────────────────────────────────────────────
+	// When row.id is present (re-export → re-import flow), look up by UUID for
+	// exact match. Fall back to case-insensitive name match for first-time imports
+	// from the parser tool (which has no platform UUIDs yet).
+
 	// ── Classes ───────────────────────────────────────────────────────────────
 	importClasses: async ({ params, request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'create' });
@@ -128,7 +133,9 @@ export const actions: Actions = {
 			const all = await dnd5e.classes.getAll(params.id);
 			for (const row of rows) {
 				const sal = toInt(row.subclassAvailableAtLevel, 3);
-				const existing = all.find(c => normalize(c.name).toLowerCase() === normalize(row.name).toLowerCase());
+				const existing = row.id
+					? all.find(c => c.id === row.id)
+					: all.find(c => normalize(c.name).toLowerCase() === normalize(row.name).toLowerCase());
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.classes.update(existing.id, {
@@ -204,12 +211,16 @@ export const actions: Actions = {
 			let created = 0; let updated = 0; let skipped = 0;
 			const allClasses = await dnd5e.classes.getAll(params.id);
 			for (const row of rows) {
-				const cls = allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
+				const cls = row.classId
+					? allClasses.find(c => c.id === row.classId)
+					: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) { skipped++; continue; }
 				// Match on name + level so same-name features at different levels are distinct
-				const existing = cls.features?.find((f: any) =>
-					f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
-				);
+				const existing = row.id
+					? cls.features?.find((f: any) => f.id === row.id)
+					: cls.features?.find((f: any) =>
+						f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
+					);
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.classFeatures.update(existing.id, {
@@ -257,11 +268,15 @@ export const actions: Actions = {
 			let created = 0; let updated = 0; let skipped = 0;
 			const allClasses = await dnd5e.classes.getAll(params.id);
 			for (const row of rows) {
-				const cls = allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
+				const cls = row.classId
+					? allClasses.find(c => c.id === row.classId)
+					: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) { skipped++; continue; }
-				const existing = cls.subclasses?.find((s: any) =>
-					normalize(s.name).toLowerCase() === normalize(row.name).toLowerCase()
-				);
+				const existing = row.id
+					? cls.subclasses?.find((s: any) => s.id === row.id)
+					: cls.subclasses?.find((s: any) =>
+						normalize(s.name).toLowerCase() === normalize(row.name).toLowerCase()
+					);
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.subclasses.update(existing.id, {
@@ -322,19 +337,25 @@ export const actions: Actions = {
 			// Fetch all classes once outside the loop (N+1 fix)
 			const allClasses = await dnd5e.classes.getAll(params.id);
 			for (const row of rows) {
-				const cls = allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
+				const cls = row.classId
+					? allClasses.find(c => c.id === row.classId)
+					: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) {
 					skipReasons.push(`Class not found: '${row.className}'`);
 					skipped++; continue;
 				}
-				const sub = cls.subclasses?.find((s: any) => normalize(s.name).toLowerCase() === normalize(row.subclassName).toLowerCase());
+				const sub = row.subclassId
+					? cls.subclasses?.find((s: any) => s.id === row.subclassId)
+					: cls.subclasses?.find((s: any) => normalize(s.name).toLowerCase() === normalize(row.subclassName).toLowerCase());
 				if (!sub) {
 					skipReasons.push(`Subclass not found: '${row.subclassName}' (class: '${row.className}')`);
 					skipped++; continue;
 				}
-				const existing = sub.features?.find((f: any) =>
-					f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
-				);
+				const existing = row.id
+					? sub.features?.find((f: any) => f.id === row.id)
+					: sub.features?.find((f: any) =>
+						f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
+					);
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.subclassFeatures.update(existing.id, {
@@ -394,9 +415,11 @@ export const actions: Actions = {
 					isLegacy:    boolVal(row.isLegacy),
 					sortOrder:   Number(row.sortOrder) || 0,
 				};
-				const existing = await db.dnd5eSpecies.findFirst({
-					where: { gameSystemId: params.id, name: { equals: name, mode: 'insensitive' } },
-				});
+				const existing = row.id
+					? await db.dnd5eSpecies.findUnique({ where: { id: row.id } })
+					: await db.dnd5eSpecies.findFirst({
+						where: { gameSystemId: params.id, name: { equals: name, mode: 'insensitive' } },
+					});
 				if (existing) {
 					if (!allowUpdate) { skipReasons.push(`Already exists (tick Update to overwrite): '${name}'`); skipped++; continue; }
 					await db.dnd5eSpecies.update({ where: { id: existing.id }, data: updateData });
@@ -437,7 +460,9 @@ export const actions: Actions = {
 			for (const row of rows) {
 				const traitName = normalize(row.name);
 				if (!traitName) { skipped++; continue; }
-				const sp = allSpecies.find(s => normalize(s.name).toLowerCase() === normalize(row.speciesName).toLowerCase());
+				const sp = row.speciesId
+					? allSpecies.find(s => s.id === row.speciesId)
+					: allSpecies.find(s => normalize(s.name).toLowerCase() === normalize(row.speciesName).toLowerCase());
 				if (!sp) {
 					skipReasons.push(`Species not found: '${row.speciesName}'`);
 					skipped++; continue;
@@ -450,10 +475,12 @@ export const actions: Actions = {
 					senses:      normalize(row.senses)      || null,
 					...grantFields(row, warnings, row.name),
 				};
-				const existing = await db.dnd5eSpeciesTrait.findFirst({
-					where: { speciesId: sp.id, name: { equals: traitName, mode: 'insensitive' } },
-					select: { id: true },
-				});
+				const existing = row.id
+					? await db.dnd5eSpeciesTrait.findUnique({ where: { id: row.id }, select: { id: true } })
+					: await db.dnd5eSpeciesTrait.findFirst({
+						where: { speciesId: sp.id, name: { equals: traitName, mode: 'insensitive' } },
+						select: { id: true },
+					});
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await db.dnd5eSpeciesTrait.update({ where: { id: existing.id }, data: traitData });
@@ -492,7 +519,9 @@ export const actions: Actions = {
 			let created = 0; let updated = 0; let skipped = 0;
 			const all = await dnd5e.feats.getAllForAdmin(params.id);
 			for (const row of rows) {
-				const existing = all.find((f: any) => normalize(f.name).toLowerCase() === normalize(row.name).toLowerCase());
+				const existing = row.id
+					? all.find((f: any) => f.id === row.id)
+					: all.find((f: any) => normalize(f.name).toLowerCase() === normalize(row.name).toLowerCase());
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.feats.update(existing.id, {
@@ -552,7 +581,9 @@ export const actions: Actions = {
 			let created = 0; let updated = 0; let skipped = 0;
 			const all = await dnd5e.backgrounds.getAll(params.id);
 			for (const row of rows) {
-				const existing = all.find(b => normalize(b.name).toLowerCase() === normalize(row.name).toLowerCase());
+				const existing = row.id
+					? all.find(b => b.id === row.id)
+					: all.find(b => normalize(b.name).toLowerCase() === normalize(row.name).toLowerCase());
 
 			if (existing) {
 					if (!allowUpdate) { skipped++; continue; }

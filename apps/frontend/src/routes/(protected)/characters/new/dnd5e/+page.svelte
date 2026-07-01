@@ -237,10 +237,11 @@
 	}
 	function removeClass(i: number) { classAllocs = classAllocs.filter((_,j) => j!==i); }
 	function randomClass() {
-		const pool = filteredClasses.length ? filteredClasses : (sys?.classes ?? []).filter((c: any) => c.isAvailable);
+		const pool = (filteredClasses.length ? filteredClasses : (sys?.classes ?? []).filter((c: any) => c.isAvailable))
+			.filter((c: any) => !classAllocs.find((a: any) => a.classId === c.id));
 		if (!pool.length) return;
 		const cls = pool[Math.floor(Math.random() * pool.length)];
-		classAllocs = [{ classId: cls.id, subclassId:'', allocatedLevel:1 }];
+		classAllocs = [...classAllocs, { classId: cls.id, subclassId:'', allocatedLevel:1 }];
 	}
 	const classesValid = $derived(totalLevel >= 1 && classAllocs.every(c => c.classId));
 
@@ -304,8 +305,11 @@
 	});
 
 	const hasAsiStep = $derived(asiSlots.length > 0);
-	let asiFeatSearch = $state<string[]>([]);
-	$effect(() => { asiFeatSearch = asiSlots.map(() => ''); });
+	let asiFeatSearch   = $state<string[]>([]);
+	let asiFeatPreview  = $state<string[]>([]);   // feat being previewed (not yet committed)
+	let bgFeatSearch    = $state('');
+	$effect(() => { asiFeatSearch  = asiSlots.map(() => ''); });
+	$effect(() => { asiFeatPreview = asiSlots.map((_, i) => untrack(() => asiFeatPreview)[i] ?? ''); });
 
 	const STEPS = $derived(hasAsiStep
 		? [...BASE_STEPS, ASI_STEP, SKILLS_STEP, REVIEW_STEP]
@@ -1000,28 +1004,27 @@
 </script>
 
 <div class="page">
+
+	<!-- ── Page header ──────────────────────────────────────────────── -->
 	<div class="page__header">
 		<div>
 			<h2 class="page__title">New Character</h2>
-			<p style="margin:0;font-size:0.875rem;color:var(--text-muted);">D&D 5e · {data.slotInfo.available} slot{data.slotInfo.available===1?'':'s'} left</p>
+			<p style="margin:0;font-size:0.8125rem;color:var(--text-muted);">D&D 5e · {data.slotInfo.available} slot{data.slotInfo.available===1?'':'s'} remaining</p>
 		</div>
-		<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-			{#if step > 0}<button class="btn btn-ghost btn-sm" onclick={back}>← Back</button>{/if}
-			{#if step < STEPS.length - 1}
-				<button class="btn btn-primary btn-sm" onclick={next} disabled={!canAdvance}>Next: {nextLabel} →</button>
-			{/if}
-			<button class="btn btn-ghost btn-sm" onclick={() => { clearState(); goto('/characters'); }}>✕</button>
+		<div style="display:flex;gap:0.5rem;align-items:center;">
+			<button class="btn btn-ghost btn-sm" onclick={() => { clearState(); goto('/characters'); }}>✕ Cancel</button>
 		</div>
 	</div>
 
+	<!-- ── Step ribbon ──────────────────────────────────────────────── -->
 	<div class="ribbon">
 		{#each STEPS as s, i}
 			<button class="ribbon__step"
 				class:ribbon__step--active={i === step}
 				class:ribbon__step--done={i < step}
-				class:ribbon__step--clickable={i <= step}
+				class:ribbon__step--clickable={i < step}
 				onclick={() => goTo(i)} disabled={i > step}>
-				<span class="ribbon__num">Step {i+1}</span>
+				<span class="ribbon__num">{i < step ? '✓' : `Step ${i+1}`}</span>
 				<span class="ribbon__label">{s.label}</span>
 			</button>
 		{/each}
@@ -1029,1111 +1032,971 @@
 
 	{#if form?.message}<div class="form-error" style="margin-bottom:1rem;">{(form as any).message}</div>{/if}
 
-	<!-- ════ Step 1: Identity ════ -->
+	<!-- ══════════════════════════════════════════════════════════════
+	     STEP 0: Identity
+	════════════════════════════════════════════════════════════════ -->
 	{#if step === 0}
-		<div class="wizard-identity-grid" style="display:grid;grid-template-columns:1fr 280px;gap:1rem;align-items:start;">
+		<div class="wizard-identity-grid">
+
 			<div class="card">
 				<div class="page__header" style="margin-bottom:1rem;">
-					<h3 class="section-title" style="margin:0;">Identity</h3>
+					<h3 class="section-title" style="margin:0;">Your character</h3>
 					<button class="btn btn-ghost btn-sm" onclick={randomName}>🎲 Name</button>
 				</div>
+
 				<div class="field">
 					<label class="label" for="char-name">Name</label>
 					<input id="char-name" type="text" class="input" bind:value={name} placeholder="Character name" />
 				</div>
-				<div class="field">
-					<label class="label" for="char-avatar">Avatar URL <span class="table__muted">(optional)</span></label>
-					<input id="char-avatar" type="url" class="input" bind:value={avatarUrl} placeholder="https://…" />
-				</div>
-				<div class="field">
-					<label class="label" for="char-portrait">Portrait URL <span class="table__muted">(optional)</span></label>
-					<input id="char-portrait" type="url" class="input" bind:value={portraitUrl} placeholder="https://…" />
-				</div>
+
 				<div class="field">
 					<label class="label" for="char-world">World <span class="table__muted">(optional)</span></label>
 					<select id="char-world" class="input input--select" bind:value={worldId}>
-						<option value="">Global (no world)</option>
+						<option value="">Global — no world</option>
 						{#each data.activeWorlds as w}<option value={w.id}>{w.name}</option>{/each}
 					</select>
 				</div>
+
+				<div style="border-top:1px solid var(--border-muted);margin-top:1rem;padding-top:1rem;">
+					<p class="wiz-pool__label" style="margin-bottom:0.625rem;">Artwork <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);">(optional)</span></p>
+					<div class="field">
+						<label class="label" for="char-avatar">Avatar URL</label>
+						<input id="char-avatar" type="url" class="input" bind:value={avatarUrl} placeholder="https://…" />
+					</div>
+					<div class="field">
+						<label class="label" for="char-portrait">Portrait URL</label>
+						<input id="char-portrait" type="url" class="input" bind:value={portraitUrl} placeholder="https://…" />
+					</div>
+				</div>
 			</div>
+
+			<!-- Preview card -->
 			<div class="card" style="text-align:center;">
-				<h3 class="section-title">Preview</h3>
+				<p class="wiz-pool__label" style="margin-bottom:0.75rem;">Preview</p>
 				{#if avatarUrl}
-					<img src={avatarUrl} alt="Avatar" style="width:120px;height:120px;border-radius:50%;object-fit:cover;margin:0 auto;display:block;"
+					<img src={avatarUrl} alt={name}
+						style="width:88px;height:88px;border-radius:50%;object-fit:cover;margin:0 auto 0.75rem;display:block;border:2px solid var(--border-accent);"
 						onerror={(e)=>{(e.currentTarget as HTMLImageElement).style.display='none';}} />
 				{:else}
-					<div style="width:120px;height:120px;border-radius:50%;background:var(--bg-overlay);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:2.5rem;">🧑</div>
+					<div style="width:88px;height:88px;border-radius:50%;background:var(--bg-overlay);border:2px solid var(--border-muted);display:flex;align-items:center;justify-content:center;margin:0 auto 0.75rem;font-size:2rem;">🧑</div>
 				{/if}
-				<p style="margin:0.75rem 0 0;font-weight:600;">{name||'Unnamed'}</p>
+				<p style="margin:0;font-size:1rem;font-weight:700;">{name||'Unnamed'}</p>
 				{#if worldId}<p style="margin:0.25rem 0 0;font-size:0.8125rem;color:var(--text-muted);">{data.activeWorlds.find((w:any)=>w.id===worldId)?.name}</p>{/if}
+				<p style="margin:0.875rem 0 0;font-size:0.75rem;color:var(--text-muted);line-height:1.5;">Species, class and background will appear here as you choose them.</p>
 			</div>
+
 		</div>
 
-	<!-- ════ Step 2: Species ════ -->
+	<!-- ══════════════════════════════════════════════════════════════
+	     STEP 1: Species
+	════════════════════════════════════════════════════════════════ -->
 	{:else if step === 1}
-		<div style="display:grid;grid-template-columns:280px 1fr;gap:0;height:calc(100vh - 280px);min-height:420px;">
-			<!-- LEFT: scrollable species list -->
-			<div style="display:flex;flex-direction:column;border-right:1px solid var(--border-subtle);overflow:hidden;">
-				<!-- Search + random -->
-				<div style="padding:0.625rem 0.75rem;border-bottom:1px solid var(--border-subtle);display:flex;gap:0.5rem;align-items:center;">
-					<input type="text" class="input" style="flex:1;font-size:0.8125rem;" placeholder="Search…" bind:value={speciesSearch} />
-					<button class="btn btn-ghost btn-sm" title="Random" onclick={randomSpecies}>🎲</button>
+		<div class="wiz-browser">
+
+			<!-- List -->
+			<div class="wiz-browser__list">
+				<div class="wiz-browser__search">
+					<input type="text" placeholder="Search species…" bind:value={speciesSearch} />
+					<button class="btn btn-ghost btn-sm" title="Random species" onclick={randomSpecies}>🎲</button>
 				</div>
-				<!-- List -->
-				<div style="overflow-y:auto;flex:1;">
+				<div class="wiz-browser__rows">
 					{#each filteredSpecies as sp}
-						<button
-							type="button"
-							onclick={() => { speciesId = sp.id; }}
-							style="
-								display:flex;align-items:center;gap:0.625rem;
-								width:100%;text-align:left;
-								padding:0.5rem 0.75rem;
-								border:none;border-bottom:1px solid var(--border-subtle);
-								background:{speciesId === sp.id ? 'var(--bg-overlay)' : 'transparent'};
-								border-left:3px solid {speciesId === sp.id ? 'var(--brand-accent)' : 'transparent'};
-								cursor:pointer;transition:background 0.1s;
-							">
-							<!-- Avatar -->
-							<div style="width:32px;height:32px;border-radius:50%;background:var(--bg-overlay-2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;overflow:hidden;">
-								{#if (sp as any).avatarUrl}
-									<img src={(sp as any).avatarUrl} alt={sp.name} style="width:100%;height:100%;object-fit:cover;" />
-								{:else}
-									🧝
-								{/if}
+						<button class="wiz-row" class:wiz-row--selected={speciesId===sp.id}
+							onclick={() => { speciesId = sp.id; }}>
+							<div class="wiz-row__av">
+								{#if (sp as any).avatarUrl}<img src={(sp as any).avatarUrl} alt={sp.name} />{:else}🧝{/if}
 							</div>
-							<!-- Name + badges -->
-							<div style="flex:1;min-width:0;">
-								<p style="margin:0;font-size:0.875rem;font-weight:{speciesId===sp.id?'700':'500'};color:{speciesId===sp.id?'var(--text-primary)':'var(--text-secondary)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{sp.name}</p>
-								{#if sp.isLegacy || sp.isSubrace}
-									<div style="display:flex;gap:0.25rem;margin-top:0.125rem;flex-wrap:wrap;">
-										{#if sp.isLegacy}<span class="wizard-pill" style="font-size:0.625rem;padding:0.1rem 0.375rem;">Legacy</span>{/if}
-										{#if sp.isSubrace}<span class="wizard-pill" style="font-size:0.625rem;padding:0.1rem 0.375rem;">Subrace</span>{/if}
-									</div>
-								{/if}
+							<div class="wiz-row__body">
+								<p class="wiz-row__name">{sp.name}</p>
+								<div class="wiz-row__sub">
+									{#if sp.isLegacy}<span class="badge badge-warning" style="font-size:0.625rem;">Legacy</span>{/if}
+									{#if sp.isSubrace}<span class="badge badge-muted" style="font-size:0.625rem;">Subrace</span>{/if}
+								</div>
 							</div>
-							<!-- Selected checkmark -->
-							{#if speciesId === sp.id}<span style="color:var(--brand-accent);font-size:0.875rem;flex-shrink:0;">✓</span>{/if}
+							{#if speciesId===sp.id}<span class="wiz-row__check">✓</span>{/if}
 						</button>
 					{:else}
 						<p class="table__empty" style="padding:1rem 0.75rem;">No species match.</p>
 					{/each}
 				</div>
 			</div>
-			<!-- RIGHT: detail panel -->
-			<div style="overflow-y:auto;padding:1.25rem 1.5rem;">
+
+			<!-- Detail panel -->
+			<div class="wiz-browser__panel">
 				{#if selectedSpecies}
 					<!-- Header -->
-					<div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem;">
-						<div style="width:56px;height:56px;border-radius:50%;background:var(--bg-overlay);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.75rem;overflow:hidden;">
-							{#if (selectedSpecies as any).avatarUrl}
-								<img src={(selectedSpecies as any).avatarUrl} alt={selectedSpecies.name} style="width:100%;height:100%;object-fit:cover;" />
-							{:else}
-								🧝
-							{/if}
+					<div style="display:flex;align-items:flex-start;gap:0.875rem;margin-bottom:0.875rem;">
+						<div class="wiz-row__av" style="width:52px;height:52px;font-size:1.5rem;flex-shrink:0;">
+							{#if (selectedSpecies as any).avatarUrl}<img src={(selectedSpecies as any).avatarUrl} alt={selectedSpecies.name} />{:else}🧝{/if}
 						</div>
-						<div style="flex:1;min-width:0;">
-							<h3 style="margin:0 0 0.25rem;font-size:1.125rem;">{selectedSpecies.name}</h3>
-							{#if selectedSpecies.isLegacy || selectedSpecies.isSubrace}
-								<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-									{#if selectedSpecies.isLegacy}<span class="wizard-pill">Legacy</span>{/if}
-									{#if selectedSpecies.isSubrace}<span class="wizard-pill">Subrace</span>{/if}
-								</div>
-							{/if}
+						<div>
+							<h3 class="wiz-panel__title">{selectedSpecies.name}</h3>
+							<div class="panel-badges" style="display:flex;gap:4px;flex-wrap:wrap;">
+								{#if selectedSpecies.isLegacy}<span class="badge badge-warning">Legacy</span>{/if}
+								{#if selectedSpecies.isSubrace}<span class="badge badge-muted">Subrace</span>{/if}
+								{#each (selectedSpecies.traits ?? []) as t}
+									{#if (t as any).size}<span class="badge badge-muted">{(t as any).size}</span>{/if}
+									{#each ((t as any).speeds ?? []) as sp}<span class="badge badge-muted">{sp.movementType.charAt(0)+sp.movementType.slice(1).toLowerCase()} {sp.speed} ft</span>{/each}
+									{#if (t as any).senses}<span class="badge badge-muted">👁 {(t as any).senses}</span>{/if}
+								{/each}
+							</div>
 						</div>
 					</div>
-					<!-- Description -->
+
 					{#if canViewDescriptions && selectedSpecies.description}
-						<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 1rem;line-height:1.6;">{selectedSpecies.description}</p>
+						<p class="wiz-panel__desc">{selectedSpecies.description}</p>
 					{/if}
+
+					<!-- Size choice picker -->
+					{#if sizeChoiceOptions().length > 0}
+						<div class="wiz-pool" style="margin-bottom:0.75rem;">
+							<div class="wiz-pool__header">
+								<span class="wiz-pool__label">Choose your size</span>
+								<span class="wiz-pool__count" class:wiz-pool__count--done={!!chosenSize}>{chosenSize ? '1 / 1 ✓' : '0 / 1'}</span>
+							</div>
+							<div class="wiz-chip-group">
+								{#each sizeChoiceOptions() as opt}
+									<button class="wiz-chip" class:wiz-chip--chosen={chosenSize===opt}
+										onclick={() => { chosenSize = opt; }}>{opt}</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
 					<!-- Traits -->
 					{#if selectedSpecies.traits?.length}
-						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin:0 0 0.5rem;">Traits</p>
-						<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;">
+						<p class="wiz-panel__label">Traits</p>
+						<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:0.75rem;">
 							{#each selectedSpecies.traits as t}
-								<div style="padding:0.625rem 0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);border-left:3px solid var(--brand-accent);">
-									<p style="margin:0 0 0.25rem;font-size:0.8125rem;font-weight:700;color:var(--brand-accent);">{t.name}{#if (t as any).requiredLevel > 1} <span style="font-weight:400;color:var(--text-muted);">(Lv {(t as any).requiredLevel})</span>{/if}</p>
-									{#if canViewDescriptions && t.description}<p style="margin:0 0 0.375rem;font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;">{t.description}</p>{:else if !canViewDescriptions}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;margin:0 0 0.375rem;">📖 Description not available — contact your DM.</p>{/if}
-									{#if (t as any).size || (t as any).sizeChoices || (t as any).senses || (t as any).speeds?.length}
-										<div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;">
-											{#if (t as any).size}<span class="badge badge-muted">Size: {(t as any).size}</span>{/if}
-											{#if (t as any).sizeChoices}<span class="badge badge-muted">Size choice: {(t as any).sizeChoices}</span>{/if}
-											{#each ((t as any).speeds ?? []) as sp}<span class="badge badge-muted">{sp.movementType.charAt(0)+sp.movementType.slice(1).toLowerCase()}: {sp.speed} ft</span>{/each}
-											{#if (t as any).senses}<span class="badge badge-muted">👁 {(t as any).senses}</span>{/if}
-										</div>
+								<div class="trait-card" style="border-left:3px solid var(--border-accent);background:var(--bg-surface);border-radius:0 var(--radius-md) var(--radius-md) 0;padding:8px 10px;">
+									<p style="margin:0 0 3px;font-size:0.8125rem;font-weight:700;color:var(--accent-light);">
+										{t.name}{#if (t as any).requiredLevel > 1} <span style="font-weight:400;color:var(--text-muted);">(Lv {(t as any).requiredLevel})</span>{/if}
+									</p>
+									{#if canViewDescriptions && t.description}
+										<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;">{t.description}</p>
+									{:else if !canViewDescriptions}
+										<p style="margin:0;font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
 									{/if}
 								</div>
 							{/each}
 						</div>
-						<!-- Size choice picker -->
-						{#if sizeChoiceOptions().length > 0}
-							<div style="margin-bottom:1rem;">
-								<p class="label label-accent" style="margin-bottom:0.375rem;">Choose your Size</p>
-								<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
-									{#each sizeChoiceOptions() as opt}
-										<button type="button" class="btn btn-sm {chosenSize === opt ? 'btn-primary' : 'btn-ghost'}"
-											onclick={() => { chosenSize = opt; }}>{opt}</button>
-									{/each}
-								</div>
-							</div>
-						{/if}
 					{/if}
+
 				{:else}
-					<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);gap:0.75rem;">
-						<span style="font-size:2.5rem;">🧝</span>
-						<p style="margin:0;font-size:0.875rem;">Select a species from the list</p>
+					<div class="wiz-browser__empty">
+						<span style="font-size:2rem;">🧝</span>
+						<p>Select a species to view details.</p>
 					</div>
 				{/if}
 			</div>
 		</div>
 
-
-	<!-- ════ Step 3: Background ════ -->
+	<!-- ══════════════════════════════════════════════════════════════
+	     STEP 2: Background
+	════════════════════════════════════════════════════════════════ -->
 	{:else if step === 2}
-		<div class="wizard-two-col" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem;align-items:start;">
-			<div>
-				<div class="page__header" style="margin-bottom:0.75rem;">
-					<input type="text" class="input" style="flex:1;max-width:260px;" placeholder="Search backgrounds…" bind:value={backgroundSearch} />
-					<button class="btn btn-ghost btn-sm" onclick={randomBackground}>🎲 Random</button>
+		<div class="wiz-browser">
+
+			<!-- List -->
+			<div class="wiz-browser__list">
+				<div class="wiz-browser__search">
+					<input type="text" placeholder="Search backgrounds…" bind:value={backgroundSearch} />
+					<button class="btn btn-ghost btn-sm" title="Random background" onclick={randomBackground}>🎲</button>
 				</div>
-				<div style="display:flex;flex-direction:column;gap:0.375rem;">
+				<div class="wiz-browser__rows">
 					{#each filteredBackgrounds as bg}
-						<button class="wizard-bg-row" class:wizard-bg-row--active={backgroundId===bg.id}
-							onclick={() => { backgroundId=bg.id; openBgSheet(bg); }}>
-							<span style="font-weight:600;">{bg.name}</span>
-							<div style="display:flex;gap:0.375rem;align-items:center;flex-wrap:wrap;">
-								{#if bg.grantsFeat}
-									<span class="badge badge-accent" style="font-size:0.6875rem;">🏅 {bg.grantsFeat.name}</span>
-								{:else if bg.grantsFeatCategory}
-									<span class="badge badge-accent" style="font-size:0.6875rem;">Grants {bg.grantsFeatCategory} feat</span>
-								{/if}
-								{#if backgroundId===bg.id}<span style="font-size:0.75rem;color:var(--color-success);">✓</span>{/if}
+						<button class="wiz-row" class:wiz-row--selected={backgroundId===bg.id}
+							onclick={() => { backgroundId = bg.id; }}>
+							<div class="wiz-row__body">
+								<p class="wiz-row__name">{bg.name}</p>
+								<div class="wiz-row__sub">
+									{#if (bg as any).grantsFeat}
+										<span class="badge badge-accent" style="font-size:0.625rem;">🏅 {(bg as any).grantsFeat.name}</span>
+									{:else if (bg as any).grantsFeatCategory}
+										<span class="badge badge-accent" style="font-size:0.625rem;">{(bg as any).grantsFeatCategory} feat</span>
+									{/if}
+								</div>
 							</div>
+							{#if backgroundId===bg.id}<span class="wiz-row__check">✓</span>{/if}
 						</button>
 					{:else}
-						<p class="table__empty">No backgrounds match.</p>
+						<p class="table__empty" style="padding:1rem 0.75rem;">No backgrounds match.</p>
 					{/each}
 				</div>
 			</div>
 
-			<div class="card wizard-drawer">
+			<!-- Detail panel -->
+			<div class="wiz-browser__panel">
 				{#if selectedBackground}
 					{@const bg = selectedBackground as any}
-					<h3 class="section-title">{bg.name}</h3>
-					{#if bg.shortDescription}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{bg.shortDescription}</p>{/if}
-					{#if bg.featureName}<p style="font-size:0.8125rem;font-weight:700;color:var(--brand-accent);margin:0 0 0.5rem;">{bg.featureName}</p>{/if}
-					<div style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.75rem;">
-						{#if bg.skillGrants?.length}<span><strong>Skills:</strong> {bg.skillGrants.map((g: any) => SKILL_DISPLAY[g.skill] ?? g.skill).join(', ')}</span>{/if}
-						{#if bg.toolProficiencies}<span><strong>Tools:</strong> {bg.toolProficiencies}</span>{/if}
-						{#if bg.languages}<span><strong>Languages:</strong> {bg.languages}</span>{/if}
-					</div>
-					{#if bg.grantsFeatId && bg.grantsFeat}
-						<div style="padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-accent);">
-							<p style="margin:0 0 0.25rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Granted Feat</p>
-							<p style="margin:0;font-size:0.875rem;font-weight:700;color:var(--brand-accent);">🏅 {bg.grantsFeat.name}</p>
-							{#if canViewDescriptions}{#if bg.grantsFeat.description}<p style="margin:0.25rem 0 0;font-size:0.8125rem;color:var(--text-secondary);">{bg.grantsFeat.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
-						</div>
-					{:else if bg.grantsFeatCategory}
-						<div style="padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-accent);">
-							<p style="margin:0 0 0.5rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Choose a {bg.grantsFeatCategory} Feat</p>
-							<div style="display:flex;flex-direction:column;gap:0.25rem;max-height:200px;overflow-y:auto;">
-								{#each bgFeatOptions as feat}
-									<label style="display:flex;gap:0.5rem;align-items:flex-start;padding:0.375rem;border-radius:var(--radius-sm);background:{bgFeatPick===feat.id?'rgba(184,115,74,0.12)':'transparent'};cursor:pointer;">
-										<input type="radio" name="bg-feat" value={feat.id} checked={bgFeatPick===feat.id} onchange={() => bgFeatPick=feat.id} style="margin-top:2px;accent-color:var(--brand-accent);" />
-										<div>
-											<p style="margin:0;font-size:0.875rem;font-weight:600;">{feat.name}</p>
-											{#if canViewDescriptions}{#if feat.description}<p style="margin:0.125rem 0 0;font-size:0.75rem;color:var(--text-secondary);">{feat.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
-										</div>
-									</label>
-								{/each}
+					<h3 class="wiz-panel__title">{bg.name}</h3>
+
+					{#if bg.shortDescription}
+						<p class="wiz-panel__desc">{bg.shortDescription}</p>
+					{/if}
+
+					<!-- Auto grants summary -->
+					{#if bg.skillGrants?.length || bg.toolProficiencies || bg.languages || bg.grantsSkills || bg.grantsTools || bg.grantsLanguages}
+						<div class="wiz-panel__section" style="margin-bottom:0.75rem;">
+							<p class="wiz-panel__label" style="margin-bottom:6px;">Grants</p>
+							<div style="display:flex;flex-direction:column;gap:4px;font-size:0.8125rem;color:var(--text-secondary);">
+								{#if bg.skillGrants?.length}<span><strong>Skills:</strong> {bg.skillGrants.map((g: any) => SKILL_DISPLAY[g.skill] ?? g.skill).join(', ')}</span>{/if}
+								{#if bg.grantsSkills}<span><strong>Skills:</strong> {bg.grantsSkills}</span>{/if}
+								{#if bg.grantsTools}<span><strong>Tools:</strong> {bg.grantsTools}</span>{/if}
+								{#if bg.grantsLanguages}<span><strong>Languages:</strong> {bg.grantsLanguages}</span>{/if}
 							</div>
-							{#if !bgFeatPick}<p style="margin:0.5rem 0 0;font-size:0.75rem;color:var(--color-warning);">⚠ Must choose a feat to continue.</p>{/if}
 						</div>
 					{/if}
+
+					<!-- Fixed feat -->
+					{#if bg.grantsFeatId && bg.grantsFeat}
+						<div class="wiz-panel__section">
+							<p class="wiz-panel__label" style="margin-bottom:6px;">Granted feat</p>
+							<div style="border-left:3px solid var(--border-accent);background:var(--bg-surface);border-radius:0 var(--radius-md) var(--radius-md) 0;padding:8px 10px;">
+								<p style="margin:0 0 3px;font-size:0.875rem;font-weight:700;color:var(--accent-light);">🏅 {bg.grantsFeat.name}</p>
+								{#if canViewDescriptions && bg.grantsFeat.description}
+									<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;">{bg.grantsFeat.description}</p>
+								{:else if !canViewDescriptions}
+									<p style="margin:0;font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
+								{/if}
+							</div>
+						</div>
+
+					<!-- Feat category pick — wiz-browser nested inline -->
+					{:else if bg.grantsFeatCategory}
+						<div class="wiz-panel__section">
+							<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+								<p class="wiz-panel__label" style="color:var(--accent-light);">⚠ Choose a {bg.grantsFeatCategory} feat</p>
+								{#if !bgFeatPick}<span style="font-size:0.75rem;color:var(--color-warning);">Required to continue</span>{/if}
+							</div>
+							<div class="wiz-browser wiz-browser--compact">
+								<div class="wiz-browser__list">
+									<div class="wiz-browser__search">
+										<input type="text" placeholder="Search feats…" bind:value={bgFeatSearch} />
+									</div>
+									<div class="wiz-browser__rows">
+										{#each bgFeatOptions.filter((f: any) => !bgFeatSearch || f.name.toLowerCase().includes(bgFeatSearch.toLowerCase())) as feat}
+											<button class="wiz-row" class:wiz-row--selected={bgFeatPick===feat.id}
+												onclick={() => { bgFeatPick = feat.id; }}>
+												<div class="wiz-row__body">
+													<p class="wiz-row__name">{feat.name}</p>
+													{#if (feat as any).categories}<div class="wiz-row__sub"><span class="wiz-tag wiz-tag--origin">{bg.grantsFeatCategory}</span></div>{/if}
+												</div>
+												{#if bgFeatPick===feat.id}<span class="wiz-row__check">✓</span>{/if}
+											</button>
+										{/each}
+									</div>
+								</div>
+								<div class="wiz-browser__panel">
+									{#if bgFeatPick}
+										{@const chosenFeat = bgFeatOptions.find((f: any) => f.id === bgFeatPick)}
+										{#if chosenFeat}
+											<h4 class="wiz-panel__title" style="font-size:0.9375rem;">{(chosenFeat as any).name}</h4>
+											{#if canViewDescriptions && (chosenFeat as any).description}
+												<p class="wiz-panel__desc">{(chosenFeat as any).description}</p>
+											{:else if !canViewDescriptions}
+												<p class="wiz-panel__desc" style="font-style:italic;color:var(--text-muted);">📖 Description not available — contact your DM.</p>
+											{/if}
+											<p style="font-size:0.75rem;color:var(--color-success);font-weight:600;">✓ Selected</p>
+										{/if}
+									{:else}
+										<div class="wiz-browser__empty" style="min-height:80px;">
+											<p>Select a feat to view details.</p>
+										</div>
+									{/if}
+								</div>
+							</div>
+						</div>
+					{/if}
+
 				{:else}
-					<p class="table__empty">Select a background to view details.</p>
+					<div class="wiz-browser__empty">
+						<span style="font-size:2rem;">📜</span>
+						<p>Select a background to view details.</p>
+					</div>
 				{/if}
 			</div>
 		</div>
 
-		{#if sheetBg}
-			{@const bg = sheetBg as any}
-			<button class="wizard-sheet-backdrop" onclick={closeBgSheet} aria-label="Close"></button>
-			<div class="wizard-sheet">
-				<div class="wizard-sheet__handle">
-					<div class="wizard-sheet__handle-bar"></div>
-					<button class="btn btn-ghost btn-sm" onclick={closeBgSheet}>✕</button>
-				</div>
-				<div class="wizard-sheet__body">
-					<h3 class="section-title">{bg.name}</h3>
-					{#if bg.shortDescription}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{bg.shortDescription}</p>{/if}
-					<div style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.75rem;">
-						{#if bg.skillGrants?.length}<span><strong>Skills:</strong> {bg.skillGrants.map((g: any) => SKILL_DISPLAY[g.skill] ?? g.skill).join(', ')}</span>{/if}
-						{#if bg.toolProficiencies}<span><strong>Tools:</strong> {bg.toolProficiencies}</span>{/if}
-						{#if bg.languages}<span><strong>Languages:</strong> {bg.languages}</span>{/if}
+	<!-- ══════════════════════════════════════════════════════════════
+	     STEP 3: Ability Scores
+	════════════════════════════════════════════════════════════════ -->
+	{:else if step === 3}
+		<div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+
+			<div class="card" style="flex:1;min-width:0;">
+
+				<!-- Method toggle -->
+				<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+					<div class="wiz-toggle">
+						<button class="wiz-toggle__btn" class:wiz-toggle__btn--active={!rolled&&!standardArray}
+							onclick={resetPointBuy}>Point buy</button>
+						<button class="wiz-toggle__btn" class:wiz-toggle__btn--active={standardArray}
+							onclick={useStandardArray}>Standard array</button>
+						<button class="wiz-toggle__btn" class:wiz-toggle__btn--active={rolled}
+							onclick={rollScores}>🎲 Roll 4d6</button>
 					</div>
-					{#if bg.grantsFeatId && bg.grantsFeat}
-						<div style="padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-accent);margin-bottom:0.75rem;">
-							<p style="margin:0;font-size:0.875rem;font-weight:700;color:var(--brand-accent);">🏅 {bg.grantsFeat.name} (auto-granted)</p>
-						</div>
-					{:else if bg.grantsFeatCategory}
-						<div style="padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-accent);margin-bottom:0.75rem;">
-							<p style="margin:0 0 0.5rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Choose a {bg.grantsFeatCategory} Feat</p>
-							<div style="display:flex;flex-direction:column;gap:0.25rem;">
-								{#each bgFeatOptions as feat}
-									<label style="display:flex;gap:0.5rem;align-items:flex-start;padding:0.375rem;border-radius:var(--radius-sm);background:{bgFeatPick===feat.id?'rgba(184,115,74,0.12)':'transparent'};cursor:pointer;">
-										<input type="radio" name="bg-feat-mobile" value={feat.id} checked={bgFeatPick===feat.id} onchange={() => bgFeatPick=feat.id} style="margin-top:2px;accent-color:var(--brand-accent);" />
-										<div>
-											<p style="margin:0;font-size:0.875rem;font-weight:600;">{feat.name}</p>
-											{#if canViewDescriptions}{#if feat.description}<p style="margin:0.125rem 0 0;font-size:0.75rem;color:var(--text-secondary);">{feat.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
-										</div>
-									</label>
-								{/each}
+					{#if !rolled && !standardArray}
+						<div style="display:flex;align-items:center;gap:0.625rem;">
+							<div style="height:5px;width:100px;background:var(--bg-overlay);border-radius:99px;overflow:hidden;">
+								<div style="height:100%;width:{Math.min(((BUDGET-remaining)/BUDGET)*100,100)}%;background:var(--accent);border-radius:99px;transition:width var(--transition-base);"></div>
 							</div>
+							<span style="font-size:0.8125rem;font-weight:600;color:{remaining===0?'var(--color-success)':'var(--accent-light)'};">{remaining} left</span>
 						</div>
 					{/if}
 				</div>
-				<div class="wizard-sheet__footer">
-					<button class="btn btn-primary btn-full" disabled={!!(bg.grantsFeatCategory && !bgFeatPick)}
-						onclick={() => selectBg(bg.id)}>
-						{backgroundId===bg.id ? '✓ Selected' : `Select ${bg.name}`}
-					</button>
-				</div>
-			</div>
-		{/if}
 
-	<!-- ════ Step 3: Ability Scores ════ -->
-	{:else if step === 3}
-		<div class="card" style="max-width:640px;width:100%;box-sizing:border-box;overflow:hidden;">
-			<div class="page__header" style="margin-bottom:0.75rem;">
-				<h3 class="section-title" style="margin:0;">{rolled ? 'Rolled Stats' : standardArray ? 'Standard Array' : 'Point-Buy Stats'}</h3>
-				<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
-					<button class="btn btn-ghost btn-sm" onclick={rollScores}>🎲 Roll 4d6</button>
-					{#if rolled || standardArray}<button class="btn btn-ghost btn-sm" onclick={resetPointBuy}>Point Buy</button>{/if}
-					{#if !standardArray}<button class="btn btn-ghost btn-sm" onclick={useStandardArray}>Standard Array</button>{/if}
-				</div>
+				<!-- Standard array assignment -->
+				{#if standardArray}
+					<div style="margin-bottom:0.875rem;background:var(--bg-overlay);border-radius:var(--radius-md);padding:0.75rem;">
+						<p class="wiz-pool__label" style="margin-bottom:0.5rem;">Assign values: {SA_VALUES.join(', ')}</p>
+						<div class="wizard-scores-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;text-align:center;">
+							{#each STATS as st}
+								<div class="wizard-stat-box">
+									<p class="wizard-stat-box__label">{STAT_LABEL[st]}</p>
+									<select class="input input--select" style="font-size:0.8125rem;padding:0.25rem 0.375rem;text-align:center;"
+										bind:value={scores[st]}
+										onchange={(e) => { scores = {...scores, [st]: parseInt((e.target as HTMLSelectElement).value)}; }}>
+										<option value={0}>—</option>
+										{#each SA_VALUES as v}
+											<option value={v} disabled={saAssigned.includes(st) ? false : saAssigned.map(s => scores[s]).includes(v)}>{v}</option>
+										{/each}
+									</select>
+									<p class="wizard-stat-box__mod">{scores[st]>0?mod(total[st]):'—'}</p>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{:else}
+					<!-- Point buy / rolled stat boxes -->
+					<div class="wizard-scores-grid">
+						{#each STATS as st}
+							<div class="wizard-stat-box">
+								<p class="wizard-stat-box__label">{STAT_LABEL[st]}</p>
+								<p class="wizard-stat-box__value">{total[st]}</p>
+								<p class="wizard-stat-box__mod">{mod(total[st])}</p>
+								{#if !rolled}
+									<p class="wizard-stat-box__cost">Cost: {POINT_COSTS[scores[st]]??0}</p>
+								{/if}
+								<div style="display:flex;gap:4px;justify-content:center;margin-top:0.375rem;">
+									<button class="wizard-ctrl-btn" disabled={!canDec(st)} onclick={() => dec(st)}>−</button>
+									<button class="wizard-ctrl-btn" disabled={!canInc(st)} onclick={() => inc(st)}>+</button>
+								</div>
+								{#if bonusGranted > 0}
+									<div style="display:flex;gap:4px;justify-content:center;margin-top:2px;">
+										<button class="wizard-ctrl-btn" style="border-color:rgba(142,68,173,0.4);" disabled={!canBonusDec(st)} onclick={() => bonusDec(st)}>−</button>
+										<button class="wizard-ctrl-btn" style="border-color:rgba(142,68,173,0.4);" disabled={!canBonusInc(st)} onclick={() => bonusInc(st)}>+</button>
+									</div>
+									{#if bonus[st]}<p style="font-size:0.625rem;color:#BF7EE0;margin:2px 0 0;text-align:center;">+{bonus[st]} bonus</p>{/if}
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
+
+				{#if rolled}
+					<button class="btn btn-ghost btn-sm" onclick={resetPointBuy}>↺ Reset to point buy</button>
+				{/if}
 			</div>
 
-			{#if standardArray}
-				<div style="margin-bottom:0.75rem;padding:0.5rem 0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
-					<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-secondary);margin:0 0 0.375rem;">Assign each value to one stat</p>
-					<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
-						{#each SA_VALUES as v}
-							{@const used = STATS.some(st => scores[st] === v)}
-							<span style="padding:0.25rem 0.625rem;border-radius:99px;font-size:0.875rem;font-weight:700;background:{used?'var(--bg-muted)':'var(--brand-accent)'};color:{used?'var(--text-muted)':'#fff'};text-decoration:{used?'line-through':'none'};">
-								{v}
-							</span>
+			<!-- Score summary sidebar -->
+			<div class="card" style="width:180px;flex-shrink:0;">
+				<p class="wiz-pool__label" style="margin-bottom:10px;">{name||'Character'}</p>
+				{#if selectedSpecies}<p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 10px;">{selectedSpecies.name}</p>{/if}
+				<div style="border-top:1px solid var(--border-muted);padding-top:10px;">
+					<p class="wiz-pool__label" style="margin-bottom:6px;">Final scores</p>
+					<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:0.75rem;">
+						{#each STATS as st}
+							<span style="color:var(--text-secondary);">{STAT_LABEL[st]} <strong style="color:var(--text-primary);">{total[st]}</strong></span>
 						{/each}
 					</div>
 				</div>
-			{:else if !rolled}
-				<div style="margin-bottom:0.75rem;">
-					<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem;">
-						<span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-secondary);">Standard Points</span>
-						<span style="font-size:1.125rem;font-weight:700;color:{remaining===0?'var(--color-success)':remaining<4?'var(--color-warning)':'var(--brand-accent)'};">{remaining} <span style="font-size:0.8125rem;font-weight:400;color:var(--text-muted);">/ {BUDGET}</span></span>
-					</div>
-					<div style="height:6px;background:var(--bg-overlay);border-radius:99px;overflow:hidden;">
-						<div style="height:100%;width:{Math.min((spent/BUDGET)*100,100)}%;background:{remaining===0?'var(--color-success)':remaining<4?'var(--color-warning)':'var(--brand-accent)'};border-radius:99px;transition:width var(--transition-base);"></div>
-					</div>
-				</div>
-			{:else if rolled}
-				<p style="font-size:0.8125rem;color:var(--text-muted);margin:0 0 0.75rem;">Rolled 4d6 drop-lowest. Adjust with +/−.</p>
-			{/if}
-
-			<div style="margin-bottom:0.75rem;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
-				<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
-					<div style="display:flex;align-items:center;gap:0.5rem;">
-						<span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-secondary);">Bonus Points (DM granted)</span>
-						<div style="display:flex;align-items:center;gap:0.25rem;">
-							<button class="wizard-ctrl-btn" style="width:22px;height:22px;font-size:0.875rem;" onclick={() => {if(bonusGranted>0)bonusGranted--;}}>−</button>
-							<span style="min-width:20px;text-align:center;font-size:0.875rem;font-weight:700;color:#8E44AD;">{bonusGranted}</span>
-							<button class="wizard-ctrl-btn" style="width:22px;height:22px;font-size:0.875rem;" onclick={() => bonusGranted++}>+</button>
-						</div>
-					</div>
-					{#if bonusGranted>0}
-						<span style="font-size:1.125rem;font-weight:700;color:{bonusLeft===0?'var(--color-success)':'#8E44AD'};">{bonusLeft} <span style="font-size:0.8125rem;font-weight:400;color:var(--text-muted);">/ {bonusGranted}</span></span>
-					{/if}
-				</div>
-			</div>
-
-			<div class="wizard-scores-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.625rem;width:100%;">
-				{#each STATS as st}
-					{@const bon = bonus[st]}
-					<div class="wizard-stat-box">
-						<p class="wizard-stat-box__label">{STAT_LABEL[st]}</p>
-						<div style="display:flex;align-items:baseline;justify-content:center;gap:0.375rem;">
-							<span class="wizard-stat-box__value">{total[st]}</span>
-							<span class="wizard-stat-box__mod">{mod(total[st])}</span>
-							{#if bon>0}<span style="font-size:0.6875rem;padding:0.0625rem 0.3rem;background:#8E44AD22;color:#8E44AD;border-radius:99px;">+{bon}</span>{/if}
-						</div>
-						{#if standardArray}
-							<div style="margin-top:0.5rem;">
-								<select class="input input--select" style="font-size:0.8125rem;padding:0.25rem 0.375rem;"
-									value={scores[st] > 0 ? scores[st] : ''}
-									onchange={(e) => {
-										const val = Number((e.target as HTMLSelectElement).value);
-										scores = {...scores, [st]: val || 0};
-									}}>
-									<option value="">—</option>
-									{#each SA_VALUES as v}
-										{@const takenByOther = STATS.filter(s2 => s2 !== st).some(s2 => scores[s2] === v)}
-										<option value={v} disabled={takenByOther}>{v}</option>
-									{/each}
-								</select>
-							</div>
-						{:else}
-							<div style="display:flex;gap:0.375rem;justify-content:center;margin-top:0.5rem;">
-								<button class="wizard-ctrl-btn" disabled={!canDec(st)} onclick={() => dec(st)}>−</button>
-								<button class="wizard-ctrl-btn" disabled={!canInc(st)} onclick={() => inc(st)}>+</button>
-							</div>
-							{#if !rolled}<p class="wizard-stat-box__cost">{POINT_COSTS[scores[st]]??0} pts</p>{/if}
-						{/if}
-						{#if bonusGranted>0}
-							<div style="display:flex;gap:0.25rem;justify-content:center;margin-top:0.375rem;padding-top:0.375rem;border-top:1px solid var(--border-muted);">
-								<button class="wizard-ctrl-btn" style="border-color:#8E44AD44;" disabled={!canBonusDec(st)} onclick={() => bonusDec(st)}>−</button>
-								<span style="min-width:20px;text-align:center;font-size:0.75rem;color:#8E44AD;font-weight:700;display:flex;align-items:center;justify-content:center;">{bon>0?`+${bon}`:'·'}</span>
-								<button class="wizard-ctrl-btn" style="border-color:#8E44AD44;" disabled={!canBonusInc(st)} onclick={() => bonusInc(st)}>+</button>
-							</div>
-						{/if}
-					</div>
-				{/each}
 			</div>
 		</div>
 
-	<!-- ════ Step 4: Classes ════ -->
+	<!-- ══════════════════════════════════════════════════════════════
+	     STEP 4: Classes
+	════════════════════════════════════════════════════════════════ -->
 	{:else if step === 4}
-		<div class="wizard-two-col" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:1rem;align-items:start;">
-			<div>
-				<div class="page__header" style="margin-bottom:0.75rem;">
-					<input type="text" class="input" style="flex:1;" placeholder="Search classes…" bind:value={classSearch} />
-					<button class="btn btn-ghost btn-sm" onclick={randomClass}>🎲 Random</button>
-				</div>
-				<div style="display:flex;flex-direction:column;gap:0.375rem;">
-					{#each filteredClasses as cls}
-						<button class="wizard-class-card" class:wizard-class-card--active={browseClassId===cls.id}
-							onclick={() => { selectBrowseClass(cls.id); openClassSheet(cls); }}>
-							<div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:0.5rem;">
-								<span style="font-weight:700;font-size:0.9375rem;">{cls.name}</span>
-								<div style="display:flex;gap:0.375rem;align-items:center;flex-shrink:0;">
-									{#if cls.hitDice}<span class="badge badge-muted" style="font-size:0.6875rem;">d{cls.hitDice}</span>{/if}
-									{#if classAllocs.find((a: any)=>a.classId===cls.id)}<span class="badge badge-accent" style="font-size:0.6875rem;">✓</span>{/if}
-								</div>
-							</div>
-							{#if cls.primaryAbilities}<p style="margin:0.125rem 0 0;font-size:0.75rem;color:var(--text-muted);">{cls.primaryAbilities}</p>{/if}
-						</button>
-					{:else}
-						<p class="table__empty">No classes match.</p>
-					{/each}
-				</div>
-			</div>
+		<div style="display:flex;flex-direction:column;gap:1rem;">
 
-			<div class="wizard-drawer wizard-class-detail" style="display:flex;flex-direction:column;gap:0.75rem;">
-				{#if browseClass}
-					{@const bc = browseClass as any}
-					<div class="card" style="padding:0.875rem;">
-						<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.625rem;">
+			<!-- Your classes (allocated) -->
+			{#if classAllocs.length}
+				<div class="card" style="padding:0.875rem;">
+					<p class="wiz-pool__label" style="margin-bottom:0.625rem;">Your classes</p>
+					<div style="display:flex;flex-direction:column;gap:0.375rem;">
+						{#each classAllocs as a, i}
+							{@const cls = (sys?.classes ?? []).find((c: any) => c.id === a.classId)}
+							{@const sub = cls?.subclasses?.find((s: any) => s.id === a.subclassId)}
+							{@const subs = subclassesFor(a.classId, a.allocatedLevel)}
+							<div class="wizard-class-row">
+								<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
+									<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+										<strong style="font-size:0.875rem;">{cls?.name ?? '?'}</strong>
+										{#if sub}<span class="table__muted" style="font-size:0.8125rem;">· {sub.name}</span>{/if}
+										<span class="badge badge-accent">Lv {a.allocatedLevel}</span>
+									</div>
+									<div style="display:flex;gap:0.25rem;align-items:center;">
+										<button class="wizard-ctrl-btn" onclick={() => { a.allocatedLevel = Math.max(1, a.allocatedLevel-1); }}>−</button>
+										<button class="wizard-ctrl-btn" onclick={() => { a.allocatedLevel = Math.min(20, a.allocatedLevel+1); }}>+</button>
+										<button class="btn btn-danger btn-sm" onclick={() => removeClass(i)}>✕</button>
+									</div>
+								</div>
+								{#if subs.length}
+									<select class="input input--select" style="margin-top:0.375rem;font-size:0.8125rem;" bind:value={a.subclassId}>
+										<option value="">No subclass</option>
+										{#each subs as s}<option value={s.id}>{s.name}</option>{/each}
+									</select>
+								{/if}
+							</div>
+						{/each}
+					</div>
+					<div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.5rem;font-size:0.8125rem;">
+						<span style="color:var(--text-muted);">Total: <strong style="color:var(--accent-light);">{totalLevel}</strong></span>
+						{#if classAllocs.length > 0}<span style="color:var(--text-muted);">← Browse to add another class</span>{/if}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Class browser -->
+			<div class="wiz-browser">
+				<div class="wiz-browser__list">
+					<div class="wiz-browser__search">
+						<input type="text" placeholder="Search classes…" bind:value={classSearch} />
+						<button class="btn btn-ghost btn-sm" title="Random class" onclick={randomClass}>🎲</button>
+					</div>
+					<div class="wiz-browser__rows">
+						{#each filteredClasses as cls}
+							<button class="wiz-row" class:wiz-row--selected={browseClassId===cls.id}
+								onclick={() => { selectBrowseClass(cls.id); }}>
+								<div class="wiz-row__body">
+									<p class="wiz-row__name">{cls.name}</p>
+									<div class="wiz-row__sub">
+										{#if cls.hitDice}<span class="badge badge-muted" style="font-size:0.625rem;">d{cls.hitDice}</span>{/if}
+										{#if cls.primaryAbilities}<span style="color:var(--text-muted);font-size:0.6875rem;">{cls.primaryAbilities}</span>{/if}
+									</div>
+								</div>
+								{#if classAllocs.find((a: any)=>a.classId===cls.id)}
+									<span class="badge badge-accent" style="font-size:0.625rem;flex-shrink:0;">✓ Added</span>
+								{/if}
+							</button>
+						{:else}
+							<p class="table__empty" style="padding:1rem 0.75rem;">No classes match.</p>
+						{/each}
+					</div>
+				</div>
+
+				<div class="wiz-browser__panel">
+					{#if browseClass}
+						{@const bc = browseClass as any}
+
+						<!-- Header + add button -->
+						<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.75rem;">
 							<div>
-								<h3 style="margin:0;font-size:1.0625rem;font-weight:700;">{bc.name}</h3>
-								<div style="display:flex;gap:0.375rem;margin-top:0.25rem;flex-wrap:wrap;">
-									{#if bc.hitDice}<span class="badge badge-muted">d{bc.hitDice} Hit Die</span>{/if}
+								<h3 class="wiz-panel__title">{bc.name}</h3>
+								<div style="display:flex;gap:5px;flex-wrap:wrap;">
+									{#if bc.hitDice}<span class="badge badge-muted">d{bc.hitDice} hit die</span>{/if}
 									{#if bc.primaryAbilities}<span class="badge badge-muted">{bc.primaryAbilities}</span>{/if}
 								</div>
 							</div>
-							<button class="btn btn-primary btn-sm" onclick={addBrowseClass}>
+							<button class="btn btn-primary btn-sm" style="flex-shrink:0;" onclick={addBrowseClass}>
 								{classAllocs.find((a: any)=>a.classId===bc.id)?'Update':'+ Add'}
 							</button>
 						</div>
-						{#if canViewDescriptions}{#if bc.description}<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0 0 0.75rem;">{bc.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
 
-						<div style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.625rem;">
-							<div class="field" style="flex:0 0 80px;margin:0;">
-								<label class="label" for="browse-level">Level</label>
-								<input id="browse-level" type="number" class="input" min="1" max="20" bind:value={browseLevel} />
-							</div>
-							<div style="flex:1;height:6px;background:var(--bg-overlay);border-radius:99px;overflow:hidden;align-self:center;">
-								<div style="height:100%;width:{Math.min((browseLevel/20)*100,100)}%;background:var(--brand-accent);border-radius:99px;transition:width var(--transition-base);"></div>
+						{#if canViewDescriptions && bc.description}
+							<p class="wiz-panel__desc">{bc.description}</p>
+						{:else if !canViewDescriptions}
+							<p class="wiz-panel__desc" style="font-style:italic;color:var(--text-muted);">📖 Description not available — contact your DM.</p>
+						{/if}
+
+						<!-- Level picker + progress bar -->
+						<div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;">
+							<label class="label" for="browse-level" style="margin:0;white-space:nowrap;font-size:0.75rem;">Level</label>
+							<input id="browse-level" type="number" class="input" style="width:60px;" min="1" max="20" bind:value={browseLevel} />
+							<div style="flex:1;height:4px;background:var(--bg-overlay);border-radius:99px;overflow:hidden;">
+								<div style="height:100%;width:{Math.min((browseLevel/20)*100,100)}%;background:var(--accent);border-radius:99px;transition:width var(--transition-base);"></div>
 							</div>
 						</div>
 
+						<!-- Subclass picker -->
 						{#if bc.subclasses?.length}
 							{@const availSubs = bc.subclasses.filter((s: any) => browseLevel >= (bc.subclassAvailableAtLevel ?? 3))}
 							{#if availSubs.length}
-								<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">Subclass</p>
-								<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.375rem;margin-bottom:0.625rem;">
-									{#each availSubs as sub}
-										<button
-											style="padding:0.375rem 0.5rem;background:{browseSubId===sub.id?'rgba(184,115,74,0.15)':'var(--bg-overlay)'};border:1px solid {browseSubId===sub.id?'var(--border-accent)':'var(--border-muted)'};border-radius:var(--radius-sm);cursor:pointer;font-size:0.8125rem;font-weight:600;text-align:left;color:var(--text-primary);transition:all var(--transition-fast);"
-											onclick={() => browseSubId = browseSubId===sub.id?'':sub.id}>
-											{sub.name}
-										</button>
-									{/each}
-								</div>
-								{#if browseSub}
-									{@const bs = browseSub as any}
-									{#if canViewDescriptions}{#if bs.description}<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0 0 0.625rem;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">{bs.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
-								{/if}
-							{:else}
-								<p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 0.625rem;">Subclass available at level {bc.subclassAvailableAtLevel ?? 3}.</p>
-							{/if}
-						{/if}
-					</div>
-
-					{#if featureTimeline.length}
-						<div class="card" style="padding:0.875rem;">
-							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.5rem;">
-								Feature Timeline {browseSub?`(${(browseClass as any).name} + ${(browseSub as any).name})`:`(${(browseClass as any).name})`}
-							</p>
-							<div class="feat-timeline">
-								{#each featureTimeline as feat}
-									{@const open = openFeats.has(feat.id)}
-									<div class="feat-row">
-										<button class="feat-row__header" onclick={() => toggleFeat(feat.id)}>
-											<span class="feat-row__level">{feat.level}</span>
-											<span class="feat-row__name">{feat.name}</span>
-											<span class="feat-row__source">
-												<span class="badge" style="font-size:0.625rem;background:{feat.sourceType==='subclass'?'rgba(142,68,173,0.15)':'rgba(184,115,74,0.12)'};color:{feat.sourceType==='subclass'?'#8E44AD':'var(--brand-accent)'};">{feat.source}</span>
-											</span>
-											<span class="feat-row__chevron" class:feat-row__chevron--open={open}>▶</span>
-										</button>
-										{#if open && feat.description}
-											<div class="feat-row__body">{feat.description}</div>
-										{/if}
-									</div>
-								{/each}
-							</div>
-						</div>
-					{/if}
-				{:else}
-					<div class="card" style="padding:0.875rem;">
-						<p class="table__empty">Select a class to view its details and features.</p>
-					</div>
-				{/if}
-
-				{#if classAllocs.length}
-					<div class="card" style="padding:0.875rem;">
-						<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.5rem;">Your Classes</p>
-						<div style="display:flex;flex-direction:column;gap:0.375rem;">
-							{#each classAllocs as a, i}
-								{@const cls = (sys?.classes ?? []).find((c: any) => c.id === a.classId)}
-								{@const sub = cls?.subclasses?.find((s: any) => s.id === a.subclassId)}
-								{@const subs = subclassesFor(a.classId, a.allocatedLevel)}
-								<div class="wizard-class-row" style="margin:0;">
-									<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
-										<div style="display:flex;align-items:center;gap:0.375rem;flex-wrap:wrap;">
-											<strong style="font-size:0.875rem;">{cls?.name ?? '?'}</strong>
-											{#if sub}<span class="table__muted" style="font-size:0.8125rem;">· {sub.name}</span>{/if}
-											<span class="badge badge-accent">Lv {a.allocatedLevel}</span>
-										</div>
-										<div style="display:flex;gap:0.25rem;align-items:center;">
-											<button class="wizard-ctrl-btn" onclick={() => { a.allocatedLevel = Math.max(1, a.allocatedLevel-1); }}>−</button>
-											<button class="wizard-ctrl-btn" onclick={() => { a.allocatedLevel = Math.min(20, a.allocatedLevel+1); }}>+</button>
-											<button class="btn btn-danger btn-sm"  onclick={() => removeClass(i)}>✕</button>
-										</div>
-									</div>
-									{#if subs.length}
-										<select class="input input--select" style="margin-top:0.375rem;font-size:0.8125rem;" bind:value={a.subclassId}>
-											<option value="">No subclass</option>
-											{#each subs as s}<option value={s.id}>{s.name}</option>{/each}
-										</select>
-									{/if}
-								</div>
-							{/each}
-						</div>
-						<div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.5rem;">
-							<span style="font-size:0.8125rem;color:var(--text-muted);">Total: <strong style="color:var(--brand-accent);">{totalLevel}</strong></span>
-							<span style="font-size:0.75rem;color:var(--text-muted);">← Select another class to multiclass</span>
-						</div>
-					</div>
-				{/if}
-			</div>
-		</div>
-
-		{#if sheetClass}
-			{@const sc = sheetClass as any}
-			<button class="wizard-sheet-backdrop" onclick={closeClassSheet} aria-label="Close"></button>
-			<div class="wizard-sheet">
-				<div class="wizard-sheet__handle">
-					<div class="wizard-sheet__handle-bar"></div>
-					<button class="btn btn-ghost btn-sm" onclick={closeClassSheet}>✕</button>
-				</div>
-				<div class="wizard-sheet__body">
-					<h3 class="section-title">{sc.name}</h3>
-					<div style="display:flex;gap:0.375rem;margin-bottom:0.5rem;">
-						{#if sc.hitDice}<span class="badge badge-muted">d{sc.hitDice}</span>{/if}
-						{#if sc.primaryAbilities}<span class="badge badge-muted">{sc.primaryAbilities}</span>{/if}
-					</div>
-					{#if canViewDescriptions}{#if sc.description}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">{sc.description}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
-					{#if sheetTimeline.length}
-						<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">Features</p>
-						<div class="feat-timeline">
-							{#each sheetTimeline as feat}
-								{@const open = openFeats.has(feat.id)}
-								<div class="feat-row">
-									<button class="feat-row__header" onclick={() => toggleFeat(feat.id)}>
-										<span class="feat-row__level">{feat.level}</span>
-										<span class="feat-row__name">{feat.name}</span>
-										<span class="feat-row__chevron" class:feat-row__chevron--open={open}>▶</span>
-									</button>
-									{#if open && feat.description}
-										{#if canViewDescriptions}<div class="feat-row__body">{feat.description}</div>{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
-									{/if}
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</div>
-				<div class="wizard-sheet__footer">
-					<div style="display:flex;gap:0.5rem;align-items:flex-end;margin-bottom:0.5rem;">
-						<div class="field" style="flex:0 0 80px;margin:0;">
-							<label class="label" for="sheet-level">Level</label>
-							<input id="sheet-level" type="number" class="input" min="1" max="20" bind:value={browseLevel} />
-						</div>
-						{#if sc.subclasses?.filter((s: any) => browseLevel >= (sc.subclassAvailableAtLevel ?? 3)).length}
-							<div class="field" style="flex:1;margin:0;">
-								<label class="label" for="sheet-sub">Subclass</label>
-								<select id="sheet-sub" class="input input--select" bind:value={browseSubId}>
-									<option value="">None yet</option>
-									{#each sc.subclasses.filter((s: any) => browseLevel >= (sc.subclassAvailableAtLevel ?? 3)) as s}
-										<option value={s.id}>{s.name}</option>
-									{/each}
-								</select>
-							</div>
-						{/if}
-					</div>
-					<button class="btn btn-primary btn-full" onclick={() => { addBrowseClass(); closeClassSheet(); }}>
-						{classAllocs.find((a: any)=>a.classId===sc.id)?'Update':'+ Add Class'}
-					</button>
-				</div>
-			</div>
-		{/if}
-
-	<!-- ════ Step 5/6: Skills & Saving Throws ════ -->
-	{:else if step === SKILLS_STEP_IDX}
-		<div class="card" style="max-width:680px;width:100%;">
-			<h3 class="section-title" style="margin-bottom:1rem;">Skills &amp; Saving Throws</h3>
-
-			<!-- Saving throws — auto from first class, read-only -->
-			{#if classSavingThrows.length}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.5rem;">Saving Throw Proficiencies</p>
-					<p class="table__muted" style="font-size:0.8125rem;margin-bottom:0.5rem;">Granted by {selectedClass0?.name ?? 'your class'} (primary class only):</p>
-					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-						{#each classSavingThrows as stat}
-							<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Saving throws from feats and class features -->
-			{#if extraSavingThrows.length}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.5rem;">Additional Saving Throws</p>
-					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-						{#each extraSavingThrows as { stat, sourceName }}
-							<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat} <span style="opacity:0.65;font-size:0.6875rem;">{sourceName}</span></span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Auto-granted fixed skills from background + species -->
-			{#if autoGrantedSkills.length}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.5rem;">Auto-Granted Proficiencies</p>
-					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-						{#each backgroundFixedSkills as skill}
-							<span class="badge badge-success">{SKILL_DISPLAY[skill] ?? skill} <span style="opacity:0.65;font-size:0.6875rem;">Background</span></span>
-						{/each}
-						{#each speciesFixedSkills as skill}
-							<span class="badge badge-success">{SKILL_DISPLAY[skill] ?? skill} <span style="opacity:0.65;font-size:0.6875rem;">Species</span></span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Expertise from species traits -->
-			{#if speciesAutoExpertise.length}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.5rem;">Expertise (×2)</p>
-					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-						{#each speciesAutoExpertise as { skill, sourceName }}
-							<span class="badge badge-accent">{SKILL_DISPLAY[skill] ?? skill} <span style="opacity:0.65;font-size:0.6875rem;">{sourceName}</span></span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Half-proficiency from species traits -->
-			{#if speciesAutoHalfSkills.length}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.5rem;">Half Proficiency (×½)</p>
-					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-						{#each speciesAutoHalfSkills as { skill, sourceName }}
-							<span class="badge badge-muted">{SKILL_DISPLAY[skill] ?? skill} <span style="opacity:0.65;font-size:0.6875rem;">{sourceName}</span></span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Expertise / half-prof from class features (applied at approval) -->
-			{#if featureAutoExpertise.length || featureAutoHalfSkills.length}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.5rem;">Granted by Class Features <span class="table__muted" style="font-size:0.75rem;">(applied on approval)</span></p>
-					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-						{#each featureAutoExpertise as { skill, sourceName }}
-							<span class="badge badge-accent">{SKILL_DISPLAY[skill] ?? skill} ×2 <span style="opacity:0.65;font-size:0.6875rem;">{sourceName}</span></span>
-						{/each}
-						{#each featureAutoHalfSkills as { skill, sourceName }}
-							<span class="badge badge-muted">{skill === '*' ? 'All skills ×½' : (SKILL_DISPLAY[skill] ?? skill) + ' ×½'} <span style="opacity:0.65;font-size:0.6875rem;">{sourceName}</span></span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Background skill choice pool -->
-			{#if backgroundChoiceCount > 0 && backgroundChoicePool.length > 0}
-				{@const bgChosen = chosenPoolSkills[backgroundId ?? ''] ?? []}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.25rem;">
-						Background: Choose {backgroundChoiceCount} Skill{backgroundChoiceCount !== 1 ? 's' : ''}
-						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({bgChosen.length}/{Math.min(backgroundChoiceCount, backgroundChoicePool.length)} chosen)</span>
-					</p>
-					<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.375rem;margin-top:0.5rem;">
-						{#each backgroundChoicePool as skill}
-							{@const chosen = bgChosen.includes(skill)}
-							{@const full = !chosen && bgChosen.length >= Math.min(backgroundChoiceCount, backgroundChoicePool.length)}
-							{@const taken = !chosen && isTakenElsewhere(skill, backgroundId ?? '')}
-							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full || taken}
-								onclick={() => togglePoolSkill(backgroundId ?? '', skill, backgroundChoiceCount)}>
-								{SKILL_DISPLAY[skill] ?? skill}
-								<span class="table__muted" style="font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Species trait choice pools -->
-			{#each speciesTraitChoices as trait}
-				{@const pool = trait.skillChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean)}
-				{@const traitChosen = chosenPoolSkills[trait.id] ?? []}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.25rem;">
-						{selectedSpecies?.name}: {trait.name} — Choose {trait.skillChoiceCount} Skill{trait.skillChoiceCount !== 1 ? 's' : ''}
-						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({traitChosen.length}/{Math.min(trait.skillChoiceCount, pool.length)} chosen)</span>
-					</p>
-					<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.375rem;margin-top:0.5rem;">
-						{#each pool as skill}
-							{@const chosen = traitChosen.includes(skill)}
-							{@const full = !chosen && traitChosen.length >= Math.min(trait.skillChoiceCount, pool.length)}
-							{@const taken = !chosen && isTakenElsewhere(skill, trait.id)}
-							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full || taken}
-								onclick={() => togglePoolSkill(trait.id, skill, trait.skillChoiceCount)}>
-								{SKILL_DISPLAY[skill] ?? skill}
-								<span class="table__muted" style="font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/each}
-
-			<!-- Class skill choices -->
-			{#if availableClassSkills.length}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.25rem;">
-						{selectedClass0?.name ?? 'Class'}: Choose {classSkillCount} Skill{classSkillCount !== 1 ? 's' : ''}
-						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">
-							({chosenClassSkills.length}/{Math.min(classSkillCount, availableClassSkills.length)} chosen)
-						</span>
-					</p>
-					<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.375rem;margin-top:0.5rem;">
-						{#each availableClassSkills as skill}
-							{@const chosen = chosenClassSkills.includes(skill)}
-							{@const full   = !chosen && chosenClassSkills.length >= Math.min(classSkillCount, availableClassSkills.length)}
-							{@const taken  = !chosen && isTakenElsewhere(skill, '__class__')}
-							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full || taken}
-								onclick={() => {
-									if (chosen) chosenClassSkills = chosenClassSkills.filter(s => s !== skill);
-									else if (!full && !taken) chosenClassSkills = [...chosenClassSkills, skill];
-								}}>
-								{SKILL_DISPLAY[skill] ?? skill}
-								<span class="table__muted" style="font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Class feature skill choice pools (features up to starting level) -->
-			{#each featureChoices() as fc}
-				{@const fcChosen = chosenPoolSkills[fc.sourceId] ?? []}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.25rem;">
-						{fc.label}: Choose {fc.count} Skill{fc.count !== 1 ? 's' : ''}
-						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({fcChosen.length}/{Math.min(fc.count, fc.pool.length)} chosen)</span>
-					</p>
-					<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.375rem;margin-top:0.5rem;">
-						{#each fc.pool as skill}
-							{@const chosen = fcChosen.includes(skill)}
-							{@const full  = !chosen && fcChosen.length >= Math.min(fc.count, fc.pool.length)}
-							{@const taken = !chosen && isTakenElsewhere(skill, fc.sourceId)}
-							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full || taken}
-								onclick={() => togglePoolSkill(fc.sourceId, skill, fc.count)}>
-								{SKILL_DISPLAY[skill] ?? skill}
-								<span class="table__muted" style="font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/each}
-
-			{#if !backgroundId}
-				<p class="table__muted">Choose a background first to see all skill options.</p>
-			{:else if classAllocs.length === 0}
-				<p class="table__muted">Go back to Classes to add a class first.</p>
-			{/if}
-
-			<!-- Feat auto-granted skills -->
-			{#if featAutoSkills.length}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.5rem;">Skills from Feats (auto-granted)</p>
-					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-						{#each featAutoSkills as { skill, featName }}
-							<span class="badge badge-success">{SKILL_DISPLAY[skill] ?? skill} <span style="opacity:0.65;font-size:0.6875rem;">{featName}</span></span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Saving throw choice pools (background, species, features, feats) -->
-			{#each allSaveChoices as sc}
-				{@const scChosen = chosenSavePools[sc.sourceId] ?? []}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.25rem;">
-						{sc.label}: Choose {sc.count} Saving Throw{sc.count !== 1 ? 's' : ''}
-						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({scChosen.length}/{Math.min(sc.count, sc.pool.length)} chosen)</span>
-					</p>
-					<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-top:0.5rem;">
-						{#each sc.pool as stat}
-							{@const chosen = scChosen.includes(stat)}
-							{@const full = !chosen && scChosen.length >= Math.min(sc.count, sc.pool.length)}
-							{@const taken = !chosen && (classSavingThrows.includes(stat) || extraSavingThrows.some(x => x.stat === stat) || Object.entries(chosenSavePools).some(([k, v]) => k !== sc.sourceId && v.includes(stat)))}
-							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full || taken}
-								onclick={() => {
-									const cur = chosenSavePools[sc.sourceId] ?? [];
-									if (chosen) chosenSavePools = { ...chosenSavePools, [sc.sourceId]: cur.filter(s => s !== stat) };
-									else if (!full && !taken) chosenSavePools = { ...chosenSavePools, [sc.sourceId]: [...cur, stat] };
-								}}>
-								{STAT_ABBR[stat] ?? stat}
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/each}
-
-			<!-- Feat skill choice pools -->
-			{#each featSkillChoices as fc}
-				{@const fcChosen = chosenPoolSkills[fc.sourceId] ?? []}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.25rem;">
-						{fc.label}: Choose {fc.count} Skill{fc.count !== 1 ? 's' : ''}
-						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({fcChosen.length}/{Math.min(fc.count, fc.pool.length)} chosen)</span>
-					</p>
-					<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.375rem;margin-top:0.5rem;">
-						{#each fc.pool as skill}
-							{@const chosen = fcChosen.includes(skill)}
-							{@const full  = !chosen && fcChosen.length >= Math.min(fc.count, fc.pool.length)}
-							{@const taken = !chosen && isTakenElsewhere(skill, fc.sourceId)}
-							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full || taken}
-								onclick={() => togglePoolSkill(fc.sourceId, skill, fc.count)}>
-								{SKILL_DISPLAY[skill] ?? skill}
-								<span class="table__muted" style="font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/each}
-			<!-- Tool choice pools -->
-			{#each allToolChoices as tc}
-				{@const tcChosen = chosenToolPools[tc.sourceId] ?? []}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.25rem;">
-						{tc.label}: Choose {tc.count} Tool Proficiencie{tc.count !== 1 ? 's' : ''}
-						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({tcChosen.length}/{Math.min(tc.count, tc.pool.length)} chosen)</span>
-					</p>
-					<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-top:0.5rem;">
-						{#each tc.pool as tool}
-							{@const chosen = tcChosen.includes(tool)}
-							{@const full   = !chosen && tcChosen.length >= Math.min(tc.count, tc.pool.length)}
-							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
-								onclick={() => {
-									const cur = chosenToolPools[tc.sourceId] ?? [];
-									if (chosen) chosenToolPools = { ...chosenToolPools, [tc.sourceId]: cur.filter(t => t !== tool) };
-									else if (!full) chosenToolPools = { ...chosenToolPools, [tc.sourceId]: [...cur, tool] };
-								}}>
-								{tool}
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/each}
-
-			<!-- Language choice pools -->
-			{#each allLanguageChoices as lc}
-				{@const lcChosen = chosenLanguagePools[lc.sourceId] ?? []}
-				<div style="margin-bottom:1.25rem;">
-					<p class="label label-accent" style="margin-bottom:0.25rem;">
-						{lc.label}: Choose {lc.count} Language{lc.count !== 1 ? 's' : ''}
-						<span class="table__muted" style="font-size:0.75rem;margin-left:0.5rem;">({lcChosen.length}/{Math.min(lc.count, lc.pool.length)} chosen)</span>
-					</p>
-					<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-top:0.5rem;">
-						{#each lc.pool as language}
-							{@const chosen = lcChosen.includes(language)}
-							{@const full   = !chosen && lcChosen.length >= Math.min(lc.count, lc.pool.length)}
-							<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
-								onclick={() => {
-									const cur = chosenLanguagePools[lc.sourceId] ?? [];
-									if (chosen) chosenLanguagePools = { ...chosenLanguagePools, [lc.sourceId]: cur.filter(l => l !== language) };
-									else if (!full) chosenLanguagePools = { ...chosenLanguagePools, [lc.sourceId]: [...cur, language] };
-								}}>
-								{language}
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/each}
-
-			<!-- Auto-granted tools, languages, resistances summary -->
-			{#if autoGrantedTools().length || autoGrantedLanguages().length || autoGrantedDamageModifiers().length || autoGrantedInnateSpells().length}
-				<div style="background:var(--bg-overlay);border-radius:var(--radius-md);padding:0.625rem 0.875rem;display:flex;flex-direction:column;gap:0.375rem;">
-					<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0;">Automatic Grants</p>
-					{#if autoGrantedTools().length}
-						<p style="font-size:0.8125rem;margin:0;"><strong>Tools:</strong> {autoGrantedTools().map(g => g.tool).join(', ')}</p>
-					{/if}
-					{#if autoGrantedLanguages().length}
-						<p style="font-size:0.8125rem;margin:0;"><strong>Languages:</strong> {autoGrantedLanguages().map(g => g.language).join(', ')}</p>
-					{/if}
-					{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'RESISTANCE')}
-						<p style="font-size:0.8125rem;margin:0;"><strong>Resistances:</strong> {autoGrantedDamageModifiers().filter(g => g.modifierType === 'RESISTANCE').map(g => g.damageType).join(', ')}</p>
-					{/if}
-					{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'VULNERABILITY')}
-				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
-					<span style="font-size:0.75rem;font-weight:700;color:var(--color-error);min-width:110px;">Vulnerabilities</span>
-					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-						{#each autoGrantedDamageModifiers().filter(g => g.modifierType === 'VULNERABILITY') as g}
-							<span class="badge" style="background:rgba(231,76,60,0.15);color:var(--color-error);">{g.damageType}</span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-			{#if autoGrantedSpeeds().length}
-				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
-					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Speed Bonuses</span>
-					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-						{#each autoGrantedSpeeds() as sp}<span class="badge badge-muted">{sp.movementType.charAt(0)+sp.movementType.slice(1).toLowerCase()} +{sp.speed} ft</span>{/each}
-					</div>
-				</div>
-			{/if}
-			{#if autoGrantedSenses().length}
-				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
-					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Senses</span>
-					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-						{#each autoGrantedSenses() as s}<span class="badge badge-muted">👁 {s}</span>{/each}
-					</div>
-				</div>
-			{/if}
-			{#if autoGrantedInnateSpells().length}
-				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
-					<span style="font-size:0.75rem;font-weight:700;color:var(--accent-light);min-width:110px;">Innate Spells</span>
-					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-						{#each autoGrantedInnateSpells() as g}
-							<span class="badge badge-accent">{g.name} · Lv{g.minCharLevel} · {g.usesPerDay === null ? 'at will' : `${g.usesPerDay}/day`}</span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-			{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'IMMUNITY')}
-						<p style="font-size:0.8125rem;margin:0;"><strong>Immunities:</strong> {autoGrantedDamageModifiers().filter(g => g.modifierType === 'IMMUNITY').map(g => g.damageType).join(', ')}</p>
-					{/if}
-					{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'VULNERABILITY')}
-						<p style="font-size:0.8125rem;margin:0;"><strong>Vulnerabilities:</strong> {autoGrantedDamageModifiers().filter(g => g.modifierType === 'VULNERABILITY').map(g => g.damageType).join(', ')}</p>
-					{/if}
-					{#if autoGrantedInnateSpells().length}
-						<p style="font-size:0.8125rem;margin:0;"><strong>Innate Spells:</strong> {autoGrantedInnateSpells().map(g => `${g.name} (Lv${g.minCharLevel}${g.usesPerDay === null ? ', at will' : `, ${g.usesPerDay}/day`})`).join(', ')}</p>
-					{/if}
-				</div>
-			{/if}
-		</div>
-
-	<!-- ════ Step 6: ASI / Feats ════ -->
-	{:else if step === ASI_STEP_IDX}
-		<div style="display:flex;flex-direction:column;gap:1rem;">
-			<div class="card" style="padding:0.875rem;">
-				<h3 class="section-title" style="margin:0 0 0.25rem;">Ability Score Improvements & Feats</h3>
-				<p style="font-size:0.8125rem;color:var(--text-muted);margin:0 0 1rem;">
-					Your classes grant the following improvements. Choose for each slot.
-				</p>
-				{#if asiChoices.some(c => c.canEpicBoon) && !asiChoices.some(c => c.type === 'epic_boon')}
-					<div style="display:flex;align-items:center;gap:0.625rem;padding:0.625rem 0.875rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-md);margin-bottom:1rem;">
-						<span style="font-size:1rem;">⭐</span>
-						<p style="font-size:0.8125rem;color:var(--brand-accent);font-weight:600;margin:0;">
-							At level 19+ you qualify for an <strong>Epic Boon</strong> — select "Take a Feat / Epic Boon" on any slot below to choose one.
-						</p>
-					</div>
-				{/if}
-				<div style="display:flex;flex-direction:column;gap:1rem;">
-					{#each asiChoices as choice, i}
-						{@const isEpicBoon = choice.type === 'epic_boon'}
-						{@const choiceFeats = featsForChoice(choice)}
-						<div style="padding:0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);border:1px solid var(--border-muted);">
-							<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.625rem;flex-wrap:wrap;">
-								<span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">
-									{choice.sourceName} · Lv {choice.sourceLevel}
-								</span>
-								{#if isEpicBoon}
-									<span class="badge badge-accent" style="font-size:0.6875rem;">Epic Boon</span>
-								{:else}
-									<span class="badge badge-muted" style="font-size:0.6875rem;">ASI</span>
-								{/if}
-							</div>
-
-							{#if isEpicBoon}
-								{@const epicSearch = asiFeatSearch[i] ?? ''}
-								{@const epicFiltered = choiceFeats.filter((f: any) => !epicSearch || f.name.toLowerCase().includes(epicSearch.toLowerCase()))}
-								{@const epicPicked = choiceFeats.find((f: any) => f.id === asiChoices[i].featId)}
-								<div style="margin:0;">
-									<p style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin:0 0 0.375rem;">Choose an Epic Boon Feat</p>
-									{#if epicPicked}
-										<div style="padding:0.5rem 0.625rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
-											<span style="font-weight:700;font-size:0.875rem;">{epicPicked.name}</span>
-											<button type="button" class="btn btn-ghost btn-xs" onclick={() => { asiChoices[i].featId = ''; }}>Change</button>
-										</div>
-									{:else}
-										<input type="text" class="input" placeholder="Search epic boon feats…" style="margin-bottom:0.375rem;font-size:0.8125rem;"
-											value={epicSearch} oninput={(e) => { const v = (e.target as HTMLInputElement).value; asiFeatSearch = asiFeatSearch.map((s,j) => j===i?v:s); }} />
-										<div style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:0.25rem;">
-											{#each epicFiltered as feat}
-												<button type="button"
-													style="text-align:left;padding:0.5rem 0.625rem;background:var(--bg-overlay);border:1px solid var(--border-muted);border-radius:var(--radius-sm);cursor:pointer;"
-													onclick={() => { asiChoices[i].featId = feat.id; }}>
-													<p style="font-weight:700;font-size:0.8125rem;margin:0 0 0.125rem;">{feat.name}</p>
-													{#if canViewDescriptions}{#if feat.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{feat.description.slice(0,120)}{feat.description.length>120?'…':''}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
+								<div class="wiz-panel__section" style="margin-bottom:0.75rem;">
+									<p class="wiz-panel__label" style="margin-bottom:6px;">Subclass</p>
+									<div class="wiz-browser wiz-browser--compact">
+										<div class="wiz-browser__list">
+											<div class="wiz-browser__rows">
+												<button class="wiz-row" class:wiz-row--selected={browseSubId===''}
+													onclick={() => browseSubId = ''}>
+													<div class="wiz-row__body"><p class="wiz-row__name" style="color:var(--text-muted);">None yet</p></div>
 												</button>
-											{/each}
-										</div>
-									{/if}
-								</div>
-							{:else}
-								<div style="display:flex;gap:0.5rem;margin-bottom:0.625rem;flex-wrap:wrap;">
-									<button
-										class="btn btn-ghost btn-sm"
-										class:btn-primary={asiChoices[i].mode === 'stat'}
-										class:btn-ghost={asiChoices[i].mode !== 'stat'}
-										onclick={() => { asiChoices[i].mode = 'stat'; asiChoices[i].featId = ''; }}>
-										+2 / +1+1
-									</button>
-									<button
-										class="btn btn-ghost btn-sm"
-										class:btn-primary={asiChoices[i].mode === 'feat'}
-										class:btn-ghost={asiChoices[i].mode !== 'feat'}
-										onclick={() => { asiChoices[i].mode = 'feat'; asiChoices[i].stat1 = ''; asiChoices[i].stat2 = ''; }}>
-										Take a Feat{choice.canEpicBoon ? ' / Epic Boon' : ''}
-									</button>
-								</div>
-
-								{#if asiChoices[i].mode === 'stat'}
-									<div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;">
-										<div class="field" style="margin:0;flex:1;min-width:140px;">
-											<label class="label" for="asi-stat1-{i}">Stat</label>
-											<select id="asi-stat1-{i}" class="input input--select" bind:value={asiChoices[i].stat1}>
-												<option value="">— Choose stat —</option>
-												{#each STATS as st}<option value={st}>{STAT_LABEL[st]}</option>{/each}
-											</select>
-										</div>
-										<div class="field" style="margin:0;flex:0 0 80px;">
-											<label class="label" for="asi-amount1-{i}">Amount</label>
-											<select id="asi-amount1-{i}" class="input input--select" bind:value={asiChoices[i].amount1}
-												onchange={() => { if (asiChoices[i].amount1 === 2) { asiChoices[i].stat2 = ''; asiChoices[i].amount2 = 0; } else { asiChoices[i].amount2 = 1; } }}>
-												<option value={2}>+2</option>
-												<option value={1}>+1</option>
-											</select>
-										</div>
-										{#if asiChoices[i].amount1 === 1}
-											<div class="field" style="margin:0;flex:1;min-width:140px;">
-												<label class="label" for="asi-stat2-{i}">Second Stat (+1)</label>
-												<select id="asi-stat2-{i}" class="input input--select" bind:value={asiChoices[i].stat2}>
-													<option value="">— Choose stat —</option>
-													{#each STATS as st}
-														{#if st !== asiChoices[i].stat1}
-															<option value={st}>{STAT_LABEL[st]}</option>
-														{/if}
-													{/each}
-												</select>
-											</div>
-										{/if}
-									</div>
-								{:else if asiChoices[i].mode === 'feat'}
-									{@const featSearch = asiFeatSearch[i] ?? ''}
-									{@const featFiltered = choiceFeats.filter((f: any) => !featSearch || f.name.toLowerCase().includes(featSearch.toLowerCase()))}
-									{@const featPicked = choiceFeats.find((f: any) => f.id === asiChoices[i].featId)}
-									<div style="margin:0;">
-										{#if featPicked}
-											<div style="padding:0.5rem 0.625rem;background:rgba(184,115,74,0.12);border:1px solid var(--border-accent);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
-												<div>
-													<p style="font-weight:700;font-size:0.875rem;margin:0 0 0.125rem;">{featPicked.name}</p>
-													{#if canViewDescriptions}{#if featPicked.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{featPicked.description.slice(0,120)}{featPicked.description.length>120?'…':''}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
-												</div>
-												<button type="button" class="btn btn-ghost btn-xs" style="flex-shrink:0;" onclick={() => { asiChoices[i].featId = ''; asiChoices[i].featGrantedStat = ''; asiChoices[i].featAsiAmount = undefined; asiChoices[i].featAsiFixed = undefined; }}>Change</button>
-											</div>
-											{#if featPicked.asiAmount && !featPicked.asiStatFixed}
-												{@const choices = featPicked.asiStatChoices ? featPicked.asiStatChoices.split(',').map((s: string) => s.trim()) : STATS}
-												<div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.375rem;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);border:1px solid var(--border-muted);">
-													<span style="font-size:0.8125rem;color:var(--text-secondary);white-space:nowrap;">+{featPicked.asiAmount} to</span>
-													<select class="input input--select" style="flex:1;" bind:value={asiChoices[i].featGrantedStat}
-														onchange={(e) => { const v = (e.target as HTMLSelectElement).value; asiChoices[i].stat1 = v; asiChoices[i].amount1 = asiChoices[i].featAsiAmount ?? 1; }}>
-														<option value="">— Choose stat —</option>
-														{#each choices as st}<option value={st}>{STAT_LABEL[st] ?? st}</option>{/each}
-													</select>
-												</div>
-											{:else if featPicked.asiAmount && featPicked.asiStatFixed}
-												<p style="font-size:0.8125rem;color:var(--color-success);margin:0.375rem 0 0;">✓ Grants +{featPicked.asiAmount} {STAT_LABEL[featPicked.asiStatFixed] ?? featPicked.asiStatFixed} automatically</p>
-											{/if}
-										{:else}
-											<input type="text" class="input" placeholder="Search feats…" style="margin-bottom:0.375rem;font-size:0.8125rem;"
-												value={featSearch} oninput={(e) => { const v = (e.target as HTMLInputElement).value; asiFeatSearch = asiFeatSearch.map((s,j) => j===i?v:s); }} />
-											<div style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:0.25rem;">
-												{#each featFiltered as feat}
-													<button type="button"
-														style="text-align:left;padding:0.5rem 0.625rem;background:var(--bg-overlay);border:1px solid var(--border-muted);border-radius:var(--radius-sm);cursor:pointer;"
-														onclick={() => { asiChoices[i].featId = feat.id; asiChoices[i].featGrantedStat = feat.asiStatFixed ?? ''; asiChoices[i].featAsiAmount = feat.asiAmount ?? undefined; asiChoices[i].featAsiFixed = feat.asiStatFixed ?? undefined; if (feat.asiStatFixed && feat.asiAmount) { asiChoices[i].stat1 = feat.asiStatFixed; asiChoices[i].amount1 = feat.asiAmount; } }}>
-														<p style="font-weight:700;font-size:0.8125rem;margin:0 0 0.125rem;">{feat.name}</p>
-														{#if feat.asiAmount}<p style="font-size:0.7rem;color:var(--color-success);margin:0 0 0.0625rem;">+{feat.asiAmount} {feat.asiStatFixed ? (STAT_LABEL[feat.asiStatFixed] ?? feat.asiStatFixed) : 'stat (your choice)'}</p>{/if}
-														{#if canViewDescriptions}{#if feat.description}<p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">{feat.description.slice(0,120)}{feat.description.length>120?'…':''}</p>{/if}{:else}<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>{/if}
+												{#each availSubs as sub}
+													<button class="wiz-row" class:wiz-row--selected={browseSubId===sub.id}
+														onclick={() => browseSubId = sub.id}>
+														<div class="wiz-row__body"><p class="wiz-row__name">{sub.name}</p></div>
+														{#if browseSubId===sub.id}<span class="wiz-row__check">✓</span>{/if}
 													</button>
 												{/each}
 											</div>
-										{/if}
+										</div>
+										<div class="wiz-browser__panel" style="padding:10px;">
+											{#if browseSub}
+												{@const bs = browseSub as any}
+												{#if canViewDescriptions && bs.description}
+													<p style="font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;margin:0;">{bs.description}</p>
+												{:else if !canViewDescriptions}
+													<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;margin:0;">📖 Description not available — contact your DM.</p>
+												{/if}
+											{:else}
+												<div class="wiz-browser__empty" style="min-height:60px;"><p>Select a subclass.</p></div>
+											{/if}
+										</div>
 									</div>
-								{/if}
+								</div>
+							{:else}
+								<p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 0.75rem;">Subclass available at level {bc.subclassAvailableAtLevel ?? 3}.</p>
 							{/if}
+						{/if}
+
+						<!-- Feature timeline -->
+						{#if featureTimeline.length}
+							<div class="wiz-panel__section">
+								<p class="wiz-panel__label" style="margin-bottom:6px;">Feature timeline</p>
+								<div class="feat-timeline">
+									{#each featureTimeline as feat}
+										{@const open = openFeats.has(feat.id)}
+										{@const past = feat.level <= browseLevel}
+										<div class="feat-row">
+											<button class="feat-row__header" onclick={() => toggleFeat(feat.id)}>
+												<span class="feat-row__level" style="color:{past?'var(--accent-light)':'var(--text-muted)'};">{feat.level}</span>
+												<span class="feat-row__name" style="color:{past?'var(--text-primary)':'var(--text-muted)'};">{feat.name}</span>
+												<span class="feat-row__source">
+													<span class="badge" style="font-size:0.5625rem;background:{feat.sourceType==='subclass'?'rgba(142,68,173,0.15)':'rgba(184,115,74,0.12)'};color:{feat.sourceType==='subclass'?'#BF7EE0':'var(--accent-light)'};">{feat.source}</span>
+												</span>
+												<span class="feat-row__chevron" class:feat-row__chevron--open={open}>▶</span>
+											</button>
+											{#if open && feat.description}
+												{#if canViewDescriptions}
+													<div class="feat-row__body">{feat.description}</div>
+												{:else}
+													<div class="feat-row__body" style="font-style:italic;color:var(--text-muted);">📖 Description not available — contact your DM.</div>
+												{/if}
+											{/if}
+										</div>
+									{/each}
+								</div>
+							</div>
+						{/if}
+
+					{:else}
+						<div class="wiz-browser__empty">
+							<span style="font-size:2rem;">⚔️</span>
+							<p>Select a class to view its details and features.</p>
+						</div>
+					{/if}
+				</div>
+			</div>
+		</div>
+
+	<!-- ══════════════════════════════════════════════════════════════
+	     STEP 5: ASI / Feats (conditional)
+	════════════════════════════════════════════════════════════════ -->
+	{:else if step === ASI_STEP_IDX}
+		<div style="display:flex;flex-direction:column;gap:0.875rem;">
+			{#each asiChoices as c, i}
+				<div class="card" style="padding:0.875rem;">
+					<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem;flex-wrap:wrap;gap:0.5rem;">
+						<p style="margin:0;font-size:0.8125rem;font-weight:700;">
+							{c.sourceName} <span style="color:var(--text-muted);font-weight:400;">· Level {c.sourceLevel}</span>
+							{#if c.type === 'epic_boon'}<span class="badge badge-warning" style="margin-left:6px;">Epic Boon</span>{/if}
+						</p>
+						{#if c.mode}<span style="font-size:0.75rem;color:var(--color-success);">✓ {c.mode === 'feat' || c.type === 'epic_boon' ? (sys?.feats??[]).find((f:any)=>f.id===c.featId)?.name ?? 'Feat chosen' : `${STAT_LABEL[c.stat1]??'—'} +${c.amount1}${c.stat2?`, ${STAT_LABEL[c.stat2]} +${c.amount2}`:''}`}</span>{/if}
+					</div>
+
+					<!-- Mode toggle (not for epic boon) -->
+					{#if c.type !== 'epic_boon'}
+						<div class="wiz-toggle" style="margin-bottom:0.875rem;">
+							<button class="wiz-toggle__btn" class:wiz-toggle__btn--active={c.mode==='stat'}
+								onclick={() => { asiChoices[i].mode='stat'; asiChoices[i].featId=''; }}>+2 to a stat</button>
+							<button class="wiz-toggle__btn" class:wiz-toggle__btn--active={c.mode==='feat'}
+								onclick={() => { asiChoices[i].mode='feat'; asiChoices[i].stat1=''; asiChoices[i].stat2=''; }}>Choose a feat</button>
+						</div>
+					{/if}
+
+					<!-- Stat mode -->
+					{#if c.mode === 'stat'}
+						<div style="display:flex;gap:0.625rem;flex-wrap:wrap;align-items:flex-end;">
+							<div class="field" style="flex:0 0 110px;margin:0;">
+								<label class="label" for="asi-stat1-{i}">Stat</label>
+								<select id="asi-stat1-{i}" class="input input--select" bind:value={asiChoices[i].stat1}>
+									<option value="">Choose…</option>
+									{#each STATS as st}<option value={st}>{STAT_LABEL[st]}</option>{/each}
+								</select>
+							</div>
+							<div class="field" style="flex:0 0 80px;margin:0;">
+								<label class="label" for="asi-amt1-{i}">Amount</label>
+								<select id="asi-amt1-{i}" class="input input--select" bind:value={asiChoices[i].amount1}
+									onchange={(e) => { const v=parseInt((e.target as HTMLSelectElement).value); asiChoices[i].amount1=v; if(v===2){asiChoices[i].stat2='';asiChoices[i].amount2=0;} }}>
+									<option value={2}>+2</option>
+									<option value={1}>+1</option>
+								</select>
+							</div>
+							{#if asiChoices[i].amount1 === 1}
+								<div class="field" style="flex:0 0 110px;margin:0;">
+									<label class="label" for="asi-stat2-{i}">Second stat</label>
+									<select id="asi-stat2-{i}" class="input input--select" bind:value={asiChoices[i].stat2}>
+										<option value="">Choose…</option>
+										{#each STATS.filter(s => s !== asiChoices[i].stat1) as st}<option value={st}>{STAT_LABEL[st]}</option>{/each}
+									</select>
+								</div>
+							{/if}
+						</div>
+
+					<!-- Feat / epic boon mode — feat browser -->
+					{:else if c.mode === 'feat' || c.type === 'epic_boon'}
+						{#if c.featId}
+							{@const chosenFeat = (sys?.feats??[]).find((f:any)=>f.id===c.featId)}
+							<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.625rem;padding:8px 10px;background:var(--bg-overlay);border-radius:var(--radius-md);">
+								<span style="font-size:0.875rem;font-weight:700;flex:1;">{chosenFeat?.name ?? '—'}</span>
+								<button class="btn btn-ghost btn-xs" onclick={() => { asiChoices[i].featId=''; }}>Change</button>
+							</div>
+							{#if chosenFeat?.asiAmount && !chosenFeat.asiStatFixed && !c.featGrantedStat}
+								<div class="field" style="margin-top:0.5rem;">
+									<label class="label" for="asi-feat-stat-{i}">Choose stat for +{chosenFeat.asiAmount}</label>
+									<select id="asi-feat-stat-{i}" class="input input--select" bind:value={asiChoices[i].featGrantedStat}
+										onchange={() => { const fs = (sys?.feats??[]).find((f:any)=>f.id===c.featId); if(fs) { asiChoices[i].stat1=asiChoices[i].featGrantedStat??''; asiChoices[i].amount1=fs.asiAmount??0; } }}>
+										<option value="">Choose stat…</option>
+										{#each STATS as st}<option value={st}>{STAT_LABEL[st]}</option>{/each}
+									</select>
+								</div>
+							{/if}
+						{:else}
+							<!-- Feat browser for ASI — row click previews, button commits -->
+							<div class="wiz-browser wiz-browser--compact">
+								<div class="wiz-browser__list">
+									<div class="wiz-browser__search">
+										<input type="text" placeholder="Search feats…" bind:value={asiFeatSearch[i]} />
+									</div>
+									<div class="wiz-browser__rows">
+										{#each featsForChoice(c).filter((f: any) => !asiFeatSearch[i] || f.name.toLowerCase().includes(asiFeatSearch[i].toLowerCase())) as feat}
+											<button class="wiz-row"
+												class:wiz-row--selected={asiFeatPreview[i]===feat.id || (c.featId===feat.id && !asiFeatPreview[i])}
+												onclick={() => { asiFeatPreview[i] = feat.id; }}>
+												<div class="wiz-row__body">
+													<p class="wiz-row__name">{feat.name}</p>
+													<div class="wiz-row__sub">
+														{#if feat.isEpicBoon}<span class="wiz-tag wiz-tag--epic">Epic Boon</span>{/if}
+														{#each (feat.categories??'').split(',').map((s:string)=>s.trim()).filter(Boolean) as cat}
+															<span class="wiz-tag wiz-tag--general">{cat}</span>
+														{/each}
+													</div>
+												</div>
+												{#if c.featId===feat.id}<span class="wiz-row__check">✓</span>{/if}
+											</button>
+										{/each}
+									</div>
+								</div>
+								<div class="wiz-browser__panel">
+									{#if (asiFeatPreview[i] || c.featId)}
+										{@const previewId = asiFeatPreview[i] || c.featId}
+										{@const pf = (sys?.feats??[]).find((f:any)=>f.id===previewId)}
+										{#if pf}
+											<h4 class="wiz-panel__title" style="font-size:0.9375rem;">{pf.name}</h4>
+											{#if pf.prerequisites}<p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 6px;">Prereq: {pf.prerequisites}</p>{/if}
+											{#if canViewDescriptions && pf.description}
+												<p class="wiz-panel__desc">{pf.description}</p>
+											{:else if !canViewDescriptions}
+												<p class="wiz-panel__desc" style="font-style:italic;color:var(--text-muted);">📖 Description not available.</p>
+											{/if}
+											<div class="wiz-panel__commit">
+												{#if c.featId === previewId}
+													<button class="btn btn-ghost btn-sm" style="width:100%;border-color:var(--border-accent);color:var(--accent-light);" disabled>✓ Selected</button>
+												{:else}
+													<button class="btn btn-primary btn-sm" style="width:100%;" onclick={() => {
+														const feat = (sys?.feats??[]).find((f:any)=>f.id===previewId);
+														if (!feat) return;
+														asiChoices[i].featId = feat.id;
+														if (feat.asiStatFixed) { asiChoices[i].stat1=feat.asiStatFixed; asiChoices[i].amount1=feat.asiAmount??1; asiChoices[i].featGrantedStat=feat.asiStatFixed; }
+														else if (feat.asiAmount) { asiChoices[i].amount1=feat.asiAmount??1; }
+														asiFeatPreview[i] = '';
+													}}>Select {pf.name}</button>
+												{/if}
+											</div>
+										{/if}
+									{:else}
+										<div class="wiz-browser__empty" style="min-height:80px;"><p>Select a feat to preview.</p></div>
+									{/if}
+								</div>
+							</div>
+						{/if}
+					{/if}
+				</div>
+			{/each}
+		</div>
+
+	<!-- ══════════════════════════════════════════════════════════════
+	     STEP 5 or 6: Skills & Proficiencies
+	════════════════════════════════════════════════════════════════ -->
+	{:else if step === SKILLS_STEP_IDX}
+		<div class="wizard-skills-layout">
+
+			<div style="display:flex;flex-direction:column;gap:0.625rem;">
+
+				<!-- Class skills -->
+				{#if availableClassSkills.length > 0}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">Class skills — {(selectedClass0 as any)?.name ?? ''}</span>
+							<span class="wiz-pool__count" class:wiz-pool__count--done={chosenClassSkills.length >= Math.min(classSkillCount, availableClassSkills.length)}>
+								{chosenClassSkills.length} / {Math.min(classSkillCount, availableClassSkills.length)}
+								{#if chosenClassSkills.length >= Math.min(classSkillCount, availableClassSkills.length)} ✓{/if}
+							</span>
+						</div>
+						<p class="wiz-pool__hint">Choose {classSkillCount}</p>
+						<div class="wiz-chip-group">
+							{#each availableClassSkills as skill}
+								{@const chosen = chosenClassSkills.includes(skill)}
+								{@const full = !chosen && chosenClassSkills.length >= Math.min(classSkillCount, availableClassSkills.length)}
+								<button class="wiz-chip" class:wiz-chip--chosen={chosen} disabled={full}
+									onclick={() => {
+										if (chosen) chosenClassSkills = chosenClassSkills.filter(s => s !== skill);
+										else if (!full) chosenClassSkills = [...chosenClassSkills, skill];
+									}}>{SKILL_DISPLAY[skill] ?? skill}</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Auto-granted skills -->
+				{#if autoGrantedSkills.length}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">Auto-granted skills</span>
+							<span class="wiz-pool__count wiz-pool__count--done">Auto ✓</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each autoGrantedSkills as skill}
+								<button class="wiz-chip wiz-chip--granted">{SKILL_DISPLAY[skill] ?? skill}</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Background skill choice pool -->
+				{#if backgroundChoiceCount > 0 && backgroundChoicePool.length > 0}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">Background skills — {selectedBackground?.name}</span>
+							<span class="wiz-pool__count" class:wiz-pool__count--done={(chosenPoolSkills[backgroundId ?? ''] ?? []).length >= Math.min(backgroundChoiceCount, backgroundChoicePool.length)}>
+								{(chosenPoolSkills[backgroundId ?? ''] ?? []).length} / {Math.min(backgroundChoiceCount, backgroundChoicePool.length)}
+							</span>
+						</div>
+						<p class="wiz-pool__hint">Choose {backgroundChoiceCount}</p>
+						<div class="wiz-chip-group">
+							{#each backgroundChoicePool as skill}
+								{@const chosen = (chosenPoolSkills[backgroundId ?? ''] ?? []).includes(skill)}
+								{@const taken = isTakenElsewhere(skill, backgroundId ?? '')}
+								{@const full = !chosen && (chosenPoolSkills[backgroundId ?? ''] ?? []).length >= Math.min(backgroundChoiceCount, backgroundChoicePool.length)}
+								<button class="wiz-chip" class:wiz-chip--chosen={chosen} disabled={full || taken}
+									onclick={() => togglePoolSkill(backgroundId ?? '', skill, backgroundChoiceCount)}>
+									{SKILL_DISPLAY[skill] ?? skill}</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Species trait skill choice pools -->
+				{#each speciesTraitChoices as trait}
+					{@const traitPool = (trait.skillChoicePool ?? '').split(',').map((s: string) => s.trim()).filter(Boolean)}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">{selectedSpecies?.name}: {trait.name}</span>
+							<span class="wiz-pool__count" class:wiz-pool__count--done={(chosenPoolSkills[trait.id]??[]).length >= Math.min(trait.skillChoiceCount, traitPool.length)}>
+								{(chosenPoolSkills[trait.id]??[]).length} / {Math.min(trait.skillChoiceCount, traitPool.length)}
+							</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each traitPool as skill}
+								{@const chosen = (chosenPoolSkills[trait.id]??[]).includes(skill)}
+								{@const taken = isTakenElsewhere(skill, trait.id)}
+								{@const full = !chosen && (chosenPoolSkills[trait.id]??[]).length >= Math.min(trait.skillChoiceCount, traitPool.length)}
+								<button class="wiz-chip" class:wiz-chip--chosen={chosen} disabled={full || taken}
+									onclick={() => togglePoolSkill(trait.id, skill, trait.skillChoiceCount)}>
+									{SKILL_DISPLAY[skill] ?? skill}</button>
+							{/each}
+						</div>
+					</div>
+				{/each}
+
+				<!-- Feat skill choice pools -->
+				{#each featSkillChoices as fc}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">Feat: {fc.label}</span>
+							<span class="wiz-pool__count" class:wiz-pool__count--done={(chosenPoolSkills[fc.sourceId]??[]).length >= Math.min(fc.count, fc.pool.length)}>
+								{(chosenPoolSkills[fc.sourceId]??[]).length} / {Math.min(fc.count, fc.pool.length)}
+							</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each fc.pool as skill}
+								{@const chosen = (chosenPoolSkills[fc.sourceId]??[]).includes(skill)}
+								{@const taken = isTakenElsewhere(skill, fc.sourceId)}
+								{@const full = !chosen && (chosenPoolSkills[fc.sourceId]??[]).length >= Math.min(fc.count, fc.pool.length)}
+								<button class="wiz-chip" class:wiz-chip--chosen={chosen} disabled={full || taken}
+									onclick={() => togglePoolSkill(fc.sourceId, skill, fc.count)}>
+									{SKILL_DISPLAY[skill] ?? skill}</button>
+							{/each}
+						</div>
+					</div>
+				{/each}
+
+				<!-- Feature skill choice pools -->
+				{#each featureChoices() as fc}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">{fc.label}</span>
+							<span class="wiz-pool__count" class:wiz-pool__count--done={(chosenPoolSkills[fc.sourceId]??[]).length >= Math.min(fc.count, fc.pool.length)}>
+								{(chosenPoolSkills[fc.sourceId]??[]).length} / {Math.min(fc.count, fc.pool.length)}
+							</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each fc.pool as skill}
+								{@const chosen = (chosenPoolSkills[fc.sourceId]??[]).includes(skill)}
+								{@const taken = isTakenElsewhere(skill, fc.sourceId)}
+								{@const full = !chosen && (chosenPoolSkills[fc.sourceId]??[]).length >= Math.min(fc.count, fc.pool.length)}
+								<button class="wiz-chip" class:wiz-chip--chosen={chosen} disabled={full || taken}
+									onclick={() => togglePoolSkill(fc.sourceId, skill, fc.count)}>
+									{SKILL_DISPLAY[skill] ?? skill}</button>
+							{/each}
+						</div>
+					</div>
+				{/each}
+
+				<!-- Saving throws -->
+				{#if classSavingThrows.length}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">Saving throws</span>
+							<span class="wiz-pool__count wiz-pool__count--done">Auto ✓</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each classSavingThrows as stat}
+								<button class="wiz-chip wiz-chip--granted">{STAT_ABBR[stat] ?? stat}</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Saving throw choice pools -->
+				{#each allSaveChoices as sc}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">Save choice — {sc.label}</span>
+							<span class="wiz-pool__count" class:wiz-pool__count--done={(chosenSavePools[sc.sourceId]??[]).length >= Math.min(sc.count, sc.pool.length)}>
+								{(chosenSavePools[sc.sourceId]??[]).length} / {Math.min(sc.count, sc.pool.length)}
+							</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each sc.pool as stat}
+								{@const chosen = (chosenSavePools[sc.sourceId]??[]).includes(stat)}
+								{@const full = !chosen && (chosenSavePools[sc.sourceId]??[]).length >= Math.min(sc.count, sc.pool.length)}
+								<button class="wiz-chip" class:wiz-chip--chosen={chosen} disabled={full}
+									onclick={() => {
+										const cur = chosenSavePools[sc.sourceId] ?? [];
+										if (chosen) chosenSavePools = { ...chosenSavePools, [sc.sourceId]: cur.filter(s => s !== stat) };
+										else if (!full) chosenSavePools = { ...chosenSavePools, [sc.sourceId]: [...cur, stat] };
+									}}>{STAT_ABBR[stat] ?? stat}</button>
+							{/each}
+						</div>
+					</div>
+				{/each}
+
+				<!-- Tool choice pools -->
+				{#each allToolChoices as tc}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">Tools — {tc.label}</span>
+							<span class="wiz-pool__count" class:wiz-pool__count--done={(chosenToolPools[tc.sourceId]??[]).length >= Math.min(tc.count, tc.pool.length)}>
+								{(chosenToolPools[tc.sourceId]??[]).length} / {Math.min(tc.count, tc.pool.length)}
+							</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each tc.pool as tool}
+								{@const chosen = (chosenToolPools[tc.sourceId]??[]).includes(tool)}
+								{@const full = !chosen && (chosenToolPools[tc.sourceId]??[]).length >= Math.min(tc.count, tc.pool.length)}
+								<button class="wiz-chip" class:wiz-chip--chosen={chosen} disabled={full}
+									onclick={() => {
+										const cur = chosenToolPools[tc.sourceId] ?? [];
+										if (chosen) chosenToolPools = { ...chosenToolPools, [tc.sourceId]: cur.filter(t => t !== tool) };
+										else if (!full) chosenToolPools = { ...chosenToolPools, [tc.sourceId]: [...cur, tool] };
+									}}>{tool}</button>
+							{/each}
+						</div>
+					</div>
+				{/each}
+
+				<!-- Language choice pools -->
+				{#each allLanguageChoices as lc}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">Languages — {lc.label}</span>
+							<span class="wiz-pool__count" class:wiz-pool__count--done={(chosenLanguagePools[lc.sourceId]??[]).length >= Math.min(lc.count, lc.pool.length)}>
+								{(chosenLanguagePools[lc.sourceId]??[]).length} / {Math.min(lc.count, lc.pool.length)}
+							</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each lc.pool as lang}
+								{@const chosen = (chosenLanguagePools[lc.sourceId]??[]).includes(lang)}
+								{@const full = !chosen && (chosenLanguagePools[lc.sourceId]??[]).length >= Math.min(lc.count, lc.pool.length)}
+								<button class="wiz-chip" class:wiz-chip--chosen={chosen} disabled={full}
+									onclick={() => {
+										const cur = chosenLanguagePools[lc.sourceId] ?? [];
+										if (chosen) chosenLanguagePools = { ...chosenLanguagePools, [lc.sourceId]: cur.filter(l => l !== lang) };
+										else if (!full) chosenLanguagePools = { ...chosenLanguagePools, [lc.sourceId]: [...cur, lang] };
+									}}>{lang}</button>
+							{/each}
+						</div>
+					</div>
+				{/each}
+
+			</div>
+
+			<!-- Proficiency summary sidebar -->
+			<div class="card" style="position:sticky;top:1rem;">
+				<p class="wiz-pool__label" style="margin-bottom:10px;">All proficiencies</p>
+				<div style="display:flex;flex-direction:column;gap:3px;font-size:0.75rem;">
+					{#each [...allGrantedSkillsSet] as skill}
+						<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border-muted);">
+							<span style="color:var(--text-secondary);">{SKILL_DISPLAY[skill] ?? skill}</span>
+							<span style="color:var(--accent-light);">Prof</span>
+						</div>
+					{/each}
+					{#each classSavingThrows as stat}
+						<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border-muted);">
+							<span style="color:var(--text-secondary);">{STAT_ABBR[stat] ?? stat}</span>
+							<span style="color:var(--text-muted);">Save</span>
 						</div>
 					{/each}
 				</div>
 			</div>
 		</div>
 
-	<!-- ════ Step 6/7: Review ════ -->
+	<!-- ══════════════════════════════════════════════════════════════
+	     STEP 6/7: Review
+	════════════════════════════════════════════════════════════════ -->
 	{:else if step === REVIEW_STEP_IDX}
 		<div class="card">
+
+			<!-- Character header -->
 			<div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem;">
 				{#if avatarUrl}
-					<img src={avatarUrl} alt={name} style="width:72px;height:72px;border-radius:50%;object-fit:cover;" />
+					<img src={avatarUrl} alt={name} style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--border-accent);" />
 				{/if}
 				<div>
-					<h3 style="margin:0;font-size:1.25rem;">{name}</h3>
-					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.25rem;">
+					<h3 style="margin:0;font-size:1.25rem;font-weight:700;">{name}</h3>
+					<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.375rem;">
 						<span class="badge badge-accent">Level {totalLevel}</span>
 						<span class="badge badge-muted">{selectedSpecies?.name??'—'}</span>
 						<span class="badge badge-muted">{selectedBackground?.name??'—'}</span>
@@ -2142,27 +2005,20 @@
 				</div>
 			</div>
 
+			<!-- Ability Scores -->
 			<h4 class="section-title">Ability Scores</h4>
 			<div class="wizard-review-stats" style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;text-align:center;margin-bottom:1rem;">
 				{#each STATS as st}
-					{@const base     = total[st]}
-					{@const final    = finalScores[st]}
-					{@const asiBump  = asiChoices
-						.filter(c => c.mode === 'stat' && (c.stat1 === st || c.stat2 === st))
-						.reduce((n, c) => n + (c.stat1 === st ? (c.amount1 || 0) : (c.amount2 || 0)), 0)}
-					{@const featBump = asiChoices
-						.filter(c => (c.mode === 'feat' || c.type === 'epic_boon') && c.stat1 === st && c.amount1)
-						.reduce((n, c) => n + (c.amount1 || 0), 0)}
+					{@const base = total[st]}
+					{@const final = finalScores[st]}
+					{@const asiBump = asiChoices.filter(c => c.mode==='stat'&&(c.stat1===st||c.stat2===st)).reduce((n,c) => n+(c.stat1===st?(c.amount1||0):(c.amount2||0)),0)}
+					{@const featBump = asiChoices.filter(c => (c.mode==='feat'||c.type==='epic_boon')&&c.stat1===st&&c.amount1).reduce((n,c) => n+(c.amount1||0),0)}
 					<div class="wizard-stat-box" style="padding:0.5rem;">
 						<p class="wizard-stat-box__label">{STAT_LABEL[st]}</p>
 						<p class="wizard-stat-box__value" style="font-size:1.375rem;">{final}</p>
 						<div style="min-height:1rem;">
-							{#if asiBump > 0}
-								<p style="font-size:0.6875rem;color:var(--color-success);margin:0;">+{asiBump} ASI</p>
-							{/if}
-							{#if featBump > 0}
-								<p style="font-size:0.6875rem;color:var(--brand-accent);margin:0;">+{featBump} Feat</p>
-							{/if}
+							{#if asiBump > 0}<p style="font-size:0.6875rem;color:var(--color-success);margin:0;">+{asiBump} ASI</p>{/if}
+							{#if featBump > 0}<p style="font-size:0.6875rem;color:var(--accent-light);margin:0;">+{featBump} Feat</p>{/if}
 							<p style="font-size:0.6875rem;color:var(--text-muted);margin:0;">base {base}</p>
 						</div>
 						<p class="wizard-stat-box__mod">{mod(final)}</p>
@@ -2170,6 +2026,7 @@
 				{/each}
 			</div>
 
+			<!-- Classes -->
 			<h4 class="section-title">Classes</h4>
 			<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
 				{#each classAllocs as a}
@@ -2183,6 +2040,7 @@
 				{/each}
 			</div>
 
+			<!-- Background feat -->
 			{#if selectedBackground}
 				{@const bg=selectedBackground as any}
 				{#if bg.grantsFeat || bgFeatPick}
@@ -2198,24 +2056,17 @@
 				{/if}
 			{/if}
 
-			{#if classSavingThrows.length || extraSavingThrows.length || allSaveChoices.some(sc => (chosenSavePools[sc.sourceId] ?? []).length > 0) || autoGrantedSkills.length || chosenClassSkills.length || Object.keys(chosenPoolSkills).some(k => (chosenPoolSkills[k] ?? []).length > 0)}
+			<!-- Saves & Skills -->
+			{#if classSavingThrows.length || extraSavingThrows.length || allSaveChoices.some(sc=>(chosenSavePools[sc.sourceId]??[]).length>0) || autoGrantedSkills.length || chosenClassSkills.length || Object.keys(chosenPoolSkills).some(k=>(chosenPoolSkills[k]??[]).length>0)}
 				<h4 class="section-title">Saving Throws &amp; Skills</h4>
-				<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;">
-					{#if classSavingThrows.length || extraSavingThrows.length || allSaveChoices.some(sc => (chosenSavePools[sc.sourceId] ?? []).length > 0)}
+				<div style="display:flex;flex-direction:column;gap:0.375rem;margin-bottom:1rem;">
+					{#if classSavingThrows.length || extraSavingThrows.length || allSaveChoices.some(sc=>(chosenSavePools[sc.sourceId]??[]).length>0)}
 						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
 							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Saving Throws</span>
 							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each classSavingThrows as stat}
-									<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>
-								{/each}
-								{#each extraSavingThrows as { stat }}
-									<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>
-								{/each}
-								{#each allSaveChoices as sc}
-									{#each (chosenSavePools[sc.sourceId] ?? []) as stat}
-										<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>
-									{/each}
-								{/each}
+								{#each classSavingThrows as stat}<span class="badge badge-accent">{STAT_ABBR[stat]??stat}</span>{/each}
+								{#each extraSavingThrows as {stat}}<span class="badge badge-accent">{STAT_ABBR[stat]??stat}</span>{/each}
+								{#each allSaveChoices as sc}{#each (chosenSavePools[sc.sourceId]??[]) as stat}<span class="badge badge-accent">{STAT_ABBR[stat]??stat}</span>{/each}{/each}
 							</div>
 						</div>
 					{/if}
@@ -2223,29 +2074,7 @@
 						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
 							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Auto Skills</span>
 							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each autoGrantedSkills as skill}
-									<span class="badge badge-muted">{SKILL_DISPLAY[skill] ?? skill}</span>
-								{/each}
-							</div>
-						</div>
-					{/if}
-					{#if speciesAutoExpertise.length}
-						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Expertise</span>
-							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each speciesAutoExpertise as { skill }}
-									<span class="badge badge-accent">{SKILL_DISPLAY[skill] ?? skill} ×2</span>
-								{/each}
-							</div>
-						</div>
-					{/if}
-					{#if speciesAutoHalfSkills.length}
-						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Half Prof</span>
-							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each speciesAutoHalfSkills as { skill }}
-									<span class="badge badge-muted">{SKILL_DISPLAY[skill] ?? skill} ×½</span>
-								{/each}
+								{#each autoGrantedSkills as skill}<span class="badge badge-muted">{SKILL_DISPLAY[skill]??skill}</span>{/each}
 							</div>
 						</div>
 					{/if}
@@ -2253,45 +2082,24 @@
 						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
 							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Class Skills</span>
 							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each chosenClassSkills as skill}
-									<span class="badge badge-success">{SKILL_DISPLAY[skill] ?? skill}</span>
-								{/each}
+								{#each chosenClassSkills as skill}<span class="badge badge-success">{SKILL_DISPLAY[skill]??skill}</span>{/each}
 							</div>
 						</div>
 					{/if}
-					{#if featAutoSkills.length}
-						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Feat Skills</span>
-							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each featAutoSkills as { skill }}
-									<span class="badge badge-success">{SKILL_DISPLAY[skill] ?? skill}</span>
-								{/each}
-							</div>
-						</div>
-					{/if}
-					{#each Object.entries(chosenPoolSkills).filter(([, skills]) => skills.length > 0) as [sourceId, skills]}
+					{#each Object.entries(chosenPoolSkills).filter(([,skills])=>skills.length>0) as [,skills]}
 						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
 							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Pool Picks</span>
 							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each skills as skill}
-									<span class="badge badge-success">{SKILL_DISPLAY[skill] ?? skill}</span>
-								{/each}
+								{#each skills as skill}<span class="badge badge-success">{SKILL_DISPLAY[skill]??skill}</span>{/each}
 							</div>
 						</div>
 					{/each}
-					{#if featureAutoExpertise.length}
+					{#if speciesAutoExpertise.length}
 						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
 							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Expertise</span>
 							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each featureAutoExpertise as { skill }}<span class="badge badge-accent">{SKILL_DISPLAY[skill] ?? skill} ×2</span>{/each}
-							</div>
-						</div>
-					{/if}
-					{#if featureAutoHalfSkills.length}
-						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Half Prof</span>
-							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each featureAutoHalfSkills as { skill }}<span class="badge badge-muted">{SKILL_DISPLAY[skill] ?? skill} ×½</span>{/each}
+								{#each speciesAutoExpertise as {skill}}<span class="badge badge-accent">{SKILL_DISPLAY[skill]??skill} ×2</span>{/each}
+								{#each featureAutoExpertise as {skill}}<span class="badge badge-accent">{SKILL_DISPLAY[skill]??skill} ×2</span>{/each}
 							</div>
 						</div>
 					{/if}
@@ -2299,78 +2107,64 @@
 						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
 							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Feat Saves</span>
 							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each featAutoSaves as { stat }}<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>{/each}
-							</div>
-						</div>
-					{/if}
-					{#if featureAutoSaves.length}
-						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Feature Saves</span>
-							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each featureAutoSaves as { stat }}<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>{/each}
-							</div>
-						</div>
-					{/if}
-					{#if featSaveChoices.some(sc => (chosenSavePools[sc.sourceId] ?? []).length > 0)}
-						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Feat Save Picks</span>
-							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each featSaveChoices as sc}{#each (chosenSavePools[sc.sourceId] ?? []) as stat}<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>{/each}{/each}
-							</div>
-						</div>
-					{/if}
-					{#if featureSaveChoices.some(sc => (chosenSavePools[sc.sourceId] ?? []).length > 0)}
-						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Feature Save Picks</span>
-							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each featureSaveChoices as sc}{#each (chosenSavePools[sc.sourceId] ?? []) as stat}<span class="badge badge-accent">{STAT_ABBR[stat] ?? stat}</span>{/each}{/each}
+								{#each featAutoSaves as {stat}}<span class="badge badge-accent">{STAT_ABBR[stat]??stat}</span>{/each}
 							</div>
 						</div>
 					{/if}
 				</div>
 			{/if}
 
-			<!-- Tools, Languages, Damage Modifiers review -->
+			<!-- Grants: size, tools, languages, modifiers, speeds, senses, innate spells -->
 			{#if chosenSize || traitFixedSize}
 				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
 					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Size</span>
-					<span class="badge badge-muted">{chosenSize || traitFixedSize}</span>
+					<span class="badge badge-muted">{chosenSize||traitFixedSize}</span>
 				</div>
 			{/if}
-			{#if autoGrantedTools().length || allToolChoices.some(tc => (chosenToolPools[tc.sourceId] ?? []).length > 0)}
+			{#if autoGrantedTools().length || allToolChoices.some(tc=>(chosenToolPools[tc.sourceId]??[]).length>0)}
 				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
 					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Tools</span>
 					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
 						{#each autoGrantedTools() as g}<span class="badge badge-muted">{g.tool}</span>{/each}
-						{#each allToolChoices as tc}{#each (chosenToolPools[tc.sourceId] ?? []) as t}<span class="badge badge-muted">{t}</span>{/each}{/each}
+						{#each allToolChoices as tc}{#each (chosenToolPools[tc.sourceId]??[]) as t}<span class="badge badge-muted">{t}</span>{/each}{/each}
 					</div>
 				</div>
 			{/if}
-			{#if autoGrantedLanguages().length || allLanguageChoices.some(lc => (chosenLanguagePools[lc.sourceId] ?? []).length > 0)}
+			{#if autoGrantedLanguages().length || allLanguageChoices.some(lc=>(chosenLanguagePools[lc.sourceId]??[]).length>0)}
 				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
 					<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Languages</span>
 					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
 						{#each autoGrantedLanguages() as g}<span class="badge badge-muted">{g.language}</span>{/each}
-						{#each allLanguageChoices as lc}{#each (chosenLanguagePools[lc.sourceId] ?? []) as l}<span class="badge badge-muted">{l}</span>{/each}{/each}
+						{#each allLanguageChoices as lc}{#each (chosenLanguagePools[lc.sourceId]??[]) as l}<span class="badge badge-muted">{l}</span>{/each}{/each}
 					</div>
 				</div>
 			{/if}
-			{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'RESISTANCE')}
+			{#if autoGrantedDamageModifiers().some(g=>g.modifierType==='RESISTANCE')}
 				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
 					<span style="font-size:0.75rem;font-weight:700;color:var(--color-success);min-width:110px;">Resistances</span>
 					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-						{#each autoGrantedDamageModifiers().filter(g => g.modifierType === 'RESISTANCE') as g}
-							<span class="badge" style="background:rgba(39,174,96,0.15);color:var(--color-success);">{g.damageType}</span>
+						{#each autoGrantedDamageModifiers().filter(g=>g.modifierType==='RESISTANCE') as g}
+							<span class="badge" style="background:rgba(74,124,89,0.15);color:var(--color-success);">{g.damageType}</span>
 						{/each}
 					</div>
 				</div>
 			{/if}
-			{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'VULNERABILITY')}
+			{#if autoGrantedDamageModifiers().some(g=>g.modifierType==='IMMUNITY')}
 				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
-					<span style="font-size:0.75rem;font-weight:700;color:var(--color-error);min-width:110px;">Vulnerabilities</span>
+					<span style="font-size:0.75rem;font-weight:700;color:var(--accent-light);min-width:110px;">Immunities</span>
 					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-						{#each autoGrantedDamageModifiers().filter(g => g.modifierType === 'VULNERABILITY') as g}
-							<span class="badge" style="background:rgba(231,76,60,0.15);color:var(--color-error);">{g.damageType}</span>
+						{#each autoGrantedDamageModifiers().filter(g=>g.modifierType==='IMMUNITY') as g}
+							<span class="badge badge-accent">{g.damageType}</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+			{#if autoGrantedDamageModifiers().some(g=>g.modifierType==='VULNERABILITY')}
+				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+					<span style="font-size:0.75rem;font-weight:700;color:var(--color-danger);min-width:110px;">Vulnerabilities</span>
+					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+						{#each autoGrantedDamageModifiers().filter(g=>g.modifierType==='VULNERABILITY') as g}
+							<span class="badge" style="background:rgba(196,74,74,0.15);color:var(--color-danger);">{g.damageType}</span>
 						{/each}
 					</div>
 				</div>
@@ -2396,32 +2190,23 @@
 					<span style="font-size:0.75rem;font-weight:700;color:var(--accent-light);min-width:110px;">Innate Spells</span>
 					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
 						{#each autoGrantedInnateSpells() as g}
-							<span class="badge badge-accent">{g.name} · Lv{g.minCharLevel} · {g.usesPerDay === null ? 'at will' : `${g.usesPerDay}/day`}</span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-			{#if autoGrantedDamageModifiers().some(g => g.modifierType === 'IMMUNITY')}
-				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
-					<span style="font-size:0.75rem;font-weight:700;color:var(--accent-light);min-width:110px;">Immunities</span>
-					<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-						{#each autoGrantedDamageModifiers().filter(g => g.modifierType === 'IMMUNITY') as g}
-							<span class="badge badge-accent">{g.damageType}</span>
+							<span class="badge badge-accent">{g.name} · Lv{g.minCharLevel} · {g.usesPerDay===null?'at will':`${g.usesPerDay}/day`}</span>
 						{/each}
 					</div>
 				</div>
 			{/if}
 
+			<!-- ASI summary -->
 			{#if hasAsiStep && asiChoices.length}
 				<h4 class="section-title">ASI / Feats</h4>
 				<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
 					{#each asiChoices as c}
 						<div style="font-size:0.8125rem;padding:0.25rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-sm);">
 							<span class="table__muted">{c.sourceName} Lv {c.sourceLevel}:</span>
-							{#if c.mode === 'feat' || c.type === 'epic_boon'}
-								{(sys?.feats??[]).find((f:any)=>f.id===c.featId)?.name ?? '—'}
-							{:else if c.mode === 'stat'}
-								{STAT_LABEL[c.stat1] ?? '—'} +{c.amount1}{c.stat2 ? `, ${STAT_LABEL[c.stat2]} +${c.amount2}` : ''}
+							{#if c.mode==='feat'||c.type==='epic_boon'}
+								{(sys?.feats??[]).find((f:any)=>f.id===c.featId)?.name??'—'}
+							{:else if c.mode==='stat'}
+								{STAT_LABEL[c.stat1]??'—'} +{c.amount1}{c.stat2?`, ${STAT_LABEL[c.stat2]} +${c.amount2}`:''}
 							{:else}
 								<span style="color:var(--color-warning);">Not chosen</span>
 							{/if}
@@ -2430,17 +2215,18 @@
 				</div>
 			{/if}
 
+			<!-- Validation / submit -->
 			{#if !canSubmit}
 				<div class="form-error" style="margin-bottom:1rem;">
 					{#if !scoresValid&&!rolled}Point buy not fully spent ({remaining} remaining). {/if}
 					{#if totalLevel<1}At least one class required. {/if}
 					{#if !classAllocs.every(c=>c.classId)}All class rows need a class. {/if}
 					{#if !bgFeatValid}Background feat selection required. {/if}
-					{#if !(chosenClassSkills.length === Math.min(classSkillCount, availableClassSkills.length) && allPoolsSatisfied)}Skill selections incomplete. {/if}
-					{#if hasAsiStep && !asiValid}All ASI/Feat slots must be completed. {/if}
+					{#if !(chosenClassSkills.length===Math.min(classSkillCount,availableClassSkills.length)&&allPoolsSatisfied)}Skill selections incomplete. {/if}
+					{#if hasAsiStep&&!asiValid}All ASI/Feat slots must be completed. {/if}
 				</div>
 			{:else}
-				<p style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:1rem;">Submitting creates your character pending approval.</p>
+				<p style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:1rem;">Submitting creates your character pending DM approval.</p>
 			{/if}
 
 			<form method="post" action="?/create" use:enhance={() => { return async ({ update }) => { clearState(); await update(); }; }}>
@@ -2453,142 +2239,125 @@
 				<input type="hidden" name="backgroundId"  value={backgroundId} />
 				{#if bgFeatPick}<input type="hidden" name="bgFeatPick" value={bgFeatPick} />{/if}
 				{#if (selectedBackground as any)?.grantsFeatId}<input type="hidden" name="bgGrantedFeatId" value={(selectedBackground as any).grantsFeatId} />{/if}
-				<!-- Skills from wizard step 3 -->
-				{#each chosenClassSkills as skill}
-					<input type="hidden" name="chosenClassSkill" value={skill} />
-				{/each}
+				{#each chosenClassSkills as skill}<input type="hidden" name="chosenClassSkill" value={skill} />{/each}
 				{#each backgroundFixedSkills as skill}
-					<input type="hidden" name="autoSkill"       value={skill} />
+					<input type="hidden" name="autoSkill" value={skill} />
 					<input type="hidden" name="autoSkillSource" value="Background" />
-					<input type="hidden" name="autoSkillValue"  value="1" />
+					<input type="hidden" name="autoSkillValue" value="1" />
 				{/each}
 				{#each speciesFixedSkills as skill}
-					<input type="hidden" name="autoSkill"       value={skill} />
+					<input type="hidden" name="autoSkill" value={skill} />
 					<input type="hidden" name="autoSkillSource" value="Species" />
-					<input type="hidden" name="autoSkillValue"  value="1" />
+					<input type="hidden" name="autoSkillValue" value="1" />
 				{/each}
-				{#each speciesAutoExpertise as { skill, sourceName }}
-					<input type="hidden" name="autoSkill"       value={skill} />
+				{#each speciesAutoExpertise as {skill}}
+					<input type="hidden" name="autoSkill" value={skill} />
 					<input type="hidden" name="autoSkillSource" value="Species" />
-					<input type="hidden" name="autoSkillValue"  value="2" />
+					<input type="hidden" name="autoSkillValue" value="2" />
 				{/each}
-				{#each speciesAutoHalfSkills as { skill, sourceName }}
-					<input type="hidden" name="autoSkill"       value={skill} />
+				{#each speciesAutoHalfSkills as {skill}}
+					<input type="hidden" name="autoSkill" value={skill} />
 					<input type="hidden" name="autoSkillSource" value="Species" />
-					<input type="hidden" name="autoSkillValue"  value="0.5" />
+					<input type="hidden" name="autoSkillValue" value="0.5" />
 				{/each}
 				{#each classSavingThrows as stat}
-					<input type="hidden" name="classSave"           value={stat} />
+					<input type="hidden" name="classSave" value={stat} />
 					<input type="hidden" name="classSaveSourceType" value="Class" />
-					<input type="hidden" name="classSaveSourceId"   value="" />
+					<input type="hidden" name="classSaveSourceId" value="" />
 				{/each}
 				{#each extraSavingThrows as sv}
-					<input type="hidden" name="classSave"           value={sv.stat} />
-					<input type="hidden" name="classSaveSourceType" value={sv.sourceType ?? 'Feat'} />
-					<input type="hidden" name="classSaveSourceId"   value={sv.sourceId ?? ''} />
+					<input type="hidden" name="classSave" value={sv.stat} />
+					<input type="hidden" name="classSaveSourceType" value={sv.sourceType??'Feat'} />
+					<input type="hidden" name="classSaveSourceId" value={sv.sourceId??''} />
 				{/each}
 				{#each allSaveChoices as sc}
-					{#each (chosenSavePools[sc.sourceId] ?? []) as stat}
-						<input type="hidden" name="classSave"           value={stat} />
-						<input type="hidden" name="classSaveSourceType" value={sc.sourceType ?? 'PlayerChoice'} />
-						<input type="hidden" name="classSaveSourceId"   value={sc.sourceDbId ?? sc.sourceId ?? ''} />
+					{#each (chosenSavePools[sc.sourceId]??[]) as stat}
+						<input type="hidden" name="classSave" value={stat} />
+						<input type="hidden" name="classSaveSourceType" value={sc.sourceType??'PlayerChoice'} />
+						<input type="hidden" name="classSaveSourceId" value={sc.sourceDbId??sc.sourceId??''} />
 					{/each}
 				{/each}
-				<!-- Background choice pool picks -->
-				{#if backgroundChoiceCount > 0}
-					{#each (chosenPoolSkills[backgroundId ?? ''] ?? []) as skill}
-						<input type="hidden" name="poolSkill"       value={skill} />
+				{#if backgroundChoiceCount>0}
+					{#each (chosenPoolSkills[backgroundId??'']??[]) as skill}
+						<input type="hidden" name="poolSkill" value={skill} />
 						<input type="hidden" name="poolSkillSource" value="Background" />
-						<input type="hidden" name="poolSkillSourceId" value={backgroundId ?? ''} />
+						<input type="hidden" name="poolSkillSourceId" value={backgroundId??''} />
 					{/each}
 				{/if}
-				<!-- Species trait choice pool picks -->
 				{#each speciesTraitChoices as trait}
-					{#each (chosenPoolSkills[trait.id] ?? []) as skill}
-						<input type="hidden" name="poolSkill"         value={skill} />
-						<input type="hidden" name="poolSkillSource"   value="SpeciesTrait" />
+					{#each (chosenPoolSkills[trait.id]??[]) as skill}
+						<input type="hidden" name="poolSkill" value={skill} />
+						<input type="hidden" name="poolSkillSource" value="SpeciesTrait" />
 						<input type="hidden" name="poolSkillSourceId" value={trait.id} />
 					{/each}
 				{/each}
-				<!-- Feat skill choice pool picks -->
 				{#each featSkillChoices as fc}
-					{#each (chosenPoolSkills[fc.sourceId] ?? []) as skill}
-						<input type="hidden" name="poolSkill"         value={skill} />
-						<input type="hidden" name="poolSkillSource"   value="Feat" />
+					{#each (chosenPoolSkills[fc.sourceId]??[]) as skill}
+						<input type="hidden" name="poolSkill" value={skill} />
+						<input type="hidden" name="poolSkillSource" value="Feat" />
 						<input type="hidden" name="poolSkillSourceId" value={fc.sourceId} />
 					{/each}
 				{/each}
-				<!-- Class feature choice pool picks -->
 				{#each featureChoices() as fc}
-					{#each (chosenPoolSkills[fc.sourceId] ?? []) as skill}
-						<input type="hidden" name="poolSkill"         value={skill} />
-						<input type="hidden" name="poolSkillSource"   value={fc.sourceType} />
+					{#each (chosenPoolSkills[fc.sourceId]??[]) as skill}
+						<input type="hidden" name="poolSkill" value={skill} />
+						<input type="hidden" name="poolSkillSource" value={fc.sourceType} />
 						<input type="hidden" name="poolSkillSourceId" value={fc.sourceId} />
 					{/each}
 				{/each}
-				<!-- Size choice -->
-				{#if chosenSize}
-					<input type="hidden" name="chosenSize" value={chosenSize} />
-				{/if}
-				<!-- Tool grants -->
+				{#if chosenSize}<input type="hidden" name="chosenSize" value={chosenSize} />{/if}
 				{#each autoGrantedTools() as g}
-					<input type="hidden" name="autoTool"           value={g.tool} />
+					<input type="hidden" name="autoTool" value={g.tool} />
 					<input type="hidden" name="autoToolSourceType" value={g.sourceType} />
-					<input type="hidden" name="autoToolSourceId"   value={g.sourceId ?? ''} />
+					<input type="hidden" name="autoToolSourceId" value={g.sourceId??''} />
 				{/each}
 				{#each allToolChoices as tc}
-					{#each (chosenToolPools[tc.sourceId] ?? []) as tool}
-						<input type="hidden" name="autoTool"           value={tool} />
+					{#each (chosenToolPools[tc.sourceId]??[]) as tool}
+						<input type="hidden" name="autoTool" value={tool} />
 						<input type="hidden" name="autoToolSourceType" value={tc.sourceType} />
-						<input type="hidden" name="autoToolSourceId"   value={tc.sourceDbId ?? tc.sourceId ?? ''} />
+						<input type="hidden" name="autoToolSourceId" value={tc.sourceDbId??tc.sourceId??''} />
 					{/each}
 				{/each}
-				<!-- Language grants -->
 				{#each autoGrantedLanguages() as g}
-					<input type="hidden" name="autoLanguage"           value={g.language} />
+					<input type="hidden" name="autoLanguage" value={g.language} />
 					<input type="hidden" name="autoLanguageSourceType" value={g.sourceType} />
-					<input type="hidden" name="autoLanguageSourceId"   value={g.sourceId ?? ''} />
+					<input type="hidden" name="autoLanguageSourceId" value={g.sourceId??''} />
 				{/each}
 				{#each allLanguageChoices as lc}
-					{#each (chosenLanguagePools[lc.sourceId] ?? []) as language}
-						<input type="hidden" name="autoLanguage"           value={language} />
+					{#each (chosenLanguagePools[lc.sourceId]??[]) as language}
+						<input type="hidden" name="autoLanguage" value={language} />
 						<input type="hidden" name="autoLanguageSourceType" value={lc.sourceType} />
-						<input type="hidden" name="autoLanguageSourceId"   value={lc.sourceDbId ?? lc.sourceId ?? ''} />
+						<input type="hidden" name="autoLanguageSourceId" value={lc.sourceDbId??lc.sourceId??''} />
 					{/each}
 				{/each}
-				<!-- Innate spell grants — one group per source, server parses and filters by char level -->
 				{#each autoGrantedInnateSpellSources() as src}
-					<input type="hidden" name="innateSpellRaw"        value={src.raw} />
+					<input type="hidden" name="innateSpellRaw" value={src.raw} />
 					<input type="hidden" name="innateSpellSourceType" value={src.sourceType} />
-					<input type="hidden" name="innateSpellSourceId"   value={src.sourceId} />
+					<input type="hidden" name="innateSpellSourceId" value={src.sourceId} />
 				{/each}
-				<!-- Damage modifier grants -->
 				{#each autoGrantedDamageModifiers() as g}
-					<input type="hidden" name="dmgModType"       value={g.modifierType} />
+					<input type="hidden" name="dmgModType" value={g.modifierType} />
 					<input type="hidden" name="dmgModDamageType" value={g.damageType} />
 					<input type="hidden" name="dmgModSourceType" value={g.sourceType} />
-					<input type="hidden" name="dmgModSourceId"   value={g.sourceId ?? ''} />
+					<input type="hidden" name="dmgModSourceId" value={g.sourceId??''} />
 				{/each}
-				{#each asiChoices as c, i}
+				{#each asiChoices as c}
 					<input type="hidden" name="asi_sourceClassId" value={c.sourceClassId} />
-					<input type="hidden" name="asi_sourceLevel"   value={c.sourceLevel} />
-					<input type="hidden" name="asi_type"          value={c.type} />
-					<input type="hidden" name="asi_mode"          value={c.mode ?? ''} />
-					<input type="hidden" name="asi_stat1"         value={c.stat1 ?? ''} />
-					<input type="hidden" name="asi_amount1"       value={c.amount1 ?? ''} />
-					<input type="hidden" name="asi_stat2"         value={c.stat2 ?? ''} />
-					<input type="hidden" name="asi_amount2"       value={c.amount2 ?? ''} />
-					<input type="hidden" name="asi_featId"        value={c.featId ?? ''} />
+					<input type="hidden" name="asi_sourceLevel" value={c.sourceLevel} />
+					<input type="hidden" name="asi_type" value={c.type} />
+					<input type="hidden" name="asi_mode" value={c.mode??''} />
+					<input type="hidden" name="asi_stat1" value={c.stat1??''} />
+					<input type="hidden" name="asi_amount1" value={c.amount1??''} />
+					<input type="hidden" name="asi_stat2" value={c.stat2??''} />
+					<input type="hidden" name="asi_amount2" value={c.amount2??''} />
+					<input type="hidden" name="asi_featId" value={c.featId??''} />
 				{/each}
 				{#each classAllocs as a}
-					<input type="hidden" name="classId"        value={a.classId} />
-					<input type="hidden" name="subclassId"     value={a.subclassId} />
+					<input type="hidden" name="classId" value={a.classId} />
+					<input type="hidden" name="subclassId" value={a.subclassId} />
 					<input type="hidden" name="allocatedLevel" value={a.allocatedLevel} />
 				{/each}
 				{#each STATS as st}
-					<!-- Submit total (point-buy + bonus), NOT finalScores.
-					     ASI / feat bumps are saved separately via addCharacterFeat
-					     so the DB can track base vs ASI vs feat independently. -->
 					<input type="hidden" name="score_{st}" value={total[st]} />
 				{/each}
 				<button type="submit" class="btn btn-primary" disabled={!canSubmit}>Create Character</button>
@@ -2596,7 +2365,18 @@
 		</div>
 	{/if}
 
-	<div style="display:flex;justify-content:flex-start;margin-top:1.5rem;">
-		{#if step > 0}<button class="btn btn-ghost" onclick={back}>← Back</button>{/if}
+	<!-- ── Bottom navigation ─────────────────────────────────────────── -->
+	<div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.25rem;">
+		<div>
+			{#if step > 0}
+				<button class="btn btn-ghost" onclick={back}>← Back</button>
+			{/if}
+		</div>
+		<div style="display:flex;gap:0.5rem;align-items:center;">
+			{#if step < STEPS.length - 1}
+				<button class="btn btn-primary" onclick={next} disabled={!canAdvance}>Next: {nextLabel} →</button>
+			{/if}
+		</div>
 	</div>
+
 </div>

@@ -20,6 +20,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
         case 'classes': {
             const all = await dnd5e.classes.getAll(systemId);
             rows = all.map(c => ({
+                id:                       c.id,
                 name:                     c.name,
                 hitDice:                  c.hitDice ?? '',
                 canCastSpells:            c.canCastSpells,
@@ -41,7 +42,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             const all = await dnd5e.classes.getAll(systemId);
             for (const cls of all) {
                 for (const f of (cls.features ?? [])) {
-                    rows.push({ className: cls.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
+                    rows.push({ id: f.id, classId: cls.id, className: cls.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
                         grantsSkills: (f as any).grantsSkills ?? '', grantsExpertise: (f as any).grantsExpertise ?? '',
                         grantsHalfSkills: (f as any).grantsHalfSkills ?? '', grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
                         skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '',
@@ -59,7 +60,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             const all = await dnd5e.classes.getAll(systemId);
             for (const cls of all) {
                 for (const s of (cls.subclasses ?? [])) {
-                    rows.push({ className: cls.name, name: s.name, description: s.description ?? '', source: s.source ?? '', link: s.link ?? '', canCastSpells: (s as any).canCastSpells ?? false, sortOrder: s.sortOrder });
+                    rows.push({ id: s.id, classId: cls.id, className: cls.name, name: s.name, description: s.description ?? '', source: s.source ?? '', link: s.link ?? '', canCastSpells: (s as any).canCastSpells ?? false, sortOrder: s.sortOrder });
                 }
             }
             rows.sort((a, b) => a.className.localeCompare(b.className) || a.name.localeCompare(b.name));
@@ -71,7 +72,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             for (const cls of all) {
                 for (const s of (cls.subclasses ?? [])) {
                     for (const f of (s.features ?? [])) {
-                        rows.push({ className: cls.name, subclassName: s.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
+                        rows.push({ id: f.id, classId: cls.id, subclassId: s.id, className: cls.name, subclassName: s.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
                             grantsSkills: (f as any).grantsSkills ?? '', grantsExpertise: (f as any).grantsExpertise ?? '',
                             grantsHalfSkills: (f as any).grantsHalfSkills ?? '', grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
                             skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '',
@@ -89,6 +90,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
         case 'species': {
             const all = await dnd5e.species.getAll(systemId);
             rows = all.map(s => ({
+                id:          s.id,
                 name:        s.name,
                 description: s.description ?? '',
                 source:      s.source      ?? '',
@@ -104,7 +106,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             const all = await dnd5e.species.getAll(systemId);
             for (const sp of all) {
                 for (const t of ((sp as any).traits ?? [])) {
-                    rows.push({ speciesName: sp.name, name: t.name, description: t.description ?? '', requiredLevel: t.requiredLevel ?? '',
+                    rows.push({ id: t.id, speciesId: sp.id, speciesName: sp.name, name: t.name, description: t.description ?? '', requiredLevel: t.requiredLevel ?? '',
                         size: (t as any).size ?? '', sizeChoices: (t as any).sizeChoices ?? '', senses: (t as any).senses ?? '',
                         WALK:   ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'WALK')?.speed   ?? '',
                         FLY:    ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'FLY')?.speed    ?? '',
@@ -126,6 +128,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
         case 'backgrounds': {
             const all = await dnd5e.backgrounds.getAll(systemId);
             rows = all.map(b => ({
+                id:                 b.id,
                 name:               b.name,
                 shortDescription:   b.shortDescription ?? '',
                 featureName:        b.featureName ?? '',
@@ -159,6 +162,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
         case 'feats': {
             const all = await dnd5e.feats.getAll(systemId);
             rows = all.map(f => ({
+                id:              f.id,
                 name:            f.name,
                 description:     f.description    ?? '',
                 snippet:         f.snippet         ?? '',
