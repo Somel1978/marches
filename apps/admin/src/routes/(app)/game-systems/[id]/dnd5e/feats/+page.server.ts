@@ -9,7 +9,9 @@ import type { PageServerLoad, Actions } from './$types';
 function featGrantFields(data: FormData) {
 	return {
 		grantsSkills:       data.get('grantsSkills')?.toString().trim()       || null,
-		grantsExpertise:    data.get('grantsExpertise')?.toString().trim()    || null,
+		grantsExpertise:        data.get('grantsExpertise')?.toString().trim()        || null,
+		expertiseChoiceCount:   data.get('expertiseChoiceCount') ? Number(data.get('expertiseChoiceCount')) : null,
+		expertiseChoicePool:    data.get('expertiseChoicePool')?.toString().trim()    || null,
 		grantsHalfSkills:   data.get('grantsHalfSkills')?.toString().trim()   || null,
 		grantsSavingThrows: data.get('grantsSavingThrows')?.toString().trim() || null,
 		skillChoiceCount:   data.get('skillChoiceCount') ? Number(data.get('skillChoiceCount')) : null,

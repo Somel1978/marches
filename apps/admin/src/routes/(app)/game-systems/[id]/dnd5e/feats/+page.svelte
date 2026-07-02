@@ -136,8 +136,16 @@
 							<input id="new-grantsSkills" name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" />
 						</div>
 						<div class="field" style="flex:1 1 140px;">
-							<label class="label" for="new-grantsExpertise">Grants Expertise</label>
+							<label class="label" for="new-grantsExpertise">Grants Expertise (auto)</label>
 							<input id="new-grantsExpertise" name="grantsExpertise" class="input" placeholder="ARCANA" />
+						</div>
+						<div class="field" style="flex:0 0 80px;">
+							<label class="label" for="new-expertiseChoiceCount">Exp. picks</label>
+							<input id="new-expertiseChoiceCount" name="expertiseChoiceCount" type="number" min="0" class="input" />
+						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<label class="label" for="new-expertiseChoicePool">Exp. pool</label>
+							<input id="new-expertiseChoicePool" name="expertiseChoicePool" class="input" placeholder="ARCANA,HISTORY or *" />
 						</div>
 						<div class="field" style="flex:1 1 140px;">
 							<label class="label" for="new-grantsHalfSkills">Grants Half Prof</label>
@@ -354,8 +362,16 @@
 											<input id="gs-{feat.id}" name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" value={feat.grantsSkills ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 140px;">
-											<label class="label" for="ge-{feat.id}">Grants Expertise</label>
+											<label class="label" for="ge-{feat.id}">Expertise (auto)</label>
 											<input id="ge-{feat.id}" name="grantsExpertise" class="input" placeholder="ARCANA" value={feat.grantsExpertise ?? ''} />
+										</div>
+										<div class="field" style="flex:0 0 80px;">
+											<label class="label" for="ecc-{feat.id}">Exp. picks</label>
+											<input id="ecc-{feat.id}" name="expertiseChoiceCount" type="number" min="0" class="input" value={(feat as any).expertiseChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 140px;">
+											<label class="label" for="ecp-{feat.id}">Exp. pool</label>
+											<input id="ecp-{feat.id}" name="expertiseChoicePool" class="input" placeholder="ARCANA,HISTORY or *" value={(feat as any).expertiseChoicePool ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 140px;">
 											<label class="label" for="gh-{feat.id}">Grants Half Prof</label>

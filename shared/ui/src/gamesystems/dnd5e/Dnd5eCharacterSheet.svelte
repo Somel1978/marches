@@ -208,9 +208,10 @@
 	let slots = $state<Record<string,SlotState>>({});
 
 	// ── Pending choice pool state ─────────────────────────────────────────
-	let pendingSkillPicks = $state<Record<string, string[]>>({});  // keyed by feature sourceId
-	let pendingSavePicks  = $state<Record<string, string[]>>({});  // keyed by feature sourceId
-	let savingChoices     = $state(false);
+	let pendingSkillPicks     = $state<Record<string, string[]>>({});
+	let pendingSavePicks      = $state<Record<string, string[]>>({});
+	let pendingExpertisePicks = $state<Record<string, string[]>>({});
+	let savingChoices         = $state(false);
 
 	const pendingChoices  = $derived((charSheet?.pendingChoices ?? []) as any[]);
 
@@ -224,16 +225,17 @@
 
 	async function saveChoicePoolGrants(sourceId: string, sourceType: string) {
 		savingChoices = true;
-		const skills = (pendingSkillPicks[sourceId] ?? []).map(skill => ({
-			skill, value: 1.0, sourceType, sourceId,
-		}));
+		const skills = [
+			...(pendingSkillPicks[sourceId] ?? []).map(skill => ({ skill, value: 1.0, sourceType, sourceId })),
+			...(pendingExpertisePicks[sourceId] ?? []).map(skill => ({ skill, value: 2.0, sourceType, sourceId })),
+		];
 		const saves = (pendingSavePicks[sourceId] ?? []).map(stat => ({
 			stat, sourceType, sourceId,
 		}));
 		await onSaveChoicePoolGrants?.({ skills, saves });
-		// Clear local state for this feature after save
-		pendingSkillPicks = { ...pendingSkillPicks, [sourceId]: [] };
-		pendingSavePicks  = { ...pendingSavePicks,  [sourceId]: [] };
+		pendingSkillPicks     = { ...pendingSkillPicks,     [sourceId]: [] };
+		pendingSavePicks      = { ...pendingSavePicks,      [sourceId]: [] };
+		pendingExpertisePicks = { ...pendingExpertisePicks, [sourceId]: [] };
 		savingChoices = false;
 	}
 
@@ -241,6 +243,12 @@
 		const cur = pendingSkillPicks[sourceId] ?? [];
 		if (cur.includes(skill)) pendingSkillPicks = { ...pendingSkillPicks, [sourceId]: cur.filter(s => s !== skill) };
 		else if (cur.length < max) pendingSkillPicks = { ...pendingSkillPicks, [sourceId]: [...cur, skill] };
+	}
+
+	function togglePendingExpertise(sourceId: string, skill: string, max: number) {
+		const cur = pendingExpertisePicks[sourceId] ?? [];
+		if (cur.includes(skill)) pendingExpertisePicks = { ...pendingExpertisePicks, [sourceId]: cur.filter(s => s !== skill) };
+		else if (cur.length < max) pendingExpertisePicks = { ...pendingExpertisePicks, [sourceId]: [...cur, skill] };
 	}
 
 	function togglePendingSave(sourceId: string, stat: string, max: number) {
@@ -338,16 +346,19 @@
 	<!-- ── Pending Choice Pools ───────────────────────────────────────────── -->
 	{#if pendingChoices.length > 0 && canEdit}
 		<div class="card" style="border:2px solid var(--color-warning);padding:1rem;">
-			<h3 class="section-title" style="color:var(--color-warning);margin:0 0 0.25rem;">⚠ Pending Skill / Saving Throw Choices</h3>
-			<p style="font-size:0.875rem;color:var(--text-muted);margin:0 0 1rem;">You have unresolved proficiency choices from class features. Make your selections below and save each one.</p>
+			<h3 class="section-title" style="color:var(--color-warning);margin:0 0 0.25rem;">⚠ Pending Proficiency Choices</h3>
+			<p style="font-size:0.875rem;color:var(--text-muted);margin:0 0 1rem;">You have unresolved skill, saving throw, or expertise choices from class features. Make your selections below and save each one.</p>
 			<div style="display:flex;flex-direction:column;gap:1.25rem;">
 				{#each pendingChoices as pc}
 					{@const skillPool   = pc.skillChoicePool   ? pc.skillChoicePool.split(',').map((s:string) => s.trim()).filter(Boolean)   : []}
 					{@const savePool    = pc.savingThrowChoicePool ? pc.savingThrowChoicePool.split(',').map((s:string) => s.trim().toUpperCase()).filter(Boolean) : []}
 					{@const pickedSkills = pendingSkillPicks[pc.sourceId] ?? []}
 					{@const pickedSaves  = pendingSavePicks[pc.sourceId]  ?? []}
-					{@const skillDone   = !pc.skillChoiceCount       || pickedSkills.length >= Math.min(pc.skillChoiceCount, skillPool.length)}
-					{@const saveDone    = !pc.savingThrowChoiceCount || pickedSaves.length  >= Math.min(pc.savingThrowChoiceCount, savePool.length)}
+					{@const expertisePool   = pc.expertiseChoicePool ? pc.expertiseChoicePool.split(',').map((s:string) => s.trim()).filter(Boolean) : []}
+					{@const pickedExpertise = pendingExpertisePicks[pc.sourceId] ?? []}
+					{@const skillDone       = !pc.skillChoiceCount       || pickedSkills.length     >= Math.min(pc.skillChoiceCount, skillPool.length)}
+					{@const saveDone        = !pc.savingThrowChoiceCount || pickedSaves.length      >= Math.min(pc.savingThrowChoiceCount, savePool.length)}
+					{@const expertiseDone   = !pc.expertiseChoiceCount   || pickedExpertise.length >= Math.min(pc.expertiseChoiceCount, expertisePool.length)}
 					<div style="padding:0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
 						<p style="font-size:0.8125rem;font-weight:700;color:var(--brand-accent);margin:0 0 0.625rem;">{pc.label}</p>
 
@@ -394,9 +405,28 @@
 							</div>
 						{/if}
 
+						{#if expertisePool.length > 0}
+							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+								Choose {pc.expertiseChoiceCount} expertise{pc.expertiseChoiceCount !== 1 ? 's' : ''}
+								<span style="font-weight:400;color:var(--text-secondary);">({pickedExpertise.length}/{Math.min(pc.expertiseChoiceCount, expertisePool.length)} chosen)</span>
+							</p>
+							<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+								{#each expertisePool as skill}
+									{@const chosen = pickedExpertise.includes(skill)}
+									{@const full   = !chosen && pickedExpertise.length >= Math.min(pc.expertiseChoiceCount, expertisePool.length)}
+									<button type="button"
+										class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}"
+										disabled={full}
+										onclick={() => togglePendingExpertise(pc.sourceId, skill, pc.expertiseChoiceCount)}>
+										{SKILL_DISPLAY[skill] ?? skill} ×2
+									</button>
+								{/each}
+							</div>
+						{/if}
+
 						<button
 							class="btn btn-primary btn-sm"
-							disabled={!skillDone || !saveDone || savingChoices}
+							disabled={!skillDone || !saveDone || !expertiseDone || savingChoices}
 							onclick={() => saveChoicePoolGrants(pc.sourceId, pc.sourceType)}>
 							{savingChoices ? 'Saving…' : 'Save choices'}
 						</button>

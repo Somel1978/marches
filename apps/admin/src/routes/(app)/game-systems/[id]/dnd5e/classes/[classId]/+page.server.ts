@@ -14,6 +14,8 @@ function grantFields(data: FormData) {
 	return {
 		grantsSkills:           s('grantsSkills'),
 		grantsExpertise:        s('grantsExpertise'),
+		expertiseChoiceCount:   n('expertiseChoiceCount'),
+		expertiseChoicePool:    s('expertiseChoicePool'),
 		grantsHalfSkills:       s('grantsHalfSkills'),
 		grantsSavingThrows:     s('grantsSavingThrows'),
 		skillChoiceCount:       n('skillChoiceCount'),

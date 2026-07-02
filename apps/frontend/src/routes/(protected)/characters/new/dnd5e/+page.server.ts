@@ -156,9 +156,12 @@ export const actions: Actions = {
 			const autoSkillSources   = data.getAll('autoSkillSource').map(v => v.toString());
 			const autoSkillValues    = data.getAll('autoSkillValue').map(v => v.toString());
 			const autoSkills         = data.getAll('autoSkill').map(v => v.toString()).filter(Boolean);
-			const poolSkills         = data.getAll('poolSkill').map(v => v.toString()).filter(Boolean);
-			const poolSkillSources   = data.getAll('poolSkillSource').map(v => v.toString());
-			const poolSkillSourceIds = data.getAll('poolSkillSourceId').map(v => v.toString());
+			const poolSkills            = data.getAll('poolSkill').map(v => v.toString()).filter(Boolean);
+			const poolSkillSources      = data.getAll('poolSkillSource').map(v => v.toString());
+			const poolSkillSourceIds    = data.getAll('poolSkillSourceId').map(v => v.toString());
+			const expertisePoolSkills   = data.getAll('expertisePoolSkill').map(v => v.toString()).filter(Boolean);
+			const expertisePoolTypes    = data.getAll('expertisePoolSourceType').map(v => v.toString());
+			const expertisePoolIds      = data.getAll('expertisePoolSourceId').map(v => v.toString());
 
 			const allSkillGrants: { skill: string; value: number; sourceType: string; sourceId?: string }[] = [];
 			for (const s of chosenClassSkills) allSkillGrants.push({ skill: s, value: 1.0, sourceType: 'PlayerChoice' });
@@ -168,6 +171,9 @@ export const actions: Actions = {
 			}
 			for (let i = 0; i < poolSkills.length; i++) {
 				allSkillGrants.push({ skill: poolSkills[i], value: 1.0, sourceType: poolSkillSources[i] ?? 'PlayerChoice', sourceId: poolSkillSourceIds[i] || undefined });
+			}
+			for (let i = 0; i < expertisePoolSkills.length; i++) {
+				allSkillGrants.push({ skill: expertisePoolSkills[i], value: 2.0, sourceType: expertisePoolTypes[i] ?? 'PlayerChoice', sourceId: expertisePoolIds[i] || undefined });
 			}
 			if (allSkillGrants.length) await dnd5e.addSkillGrants(character.id, allSkillGrants);
 

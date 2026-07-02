@@ -149,6 +149,8 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         skillChoicePool:        string | null;
         savingThrowChoiceCount: number | null;
         savingThrowChoicePool:  string | null;
+        expertiseChoiceCount:   number | null;
+        expertiseChoicePool:    string | null;
     }[] = [];
 
     for (const cc of enrichedClasses) {
@@ -157,20 +159,24 @@ export async function getDnd5eCharacterSheet(characterId: string) {
             ...(cc.subclassFeatures ?? []).map((f: any) => ({ ...f, sourceType: 'SubclassFeature', sourceName: cc.subclassRef?.name ?? '' })),
         ];
         for (const f of allFeatures) {
-            const hasSkillChoice = f.skillChoiceCount       && f.skillChoicePool;
-            const hasSaveChoice  = f.savingThrowChoiceCount && f.savingThrowChoicePool;
-            if (!hasSkillChoice && !hasSaveChoice) continue;
-            const skillDone = !hasSkillChoice || resolvedSkillSourceIds.has(f.id);
-            const saveDone  = !hasSaveChoice  || resolvedSaveSourceIds.has(f.id);
-            if (skillDone && saveDone) continue;
+            const hasSkillChoice     = f.skillChoiceCount       && f.skillChoicePool;
+            const hasSaveChoice      = f.savingThrowChoiceCount && f.savingThrowChoicePool;
+            const hasExpertiseChoice = (f as any).expertiseChoiceCount && (f as any).expertiseChoicePool;
+            if (!hasSkillChoice && !hasSaveChoice && !hasExpertiseChoice) continue;
+            const skillDone     = !hasSkillChoice     || resolvedSkillSourceIds.has(f.id);
+            const saveDone      = !hasSaveChoice      || resolvedSaveSourceIds.has(f.id);
+            const expertiseDone = !hasExpertiseChoice || (skillGrants as any[]).some(g => g.sourceId === f.id && g.value >= 2.0);
+            if (skillDone && saveDone && expertiseDone) continue;
             pendingChoices.push({
                 sourceId:               f.id,
                 sourceType:             f.sourceType,
                 label:                  `${f.sourceName}: ${f.name} (level ${f.requiredLevel})`,
-                skillChoiceCount:       hasSkillChoice && !skillDone ? f.skillChoiceCount : null,
-                skillChoicePool:        hasSkillChoice && !skillDone ? f.skillChoicePool  : null,
-                savingThrowChoiceCount: hasSaveChoice  && !saveDone  ? f.savingThrowChoiceCount : null,
-                savingThrowChoicePool:  hasSaveChoice  && !saveDone  ? f.savingThrowChoicePool  : null,
+                skillChoiceCount:       hasSkillChoice     && !skillDone     ? f.skillChoiceCount     : null,
+                skillChoicePool:        hasSkillChoice     && !skillDone     ? f.skillChoicePool      : null,
+                savingThrowChoiceCount: hasSaveChoice      && !saveDone      ? f.savingThrowChoiceCount : null,
+                savingThrowChoicePool:  hasSaveChoice      && !saveDone      ? f.savingThrowChoicePool  : null,
+                expertiseChoiceCount:   hasExpertiseChoice && !expertiseDone ? (f as any).expertiseChoiceCount : null,
+                expertiseChoicePool:    hasExpertiseChoice && !expertiseDone ? (f as any).expertiseChoicePool  : null,
             });
         }
     }
@@ -337,7 +343,8 @@ export async function getDnd5eCharacterSheet(characterId: string) {
     const activeTraits = (speciesRecord as any)?.traits ?? [];
     const traitSize        = activeTraits.map((t: any) => t.size).find((s: any) => s) ?? null;
     const traitSizeChoices = activeTraits.map((t: any) => t.sizeChoices).filter(Boolean).join(',') || null;
-    const traitSenses      = activeTraits.map((t: any) => t.senses).filter(Boolean).join(', ') || null;
+    // Combine senses (base physical senses) and grantsSenses (bonus senses) from all active traits
+    const traitSenses      = activeTraits.flatMap((t: any) => [t.senses, t.grantsSenses]).filter(Boolean).join(', ') || null;
     // Aggregate speeds — sum by movementType across all traits
     const speedMap = new Map<string, number>();
     for (const t of activeTraits) {

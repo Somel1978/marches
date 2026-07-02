@@ -5,7 +5,7 @@ import { NotFoundError } from '@core/errors';
 
 // ── Classes ───────────────────────────────────────────────────────────────────
 export async function createDnd5eClass(input: {
-    gameSystemId: string; name: string; description?: string; source?: string;
+    gameSystemId: string; name: string; uploadId?: string; description?: string; source?: string;
     link?: string; hitDice?: number; canCastSpells?: boolean;
     primaryAbilities?: string; equipmentDescription?: string; sortOrder?: number;
     subclassAvailableAtLevel?: number; skillChoiceCount?: number | null;
@@ -13,6 +13,7 @@ export async function createDnd5eClass(input: {
     const c = await db.dnd5eClass.create({ data: {
         gameSystemId:        input.gameSystemId,
         name:                input.name,
+        uploadId:            input.uploadId            ?? null,
         description:         input.description         ?? null,
         source:              input.source              ?? null,
         link:                input.link                ?? null,
@@ -29,7 +30,7 @@ export async function createDnd5eClass(input: {
 }
 
 export async function updateDnd5eClass(id: string, input: Partial<{
-    name: string; description: string | null; source: string | null;
+    uploadId?: string | null; name: string; description: string | null; source: string | null;
     link: string | null; hitDice: number | null; canCastSpells: boolean;
     primaryAbilities: string | null; equipmentDescription: string | null;
     isAvailable: boolean; sortOrder: number; subclassAvailableAtLevel: number;
@@ -51,8 +52,9 @@ export async function deleteDnd5eClass(id: string, actorId: string) {
 
 // ── Class Features ────────────────────────────────────────────────────────────
 export async function createClassFeature(input: {
-    classId: string; name: string; description?: string; requiredLevel: number; url?: string;
-    grantsSkills?: string; grantsExpertise?: string; grantsHalfSkills?: string; grantsSavingThrows?: string;
+    classId: string; name: string; uploadId?: string; description?: string; requiredLevel: number; url?: string;
+    grantsSkills?: string; grantsExpertise?: string; expertiseChoiceCount?: number | null; expertiseChoicePool?: string | null;
+    grantsHalfSkills?: string; grantsSavingThrows?: string;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
     savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
     grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
@@ -65,11 +67,14 @@ export async function createClassFeature(input: {
     return db.dnd5eClassFeature.create({ data: {
         classId:            input.classId,
         name:               input.name,
+        uploadId:           input.uploadId           ?? null,
         description:        input.description        ?? null,
         requiredLevel:      input.requiredLevel,
         url:                input.url                ?? null,
         grantsSkills:       input.grantsSkills       ?? null,
         grantsExpertise:    input.grantsExpertise    ?? null,
+        expertiseChoiceCount: input.expertiseChoiceCount ?? null,
+        expertiseChoicePool:  input.expertiseChoicePool  ?? null,
         grantsHalfSkills:   input.grantsHalfSkills   ?? null,
         grantsSavingThrows: input.grantsSavingThrows ?? null,
         skillChoiceCount:         input.skillChoiceCount         ?? null,
@@ -92,8 +97,8 @@ export async function createClassFeature(input: {
 }
 
 export async function updateClassFeature(id: string, input: {
-    name?: string; description?: string | null; requiredLevel?: number; url?: string | null;
-    grantsSkills?: string | null; grantsExpertise?: string | null;
+    uploadId?: string; name?: string; description?: string | null; requiredLevel?: number; url?: string | null;
+    grantsSkills?: string | null; grantsExpertise?: string | null; expertiseChoiceCount?: number | null; expertiseChoicePool?: string | null;
     grantsHalfSkills?: string | null; grantsSavingThrows?: string | null;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
     savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
@@ -113,12 +118,13 @@ export async function deleteClassFeature(id: string) {
 
 // ── Subclasses ────────────────────────────────────────────────────────────────
 export async function createDnd5eSubclass(input: {
-    classId: string; name: string; description?: string;
+    classId: string; name: string; uploadId?: string; description?: string;
     source?: string; link?: string; sortOrder?: number;
 }, actorId: string) {
     return db.dnd5eSubclass.create({ data: {
         classId:     input.classId,
         name:        input.name,
+        uploadId:    input.uploadId    ?? null,
         description: input.description ?? null,
         source:      input.source      ?? null,
         link:        input.link        ?? null,
@@ -139,8 +145,9 @@ export async function deleteDnd5eSubclass(id: string) {
 
 // ── Subclass Features ─────────────────────────────────────────────────────────
 export async function createSubclassFeature(input: {
-    subclassId: string; name: string; description?: string; requiredLevel: number; url?: string;
-    grantsSkills?: string; grantsExpertise?: string; grantsHalfSkills?: string; grantsSavingThrows?: string;
+    subclassId: string; name: string; uploadId?: string; description?: string; requiredLevel: number; url?: string;
+    grantsSkills?: string; grantsExpertise?: string; expertiseChoiceCount?: number | null; expertiseChoicePool?: string | null;
+    grantsHalfSkills?: string; grantsSavingThrows?: string;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
     savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;
     grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
@@ -153,11 +160,14 @@ export async function createSubclassFeature(input: {
     return db.dnd5eSubclassFeature.create({ data: {
         subclassId:         input.subclassId,
         name:               input.name,
+        uploadId:           input.uploadId           ?? null,
         description:        input.description        ?? null,
         requiredLevel:      input.requiredLevel,
         url:                input.url                ?? null,
         grantsSkills:       input.grantsSkills       ?? null,
         grantsExpertise:    input.grantsExpertise    ?? null,
+        expertiseChoiceCount: input.expertiseChoiceCount ?? null,
+        expertiseChoicePool:  input.expertiseChoicePool  ?? null,
         grantsHalfSkills:   input.grantsHalfSkills   ?? null,
         grantsSavingThrows: input.grantsSavingThrows ?? null,
         skillChoiceCount:         input.skillChoiceCount         ?? null,
@@ -180,8 +190,8 @@ export async function createSubclassFeature(input: {
 }
 
 export async function updateSubclassFeature(id: string, input: {
-    name?: string; description?: string | null; requiredLevel?: number; url?: string | null;
-    grantsSkills?: string | null; grantsExpertise?: string | null;
+    uploadId?: string; name?: string; description?: string | null; requiredLevel?: number; url?: string | null;
+    grantsSkills?: string | null; grantsExpertise?: string | null; expertiseChoiceCount?: number | null; expertiseChoicePool?: string | null;
     grantsHalfSkills?: string | null; grantsSavingThrows?: string | null;
     skillChoiceCount?: number | null; skillChoicePool?: string | null;
     savingThrowChoiceCount?: number | null; savingThrowChoicePool?: string | null;

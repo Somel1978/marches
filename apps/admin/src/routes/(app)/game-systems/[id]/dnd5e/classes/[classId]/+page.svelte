@@ -177,8 +177,16 @@
 												<input id="fgs-{f.id}" name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" value={f.grantsSkills ?? ''} />
 											</div>
 											<div class="field" style="flex:1 1 140px; margin:0;">
-												<label class="label" for="fge-{f.id}">Expertise</label>
+												<label class="label" for="fge-{f.id}">Expertise (auto)</label>
 												<input id="fge-{f.id}" name="grantsExpertise" class="input" placeholder="ARCANA" value={f.grantsExpertise ?? ''} />
+											</div>
+											<div class="field" style="flex:0 0 80px; margin:0;">
+												<label class="label" for="fecc-{f.id}">Exp. picks</label>
+												<input id="fecc-{f.id}" name="expertiseChoiceCount" class="input" type="number" min="0" value={(f as any).expertiseChoiceCount ?? ''} />
+											</div>
+											<div class="field" style="flex:1 1 140px; margin:0;">
+												<label class="label" for="fecp-{f.id}">Exp. pool</label>
+												<input id="fecp-{f.id}" name="expertiseChoicePool" class="input" placeholder="ARCANA,HISTORY or *" value={(f as any).expertiseChoicePool ?? ''} />
 											</div>
 											<div class="field" style="flex:1 1 140px; margin:0;">
 												<label class="label" for="fgh-{f.id}">Half Prof</label>
@@ -385,8 +393,16 @@
 																	<input id="sfgs-{sf.id}" name="grantsSkills" class="input" placeholder="ARCANA,HISTORY" value={sf.grantsSkills ?? ''} />
 																</div>
 																<div class="field" style="flex:1 1 120px; margin:0;">
-																	<label class="label" for="sfge-{sf.id}">Expertise</label>
+																	<label class="label" for="sfge-{sf.id}">Expertise (auto)</label>
 																	<input id="sfge-{sf.id}" name="grantsExpertise" class="input" placeholder="ARCANA" value={sf.grantsExpertise ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 80px; margin:0;">
+																	<label class="label" for="sfecc-{sf.id}">Exp. picks</label>
+																	<input id="sfecc-{sf.id}" name="expertiseChoiceCount" class="input" type="number" min="0" value={(sf as any).expertiseChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 120px; margin:0;">
+																	<label class="label" for="sfecp-{sf.id}">Exp. pool</label>
+																	<input id="sfecp-{sf.id}" name="expertiseChoicePool" class="input" placeholder="ARCANA,HISTORY or *" value={(sf as any).expertiseChoicePool ?? ''} />
 																</div>
 																<div class="field" style="flex:1 1 120px; margin:0;">
 																	<label class="label" for="sfgh-{sf.id}">Half Prof</label>

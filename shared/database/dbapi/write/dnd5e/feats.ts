@@ -6,6 +6,7 @@ import { NotFoundError } from '@core/errors';
 export async function createDnd5eFeat(input: {
     gameSystemId:   string;
     name:           string;
+    uploadId?:      string;
     description?:   string;
     snippet?:       string;
     repeatable?:    boolean;
@@ -41,6 +42,7 @@ export async function createDnd5eFeat(input: {
 }
 
 export async function updateDnd5eFeat(id: string, input: {
+    uploadId?:       string | null;
     name?:           string;
     description?:    string;
     snippet?:        string;

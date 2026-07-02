@@ -6,12 +6,13 @@ import { NotFoundError } from '@core/errors';
 // ── Species ───────────────────────────────────────────────────────────────────
 
 export async function createDnd5eSpecies(input: {
-    gameSystemId: string; name: string; description?: string; source?: string;
+    gameSystemId: string; name: string; uploadId?: string; description?: string; source?: string;
     link?: string; isSubrace?: boolean; isLegacy?: boolean; sortOrder?: number;
 }, actorId: string) {
     const s = await db.dnd5eSpecies.create({ data: {
         gameSystemId: input.gameSystemId,
         name:         input.name,
+        uploadId:     input.uploadId     ?? null,
         description:  input.description ?? null,
         source:       input.source      ?? null,
         link:         input.link        ?? null,
@@ -24,7 +25,7 @@ export async function createDnd5eSpecies(input: {
 }
 
 export async function updateDnd5eSpecies(id: string, input: Partial<{
-    name: string; description: string | null; source: string | null; link: string | null;
+    uploadId: string | null; name: string; description: string | null; source: string | null; link: string | null;
     isSubrace: boolean; isLegacy: boolean; isAvailable: boolean; sortOrder: number;
 }>, actorId: string) {
     const before = await db.dnd5eSpecies.findUnique({ where: { id } });
@@ -62,7 +63,7 @@ export async function updateSpeciesTraitSpeeds(
 // ── Species Traits ────────────────────────────────────────────────────────────
 
 const TRAIT_GRANT_FIELDS = [
-    'grantsSkills', 'grantsExpertise', 'grantsHalfSkills',
+    'grantsSkills', 'grantsExpertise', 'expertiseChoiceCount', 'expertiseChoicePool', 'grantsHalfSkills',
     'skillChoiceCount', 'skillChoicePool',
     'savingThrowChoiceCount', 'savingThrowChoicePool',
     'grantsTools', 'toolChoiceCount', 'toolChoicePool',
@@ -73,7 +74,7 @@ const TRAIT_GRANT_FIELDS = [
 ] as const;
 
 type TraitGrantInput = Partial<{
-    grantsSkills: string | null; grantsExpertise: string | null; grantsHalfSkills: string | null;
+    grantsSkills: string | null; grantsExpertise: string | null; expertiseChoiceCount: number | null; expertiseChoicePool: string | null; grantsHalfSkills: string | null;
     skillChoiceCount: number | null; skillChoicePool: string | null;
     savingThrowChoiceCount: number | null; savingThrowChoicePool: string | null;
     grantsTools: string | null; toolChoiceCount: number | null; toolChoicePool: string | null;
@@ -84,11 +85,12 @@ type TraitGrantInput = Partial<{
 }>;
 
 export async function createSpeciesTrait(input: {
-    speciesId: string; name: string; description?: string; requiredLevel?: number;
+    speciesId: string; name: string; uploadId?: string; description?: string; requiredLevel?: number;
 } & TraitGrantInput) {
     return db.dnd5eSpeciesTrait.create({ data: {
         speciesId:       input.speciesId,
         name:            input.name,
+        uploadId:        input.uploadId      ?? null,
         description:     input.description   ?? null,
         requiredLevel:   input.requiredLevel  ?? null,
         ...Object.fromEntries(TRAIT_GRANT_FIELDS.map(f => [f, (input as any)[f] ?? null])),
@@ -96,7 +98,7 @@ export async function createSpeciesTrait(input: {
 }
 
 export async function updateSpeciesTrait(id: string, input: {
-    name?: string; description?: string | null; requiredLevel?: number | null;
+    uploadId?: string | null; name?: string; description?: string | null; requiredLevel?: number | null;
 } & TraitGrantInput) {
     return db.dnd5eSpeciesTrait.update({ where: { id }, data: input });
 }
@@ -119,7 +121,7 @@ type BackgroundGrantInput = Partial<{
 }>;
 
 export async function createDnd5eBackground(input: {
-    gameSystemId: string; name: string; shortDescription?: string;
+    gameSystemId: string; name: string; uploadId?: string; shortDescription?: string;
     featureName?: string; url?: string; sortOrder?: number;
     grantsFeatCategory?: string; grantsFeatId?: string;
     toolProficiencies?: string; languages?: string;
@@ -127,6 +129,7 @@ export async function createDnd5eBackground(input: {
     const b = await db.dnd5eBackground.create({ data: {
         gameSystemId:       input.gameSystemId,
         name:               input.name,
+        uploadId:           input.uploadId           ?? null,
         shortDescription:   input.shortDescription  ?? null,
         featureName:        input.featureName        ?? null,
         url:                input.url                ?? null,
@@ -158,7 +161,7 @@ export async function createDnd5eBackground(input: {
 }
 
 export async function updateDnd5eBackground(id: string, input: Partial<{
-    name: string; shortDescription: string | null; featureName: string | null;
+    uploadId: string | null; name: string; shortDescription: string | null; featureName: string | null;
     url: string | null; isAvailable: boolean; sortOrder: number;
     grantsFeatCategory: string | null; grantsFeatId: string | null;
     toolProficiencies: string | null; languages: string | null;

@@ -8,7 +8,9 @@ import type { PageServerLoad, Actions } from './$types';
 function traitGrantFields(data: FormData) {
 	return {
 		grantsSkills:     data.get('grantsSkills')?.toString().trim()     || null,
-		grantsExpertise:  data.get('grantsExpertise')?.toString().trim()  || null,
+		grantsExpertise:       data.get('grantsExpertise')?.toString().trim()       || null,
+		expertiseChoiceCount:  data.get('expertiseChoiceCount') ? Number(data.get('expertiseChoiceCount')) : null,
+		expertiseChoicePool:   data.get('expertiseChoicePool')?.toString().trim()   || null,
 		grantsHalfSkills: data.get('grantsHalfSkills')?.toString().trim() || null,
 		skillChoiceCount: data.get('skillChoiceCount') ? Number(data.get('skillChoiceCount')) : null,
 		skillChoicePool:  data.get('skillChoicePool')?.toString().trim()  || null,
@@ -24,6 +26,8 @@ function traitGrantFields(data: FormData) {
 		grantsImmunities:     data.get('grantsImmunities')?.toString().trim()     || null,
 		grantsVulnerabilities: data.get('grantsVulnerabilities')?.toString().trim() || null,
 		grantsInnateSpells:    data.get('grantsInnateSpells')?.toString().trim()    || null,
+		grantsSpeed:           data.get('grantsSpeed')?.toString().trim()           || null,
+		grantsSenses:          data.get('grantsSenses')?.toString().trim()          || null,
 		// Physical characteristics — now on traits
 		size:        data.get('size')?.toString().trim()        || null,
 		sizeChoices: data.get('sizeChoices')?.toString().trim() || null,

@@ -678,6 +678,32 @@
 		return langs;
 	});
 
+	// ── Expertise choice pools ──────────────────────────────────────────────
+	const allExpertiseChoices = $derived((() => {
+		const pools: { sourceId: string; sourceDbId: string | null; sourceType: string; label: string; count: number; pool: string[] }[] = [];
+		for (const t of (selectedSpecies?.traits ?? [])) {
+			if ((t as any).expertiseChoiceCount && (t as any).expertiseChoicePool)
+				pools.push({ sourceId: `${t.id}-expertise`, sourceDbId: t.id, sourceType: 'SpeciesTrait', label: t.name, count: (t as any).expertiseChoiceCount, pool: (t as any).expertiseChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
+		}
+		for (const alloc of classAllocs) {
+			const cls = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			if (!cls) continue;
+			for (const f of (cls.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel && (f as any).expertiseChoiceCount && (f as any).expertiseChoicePool))
+				pools.push({ sourceId: `${f.id}-expertise`, sourceDbId: f.id, sourceType: 'ClassFeature', label: `${cls.name}: ${f.name}`, count: (f as any).expertiseChoiceCount, pool: (f as any).expertiseChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
+			const sub = (cls.subclasses ?? []).find((s: any) => s.id === classAllocs.find((a: any) => a.classId === cls.id)?.subclassId);
+			if (sub) {
+				for (const f of (sub.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel && (f as any).expertiseChoiceCount && (f as any).expertiseChoicePool))
+					pools.push({ sourceId: `${f.id}-expertise`, sourceDbId: f.id, sourceType: 'SubclassFeature', label: `${sub.name}: ${f.name}`, count: (f as any).expertiseChoiceCount, pool: (f as any).expertiseChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
+			}
+		}
+		for (const { featId } of allGrantedFeatIds) {
+			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
+			if (feat?.expertiseChoiceCount && feat?.expertiseChoicePool)
+				pools.push({ sourceId: `${featId}-expertise`, sourceDbId: feat.id, sourceType: 'Feat', label: `Feat: ${feat.name}`, count: feat.expertiseChoiceCount, pool: feat.expertiseChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
+		}
+		return pools;
+	})());
+
 	const allLanguageChoices = $derived((() => {
 		const pools: { sourceId: string; sourceDbId: string | null; sourceType: string; label: string; count: number; pool: string[] }[] = [];
 		const bg = selectedBackground as any;
@@ -825,7 +851,8 @@
 
 	// Tool/language pool choices state (keyed by sourceId)
 	let chosenToolPools:     Record<string, string[]> = $state({});
-	let chosenLanguagePools: Record<string, string[]> = $state({});
+	let chosenLanguagePools:  Record<string, string[]> = $state({});
+	let chosenExpertisePools: Record<string, string[]> = $state({});
 
 	// Already-granted saving throws (class + auto) to exclude from choice pools
 	const allGrantedSavesSet = $derived(new Set([
@@ -845,6 +872,7 @@
 		allSaveChoices.every(sc => (chosenSavePools[sc.sourceId] ?? []).length >= Math.min(sc.count, sc.pool.length)) &&
 		allToolChoices.every(tc => (chosenToolPools[tc.sourceId] ?? []).length >= Math.min(tc.count, tc.pool.length)) &&
 		allLanguageChoices.every(lc => (chosenLanguagePools[lc.sourceId] ?? []).length >= Math.min(lc.count, lc.pool.length)) &&
+		allExpertiseChoices.every(ec => (chosenExpertisePools[ec.sourceId] ?? []).length >= Math.min(ec.count, ec.pool.length)) &&
 		(sizeChoiceOptions().length === 0 || !!chosenSize || !!traitFixedSize)
 	);
 
@@ -1138,6 +1166,7 @@
 									{#if (t as any).size}<span class="badge badge-muted">{(t as any).size}</span>{/if}
 									{#each ((t as any).speeds ?? []) as sp}<span class="badge badge-muted">{sp.movementType.charAt(0)+sp.movementType.slice(1).toLowerCase()} {sp.speed} ft</span>{/each}
 									{#if (t as any).senses}<span class="badge badge-muted">👁 {(t as any).senses}</span>{/if}
+						{#if (t as any).grantsSenses}<span class="badge badge-muted">👁 {(t as any).grantsSenses}</span>{/if}
 								{/each}
 							</div>
 						</div>
@@ -1913,6 +1942,30 @@
 					</div>
 				{/each}
 
+				<!-- Expertise choice pools -->
+				{#each allExpertiseChoices as ec}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">Expertise — {ec.label}</span>
+							<span class="wiz-pool__count" class:wiz-pool__count--done={(chosenExpertisePools[ec.sourceId]??[]).length >= Math.min(ec.count, ec.pool.length)}>
+								{(chosenExpertisePools[ec.sourceId]??[]).length} / {Math.min(ec.count, ec.pool.length)}
+							</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each ec.pool as skill}
+								{@const chosen = (chosenExpertisePools[ec.sourceId]??[]).includes(skill)}
+								{@const full = !chosen && (chosenExpertisePools[ec.sourceId]??[]).length >= Math.min(ec.count, ec.pool.length)}
+								<button class="wiz-chip" class:wiz-chip--chosen={chosen} disabled={full}
+									onclick={() => {
+										const cur = chosenExpertisePools[ec.sourceId] ?? [];
+										if (chosen) chosenExpertisePools = { ...chosenExpertisePools, [ec.sourceId]: cur.filter(s => s !== skill) };
+										else if (!full) chosenExpertisePools = { ...chosenExpertisePools, [ec.sourceId]: [...cur, skill] };
+									}}>{SKILL_DISPLAY[skill] ?? skill}</button>
+							{/each}
+						</div>
+					</div>
+				{/each}
+
 				<!-- Tool choice pools -->
 				{#each allToolChoices as tc}
 					<div class="wiz-pool">
@@ -1953,7 +2006,8 @@
 								<button class="wiz-chip" class:wiz-chip--chosen={chosen} disabled={full}
 									onclick={() => {
 										const cur = chosenLanguagePools[lc.sourceId] ?? [];
-										if (chosen) chosenLanguagePools = { ...chosenLanguagePools, [lc.sourceId]: cur.filter(l => l !== lang) };
+										if (chosen) chosenLanguagePools = { ...chosenLanguagePools,
+		chosenExpertisePools, [lc.sourceId]: cur.filter(l => l !== lang) };
 										else if (!full) chosenLanguagePools = { ...chosenLanguagePools, [lc.sourceId]: [...cur, lang] };
 									}}>{lang}</button>
 							{/each}
@@ -2322,6 +2376,13 @@
 					<input type="hidden" name="autoLanguage" value={g.language} />
 					<input type="hidden" name="autoLanguageSourceType" value={g.sourceType} />
 					<input type="hidden" name="autoLanguageSourceId" value={g.sourceId??''} />
+				{/each}
+				{#each allExpertiseChoices as ec}
+					{#each (chosenExpertisePools[ec.sourceId]??[]) as skill}
+						<input type="hidden" name="expertisePoolSkill" value={skill} />
+						<input type="hidden" name="expertisePoolSourceType" value={ec.sourceType} />
+						<input type="hidden" name="expertisePoolSourceId" value={ec.sourceDbId??ec.sourceId??''} />
+					{/each}
 				{/each}
 				{#each allLanguageChoices as lc}
 					{#each (chosenLanguagePools[lc.sourceId]??[]) as language}

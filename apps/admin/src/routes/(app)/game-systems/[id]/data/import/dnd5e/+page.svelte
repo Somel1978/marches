@@ -18,17 +18,17 @@
 	let importing   = $state(false);
 
 	const TABS: { key: ImportTab; label: string; action: string; columns: string[]; optionalColumns?: string[] }[] = [
-		{ key: 'classes',         label: 'Classes',          action: '?/importClasses',         columns: ['name','hitDice','canCastSpells','subclassAvailableAtLevel','primaryAbilities','equipmentDescription','description','source','link','sortOrder','skillChoiceCount','grantsSavingThrows','skillPool'], optionalColumns: ['id'] },
-		{ key: 'classFeatures',   label: 'Class Features',   action: '?/importClassFeatures',   columns: ['className','name','requiredLevel','description','url','grantsSkills','grantsExpertise','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool','savingThrowChoiceCount','savingThrowChoicePool','grantsTools','toolChoiceCount','toolChoicePool','grantsLanguages','languageChoiceCount','languageChoicePool','grantsResistances','grantsImmunities','grantsVulnerabilities','grantsInnateSpells','grantsSpeed','grantsSenses'], optionalColumns: ['id', 'classId'] },
-		{ key: 'subclasses',      label: 'Subclasses',       action: '?/importSubclasses',      columns: ['className','name','description','source','link','canCastSpells','sortOrder'], optionalColumns: ['id', 'classId'] },
-		{ key: 'subclassFeatures',label: 'Subclass Features',action: '?/importSubclassFeatures',columns: ['className','subclassName','name','requiredLevel','description','url','grantsSkills','grantsExpertise','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool','savingThrowChoiceCount','savingThrowChoicePool','grantsTools','toolChoiceCount','toolChoicePool','grantsLanguages','languageChoiceCount','languageChoicePool','grantsResistances','grantsImmunities','grantsVulnerabilities','grantsInnateSpells','grantsSpeed','grantsSenses'], optionalColumns: ['id', 'classId', 'subclassId'] },
-		{ key: 'species',        label: 'Species',          action: '?/importSpecies',         columns: ['name','description','source','link','isSubrace','isLegacy','sortOrder'], optionalColumns: ['id'] },
-		{ key: 'speciesTraits',   label: 'Species Traits',   action: '?/importSpeciesTraits',   columns: ['speciesName','name','description','requiredLevel','size','sizeChoices','senses','WALK','FLY','SWIM','CLIMB','BURROW','grantsSkills','grantsExpertise','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool','savingThrowChoiceCount','savingThrowChoicePool','grantsTools','toolChoiceCount','toolChoicePool','grantsLanguages','languageChoiceCount','languageChoicePool','grantsResistances','grantsImmunities','grantsVulnerabilities','grantsInnateSpells','grantsSpeed','grantsSenses'], optionalColumns: ['id', 'speciesId'] },
-		{ key: 'backgrounds',     label: 'Backgrounds',      action: '?/importBackgrounds',     columns: ['name','shortDescription','featureName','grantsFeatCategory','grantsFeatId','grantsSkills','skillChoiceCount','skillChoicePool','savingThrowChoiceCount','savingThrowChoicePool','grantsTools','toolChoiceCount','toolChoicePool','grantsLanguages','languageChoiceCount','languageChoicePool','grantsResistances','grantsImmunities','grantsVulnerabilities','grantsInnateSpells','grantsSpeed','grantsSenses','url','sortOrder'], optionalColumns: ['id'] },
-		{ key: 'feats',           label: 'Feats',            action: '?/importFeats',           columns: ['name','description','snippet','repeatable','categories','prerequisites','detailsUrl','isEpicBoon','asiAmount','asiStatFixed','asiStatChoices','grantsSkills','grantsExpertise','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool','savingThrowChoiceCount','savingThrowChoicePool','grantsTools','toolChoiceCount','toolChoicePool','grantsLanguages','languageChoiceCount','languageChoicePool','grantsResistances','grantsImmunities','grantsVulnerabilities','grantsInnateSpells','grantsSpeed','grantsSenses','sortOrder'], optionalColumns: ['id'] },
+		{ key: 'classes',         label: 'Classes',          action: '?/importClasses',         columns: ['name','hitDice','canCastSpells','subclassAvailableAtLevel','primaryAbilities','equipmentDescription','description','source','link','sortOrder','skillChoiceCount','grantsSavingThrows','skillPool'], optionalColumns: ['id', 'uploadId'] },
+		{ key: 'classFeatures',   label: 'Class Features',   action: '?/importClassFeatures',   columns: ['className','name','requiredLevel','description','url','grantsSkills','grantsExpertise','expertiseChoiceCount','expertiseChoicePool','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool','savingThrowChoiceCount','savingThrowChoicePool','grantsTools','toolChoiceCount','toolChoicePool','grantsLanguages','languageChoiceCount','languageChoicePool','grantsResistances','grantsImmunities','grantsVulnerabilities','grantsInnateSpells','grantsSpeed','grantsSenses'], optionalColumns: ['id', 'classId', 'classUploadId', 'uploadId'] },
+		{ key: 'subclasses',      label: 'Subclasses',       action: '?/importSubclasses',      columns: ['className','name','description','source','link','canCastSpells','sortOrder'], optionalColumns: ['id', 'classId', 'classUploadId', 'uploadId'] },
+		{ key: 'subclassFeatures',label: 'Subclass Features',action: '?/importSubclassFeatures',columns: ['className','subclassName','name','requiredLevel','description','url','grantsSkills','grantsExpertise','expertiseChoiceCount','expertiseChoicePool','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool','savingThrowChoiceCount','savingThrowChoicePool','grantsTools','toolChoiceCount','toolChoicePool','grantsLanguages','languageChoiceCount','languageChoicePool','grantsResistances','grantsImmunities','grantsVulnerabilities','grantsInnateSpells','grantsSpeed','grantsSenses'], optionalColumns: ['id', 'classId', 'classUploadId', 'subclassId', 'subclassUploadId', 'uploadId'] },
+		{ key: 'species',        label: 'Species',          action: '?/importSpecies',         columns: ['name','description','source','link','isSubrace','isLegacy','sortOrder'], optionalColumns: ['id', 'uploadId'] },
+		{ key: 'speciesTraits',   label: 'Species Traits',   action: '?/importSpeciesTraits',   columns: ['speciesName','name','description','requiredLevel','size','sizeChoices','senses','WALK','FLY','SWIM','CLIMB','BURROW','grantsSkills','grantsExpertise','expertiseChoiceCount','expertiseChoicePool','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool','savingThrowChoiceCount','savingThrowChoicePool','grantsTools','toolChoiceCount','toolChoicePool','grantsLanguages','languageChoiceCount','languageChoicePool','grantsResistances','grantsImmunities','grantsVulnerabilities','grantsInnateSpells','grantsSpeed','grantsSenses'], optionalColumns: ['id', 'speciesId', 'speciesUploadId', 'uploadId'] },
+		{ key: 'backgrounds',     label: 'Backgrounds',      action: '?/importBackgrounds',     columns: ['name','shortDescription','featureName','grantsFeatCategory','grantsFeatId','grantsSkills','skillChoiceCount','skillChoicePool','savingThrowChoiceCount','savingThrowChoicePool','grantsTools','toolChoiceCount','toolChoicePool','grantsLanguages','languageChoiceCount','languageChoicePool','grantsResistances','grantsImmunities','grantsVulnerabilities','grantsInnateSpells','grantsSpeed','grantsSenses','url','sortOrder'], optionalColumns: ['id', 'uploadId'] },
+		{ key: 'feats',           label: 'Feats',            action: '?/importFeats',           columns: ['name','description','snippet','repeatable','categories','prerequisites','detailsUrl','isEpicBoon','asiAmount','asiStatFixed','asiStatChoices','grantsSkills','grantsExpertise','expertiseChoiceCount','expertiseChoicePool','grantsHalfSkills','grantsSavingThrows','skillChoiceCount','skillChoicePool','savingThrowChoiceCount','savingThrowChoicePool','grantsTools','toolChoiceCount','toolChoicePool','grantsLanguages','languageChoiceCount','languageChoicePool','grantsResistances','grantsImmunities','grantsVulnerabilities','grantsInnateSpells','grantsSpeed','grantsSenses','sortOrder'], optionalColumns: ['id', 'uploadId'] },
 		{ key: 'spells',          label: 'Spells',           action: '?/importSpells',          columns: ['Spell ID','Name','Link','Level','School','Concentration','Ritual','Is Homebrew','Is Legacy','Cantrip Damage','Cantrip Dmg Lvl 5','Cantrip Dmg Lvl 11','Cantrip Dmg Lvl 17','Spell Damage','Upcast Per Slot','Upcast Every 2 Slots','Spell Progression','Progression Note','Range Origin','Range Value (ft)','AoE Type','AoE Value (ft)','Duration Type','Duration Interval','Duration Unit','Requires Saving Throw','Saving Throw','Requires Attack Roll','Can Cast Higher Level','Casting Time','Components','Description','Source Book','Tags','Spell List'] },
-		{ key: 'spellSlots',      label: 'Spell Slots',      action: '?/importSpellSlots',      columns: ['Class Name','Subclass Name','Caster Type','Level','Slot 1','Slot 2','Slot 3','Slot 4','Slot 5','Slot 6','Slot 7','Slot 8','Slot 9'] },
-		{ key: 'spellsKnown',     label: 'Spells Known',     action: '?/importSpellsKnown',     columns: ['Class Name','Subclass Name','Level','Cantrips','Prepared','Additional','Note'] },
+		{ key: 'spellSlots',      label: 'Spell Slots',      action: '?/importSpellSlots',      columns: ['Class Name','Subclass Name','Caster Type','Level','Slot 1','Slot 2','Slot 3','Slot 4','Slot 5','Slot 6','Slot 7','Slot 8','Slot 9'], optionalColumns: ['Class Upload ID','Subclass Upload ID'] },
+		{ key: 'spellsKnown',     label: 'Spells Known',     action: '?/importSpellsKnown',     columns: ['Class Name','Subclass Name','Level','Cantrips','Prepared','Additional','Note'], optionalColumns: ['Class Upload ID','Subclass Upload ID'] },
 	];
 
 	const activeTabDef = $derived(TABS.find(t => t.key === activeTab)!);
@@ -51,7 +51,11 @@
 		reader.onload = (ev) => {
 			try {
 				const wb   = XLSX.read(ev.target?.result, { type: 'array' });
-				const ws   = wb.Sheets[wb.SheetNames[0]];
+				// Prefer sheet matching activeTab name, fall back to first sheet
+				const sheetName = wb.SheetNames.find((n: string) => n.toLowerCase() === activeTab.toLowerCase())
+					?? wb.SheetNames.find((n: string) => n.toLowerCase().includes(activeTab.toLowerCase()))
+					?? wb.SheetNames[0];
+				const ws   = wb.Sheets[sheetName];
 				const rows = XLSX.utils.sheet_to_json(ws, { defval: '' }) as any[];
 
 				if (!rows.length) {
@@ -291,10 +295,18 @@
 				{ action: '?/deleteSpellSlots',       label: 'Spell Slots' },
 				{ action: '?/deleteSpellsKnown',      label: 'Spells Known' },
 			] as btn}
-				<form id="cf-ebe9cc" method="post" action={btn.action} use:enhance={() => {
-				return async ({ update }) => { await update(); };
-			}}>
-					<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);border-color:var(--color-danger);" onclick={() => window.confirmModal('Confirm', `Delete ALL ${btn.label} for ${system.name}? This cannot be undone.`).then(ok => { if(ok)(document.getElementById("cf-ebe9cc") as HTMLFormElement).requestSubmit(); })}>
+				<form method="post" action={btn.action} use:enhance={() => {
+					return async ({ update }) => { await update(); };
+				}}>
+					<button type="button" class="btn btn-ghost btn-sm" style="color:var(--color-danger);border-color:var(--color-danger);"
+						onclick={(e) => {
+							const form = (e.currentTarget as HTMLElement).closest('form') as HTMLFormElement;
+							askConfirm(
+								'Confirm delete',
+								`Delete ALL ${btn.label} for ${system.name}? This cannot be undone.`,
+								() => form.requestSubmit()
+							);
+						}}>
 						🗑 {btn.label}
 					</button>
 				</form>

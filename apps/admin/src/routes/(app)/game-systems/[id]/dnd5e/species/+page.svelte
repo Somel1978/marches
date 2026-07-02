@@ -200,8 +200,16 @@
 																	<input id="tgs-{t.id}" name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" value={t.grantsSkills ?? ''} />
 																</div>
 																<div class="field" style="flex:1 1 140px; margin:0;">
-																	<label class="label" for="tge-{t.id}">Expertise</label>
+																	<label class="label" for="tge-{t.id}">Expertise (auto)</label>
 																	<input id="tge-{t.id}" name="grantsExpertise" class="input" placeholder="ARCANA" value={t.grantsExpertise ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 80px; margin:0;">
+																	<label class="label" for="tecc-{t.id}">Exp. picks</label>
+																	<input id="tecc-{t.id}" name="expertiseChoiceCount" type="number" min="0" class="input" value={(t as any).expertiseChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tecp-{t.id}">Exp. pool</label>
+																	<input id="tecp-{t.id}" name="expertiseChoicePool" class="input" placeholder="ARCANA,HISTORY or *" value={(t as any).expertiseChoicePool ?? ''} />
 																</div>
 																<div class="field" style="flex:1 1 140px; margin:0;">
 																	<label class="label" for="tgh-{t.id}">Half Prof</label>
