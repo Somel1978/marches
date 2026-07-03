@@ -34,7 +34,20 @@
 	const activeTabDef = $derived(TABS.find(t => t.key === activeTab)!);
 
 	function downloadTemplate() {
-		const ws = XLSX.utils.aoa_to_sheet([activeTabDef.columns]);
+		// Header row: required columns first, then optional columns
+		const allCols = [
+			...activeTabDef.columns,
+			...(activeTabDef.optionalColumns ?? []),
+		];
+		const ws = XLSX.utils.aoa_to_sheet([allCols]);
+		// Style the optional columns header cells with a comment to distinguish them
+		const reqCount = activeTabDef.columns.length;
+		for (let i = reqCount; i < allCols.length; i++) {
+			const cellRef = XLSX.utils.encode_cell({ r: 0, c: i });
+			if (ws[cellRef]) {
+				ws[cellRef].c = [{ a: 'System', t: 'Optional — populated automatically on export. Leave blank for first-time imports.' }];
+			}
+		}
 		const wb = XLSX.utils.book_new();
 		XLSX.utils.book_append_sheet(wb, ws, activeTab);
 		XLSX.writeFile(wb, `template_${activeTab}.xlsx`);
