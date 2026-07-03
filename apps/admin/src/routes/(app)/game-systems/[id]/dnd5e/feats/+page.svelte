@@ -84,6 +84,10 @@
 							<label class="label" for="new-url">Details URL</label>
 							<input id="new-url" name="detailsUrl" type="text" class="input" placeholder="https://…" />
 						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<label class="label" for="new-source">Source</label>
+							<input id="new-source" name="source" type="text" class="input" placeholder="PHB 2024" />
+						</div>
 						<div class="field" style="flex:0 0 110px;">
 							<label class="label" for="new-repeatable">Repeatable</label>
 							<select id="new-repeatable" name="repeatable" class="input input--select">
@@ -136,16 +140,8 @@
 							<input id="new-grantsSkills" name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" />
 						</div>
 						<div class="field" style="flex:1 1 140px;">
-							<label class="label" for="new-grantsExpertise">Grants Expertise (auto)</label>
+							<label class="label" for="new-grantsExpertise">Grants Expertise</label>
 							<input id="new-grantsExpertise" name="grantsExpertise" class="input" placeholder="ARCANA" />
-						</div>
-						<div class="field" style="flex:0 0 80px;">
-							<label class="label" for="new-expertiseChoiceCount">Exp. picks</label>
-							<input id="new-expertiseChoiceCount" name="expertiseChoiceCount" type="number" min="0" class="input" />
-						</div>
-						<div class="field" style="flex:1 1 140px;">
-							<label class="label" for="new-expertiseChoicePool">Exp. pool</label>
-							<input id="new-expertiseChoicePool" name="expertiseChoicePool" class="input" placeholder="ARCANA,HISTORY or *" />
 						</div>
 						<div class="field" style="flex:1 1 140px;">
 							<label class="label" for="new-grantsHalfSkills">Grants Half Prof</label>
@@ -310,6 +306,10 @@
 											<label class="label" for="eurl-{feat.id}">Details URL</label>
 											<input id="eurl-{feat.id}" name="detailsUrl" type="text" class="input" value={feat.detailsUrl ?? ''} />
 										</div>
+										<div class="field" style="flex:1 1 140px; margin:0;">
+											<label class="label" for="esrc-{feat.id}">Source</label>
+											<input id="esrc-{feat.id}" name="source" type="text" class="input" value={(feat as any).source ?? ''} />
+										</div>
 										<div class="field" style="flex:0 0 110px;">
 											<label class="label" for="erep-{feat.id}">Repeatable</label>
 											<select id="erep-{feat.id}" name="repeatable" class="input input--select">
@@ -362,16 +362,8 @@
 											<input id="gs-{feat.id}" name="grantsSkills" class="input" placeholder="ATHLETICS,INSIGHT" value={feat.grantsSkills ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 140px;">
-											<label class="label" for="ge-{feat.id}">Expertise (auto)</label>
+											<label class="label" for="ge-{feat.id}">Grants Expertise</label>
 											<input id="ge-{feat.id}" name="grantsExpertise" class="input" placeholder="ARCANA" value={feat.grantsExpertise ?? ''} />
-										</div>
-										<div class="field" style="flex:0 0 80px;">
-											<label class="label" for="ecc-{feat.id}">Exp. picks</label>
-											<input id="ecc-{feat.id}" name="expertiseChoiceCount" type="number" min="0" class="input" value={(feat as any).expertiseChoiceCount ?? ''} />
-										</div>
-										<div class="field" style="flex:1 1 140px;">
-											<label class="label" for="ecp-{feat.id}">Exp. pool</label>
-											<input id="ecp-{feat.id}" name="expertiseChoicePool" class="input" placeholder="ARCANA,HISTORY or *" value={(feat as any).expertiseChoicePool ?? ''} />
 										</div>
 										<div class="field" style="flex:1 1 140px;">
 											<label class="label" for="gh-{feat.id}">Grants Half Prof</label>
