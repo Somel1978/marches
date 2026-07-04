@@ -13,9 +13,7 @@ Several import types share the same grant field set. These are documented once h
 | Field | Type | Description |
 |---|---|---|
 | `grantsSkills` | comma-sep skills | Auto-grants these skill proficiencies. Values: `Acrobatics`, `Animal Handling`, `Arcana`, `Athletics`, `Deception`, `History`, `Insight`, `Intimidation`, `Investigation`, `Medicine`, `Nature`, `Perception`, `Performance`, `Persuasion`, `Religion`, `Sleight of Hand`, `Stealth`, `Survival` |
-| `grantsExpertise` | comma-sep skills | Auto-grants expertise (×2 proficiency) in these skills — fixed list, no player choice |
-| `expertiseChoiceCount` | integer | How many expertise picks the player makes from the pool |
-| `expertiseChoicePool` | comma-sep skills | Pool of skills the player picks expertise from (same values as `grantsSkills`). Use `*` to allow any already-proficient skill |
+| `grantsExpertise` | comma-sep skills | Auto-grants expertise (×2 proficiency) in these skills |
 | `grantsHalfSkills` | comma-sep skills | Auto-grants half-proficiency in these skills |
 | `grantsSavingThrows` | comma-sep stats | Auto-grants saving throw proficiency. Values: `Strength`, `Dexterity`, `Constitution`, `Intelligence`, `Wisdom`, `Charisma` |
 | `skillChoiceCount` | integer | How many skills the player picks from the pool |
@@ -157,8 +155,8 @@ Several import types share the same grant field set. These are documented once h
 | `name` | ✓ | string | Background name. Unique per game system |
 | `shortDescription` | | string | One-line summary |
 | `featureName` | | string | Name of the background's narrative feature |
-| `grantsFeatCategory` | | string | Category of feat granted (e.g. `Origin`) — player picks from feats with this category |
-| `grantsFeatId` | | string | Specific feat granted by this background. Accepts: platform UUID, feat `uploadId` (e.g. `2:Alert`), or feat name (e.g. `Alert`). Resolved in that priority order. If the feat doesn't exist yet, leave blank — the background still imports and the field can be filled later |
+| `grantsFeatCategory` | | string | Category of feat granted (e.g. `Origin`) |
+| `grantsFeatId` | | string | UUID of a specific feat granted by this background |
 | `url` | | string | URL to rules reference |
 | `sortOrder` | | integer | Display sort order |
 | + all **Common Grant Fields** | | | See table above (note: `grantsSkills` here grants exactly 2 skills; `skillChoiceCount`/`skillChoicePool` for player picks) |
@@ -206,11 +204,11 @@ Several import types share the same grant field set. These are documented once h
 | `Cantrip Dmg Lvl 5` | | Damage dice at character level 5 |
 | `Cantrip Dmg Lvl 11` | | Damage dice at character level 11 |
 | `Cantrip Dmg Lvl 17` | | Damage dice at character level 17 |
-| `Spell Damage` | | Base spell damage dice e.g. `8d6` |
-| `Upcast Per Slot` | | Additional dice added per slot level above the spell's base level e.g. `1d6`. Displayed as *"{value} for each slot level above {base}."* Use this when the increment is the same at every level |
-| `Upcast Every 2 Slots` | | Additional dice added per two slot levels above base e.g. `1d6`. Displayed as *"{value} for every two slot levels above {base}."* |
-| `Spell Progression` | | Structured formula string for non-linear upcast scaling where the value differs at each slot level. Format: `[slotLevel=value][slotLevel=value]…` e.g. `[2=2d8][3=3d8][4=4d8][5=5d8][6=6d8][7=7d8][8=8d8][9=9d8]`. **Displayed as-is** — the platform does not evaluate the bracket syntax, it renders the raw string. Use this only when `Upcast Per Slot` is not sufficient because the scaling is irregular or non-linear |
-| `Progression Note` | | Free-text human-readable description of how the spell scales at higher levels e.g. `When cast using a slot of 2nd level or higher, you can target one additional creature for each slot level above 1st`. Used when the scaling doesn't involve damage (targets, duration, area, etc.) or to include the original PHB "At Higher Levels" text verbatim. Displayed in the spellbook and Discord bot when neither `Upcast Per Slot` nor `Upcast Every 2 Slots` is set |
+| `Spell Damage` | | Base spell damage dice |
+| `Upcast Per Slot` | | Additional dice per spell slot level above minimum |
+| `Upcast Every 2 Slots` | | Additional dice per 2 slot levels above minimum |
+| `Spell Progression` | | Progression type identifier |
+| `Progression Note` | | Free text note about scaling |
 | `Range Origin` | | e.g. `Self`, `Touch`, `Ranged` |
 | `Range Value (ft)` | | Numeric range in feet |
 | `AoE Type` | | e.g. `Cone`, `Sphere`, `Line` |
@@ -228,19 +226,6 @@ Several import types share the same grant field set. These are documented once h
 | `Source Book` | | e.g. `PHB 2024`, `XGE` |
 | `Tags` | | Comma-separated tags |
 | `Spell List` | | Comma-separated class names this spell belongs to |
-
-**Upcast display priority:** The "At Higher Levels" block in the spellbook and Discord bot renders the first populated field in this order: `Upcast Per Slot` → `Upcast Every 2 Slots` → `Progression Note` → `Spell Progression`. The block only appears when `Can Cast Higher Level` is `true` and at least one of these four fields is set.
-
-**Choosing the right upcast field:**
-
-| Spell type | Use |
-|---|---|
-| Cantrip scaling by character level | `Cantrip Damage` + `Cantrip Dmg Lvl 5/11/17` |
-| Levelled spell, same increment per slot | `Upcast Per Slot` |
-| Levelled spell, same increment per two slots | `Upcast Every 2 Slots` |
-| Levelled spell, different value at each slot | `Spell Progression` |
-| Scales targets, duration, area, or other non-damage effect | `Progression Note` |
-| Original PHB "At Higher Levels" text verbatim | `Progression Note` |
 
 ---
 
@@ -278,25 +263,6 @@ Defines how many spells a class knows or can prepare at each level.
 
 ---
 
-## Optional Columns
-
-These columns are accepted by all relevant importers but are **never required**. They are populated automatically when you export from the platform and passed through on re-import to ensure exact record matching. Leave them blank for first-time imports from the parser tool or manual spreadsheets.
-
-| Column | Present on tabs | Description |
-|---|---|---|
-| `id` | All entity tabs | Platform UUID of the record. Used for exact UUID lookup on re-import |
-| `uploadId` | All entity tabs | Parser transport key e.g. `2:Fighter`. Used for cross-system deduplication |
-| `classId` | Class Features, Subclasses, Subclass Features | Platform UUID of the parent class |
-| `classUploadId` | Class Features, Subclasses, Subclass Features, Spell Slots, Spells Known | Parser upload key of the parent class e.g. `2:Fighter` |
-| `subclassId` | Subclass Features | Platform UUID of the parent subclass |
-| `subclassUploadId` | Subclass Features, Spell Slots, Spells Known | Parser upload key of the parent subclass |
-| `speciesId` | Species Traits | Platform UUID of the parent species |
-| `speciesUploadId` | Species Traits | Parser upload key of the parent species e.g. `2:Elf` |
-| `Class Upload ID` | Spell Slots, Spells Known | Same as `classUploadId` — column name used in those tabs |
-| `Subclass Upload ID` | Spell Slots, Spells Known | Same as `subclassUploadId` — column name used in those tabs |
-
----
-
 ## Format Notes
 
 ### Speed bonus format
@@ -317,17 +283,8 @@ Case-insensitive. Accepted: `Strength`, `STRENGTH`, `strength`, `STR`.
 
 **Example:** `Faerie Fire:1:0,Darkness:3:1,Daylight:5:1:true`
 
-### Update behaviour and record lookup
-
-All importers resolve existing records using a three-tier priority:
-
-1. **`id`** (platform UUID) — exact match. Present on files exported from the platform.
-2. **`uploadId`** — deterministic transport key computed by the parser as `${sourceId}:${name}` e.g. `2:Fighter`, `145:Fighter`. Allows PHB 2014 and PHB 2024 versions of the same name to coexist.
-3. **Name** (case-insensitive fallback) — used for manual spreadsheets and records imported before `uploadId` was introduced.
-
-Child entity importers (class features, subclass features, species traits) additionally resolve their **parent** by `classUploadId` / `subclassUploadId` / `speciesUploadId` before falling back to the parent name column. This ensures the correct PHB version is targeted even when two classes share the same name.
-
-If a match is found, the record is only overwritten when the **Allow Update** checkbox is ticked. Otherwise the row is skipped and counted as skipped.
+### Update behaviour
+All importers check for **existing records by name** (case-insensitive). If a match is found, the record is only overwritten when the **Allow Update** checkbox is ticked. Otherwise the row is skipped and reported.
 
 ### Warnings
 Any unrecognised skill or stat names are collected and shown after import as warnings. The valid rows are still imported — only the invalid grant fields are ignored.

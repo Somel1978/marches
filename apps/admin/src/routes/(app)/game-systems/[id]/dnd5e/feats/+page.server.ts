@@ -9,7 +9,9 @@ import type { PageServerLoad, Actions } from './$types';
 function featGrantFields(data: FormData) {
 	return {
 		grantsSkills:       data.get('grantsSkills')?.toString().trim()       || null,
-		grantsExpertise:    data.get('grantsExpertise')?.toString().trim()    || null,
+		grantsExpertise:        data.get('grantsExpertise')?.toString().trim()        || null,
+		expertiseChoiceCount:   data.get('expertiseChoiceCount') ? Number(data.get('expertiseChoiceCount')) : null,
+		expertiseChoicePool:    data.get('expertiseChoicePool')?.toString().trim()    || null,
 		grantsHalfSkills:   data.get('grantsHalfSkills')?.toString().trim()   || null,
 		grantsSavingThrows: data.get('grantsSavingThrows')?.toString().trim() || null,
 		skillChoiceCount:   data.get('skillChoiceCount') ? Number(data.get('skillChoiceCount')) : null,
@@ -54,7 +56,6 @@ export const actions: Actions = {
 				categories:    data.get('categories')?.toString().trim()     || undefined,
 				prerequisites: data.get('prerequisites')?.toString().trim()  || undefined,
 				detailsUrl:    data.get('detailsUrl')?.toString().trim()     || undefined,
-				source:        data.get('source')?.toString().trim()         || undefined,
 				isEpicBoon:    data.get('isEpicBoon') === 'true',
 				isAvailable:   data.get('isAvailable') !== 'false',
 				sortOrder:     Number(data.get('sortOrder') ?? 0),
@@ -85,7 +86,6 @@ export const actions: Actions = {
 				categories:    data.get('categories')?.toString().trim()     || undefined,
 				prerequisites: data.get('prerequisites')?.toString().trim()  || undefined,
 				detailsUrl:    data.get('detailsUrl')?.toString().trim()     || undefined,
-				source:        data.get('source')?.toString().trim()         || undefined,
 				isEpicBoon:    data.get('isEpicBoon') === 'true',
 				isAvailable:   data.get('isAvailable') !== 'false',
 				sortOrder:     Number(data.get('sortOrder') ?? 0),

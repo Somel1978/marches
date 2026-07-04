@@ -89,6 +89,8 @@ function grantFields(row: any, warnings: string[], context: string) {
     return {
         grantsSkills:           n(normalizeSkills(row.grantsSkills, warnings, context)),
         grantsExpertise:        n(normalizeSkills(row.grantsExpertise, warnings, context)),
+        expertiseChoiceCount:   row.expertiseChoiceCount != null && row.expertiseChoiceCount !== '' ? Number(row.expertiseChoiceCount) : undefined,
+        expertiseChoicePool:    n(normalizeSkills(row.expertiseChoicePool, warnings, context)),
         grantsHalfSkills:       n(normalizeSkills(row.grantsHalfSkills, warnings, context)),
         grantsSavingThrows:     n(normalizeStats(row.grantsSavingThrows, warnings, context)),
         skillChoiceCount:       row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : undefined,
@@ -135,10 +137,13 @@ export const actions: Actions = {
 				const sal = toInt(row.subclassAvailableAtLevel, 3);
 				const existing = row.id
 					? all.find(c => c.id === row.id)
-					: all.find(c => normalize(c.name).toLowerCase() === normalize(row.name).toLowerCase());
+					: row.uploadId
+						? all.find(c => (c as any).uploadId === row.uploadId)
+						: all.find(c => normalize(c.name).toLowerCase() === normalize(row.name).toLowerCase());
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.classes.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						description:              row.description              || null,
 						source:                   row.source                   || null,
 						link:                     row.link                     || null,
@@ -157,7 +162,7 @@ export const actions: Actions = {
 						for (const stat of saves) await db.dnd5eClassSavingThrow.create({ data: { classId: existing.id, stat } });
 					}
 					// Upsert skill options (SkillPool column — comma-separated)
-					const pool = (row.skillPool || '').split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean);
+					const pool = (row.skillPool || '').split(',').map((s: string) => SKILL_ENUM[s.trim().toLowerCase().replace(/_/g, ' ')] ?? s.trim().toUpperCase()).filter(Boolean);
 					if (pool.length && existing) {
 						await db.dnd5eClassSkillOption.deleteMany({ where: { classId: existing.id } });
 						for (const skill of pool) await db.dnd5eClassSkillOption.create({ data: { classId: existing.id, skill: skill as any } });
@@ -167,6 +172,7 @@ export const actions: Actions = {
 					const newClass = await dnd5e.classes.create({
 						gameSystemId:             params.id,
 						name:                     row.name,
+						uploadId:                 row.uploadId || undefined,
 						description:              row.description              || undefined,
 						source:                   row.source                   || undefined,
 						link:                     row.link                     || undefined,
@@ -182,7 +188,7 @@ export const actions: Actions = {
 					const saves = (normalizeStats(row.grantsSavingThrows, warnings, row.name) ?? '').split(',').filter(Boolean);
 					for (const stat of saves) await db.dnd5eClassSavingThrow.create({ data: { classId: newClass.id, stat } });
 					// Insert skill options
-					const pool = (row.skillPool || '').split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean);
+					const pool = (row.skillPool || '').split(',').map((s: string) => SKILL_ENUM[s.trim().toLowerCase().replace(/_/g, ' ')] ?? s.trim().toUpperCase()).filter(Boolean);
 					for (const skill of pool) await db.dnd5eClassSkillOption.create({ data: { classId: newClass.id, skill: skill as any } });
 					created++;
 				}
@@ -213,17 +219,22 @@ export const actions: Actions = {
 			for (const row of rows) {
 				const cls = row.classId
 					? allClasses.find(c => c.id === row.classId)
-					: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
+					: row.classUploadId
+						? allClasses.find(c => (c as any).uploadId === row.classUploadId)
+						: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) { skipped++; continue; }
 				// Match on name + level so same-name features at different levels are distinct
 				const existing = row.id
 					? cls.features?.find((f: any) => f.id === row.id)
-					: cls.features?.find((f: any) =>
-						f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
-					);
+					: row.uploadId
+						? cls.features?.find((f: any) => (f as any).uploadId === row.uploadId)
+						: cls.features?.find((f: any) =>
+							f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
+						);
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.classFeatures.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						description:   row.description || null,
 						requiredLevel: toInt(row.requiredLevel),
 						url:           row.url         || null,
@@ -234,6 +245,7 @@ export const actions: Actions = {
 					await dnd5e.classFeatures.create({
 						classId:       cls.id,
 						name:          row.name,
+						uploadId:      row.uploadId || undefined,
 						description:   row.description || undefined,
 						requiredLevel: toInt(row.requiredLevel),
 						url:           row.url         || undefined,
@@ -270,16 +282,21 @@ export const actions: Actions = {
 			for (const row of rows) {
 				const cls = row.classId
 					? allClasses.find(c => c.id === row.classId)
-					: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
+					: row.classUploadId
+						? allClasses.find(c => (c as any).uploadId === row.classUploadId)
+						: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) { skipped++; continue; }
 				const existing = row.id
 					? cls.subclasses?.find((s: any) => s.id === row.id)
-					: cls.subclasses?.find((s: any) =>
-						normalize(s.name).toLowerCase() === normalize(row.name).toLowerCase()
-					);
+					: row.uploadId
+						? cls.subclasses?.find((s: any) => (s as any).uploadId === row.uploadId)
+						: cls.subclasses?.find((s: any) =>
+							normalize(s.name).toLowerCase() === normalize(row.name).toLowerCase()
+						);
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.subclasses.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						description:  row.description || null,
 						source:       row.source      || null,
 						link:         row.link        || null,
@@ -294,6 +311,7 @@ export const actions: Actions = {
 					await dnd5e.subclasses.create({
 						classId:      cls.id,
 						name:         row.name,
+						uploadId:     row.uploadId || undefined,
 						description:  row.description || undefined,
 						source:       row.source      || undefined,
 						link:         row.link        || undefined,
@@ -339,26 +357,33 @@ export const actions: Actions = {
 			for (const row of rows) {
 				const cls = row.classId
 					? allClasses.find(c => c.id === row.classId)
-					: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
+					: row.classUploadId
+						? allClasses.find(c => (c as any).uploadId === row.classUploadId)
+						: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) {
-					skipReasons.push(`Class not found: '${row.className}'`);
+					skipReasons.push(`Class not found: '${row.classUploadId || row.className}'`);
 					skipped++; continue;
 				}
 				const sub = row.subclassId
 					? cls.subclasses?.find((s: any) => s.id === row.subclassId)
-					: cls.subclasses?.find((s: any) => normalize(s.name).toLowerCase() === normalize(row.subclassName).toLowerCase());
+					: row.subclassUploadId
+						? cls.subclasses?.find((s: any) => (s as any).uploadId === row.subclassUploadId)
+						: cls.subclasses?.find((s: any) => normalize(s.name).toLowerCase() === normalize(row.subclassName).toLowerCase());
 				if (!sub) {
-					skipReasons.push(`Subclass not found: '${row.subclassName}' (class: '${row.className}')`);
+					skipReasons.push(`Subclass not found: '${row.subclassUploadId || row.subclassName}' (class: '${row.classUploadId || row.className}')`);
 					skipped++; continue;
 				}
 				const existing = row.id
 					? sub.features?.find((f: any) => f.id === row.id)
-					: sub.features?.find((f: any) =>
-						f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
-					);
+					: row.uploadId
+						? sub.features?.find((f: any) => (f as any).uploadId === row.uploadId)
+						: sub.features?.find((f: any) =>
+							f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
+						);
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.subclassFeatures.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						description:   row.description || null,
 						requiredLevel: toInt(row.requiredLevel),
 						url:           row.url         || null,
@@ -369,6 +394,7 @@ export const actions: Actions = {
 					await dnd5e.subclassFeatures.create({
 						subclassId:    sub.id,
 						name:          row.name,
+						uploadId:      row.uploadId || undefined,
 						description:   row.description || undefined,
 						requiredLevel: toInt(row.requiredLevel),
 						url:           row.url         || undefined,
@@ -408,6 +434,7 @@ export const actions: Actions = {
 				if (!name) { skipReasons.push('Empty name'); skipped++; continue; }
 				// Use upsert keyed on @@unique([gameSystemId, name]) to avoid race conditions
 				const updateData = {
+					...(row.uploadId && { uploadId: row.uploadId }),
 					description: row.description || null,
 					source:      row.source      || null,
 					link:        row.link        || null,
@@ -417,15 +444,17 @@ export const actions: Actions = {
 				};
 				const existing = row.id
 					? await db.dnd5eSpecies.findUnique({ where: { id: row.id } })
-					: await db.dnd5eSpecies.findFirst({
-						where: { gameSystemId: params.id, name: { equals: name, mode: 'insensitive' } },
-					});
+					: row.uploadId
+						? await db.dnd5eSpecies.findFirst({ where: { gameSystemId: params.id, uploadId: row.uploadId } })
+						: await db.dnd5eSpecies.findFirst({
+							where: { gameSystemId: params.id, name: { equals: name, mode: 'insensitive' } },
+						});
 				if (existing) {
 					if (!allowUpdate) { skipReasons.push(`Already exists (tick Update to overwrite): '${name}'`); skipped++; continue; }
 					await db.dnd5eSpecies.update({ where: { id: existing.id }, data: updateData });
 					updated++;
 				} else {
-					await db.dnd5eSpecies.create({ data: { gameSystemId: params.id, name, ...updateData } });
+					await db.dnd5eSpecies.create({ data: { gameSystemId: params.id, name, uploadId: row.uploadId || null, ...updateData } });
 					created++;
 				}
 			}
@@ -462,12 +491,15 @@ export const actions: Actions = {
 				if (!traitName) { skipped++; continue; }
 				const sp = row.speciesId
 					? allSpecies.find(s => s.id === row.speciesId)
-					: allSpecies.find(s => normalize(s.name).toLowerCase() === normalize(row.speciesName).toLowerCase());
+					: row.speciesUploadId
+						? allSpecies.find(s => (s as any).uploadId === row.speciesUploadId)
+						: allSpecies.find(s => normalize(s.name).toLowerCase() === normalize(row.speciesName).toLowerCase());
 				if (!sp) {
-					skipReasons.push(`Species not found: '${row.speciesName}'`);
+					skipReasons.push(`Species not found: '${row.speciesUploadId || row.speciesName}'`);
 					skipped++; continue;
 				}
 				const traitData = {
+					...(row.uploadId && { uploadId: row.uploadId }),
 					description:   row.description || null,
 					requiredLevel: toInt(row.requiredLevel, 0) || undefined,
 					size:        normalize(row.size)        || null,
@@ -477,10 +509,12 @@ export const actions: Actions = {
 				};
 				const existing = row.id
 					? await db.dnd5eSpeciesTrait.findUnique({ where: { id: row.id }, select: { id: true } })
-					: await db.dnd5eSpeciesTrait.findFirst({
-						where: { speciesId: sp.id, name: { equals: traitName, mode: 'insensitive' } },
-						select: { id: true },
-					});
+					: row.uploadId
+						? await db.dnd5eSpeciesTrait.findFirst({ where: { speciesId: sp.id, uploadId: row.uploadId }, select: { id: true } })
+						: await db.dnd5eSpeciesTrait.findFirst({
+							where: { speciesId: sp.id, name: { equals: traitName, mode: 'insensitive' } },
+							select: { id: true },
+						});
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await db.dnd5eSpeciesTrait.update({ where: { id: existing.id }, data: traitData });
@@ -488,7 +522,7 @@ export const actions: Actions = {
 					await dnd5e.speciesTraits.updateSpeeds(existing.id, speeds);
 					updated++;
 				} else {
-					const newTrait = await dnd5e.speciesTraits.create({ speciesId: sp.id, name: traitName, ...traitData });
+					const newTrait = await dnd5e.speciesTraits.create({ speciesId: sp.id, name: traitName, uploadId: row.uploadId || undefined, ...traitData });
 					const speeds = parseSpeeds(row);
 					if (speeds.length) await dnd5e.speciesTraits.updateSpeeds(newTrait.id, speeds);
 					created++;
@@ -521,17 +555,19 @@ export const actions: Actions = {
 			for (const row of rows) {
 				const existing = row.id
 					? all.find((f: any) => f.id === row.id)
-					: all.find((f: any) => normalize(f.name).toLowerCase() === normalize(row.name).toLowerCase());
+					: row.uploadId
+						? all.find((f: any) => (f as any).uploadId === row.uploadId)
+						: all.find((f: any) => normalize(f.name).toLowerCase() === normalize(row.name).toLowerCase());
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.feats.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						description:    row.description   || null,
 						snippet:        row.snippet        || null,
 						repeatable:     String(row.repeatable).toLowerCase() === 'true',
 						categories:     row.categories     || null,
 						prerequisites:  row.prerequisites  || null,
 						detailsUrl:     row.detailsUrl      || null,
-						source:         row.source          || null,
 						isEpicBoon:     String(row.isEpicBoon).toLowerCase() === 'true',
 						asiAmount:      row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : null,
 						asiStatFixed:   row.asiStatFixed   || null,
@@ -544,13 +580,13 @@ export const actions: Actions = {
 					await dnd5e.feats.create({
 						gameSystemId:   params.id,
 						name:           row.name,
+						uploadId:       row.uploadId || undefined,
 						description:    row.description   || undefined,
 						snippet:        row.snippet        || undefined,
 						repeatable:     String(row.repeatable).toLowerCase() === 'true',
 						categories:     row.categories     || undefined,
 						prerequisites:  row.prerequisites  || undefined,
 						detailsUrl:     row.detailsUrl      || undefined,
-						source:         row.source          || undefined,
 						isEpicBoon:     String(row.isEpicBoon).toLowerCase() === 'true',
 						asiAmount:      row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : undefined,
 						asiStatFixed:   row.asiStatFixed   || undefined,
@@ -581,26 +617,22 @@ export const actions: Actions = {
 			const rows: any[] = JSON.parse(raw);
 			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
-			const all        = await dnd5e.backgrounds.getAll(params.id);
-			const allFeats       = await dnd5e.feats.getAll(params.id);
-			const featByUploadId = new Map(allFeats.filter((f: any) => f.uploadId).map((f: any) => [(f as any).uploadId, f.id]));
-			const featByName     = new Map(allFeats.map((f: any) => [normalize(f.name).toLowerCase(), f.id]));
+			const all = await dnd5e.backgrounds.getAll(params.id);
 			for (const row of rows) {
 				const existing = row.id
 					? all.find(b => b.id === row.id)
-					: all.find(b => normalize(b.name).toLowerCase() === normalize(row.name).toLowerCase());
+					: row.uploadId
+						? all.find(b => (b as any).uploadId === row.uploadId)
+						: all.find(b => normalize(b.name).toLowerCase() === normalize(row.name).toLowerCase());
 
 			if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.backgrounds.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						shortDescription:   row.shortDescription   || null,
 						featureName:        row.featureName        || null,
 						grantsFeatCategory: row.grantsFeatCategory || null,
-						grantsFeatId:       (row.grantsFeatId
-							? (row.grantsFeatId.length === 36 && row.grantsFeatId.includes('-')
-								? row.grantsFeatId
-								: (featByUploadId.get(row.grantsFeatId) ?? featByName.get(normalize(row.grantsFeatId).toLowerCase()) ?? null))
-							: null) || null,
+						grantsFeatId:       row.grantsFeatId       || null,
 						url:                row.url                || null,
 						sortOrder:          Number(row.sortOrder)  || 0,
 						toolProficiencies:  normalizeList(row.grantsTools ?? row.toolProficiencies),
@@ -612,14 +644,11 @@ export const actions: Actions = {
 					await dnd5e.backgrounds.create({
 						gameSystemId:       params.id,
 						name:               row.name,
+						uploadId:           row.uploadId || undefined,
 						shortDescription:   row.shortDescription   || undefined,
 						featureName:        row.featureName        || undefined,
 						grantsFeatCategory: row.grantsFeatCategory || undefined,
-						grantsFeatId:       (row.grantsFeatId
-							? (row.grantsFeatId.length === 36 && row.grantsFeatId.includes('-')
-								? row.grantsFeatId
-								: (featByUploadId.get(row.grantsFeatId) ?? featByName.get(normalize(row.grantsFeatId).toLowerCase()) ?? undefined))
-							: undefined) || undefined,
+						grantsFeatId:       row.grantsFeatId       || undefined,
 						url:                row.url                || undefined,
 						sortOrder:          Number(row.sortOrder)  || 0,
 						toolProficiencies:  normalizeList(row.grantsTools ?? row.toolProficiencies) ?? undefined,
@@ -826,22 +855,29 @@ export const actions: Actions = {
 		try { rows = JSON.parse(raw); } catch { return fail(400, { message: 'Invalid JSON.' }); }
 		const { dnd5e } = await import('@core/database');
 
-		// Resolve class/subclass IDs by name — IDs are system-specific and not portable
+		// Resolve class/subclass IDs — prefer uploadId, fall back to name
 		const classes = await dnd5e.classes.getAll(params.id);
-		const classByName = new Map(classes.map((c: any) => [c.name.toLowerCase(), c]));
+		const classByUploadId = new Map(classes.filter((c: any) => c.uploadId).map((c: any) => [c.uploadId, c]));
+		const classByName     = new Map(classes.map((c: any) => [c.name.toLowerCase(), c]));
 
 		let imported = 0; const errors: string[] = [];
 		for (const r of rows) {
 			try {
-				const className    = normalize(r['Class Name']    ?? r['className']    ?? '');
-				const subclassName = normalize(r['Subclass Name'] ?? r['subclassName'] ?? '');
-				const cls          = classByName.get(className.toLowerCase());
-				if (!cls) { errors.push(`Class "${className}" not found in this game system.`); continue; }
+				const classUploadId = normalize(r['Class Upload ID'] ?? r['classUploadId'] ?? '');
+				const className     = normalize(r['Class Name']      ?? r['className']    ?? '');
+				const subclassName  = normalize(r['Subclass Name']   ?? r['subclassName'] ?? '');
+				const subUploadId   = normalize(r['Subclass Upload ID'] ?? r['subclassUploadId'] ?? '');
+				const cls = classUploadId
+					? (classByUploadId.get(classUploadId) ?? classByName.get(className.toLowerCase()))
+					: classByName.get(className.toLowerCase());
+				if (!cls) { errors.push(`Class "${classUploadId || className}" not found in this game system.`); continue; }
 
 				let subclassId = '';
-				if (subclassName) {
-					const sub = (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase());
-					if (!sub) { errors.push(`Subclass "${subclassName}" not found under "${className}".`); continue; }
+				if (subclassName || subUploadId) {
+					const sub = subUploadId
+						? ((cls.subclasses ?? []).find((s: any) => (s as any).uploadId === subUploadId) ?? (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase()))
+						: (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase());
+					if (!sub) { errors.push(`Subclass "${subUploadId || subclassName}" not found under "${cls.name}".`); continue; }
 					subclassId = sub.id;
 				}
 
@@ -866,7 +902,7 @@ export const actions: Actions = {
 				imported++;
 			} catch (e: any) { errors.push(`Row ${r['Class Name'] ?? '?'} Lv${r['Level'] ?? '?'}: ${e.message}`); }
 		}
-		return { success: true, imported, skipped: errors.length, errors, type: 'spell slots' };
+		return { success: true, imported, skipped: errors.length, skipReasons: errors.slice(0, 20), type: 'spell slots' };
 	},
 
 	deleteSpellSlots: async ({ params, locals }) => {
@@ -887,23 +923,30 @@ export const actions: Actions = {
 		try { rows = JSON.parse(raw); } catch { return fail(400, { message: 'Invalid JSON.' }); }
 		const { dnd5e } = await import('@core/database');
 
-		// Resolve class/subclass IDs by name — IDs are system-specific and not portable
+		// Resolve class/subclass IDs — prefer uploadId lookup, fall back to name
 		const classes = await dnd5e.classes.getAll(params.id);
-		const classByName = new Map(classes.map((c: any) => [c.name.toLowerCase(), c]));
+		const classByUploadId = new Map(classes.filter((c: any) => c.uploadId).map((c: any) => [c.uploadId, c]));
+		const classByName     = new Map(classes.map((c: any) => [c.name.toLowerCase(), c]));
 
 		const gn = (v: any) => (v !== '' && v != null) ? Number(v) : null;
 		let imported = 0; const errors: string[] = [];
 		for (const r of rows) {
 			try {
-				const className    = normalize(r['Class Name']    ?? r['className']    ?? '');
-				const subclassName = normalize(r['Subclass Name'] ?? r['subclassName'] ?? '');
-				const cls          = classByName.get(className.toLowerCase());
-				if (!cls) { errors.push(`Class "${className}" not found in this game system.`); continue; }
+				const classUploadId = normalize(r['Class Upload ID'] ?? r['classUploadId'] ?? '');
+				const className     = normalize(r['Class Name']      ?? r['className']    ?? '');
+				const subclassName  = normalize(r['Subclass Name']   ?? r['subclassName'] ?? '');
+				const subUploadId   = normalize(r['Subclass Upload ID'] ?? r['subclassUploadId'] ?? '');
+				const cls = classUploadId
+					? (classByUploadId.get(classUploadId) ?? classByName.get(className.toLowerCase()))
+					: classByName.get(className.toLowerCase());
+				if (!cls) { errors.push(`Class "${classUploadId || className}" not found in this game system.`); continue; }
 
 				let subclassId = '';
-				if (subclassName) {
-					const sub = (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase());
-					if (!sub) { errors.push(`Subclass "${subclassName}" not found under "${className}".`); continue; }
+				if (subclassName || subUploadId) {
+					const sub = subUploadId
+						? ((cls.subclasses ?? []).find((s: any) => (s as any).uploadId === subUploadId) ?? (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase()))
+						: (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase());
+					if (!sub) { errors.push(`Subclass "${subUploadId || subclassName}" not found under "${cls.name}".`); continue; }
 					subclassId = sub.id;
 				}
 
@@ -922,7 +965,7 @@ export const actions: Actions = {
 				imported++;
 			} catch (e: any) { errors.push(`Row ${r['Class Name'] ?? '?'} Lv${r['Level'] ?? '?'}: ${e.message}`); }
 		}
-		return { success: true, imported, skipped: errors.length, errors, type: 'spells known' };
+		return { success: true, imported, skipped: errors.length, skipReasons: errors.slice(0, 20), type: 'spells known' };
 	},
 
 	deleteSpellsKnown: async ({ params, locals }) => {
