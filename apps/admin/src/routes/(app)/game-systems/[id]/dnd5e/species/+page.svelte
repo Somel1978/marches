@@ -212,6 +212,14 @@
 																	<input id="tecp-{t.id}" name="expertiseChoicePool" class="input" placeholder="ARCANA,HISTORY or *" value={(t as any).expertiseChoicePool ?? ''} />
 																</div>
 																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tgfc-{t.id}">Feat Category</label>
+																	<input id="tgfc-{t.id}" name="grantsFeatCategory" class="input" placeholder="Origin" value={(t as any).grantsFeatCategory ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="tgfi-{t.id}">Grants Feat ID</label>
+																	<input id="tgfi-{t.id}" name="grantsFeatId" class="input" placeholder="UUID or name" value={(t as any).grantsFeatId ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
 																	<label class="label" for="tgh-{t.id}">Half Prof</label>
 																	<input id="tgh-{t.id}" name="grantsHalfSkills" class="input" placeholder="* or STEALTH" value={t.grantsHalfSkills ?? ''} />
 																</div>
@@ -291,6 +299,30 @@
 																<div class="field" style="flex:1 1 140px; margin:0;">
 																	<label class="label" for="tg-{t.id}-gv">Vulnerabilities</label>
 																	<input id="tg-{t.id}-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" value={t.grantsVulnerabilities ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 70px; margin:0;">
+																	<label class="label" for="t-{t.id}-rcc">Res.picks</label>
+																	<input id="t-{t.id}-rcc" name="resistanceChoiceCount" type="number" min="0" class="input" value={(t as any).resistanceChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 100px; margin:0;">
+																	<label class="label" for="t-{t.id}-rcp">Res. pool</label>
+																	<input id="t-{t.id}-rcp" name="resistanceChoicePool" class="input" placeholder="FIRE,COLD" value={(t as any).resistanceChoicePool ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 70px; margin:0;">
+																	<label class="label" for="t-{t.id}-icc">Imm.picks</label>
+																	<input id="t-{t.id}-icc" name="immunityChoiceCount" type="number" min="0" class="input" value={(t as any).immunityChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 100px; margin:0;">
+																	<label class="label" for="t-{t.id}-icp">Imm. pool</label>
+																	<input id="t-{t.id}-icp" name="immunityChoicePool" class="input" placeholder="FIRE,COLD" value={(t as any).immunityChoicePool ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 70px; margin:0;">
+																	<label class="label" for="t-{t.id}-vcc">Vul.picks</label>
+																	<input id="t-{t.id}-vcc" name="vulnerabilityChoiceCount" type="number" min="0" class="input" value={(t as any).vulnerabilityChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 100px; margin:0;">
+																	<label class="label" for="t-{t.id}-vcp">Vul. pool</label>
+																	<input id="t-{t.id}-vcp" name="vulnerabilityChoicePool" class="input" placeholder="FIRE,COLD" value={(t as any).vulnerabilityChoicePool ?? ''} />
 																</div>
 																<div class="field" style="flex:2 1 200px; margin:0;">
 																	<label class="label" for="tg-{t.id}-gis">Innate Spells</label>

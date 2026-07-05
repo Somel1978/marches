@@ -85,13 +85,29 @@
 		await post('saveSavingThrow', entries);
 	}
 
-	async function handleSaveChoicePoolGrants(opts: { skills: any[]; saves: any[] }) {
+	async function handleSaveChoicePoolGrants(opts: { skills: {skill:string;value:number;sourceType:string;sourceId:string}[]; saves: {stat:string;sourceType:string;sourceId:string}[]; dmgMods: {modifierType:string;damageType:string;sourceType:string;sourceId:string}[]; tools: {tool:string;sourceType:string;sourceId:string}[]; languages: {language:string;sourceType:string;sourceId:string}[] }) {
 		const entries: [string,string][] = [
 			...opts.skills.flatMap(g => [
 				['poolSkill',         g.skill],
 				['poolSkillSource',   g.sourceType],
 				['poolSkillSourceId', g.sourceId],
 				['poolSkillValue',    String(g.value)],
+			] as [string,string][]),
+			...opts.tools.flatMap(g => [
+				['poolTool',         g.tool],
+				['poolToolSource',   g.sourceType],
+				['poolToolSourceId', g.sourceId],
+			] as [string,string][]),
+			...opts.languages.flatMap(g => [
+				['poolLanguage',         g.language],
+				['poolLanguageSource',   g.sourceType],
+				['poolLanguageSourceId', g.sourceId],
+			] as [string,string][]),
+			...opts.dmgMods.flatMap((g: any) => [
+				['poolDmgModType',     g.modifierType],
+				['poolDmgModDamage',   g.damageType],
+				['poolDmgModSource',   g.sourceType],
+				['poolDmgModSourceId', g.sourceId],
 			] as [string,string][]),
 			...opts.saves.flatMap(g => [
 				['poolSave',         g.stat],

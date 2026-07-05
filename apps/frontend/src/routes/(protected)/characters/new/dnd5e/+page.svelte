@@ -58,15 +58,18 @@
 	const filteredBackgrounds = $derived(
 		(sys?.backgrounds ?? []).filter((b: any) => !backgroundSearch || b.name.toLowerCase().includes(backgroundSearch.toLowerCase()))
 	);
-	const bgFeatOptions = $derived.by(() => {
-		const bg = selectedBackground as any;
-		if (!bg?.grantsFeatCategory) return [];
-		const cat = bg.grantsFeatCategory.toLowerCase();
+	// Returns feats matching a category string (Origin, Epic Boon, Fighting Style, General, etc.)
+	function featsForCategory(category: string): any[] {
+		const cat = category.toLowerCase();
+		// 'general' means any non-epic-boon available feat
+		if (cat === 'general') return (sys?.feats ?? []).filter((f: any) => f.isAvailable !== false && !f.isEpicBoon);
 		return (sys?.feats ?? []).filter((f: any) =>
 			f.isAvailable !== false &&
 			(f.categories ?? '').split(',').map((s: string) => s.trim().toLowerCase()).includes(cat)
 		);
-	});
+	}
+
+	const bgFeatOptions = $derived(featsForCategory((selectedBackground as any)?.grantsFeatCategory ?? ''));
 	$effect(() => { if (backgroundId) bgFeatPick = ''; });
 
 	function openBgSheet(bg: any)    { sheetBg = bg; }
@@ -77,11 +80,23 @@
 		if (pool.length) backgroundId = pool[Math.floor(Math.random() * pool.length)].id;
 	}
 
+	const bgFeatValidBgOnly = $derived.by(() => {
+		const bg = selectedBackground as any;
+		if (!bg) return false;
+		if (bg.grantsFeatId) return true;
+		if (bg.grantsFeatCategory && !bgFeatPick) return false;
+		return true;
+	});
+
 	const bgFeatValid = $derived.by(() => {
 		const bg = selectedBackground as any;
 		if (!bg) return false;
-		if (bg.grantsFeatId)       return true;
-		if (bg.grantsFeatCategory) return !!bgFeatPick;
+		if (bg.grantsFeatId)       { /* fixed — always valid */ }
+		else if (bg.grantsFeatCategory && !bgFeatPick) return false;
+		// All feature/trait feat picks must be resolved
+		for (const src of allFeatureGrantSources) {
+			if (!src.fixedFeatId && !featureFeatPicks[src.sourceKey]) return false;
+		}
 		return true;
 	});
 
@@ -308,6 +323,8 @@
 	let asiFeatSearch   = $state<string[]>([]);
 	let asiFeatPreview  = $state<string[]>([]);   // feat being previewed (not yet committed)
 	let bgFeatSearch    = $state('');
+	let featureFeatPicks  = $state<Record<string, string>>({}); // keyed by sourceKey e.g. 'cf-{featureId}'
+	let featureFeatSearch = $state<Record<string, string>>({}); // search per feature
 	$effect(() => { asiFeatSearch  = asiSlots.map(() => ''); });
 	$effect(() => { asiFeatPreview = asiSlots.map((_, i) => untrack(() => asiFeatPreview)[i] ?? ''); });
 
@@ -425,6 +442,14 @@
 	// Class features with skill choices at startingLevel (from all allocated classes)
 	const featureChoices = $derived(() => {
 		const result: { sourceId: string; label: string; count: number; pool: string[]; sourceType: string }[] = [];
+		// Species trait skill pools
+		for (const t of (selectedSpecies?.traits ?? [])) {
+			if ((t as any).skillChoiceCount && (t as any).skillChoicePool) {
+				const pool = (t as any).skillChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean);
+				result.push({ sourceId: t.id, label: `${selectedSpecies?.name}: ${t.name}`, count: (t as any).skillChoiceCount, pool, sourceType: 'SpeciesTrait' });
+			}
+		}
+		// Class and subclass feature skill pools
 		for (const alloc of classAllocs) {
 			const cls = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
 			if (!cls) continue;
@@ -444,12 +469,44 @@
 	});
 
 	// All feat IDs granted — ASI feats + background feat (fixed or chosen)
+	// All feat grants from features/traits with grantsFeatId or grantsFeatCategory
+	const allFeatureGrantSources = $derived.by(() => {
+		const sources: { sourceKey: string; label: string; fixedFeatId?: string; category?: string }[] = [];
+		// Species traits
+		for (const t of (selectedSpecies?.traits ?? [])) {
+			if ((t as any).grantsFeatId)       sources.push({ sourceKey: `st-${t.id}`, label: t.name, fixedFeatId: (t as any).grantsFeatId });
+			else if ((t as any).grantsFeatCategory) sources.push({ sourceKey: `st-${t.id}`, label: t.name, category: (t as any).grantsFeatCategory });
+		}
+		// Class/subclass features
+		for (const alloc of classAllocs) {
+			const cls = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			if (!cls) continue;
+			for (const f of (cls.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel)) {
+				if ((f as any).grantsFeatId)       sources.push({ sourceKey: `cf-${f.id}`, label: `${cls.name}: ${f.name}`, fixedFeatId: (f as any).grantsFeatId });
+				else if ((f as any).grantsFeatCategory) sources.push({ sourceKey: `cf-${f.id}`, label: `${cls.name}: ${f.name}`, category: (f as any).grantsFeatCategory });
+			}
+			const sub = (cls.subclasses ?? []).find((s: any) => s.id === classAllocs.find((a: any) => a.classId === cls.id)?.subclassId);
+			if (sub) {
+				for (const f of (sub.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel)) {
+					if ((f as any).grantsFeatId)       sources.push({ sourceKey: `sf-${f.id}`, label: `${sub.name}: ${f.name}`, fixedFeatId: (f as any).grantsFeatId });
+					else if ((f as any).grantsFeatCategory) sources.push({ sourceKey: `sf-${f.id}`, label: `${sub.name}: ${f.name}`, category: (f as any).grantsFeatCategory });
+				}
+			}
+		}
+		return sources;
+	});
+
 	const allGrantedFeatIds = $derived.by(() => {
 		const ids: { featId: string; sourceKey: string }[] = [];
 		// Background fixed feat
 		const bg = selectedBackground as any;
 		if (bg?.grantsFeatId) ids.push({ featId: bg.grantsFeatId, sourceKey: 'bg-feat' });
 		else if (bgFeatPick)  ids.push({ featId: bgFeatPick,      sourceKey: 'bg-feat' });
+		// Feature/trait feat grants
+		for (const src of allFeatureGrantSources) {
+			const pick = src.fixedFeatId ?? featureFeatPicks[src.sourceKey];
+			if (pick) ids.push({ featId: pick, sourceKey: src.sourceKey });
+		}
 		// ASI step feats
 		asiChoices.forEach((c, i) => { if (c.featId) ids.push({ featId: c.featId, sourceKey: `asi-feat-${i}` }); });
 		return ids;
@@ -636,6 +693,27 @@
 	});
 
 	// Tool choice pools (background + species traits + feats + features)
+	const featureToolChoices = $derived(
+		classAllocs.flatMap(alloc => {
+			const cls = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			if (!cls) return [];
+			const allFeatures = [
+				...(cls.features ?? []).map((f: any) => ({ ...f, sourceName: cls.name, sourceType: 'ClassFeature' })),
+				...(cls.subclasses ?? []).filter((s: any) => s.id === alloc.subclassId)
+					.flatMap((s: any) => (s.features ?? []).map((f: any) => ({ ...f, sourceName: s.name, sourceType: 'SubclassFeature' }))),
+			];
+			return allFeatures
+				.filter((f: any) => f.requiredLevel <= alloc.allocatedLevel && f.toolChoiceCount && f.toolChoicePool)
+				.map((f: any) => ({
+					sourceId: `${f.id}-tools`, sourceDbId: f.id,
+					label: `${f.sourceName}: ${f.name} (level ${f.requiredLevel})`,
+					count: f.toolChoiceCount,
+					pool: f.toolChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean),
+					sourceType: f.sourceType,
+				}));
+		})
+	);
+
 	const allToolChoices = $derived((() => {
 		const pools: { sourceId: string; sourceDbId: string | null; sourceType: string; label: string; count: number; pool: string[] }[] = [];
 		const bg = selectedBackground as any;
@@ -651,6 +729,8 @@
 			if (feat?.toolChoiceCount && feat?.toolChoicePool)
 				pools.push({ sourceId: `${featId}-tools`, sourceDbId: feat.id, sourceType: 'Feat', label: `Feat: ${feat.name}`, count: feat.toolChoiceCount, pool: feat.toolChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
 		}
+		// Class / subclass features
+		for (const fc of featureToolChoices) pools.push(fc);
 		return pools;
 	})());
 
@@ -704,6 +784,27 @@
 		return pools;
 	})());
 
+	const featureLanguageChoices = $derived(
+		classAllocs.flatMap(alloc => {
+			const cls = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			if (!cls) return [];
+			const allFeatures = [
+				...(cls.features ?? []).map((f: any) => ({ ...f, sourceName: cls.name, sourceType: 'ClassFeature' })),
+				...(cls.subclasses ?? []).filter((s: any) => s.id === alloc.subclassId)
+					.flatMap((s: any) => (s.features ?? []).map((f: any) => ({ ...f, sourceName: s.name, sourceType: 'SubclassFeature' }))),
+			];
+			return allFeatures
+				.filter((f: any) => f.requiredLevel <= alloc.allocatedLevel && f.languageChoiceCount && f.languageChoicePool)
+				.map((f: any) => ({
+					sourceId: `${f.id}-langs`, sourceDbId: f.id,
+					label: `${f.sourceName}: ${f.name} (level ${f.requiredLevel})`,
+					count: f.languageChoiceCount,
+					pool: f.languageChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean),
+					sourceType: f.sourceType,
+				}));
+		})
+	);
+
 	const allLanguageChoices = $derived((() => {
 		const pools: { sourceId: string; sourceDbId: string | null; sourceType: string; label: string; count: number; pool: string[] }[] = [];
 		const bg = selectedBackground as any;
@@ -718,6 +819,7 @@
 			if (feat?.languageChoiceCount && feat?.languageChoicePool)
 				pools.push({ sourceId: `${featId}-langs`, sourceDbId: feat.id, sourceType: 'Feat', label: `Feat: ${feat.name}`, count: feat.languageChoiceCount, pool: feat.languageChoicePool.split(',').map((s: string) => s.trim()).filter(Boolean) });
 		}
+		for (const fc of featureLanguageChoices) pools.push(fc);
 		return pools;
 	})());
 
@@ -737,7 +839,7 @@
 	);
 	let chosenSize: string = $state('');
 
-	// ── Damage modifiers (auto-granted only — no choice pools for these) ───────
+	// ── Damage modifiers — auto-granted + choice pools ─────────────────────────
 	const autoGrantedDamageModifiers = $derived(() => {
 		const mods: { modifierType: string; damageType: string; sourceType: string; sourceId: string | null }[] = [];
 		const addMods = (source: any, sourceType: string, sourceId: string | null) => {
@@ -767,6 +869,41 @@
 		}
 		return mods;
 	});
+
+	// Choice pools for damage modifiers — player picks from a pool
+	type DmgModChoice = { sourceId: string; sourceType: string; label: string; modifierType: string; count: number; pool: string[] };
+	const allDmgModChoices = $derived.by(() => {
+		const choices: DmgModChoice[] = [];
+		const addChoices = (source: any, sourceType: string, sourceId: string, label: string) => {
+			for (const [mod, countKey, poolKey] of [
+				['RESISTANCE',    'resistanceChoiceCount',    'resistanceChoicePool'],
+				['IMMUNITY',      'immunityChoiceCount',      'immunityChoicePool'],
+				['VULNERABILITY', 'vulnerabilityChoiceCount', 'vulnerabilityChoicePool'],
+			] as [string, string, string][]) {
+				if (source?.[countKey] && source?.[poolKey]) {
+					const pool = source[poolKey].split(',').map((s: string) => s.trim()).filter(Boolean);
+					if (pool.length) choices.push({ sourceId: `${sourceId}-${mod}`, sourceType, label: `${label} — ${mod.charAt(0)+mod.slice(1).toLowerCase()}`, modifierType: mod, count: source[countKey], pool });
+				}
+			}
+		};
+		addChoices(selectedBackground, 'Background', (selectedBackground as any)?.id ?? 'bg', (selectedBackground as any)?.name ?? 'Background');
+		for (const t of (selectedSpecies?.traits ?? [])) addChoices(t, 'SpeciesTrait', t.id, t.name);
+		for (const { featId } of allGrantedFeatIds) {
+			const feat = (sys?.feats ?? []).find((f: any) => f.id === featId);
+			if (feat) addChoices(feat, 'Feat', feat.id, `Feat: ${feat.name}`);
+		}
+		for (const alloc of classAllocs) {
+			const cls = (sys?.classes ?? []).find((c: any) => c.id === alloc.classId);
+			if (!cls) continue;
+			for (const f of (cls.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel))
+				addChoices(f, 'ClassFeature', f.id, `${cls.name}: ${f.name}`);
+			const sub = (cls.subclasses ?? []).find((s: any) => s.id === alloc.subclassId);
+			if (sub) for (const f of (sub.features ?? []).filter((f: any) => f.requiredLevel <= alloc.allocatedLevel))
+				addChoices(f, 'SubclassFeature', f.id, `${sub.name}: ${f.name}`);
+		}
+		return choices;
+	});
+	let chosenDmgMods = $state<Record<string, string[]>>({});
 
 	// ── Speed bonuses from features/background/feats ─────────────────────────
 	const autoGrantedSpeeds = $derived(() => {
@@ -864,7 +1001,12 @@
 	// Track chosen save pools separately (keyed by sourceId like skill pools)
 	// Using chosenPoolSkills won't work since we need to distinguish saves from skills
 	// Use a separate state for save pool choices
+	const dmgModPoolsSatisfied = $derived(
+		allDmgModChoices.every(ch => (chosenDmgMods[ch.sourceId] ?? []).length >= Math.min(ch.count, ch.pool.length))
+	);
+
 	const allPoolsSatisfied = $derived(
+		dmgModPoolsSatisfied &&
 		featureChoices().every(fc => (chosenPoolSkills[fc.sourceId] ?? []).length >= Math.min(fc.count, fc.pool.length)) &&
 		(backgroundChoiceCount === 0 || (chosenPoolSkills[backgroundId ?? ''] ?? []).length >= Math.min(backgroundChoiceCount, backgroundChoicePool.length)) &&
 		speciesTraitChoices.every((t: any) => (chosenPoolSkills[t.id] ?? []).length >= Math.min(t.skillChoiceCount, t.skillChoicePool.split(',').filter(Boolean).length)) &&
@@ -952,7 +1094,9 @@
 			if (s.worldId      !== undefined) worldId       = s.worldId;
 			if (s.speciesId    !== undefined) speciesId     = s.speciesId;
 			if (s.backgroundId !== undefined) backgroundId  = s.backgroundId;
-			if (s.bgFeatPick   !== undefined) bgFeatPick    = s.bgFeatPick;
+			if (s.bgFeatPick        !== undefined) bgFeatPick         = s.bgFeatPick;
+			if (s.featureFeatPicks  !== undefined) featureFeatPicks   = s.featureFeatPicks;
+			if (s.chosenDmgMods     !== undefined) chosenDmgMods      = s.chosenDmgMods;
 			if (s.scores       !== undefined) scores        = s.scores;
 			if (s.rolled       !== undefined) rolled        = s.rolled;
 			if (s.standardArray!== undefined) standardArray = s.standardArray;
@@ -1006,7 +1150,7 @@
 		// Track top-level state signals only. untrack() for the actual save
 		// prevents deep property reads on asiChoices items from creating loops.
 		void [step, name, avatarUrl, portraitUrl, worldId, speciesId, backgroundId,
-			bgFeatPick, scores, rolled, bonusGranted, bonus, classAllocs, asiChoices,
+			bgFeatPick, featureFeatPicks, chosenDmgMods, scores, rolled, bonusGranted, bonus, classAllocs, asiChoices,
 			chosenClassSkills, chosenPoolSkills, chosenSavePools];
 		untrack(() => saveState());
 	});
@@ -1016,7 +1160,7 @@
 		switch (step) {
 			case 0: return name.trim().length > 0;
 			case 1: return !!speciesId;
-			case 2: return !!backgroundId && bgFeatValid;
+			case 2: return !!backgroundId && bgFeatValidBgOnly;
 			case 3: return scoresValid;
 			case 4: return classesValid;
 			case 5: return hasAsiStep ? asiValid : (chosenClassSkills.length === Math.min(classSkillCount, availableClassSkills.length) && allPoolsSatisfied);
@@ -1344,6 +1488,61 @@
 						<p>Select a background to view details.</p>
 					</div>
 				{/if}
+
+				<!-- ── Feature/trait feat grants (class features, subclass features, species traits) ── -->
+				{#each allFeatureGrantSources as src}
+					<div class="card" style="margin-top:0.75rem;">
+						<p class="label" style="margin-bottom:0.5rem;">
+							🏅 <strong>{src.label}</strong>
+							{#if src.category}<span style="font-size:0.75rem;color:var(--text-muted);"> — Choose a {src.category} feat</span>{/if}
+						</p>
+						{#if src.fixedFeatId}
+							{@const fixedFeat = (sys?.feats??[]).find((f:any) => f.id === src.fixedFeatId)}
+							{#if fixedFeat}
+								<div style="border-left:3px solid var(--border-accent);background:var(--bg-surface);border-radius:0 var(--radius-md) var(--radius-md) 0;padding:8px 10px;">
+									<p style="margin:0 0 3px;font-size:0.875rem;font-weight:700;color:var(--accent-light);">🏅 {fixedFeat.name}</p>
+									{#if canViewDescriptions && fixedFeat.description}<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;">{fixedFeat.description}</p>{/if}
+								</div>
+							{/if}
+						{:else if src.category}
+							{@const catFeats = featsForCategory(src.category)}
+							{@const picked = featureFeatPicks[src.sourceKey] ?? ''}
+							<div class="wiz-browser wiz-browser--compact">
+								<div class="wiz-browser__list">
+									<div class="wiz-browser__search">
+										<input type="text" placeholder="Search feats…"
+											value={featureFeatSearch[src.sourceKey] ?? ''}
+											oninput={(e) => { featureFeatSearch = { ...featureFeatSearch, [src.sourceKey]: (e.currentTarget as HTMLInputElement).value }; }} />
+									</div>
+									<div class="wiz-browser__rows">
+										{#each catFeats.filter((f:any) => !(featureFeatSearch[src.sourceKey]) || f.name.toLowerCase().includes((featureFeatSearch[src.sourceKey]??'').toLowerCase())) as feat}
+											<button class="wiz-row" class:wiz-row--selected={picked===feat.id}
+												onclick={() => { featureFeatPicks = { ...featureFeatPicks, [src.sourceKey]: feat.id }; }}>
+												<div class="wiz-row__body">
+													<p class="wiz-row__name">{feat.name}</p>
+													{#if (feat.categories ?? '').trim()}<div class="wiz-row__sub"><span class="wiz-tag wiz-tag--general">{feat.categories}</span></div>{/if}
+												</div>
+												{#if picked===feat.id}<span class="wiz-row__check">✓</span>{/if}
+											</button>
+										{/each}
+									</div>
+								</div>
+								<div class="wiz-browser__panel">
+									{#if (catFeats.find((f:any) => f.id === picked))}
+										{@const pf = catFeats.find((f:any) => f.id === picked)}
+										{#if pf}
+											<h4 class="wiz-panel__title" style="font-size:0.9375rem;">{pf.name}</h4>
+											{#if pf.prerequisites}<p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 6px;">Prereq: {pf.prerequisites}</p>{/if}
+											{#if canViewDescriptions && pf.description}<p class="wiz-panel__desc">{pf.description}</p>{:else if !canViewDescriptions}<p class="wiz-panel__desc" style="font-style:italic;color:var(--text-muted);">📖 Description not available.</p>{/if}
+										{/if}
+									{:else}
+										<div class="wiz-browser__empty" style="min-height:80px;"><p>Select a feat to view details.</p></div>
+									{/if}
+								</div>
+							</div>
+						{/if}
+					</div>
+				{/each}
 			</div>
 		</div>
 
@@ -1351,7 +1550,7 @@
 	     STEP 3: Ability Scores
 	════════════════════════════════════════════════════════════════ -->
 	{:else if step === 3}
-		<div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+		<div class="wizard-scores-step">
 
 			<div class="card" style="flex:1;min-width:0;">
 
@@ -1379,7 +1578,7 @@
 				{#if standardArray}
 					<div style="margin-bottom:0.875rem;background:var(--bg-overlay);border-radius:var(--radius-md);padding:0.75rem;">
 						<p class="wiz-pool__label" style="margin-bottom:0.5rem;">Assign values: {SA_VALUES.join(', ')}</p>
-						<div class="wizard-scores-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;text-align:center;">
+						<div class="wizard-scores-grid wizard-scores-grid--6col" style="text-align:center;">
 							{#each STATS as st}
 								<div class="wizard-stat-box">
 									<p class="wizard-stat-box__label">{STAT_LABEL[st]}</p>
@@ -1472,10 +1671,49 @@
 									</div>
 								</div>
 								{#if subs.length}
-									<select class="input input--select" style="margin-top:0.375rem;font-size:0.8125rem;" bind:value={a.subclassId}>
-										<option value="">No subclass</option>
-										{#each subs as s}<option value={s.id}>{s.name}</option>{/each}
-									</select>
+									<div style="margin-top:0.5rem;">
+										{#if a.subclassId}
+											{@const selSub = subs.find(s => s.id === a.subclassId)}
+											<div style="display:flex;align-items:center;gap:0.5rem;padding:6px 10px;background:var(--bg-overlay);border-radius:var(--radius-md);">
+												<span style="flex:1;font-size:0.875rem;font-weight:600;color:var(--accent-light);">📚 {selSub?.name}</span>
+												<button class="btn btn-ghost btn-xs" onclick={() => { a.subclassId = ''; }}>Change</button>
+											</div>
+										{:else}
+											<p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 0.375rem;">Subclass <span style="opacity:0.6;">(optional at this level)</span></p>
+											<div class="wiz-browser wiz-browser--compact" style="max-height:280px;">
+												<div class="wiz-browser__list">
+													<div class="wiz-browser__rows">
+														<button class="wiz-row" class:wiz-row--selected={!a.subclassId}
+															onclick={() => { a.subclassId = s.id; }}>
+															<div class="wiz-row__body"><p class="wiz-row__name" style="color:var(--text-muted);">No subclass</p></div>
+														</button>
+														{#each subs as s}
+															<button class="wiz-row" class:wiz-row--selected={a.subclassId===s.id}
+																onclick={() => { a.subclassId = s.id; }}>
+																<div class="wiz-row__body">
+																	<p class="wiz-row__name">{s.name}</p>
+																	{#if s.source}<div class="wiz-row__sub"><span class="wiz-tag wiz-tag--origin">{s.source}</span></div>{/if}
+																</div>
+																{#if a.subclassId===s.id}<span class="wiz-row__check">✓</span>{/if}
+															</button>
+														{/each}
+													</div>
+												</div>
+												<div class="wiz-browser__panel">
+													{#if a.subclassId}
+														{@const sel = subs.find(s => s.id === a.subclassId)}
+														{#if sel}
+															<h4 class="wiz-panel__title">{sel.name}</h4>
+															{#if sel.source}<p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 6px;">{sel.source}</p>{/if}
+															{#if canViewDescriptions && sel.description}<p class="wiz-panel__desc">{sel.description}</p>{:else if !canViewDescriptions}<p class="wiz-panel__desc" style="font-style:italic;color:var(--text-muted);">📖 Description not available.</p>{/if}
+														{/if}
+													{:else}
+														<div class="wiz-browser__empty" style="min-height:60px;"><p>Select a subclass to view details.</p></div>
+													{/if}
+												</div>
+											</div>
+										{/if}
+									</div>
 								{/if}
 							</div>
 						{/each}
@@ -1641,14 +1879,14 @@
 							{c.sourceName} <span style="color:var(--text-muted);font-weight:400;">· Level {c.sourceLevel}</span>
 							{#if c.type === 'epic_boon'}<span class="badge badge-warning" style="margin-left:6px;">Epic Boon</span>{/if}
 						</p>
-						{#if c.mode}<span style="font-size:0.75rem;color:var(--color-success);">✓ {c.mode === 'feat' || c.type === 'epic_boon' ? (sys?.feats??[]).find((f:any)=>f.id===c.featId)?.name ?? 'Feat chosen' : `${STAT_LABEL[c.stat1]??'—'} +${c.amount1}${c.stat2?`, ${STAT_LABEL[c.stat2]} +${c.amount2}`:''}`}</span>{/if}
+						{#if c.mode && (c.featId || (c.mode === 'stat' && c.stat1))}<span style="font-size:0.75rem;color:var(--color-success);">✓ {c.mode === 'feat' || c.type === 'epic_boon' ? (sys?.feats??[]).find((f:any)=>f.id===c.featId)?.name ?? '' : `${STAT_LABEL[c.stat1]??'—'} +${c.amount1}${c.stat2?`, ${STAT_LABEL[c.stat2]} +${c.amount2}`:''}`}</span>{:else if c.mode === 'feat' || c.type === 'epic_boon'}<span style="font-size:0.75rem;color:var(--text-muted);">Select a feat from the list below</span>{/if}
 					</div>
 
 					<!-- Mode toggle (not for epic boon) -->
 					{#if c.type !== 'epic_boon'}
 						<div class="wiz-toggle" style="margin-bottom:0.875rem;">
 							<button class="wiz-toggle__btn" class:wiz-toggle__btn--active={c.mode==='stat'}
-								onclick={() => { asiChoices[i].mode='stat'; asiChoices[i].featId=''; }}>+2 to a stat</button>
+								onclick={() => { asiChoices[i].mode='stat'; asiChoices[i].featId=''; }}>ASI (+2 or +1/+1)</button>
 							<button class="wiz-toggle__btn" class:wiz-toggle__btn--active={c.mode==='feat'}
 								onclick={() => { asiChoices[i].mode='feat'; asiChoices[i].stat1=''; asiChoices[i].stat2=''; }}>Choose a feat</button>
 						</div>
@@ -1712,7 +1950,7 @@
 										{#each featsForChoice(c).filter((f: any) => !asiFeatSearch[i] || f.name.toLowerCase().includes(asiFeatSearch[i].toLowerCase())) as feat}
 											<button class="wiz-row"
 												class:wiz-row--selected={asiFeatPreview[i]===feat.id || (c.featId===feat.id && !asiFeatPreview[i])}
-												onclick={() => { asiFeatPreview[i] = feat.id; }}>
+												onclick={() => { asiFeatPreview = asiFeatPreview.map((v,j) => j===i ? feat.id : v); }}>
 												<div class="wiz-row__body">
 													<p class="wiz-row__name">{feat.name}</p>
 													<div class="wiz-row__sub">
@@ -1749,13 +1987,15 @@
 														asiChoices[i].featId = feat.id;
 														if (feat.asiStatFixed) { asiChoices[i].stat1=feat.asiStatFixed; asiChoices[i].amount1=feat.asiAmount??1; asiChoices[i].featGrantedStat=feat.asiStatFixed; }
 														else if (feat.asiAmount) { asiChoices[i].amount1=feat.asiAmount??1; }
-														asiFeatPreview[i] = '';
+														asiFeatPreview = asiFeatPreview.map((v,j) => j===i ? '' : v);
 													}}>Select {pf.name}</button>
 												{/if}
 											</div>
 										{/if}
 									{:else}
-										<div class="wiz-browser__empty" style="min-height:80px;"><p>Select a feat to preview.</p></div>
+										<div class="wiz-browser__empty" style="min-height:80px;">
+											<p>Click a feat on the left to preview it, then click <strong>Select</strong> to confirm.</p>
+										</div>
 									{/if}
 								</div>
 							</div>
@@ -1880,6 +2120,52 @@
 						</div>
 					</div>
 				{/each}
+
+				<!-- Damage modifier choice pools (resistance/immunity/vulnerability) -->
+				{#each allDmgModChoices as ch}
+					{@const picks = chosenDmgMods[ch.sourceId] ?? []}
+					{@const done = picks.length >= Math.min(ch.count, ch.pool.length)}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">{ch.label}</span>
+							<span class="wiz-pool__count {done ? 'wiz-pool__count--done' : ''}">{picks.length}/{Math.min(ch.count, ch.pool.length)}</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each ch.pool as dmgType}
+								{@const chosen = picks.includes(dmgType)}
+								{@const full = !chosen && picks.length >= Math.min(ch.count, ch.pool.length)}
+								<button class="wiz-chip {chosen ? 'wiz-chip--chosen' : ''} {full ? 'wiz-chip--disabled' : ''}"
+									disabled={full}
+									onclick={() => {
+										const cur = chosenDmgMods[ch.sourceId] ?? [];
+										if (cur.includes(dmgType)) chosenDmgMods = { ...chosenDmgMods, [ch.sourceId]: cur.filter(d => d !== dmgType) };
+										else if (cur.length < Math.min(ch.count, ch.pool.length)) chosenDmgMods = { ...chosenDmgMods, [ch.sourceId]: [...cur, dmgType] };
+									}}>{dmgType}</button>
+							{/each}
+						</div>
+					</div>
+				{/each}
+
+				<!-- Feature auto half-proficiency (e.g. Jack of All Trades) -->
+				{#if featureAutoHalfSkills.some(h => h.skill === '*')}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">{featureAutoHalfSkills.find(h => h.skill === '*')?.sourceName}</span>
+							<span class="wiz-pool__count wiz-pool__count--done">½ all skills Auto ✓</span>
+						</div>
+						<p style="font-size:0.75rem;color:var(--text-muted);margin:0.25rem 0 0;">You add half your proficiency bonus (round down) to any skill check you're not already proficient in.</p>
+					</div>
+				{:else if featureAutoHalfSkills.length}
+					<div class="wiz-pool">
+						<div class="wiz-pool__header">
+							<span class="wiz-pool__label">Half proficiency ({featureAutoHalfSkills[0]?.sourceName})</span>
+							<span class="wiz-pool__count wiz-pool__count--done">Auto ✓</span>
+						</div>
+						<div class="wiz-chip-group">
+							{#each featureAutoHalfSkills as h}<button class="wiz-chip wiz-chip--granted" disabled>{SKILL_DISPLAY[h.skill]??h.skill}</button>{/each}
+						</div>
+					</div>
+				{/if}
 
 				<!-- Feature skill choice pools -->
 				{#each featureChoices() as fc}
@@ -2140,14 +2426,25 @@
 							</div>
 						</div>
 					{/if}
-					{#each Object.entries(chosenPoolSkills).filter(([,skills])=>skills.length>0) as [,skills]}
+					{#each featureChoices().filter(fc=>(chosenPoolSkills[fc.sourceId]??[]).length>0) as fc}
 						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Pool Picks</span>
+							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">{fc.label}</span>
 							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-								{#each skills as skill}<span class="badge badge-success">{SKILL_DISPLAY[skill]??skill}</span>{/each}
+								{#each (chosenPoolSkills[fc.sourceId]??[]) as skill}<span class="badge badge-success">{SKILL_DISPLAY[skill]??skill}</span>{/each}
 							</div>
 						</div>
 					{/each}
+					{#if featureAutoHalfSkills.length}
+						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Half Prof</span>
+							<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+								{#each featureAutoHalfSkills as h}
+									{#if h.skill === '*'}<span class="badge badge-muted">All skills (½)</span>
+									{:else}<span class="badge badge-muted">{SKILL_DISPLAY[h.skill]??h.skill} ½</span>{/if}
+								{/each}
+							</div>
+						</div>
+					{/if}
 					{#if speciesAutoExpertise.length}
 						<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
 							<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">Expertise</span>
@@ -2193,6 +2490,18 @@
 					</div>
 				</div>
 			{/if}
+			<!-- Damage modifier choice picks in review -->
+			{#each allDmgModChoices as ch}
+				{@const picks = chosenDmgMods[ch.sourceId] ?? []}
+				{#if picks.length}
+					<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+						<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);min-width:110px;">{ch.label}</span>
+						<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+							{#each picks as d}<span class="badge badge-muted">{d}</span>{/each}
+						</div>
+					</div>
+				{/if}
+			{/each}
 			{#if autoGrantedDamageModifiers().some(g=>g.modifierType==='RESISTANCE')}
 				<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
 					<span style="font-size:0.75rem;font-weight:700;color:var(--color-success);min-width:110px;">Resistances</span>
@@ -2293,6 +2602,13 @@
 				<input type="hidden" name="backgroundId"  value={backgroundId} />
 				{#if bgFeatPick}<input type="hidden" name="bgFeatPick" value={bgFeatPick} />{/if}
 				{#if (selectedBackground as any)?.grantsFeatId}<input type="hidden" name="bgGrantedFeatId" value={(selectedBackground as any).grantsFeatId} />{/if}
+				{#each allFeatureGrantSources as src}
+					{@const pick = src.fixedFeatId ?? featureFeatPicks[src.sourceKey]}
+					{#if pick}
+						<input type="hidden" name="featureGrantedFeatId"  value={pick} />
+						<input type="hidden" name="featureGrantedFeatSrc" value={src.sourceKey} />
+					{/if}
+				{/each}
 				{#each chosenClassSkills as skill}<input type="hidden" name="chosenClassSkill" value={skill} />{/each}
 				{#each backgroundFixedSkills as skill}
 					<input type="hidden" name="autoSkill" value={skill} />
@@ -2312,6 +2628,19 @@
 				{#each speciesAutoHalfSkills as {skill}}
 					<input type="hidden" name="autoSkill" value={skill} />
 					<input type="hidden" name="autoSkillSource" value="Species" />
+					<input type="hidden" name="autoSkillValue" value="0.5" />
+				{/each}
+				{#each allDmgModChoices as ch}
+					{#each (chosenDmgMods[ch.sourceId] ?? []) as dmgType}
+						<input type="hidden" name="dmgModModifierType" value={ch.modifierType} />
+						<input type="hidden" name="dmgModDamageType" value={dmgType} />
+						<input type="hidden" name="dmgModSourceType" value={ch.sourceType} />
+						<input type="hidden" name="dmgModSourceId" value={ch.sourceId} />
+					{/each}
+				{/each}
+				{#each featureAutoHalfSkills as h}
+					<input type="hidden" name="autoSkill" value={h.skill} />
+					<input type="hidden" name="autoSkillSource" value="ClassFeature" />
 					<input type="hidden" name="autoSkillValue" value="0.5" />
 				{/each}
 				{#each classSavingThrows as stat}

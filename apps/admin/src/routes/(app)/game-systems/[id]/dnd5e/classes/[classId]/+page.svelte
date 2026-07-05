@@ -236,6 +236,30 @@
 											<label class="label" for="cf-{f.id}-gv">Vulnerabilities</label>
 											<input id="cf-{f.id}-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" value={f.grantsVulnerabilities ?? ''} />
 										</div>
+										<div class="field" style="flex:0 0 70px; margin:0;">
+											<label class="label" for="cf-{f.id}-rcc">Res.picks</label>
+											<input id="cf-{f.id}-rcc" name="resistanceChoiceCount" type="number" min="0" class="input" value={(f as any).resistanceChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 100px; margin:0;">
+											<label class="label" for="cf-{f.id}-rcp">Res. pool</label>
+											<input id="cf-{f.id}-rcp" name="resistanceChoicePool" class="input" placeholder="FIRE,COLD" value={(f as any).resistanceChoicePool ?? ''} />
+										</div>
+										<div class="field" style="flex:0 0 70px; margin:0;">
+											<label class="label" for="cf-{f.id}-icc">Imm.picks</label>
+											<input id="cf-{f.id}-icc" name="immunityChoiceCount" type="number" min="0" class="input" value={(f as any).immunityChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 100px; margin:0;">
+											<label class="label" for="cf-{f.id}-icp">Imm. pool</label>
+											<input id="cf-{f.id}-icp" name="immunityChoicePool" class="input" placeholder="FIRE,COLD" value={(f as any).immunityChoicePool ?? ''} />
+										</div>
+										<div class="field" style="flex:0 0 70px; margin:0;">
+											<label class="label" for="cf-{f.id}-vcc">Vul.picks</label>
+											<input id="cf-{f.id}-vcc" name="vulnerabilityChoiceCount" type="number" min="0" class="input" value={(f as any).vulnerabilityChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 100px; margin:0;">
+											<label class="label" for="cf-{f.id}-vcp">Vul. pool</label>
+											<input id="cf-{f.id}-vcp" name="vulnerabilityChoicePool" class="input" placeholder="FIRE,COLD" value={(f as any).vulnerabilityChoicePool ?? ''} />
+										</div>
 										<div class="field" style="flex:1 1 160px; margin:0;">
 											<label class="label" for="cf-{f.id}-gsp">Speed Bonuses</label>
 											<input id="cf-{f.id}-gsp" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" value={f.grantsSpeed ?? ''} />
@@ -244,6 +268,14 @@
 										<div class="field" style="flex:1 1 160px; margin:0;">
 											<label class="label" for="cf-{f.id}-gse">Grants Senses</label>
 											<input id="cf-{f.id}-gse" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" value={f.grantsSenses ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 140px; margin:0;">
+											<label class="label" for="cf-{f.id}-gfc">Feat Category</label>
+											<input id="cf-{f.id}-gfc" name="grantsFeatCategory" class="input" placeholder="Origin" value={(f as any).grantsFeatCategory ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 140px; margin:0;">
+											<label class="label" for="cf-{f.id}-gfi">Grants Feat ID</label>
+											<input id="cf-{f.id}-gfi" name="grantsFeatId" class="input" placeholder="UUID or name" value={(f as any).grantsFeatId ?? ''} />
 										</div>
 										<div class="field" style="flex:2 1 180px; margin:0;">
 											<label class="label" for="cf-{f.id}-gis">Innate Spells</label>
@@ -452,6 +484,30 @@
 																	<label class="label" for="sf-gv-{sf.id}">Vulnerabilities</label>
 																	<input id="sf-gv-{sf.id}" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" value={sf.grantsVulnerabilities ?? ''} />
 																</div>
+																<div class="field" style="flex:0 0 70px; margin:0;">
+																	<label class="label" for="sf-{sf.id}-rcc">Res.picks</label>
+																	<input id="sf-{sf.id}-rcc" name="resistanceChoiceCount" type="number" min="0" class="input" value={(sf as any).resistanceChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 100px; margin:0;">
+																	<label class="label" for="sf-{sf.id}-rcp">Res. pool</label>
+																	<input id="sf-{sf.id}-rcp" name="resistanceChoicePool" class="input" placeholder="FIRE,COLD" value={(sf as any).resistanceChoicePool ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 70px; margin:0;">
+																	<label class="label" for="sf-{sf.id}-icc">Imm.picks</label>
+																	<input id="sf-{sf.id}-icc" name="immunityChoiceCount" type="number" min="0" class="input" value={(sf as any).immunityChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 100px; margin:0;">
+																	<label class="label" for="sf-{sf.id}-icp">Imm. pool</label>
+																	<input id="sf-{sf.id}-icp" name="immunityChoicePool" class="input" placeholder="FIRE,COLD" value={(sf as any).immunityChoicePool ?? ''} />
+																</div>
+																<div class="field" style="flex:0 0 70px; margin:0;">
+																	<label class="label" for="sf-{sf.id}-vcc">Vul.picks</label>
+																	<input id="sf-{sf.id}-vcc" name="vulnerabilityChoiceCount" type="number" min="0" class="input" value={(sf as any).vulnerabilityChoiceCount ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 100px; margin:0;">
+																	<label class="label" for="sf-{sf.id}-vcp">Vul. pool</label>
+																	<input id="sf-{sf.id}-vcp" name="vulnerabilityChoicePool" class="input" placeholder="FIRE,COLD" value={(sf as any).vulnerabilityChoicePool ?? ''} />
+																</div>
 																<div class="field" style="flex:1 1 160px; margin:0;">
 																	<label class="label" for="sf-{sf.id}-gsp">Speed Bonuses</label>
 																	<input id="sf-{sf.id}-gsp" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" value={sf.grantsSpeed ?? ''} />
@@ -460,6 +516,14 @@
 																<div class="field" style="flex:1 1 160px; margin:0;">
 																	<label class="label" for="sf-{sf.id}-gse">Grants Senses</label>
 																	<input id="sf-{sf.id}-gse" name="grantsSenses" class="input" placeholder="Blindsense 10 ft" value={sf.grantsSenses ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="sf-{sf.id}-gfc">Feat Category</label>
+																	<input id="sf-{sf.id}-gfc" name="grantsFeatCategory" class="input" placeholder="Origin" value={(sf as any).grantsFeatCategory ?? ''} />
+																</div>
+																<div class="field" style="flex:1 1 140px; margin:0;">
+																	<label class="label" for="sf-{sf.id}-gfi">Grants Feat ID</label>
+																	<input id="sf-{sf.id}-gfi" name="grantsFeatId" class="input" placeholder="UUID or name" value={(sf as any).grantsFeatId ?? ''} />
 																</div>
 																<div class="field" style="flex:2 1 180px; margin:0;">
 																	<label class="label" for="sf-gis-{sf.id}">Innate Spells</label>

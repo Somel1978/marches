@@ -103,9 +103,15 @@ function grantFields(row: any, warnings: string[], context: string) {
         grantsLanguages:        n(normalizeList(row.grantsLanguages)),
         languageChoiceCount:    row.languageChoiceCount != null && row.languageChoiceCount !== '' ? Number(row.languageChoiceCount) : undefined,
         languageChoicePool:     n(normalizeList(row.languageChoicePool)),
-        grantsResistances:      n(normalizeList(row.grantsResistances)),
-        grantsImmunities:       n(normalizeList(row.grantsImmunities)),
-        grantsVulnerabilities:  n(normalizeList(row.grantsVulnerabilities)),
+        grantsResistances:          n(normalizeList(row.grantsResistances)),
+        grantsImmunities:           n(normalizeList(row.grantsImmunities)),
+        grantsVulnerabilities:      n(normalizeList(row.grantsVulnerabilities)),
+        resistanceChoiceCount:      row.resistanceChoiceCount != null && row.resistanceChoiceCount !== '' ? Number(row.resistanceChoiceCount) : undefined,
+        resistanceChoicePool:       n(normalizeList(row.resistanceChoicePool)),
+        immunityChoiceCount:        row.immunityChoiceCount != null && row.immunityChoiceCount !== '' ? Number(row.immunityChoiceCount) : undefined,
+        immunityChoicePool:         n(normalizeList(row.immunityChoicePool)),
+        vulnerabilityChoiceCount:   row.vulnerabilityChoiceCount != null && row.vulnerabilityChoiceCount !== '' ? Number(row.vulnerabilityChoiceCount) : undefined,
+        vulnerabilityChoicePool:    n(normalizeList(row.vulnerabilityChoicePool)),
         grantsInnateSpells:     normalizeList(row.grantsInnateSpells) ?? undefined,
         grantsSpeed:           normalizeList(row.grantsSpeed)         ?? undefined,
         grantsSenses:          row.grantsSenses ? String(row.grantsSenses).trim() : undefined,
@@ -216,6 +222,14 @@ export const actions: Actions = {
 			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
 			const allClasses = await dnd5e.classes.getAll(params.id);
+			const allFeatsForGrants     = await dnd5e.feats.getAll(params.id);
+			const featGrantByUploadId   = new Map(allFeatsForGrants.filter((f: any) => f.uploadId).map((f: any) => [(f as any).uploadId, f.id]));
+			const featGrantByName       = new Map(allFeatsForGrants.map((f: any) => [normalize(f.name).toLowerCase(), f.id]));
+			function resolveFeatId(raw: string | null | undefined): string | null {
+				if (!raw) return null;
+				if (raw.length === 36 && raw.includes('-')) return raw;
+				return featGrantByUploadId.get(raw) ?? featGrantByName.get(normalize(raw).toLowerCase()) ?? null;
+			}
 			for (const row of rows) {
 				const cls = row.classId
 					? allClasses.find(c => c.id === row.classId)
@@ -354,6 +368,14 @@ export const actions: Actions = {
 			const skipReasons: string[] = [];
 			// Fetch all classes once outside the loop (N+1 fix)
 			const allClasses = await dnd5e.classes.getAll(params.id);
+			const allFeatsForGrants2    = await dnd5e.feats.getAll(params.id);
+			const featGrantByUploadId2  = new Map(allFeatsForGrants2.filter((f: any) => f.uploadId).map((f: any) => [(f as any).uploadId, f.id]));
+			const featGrantByName2      = new Map(allFeatsForGrants2.map((f: any) => [normalize(f.name).toLowerCase(), f.id]));
+			function resolveFeatId2(raw: string | null | undefined): string | null {
+				if (!raw) return null;
+				if (raw.length === 36 && raw.includes('-')) return raw;
+				return featGrantByUploadId2.get(raw) ?? featGrantByName2.get(normalize(raw).toLowerCase()) ?? null;
+			}
 			for (const row of rows) {
 				const cls = row.classId
 					? allClasses.find(c => c.id === row.classId)
@@ -486,6 +508,14 @@ export const actions: Actions = {
 			const skipReasons: string[] = [];
 			// Fetch all species once outside the loop (N+1 fix)
 			const allSpecies = await dnd5e.species.getAll(params.id);
+			const allFeatsForTraits    = await dnd5e.feats.getAll(params.id);
+			const featTraitByUploadId  = new Map(allFeatsForTraits.filter((f: any) => f.uploadId).map((f: any) => [(f as any).uploadId, f.id]));
+			const featTraitByName      = new Map(allFeatsForTraits.map((f: any) => [normalize(f.name).toLowerCase(), f.id]));
+			function resolveFeatIdTrait(raw: string | null | undefined): string | null {
+				if (!raw) return null;
+				if (raw.length === 36 && raw.includes('-')) return raw;
+				return featTraitByUploadId.get(raw) ?? featTraitByName.get(normalize(raw).toLowerCase()) ?? null;
+			}
 			for (const row of rows) {
 				const traitName = normalize(row.name);
 				if (!traitName) { skipped++; continue; }
@@ -506,6 +536,8 @@ export const actions: Actions = {
 					sizeChoices: normalize(row.sizeChoices) || null,
 					senses:      normalize(row.senses)      || null,
 					...grantFields(row, warnings, row.name),
+					grantsFeatCategory: row.grantsFeatCategory || null,
+					grantsFeatId:       resolveFeatIdTrait(row.grantsFeatId),
 				};
 				const existing = row.id
 					? await db.dnd5eSpeciesTrait.findUnique({ where: { id: row.id }, select: { id: true } })
@@ -568,6 +600,7 @@ export const actions: Actions = {
 						categories:     row.categories     || null,
 						prerequisites:  row.prerequisites  || null,
 						detailsUrl:     row.detailsUrl      || null,
+						source:         row.source          || null,
 						isEpicBoon:     String(row.isEpicBoon).toLowerCase() === 'true',
 						asiAmount:      row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : null,
 						asiStatFixed:   row.asiStatFixed   || null,
@@ -587,6 +620,7 @@ export const actions: Actions = {
 						categories:     row.categories     || undefined,
 						prerequisites:  row.prerequisites  || undefined,
 						detailsUrl:     row.detailsUrl      || undefined,
+						source:         row.source          || undefined,
 						isEpicBoon:     String(row.isEpicBoon).toLowerCase() === 'true',
 						asiAmount:      row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : undefined,
 						asiStatFixed:   row.asiStatFixed   || undefined,
@@ -617,7 +651,10 @@ export const actions: Actions = {
 			const rows: any[] = JSON.parse(raw);
 			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
-			const all = await dnd5e.backgrounds.getAll(params.id);
+			const all        = await dnd5e.backgrounds.getAll(params.id);
+			const allFeats       = await dnd5e.feats.getAll(params.id);
+			const featByUploadId = new Map(allFeats.filter((f: any) => f.uploadId).map((f: any) => [(f as any).uploadId, f.id]));
+			const featByName     = new Map(allFeats.map((f: any) => [normalize(f.name).toLowerCase(), f.id]));
 			for (const row of rows) {
 				const existing = row.id
 					? all.find(b => b.id === row.id)
@@ -632,7 +669,11 @@ export const actions: Actions = {
 						shortDescription:   row.shortDescription   || null,
 						featureName:        row.featureName        || null,
 						grantsFeatCategory: row.grantsFeatCategory || null,
-						grantsFeatId:       row.grantsFeatId       || null,
+						grantsFeatId:       (row.grantsFeatId
+							? (row.grantsFeatId.length === 36 && row.grantsFeatId.includes('-')
+								? row.grantsFeatId
+								: (featByUploadId.get(row.grantsFeatId) ?? featByName.get(normalize(row.grantsFeatId).toLowerCase()) ?? null))
+							: null) || null,
 						url:                row.url                || null,
 						sortOrder:          Number(row.sortOrder)  || 0,
 						toolProficiencies:  normalizeList(row.grantsTools ?? row.toolProficiencies),
@@ -648,7 +689,11 @@ export const actions: Actions = {
 						shortDescription:   row.shortDescription   || undefined,
 						featureName:        row.featureName        || undefined,
 						grantsFeatCategory: row.grantsFeatCategory || undefined,
-						grantsFeatId:       row.grantsFeatId       || undefined,
+						grantsFeatId:       (row.grantsFeatId
+							? (row.grantsFeatId.length === 36 && row.grantsFeatId.includes('-')
+								? row.grantsFeatId
+								: (featByUploadId.get(row.grantsFeatId) ?? featByName.get(normalize(row.grantsFeatId).toLowerCase()) ?? undefined))
+							: undefined) || undefined,
 						url:                row.url                || undefined,
 						sortOrder:          Number(row.sortOrder)  || 0,
 						toolProficiencies:  normalizeList(row.grantsTools ?? row.toolProficiencies) ?? undefined,

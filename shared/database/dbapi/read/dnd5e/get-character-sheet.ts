@@ -132,7 +132,63 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         }
     }
 
-    const allSlots     = [...asiSlots, ...backgroundSlots];
+    // ── Feat grant slots from class/subclass features and species traits ───────
+    const featureGrantSlots: any[] = [];
+    for (const ec of enrichedClasses) {
+        const allFeatures = [
+            ...(ec.classFeatures    ?? []).map((f: any) => ({ ...f, sourceLabel: ec.classRef?.name    ?? '', sourceType: 'ClassFeature' })),
+            ...(ec.subclassFeatures ?? []).map((f: any) => ({ ...f, sourceLabel: ec.subclassRef?.name ?? '', sourceType: 'SubclassFeature' })),
+        ];
+        for (const f of allFeatures) {
+            if (!(f as any).grantsFeatCategory && !(f as any).grantsFeatId) continue;
+            let resolved = findSlotResolution(f.sourceType, f.requiredLevel, chosenFeats, usedFeatRowIds);
+            if ((f as any).grantsFeatId && !resolved) {
+                await db.dnd5eCharacterFeat.deleteMany({ where: { characterId, sourceClassId: f.sourceType, sourceLevel: f.requiredLevel } });
+                const newRow = await db.dnd5eCharacterFeat.create({
+                    data: { characterId, featId: (f as any).grantsFeatId, sourceClassId: f.sourceType, sourceLevel: f.requiredLevel },
+                    include: { feat: { select: { name: true, id: true } } },
+                });
+                resolved = { kind: 'feat', charFeatId: newRow.id, featId: (f as any).grantsFeatId, featName: (newRow as any).feat?.name ?? null, asiStat1: null, asiAmount1: null, asiStat2: null, asiAmount2: null };
+            }
+            featureGrantSlots.push({
+                type:          'background_feat', // reuse same slot type — same UI
+                sourceClass:   `${f.sourceLabel}: ${f.name}`,
+                sourceClassId: f.sourceType,
+                sourceLevel:   f.requiredLevel,
+                featCategory:  (f as any).grantsFeatCategory ?? null,
+                grantsFeatId:  (f as any).grantsFeatId ?? null,
+                canEpicBoon:   false,
+                resolved,
+            });
+        }
+    }
+    // Species traits
+    if (speciesRecord) {
+        for (const t of ((speciesRecord as any).traits ?? [])) {
+            if (!(t as any).grantsFeatCategory && !(t as any).grantsFeatId) continue;
+            let resolved = findSlotResolution('SpeciesTrait', t.requiredLevel ?? 1, chosenFeats, usedFeatRowIds);
+            if ((t as any).grantsFeatId && !resolved) {
+                await db.dnd5eCharacterFeat.deleteMany({ where: { characterId, sourceClassId: 'SpeciesTrait', sourceLevel: t.requiredLevel ?? 1 } });
+                const newRow = await db.dnd5eCharacterFeat.create({
+                    data: { characterId, featId: (t as any).grantsFeatId, sourceClassId: 'SpeciesTrait', sourceLevel: t.requiredLevel ?? 1 },
+                    include: { feat: { select: { name: true, id: true } } },
+                });
+                resolved = { kind: 'feat', charFeatId: newRow.id, featId: (t as any).grantsFeatId, featName: (newRow as any).feat?.name ?? null, asiStat1: null, asiAmount1: null, asiStat2: null, asiAmount2: null };
+            }
+            featureGrantSlots.push({
+                type:          'background_feat',
+                sourceClass:   t.name,
+                sourceClassId: 'SpeciesTrait',
+                sourceLevel:   t.requiredLevel ?? 1,
+                featCategory:  (t as any).grantsFeatCategory ?? null,
+                grantsFeatId:  (t as any).grantsFeatId ?? null,
+                canEpicBoon:   false,
+                resolved,
+            });
+        }
+    }
+
+    const allSlots     = [...asiSlots, ...backgroundSlots, ...featureGrantSlots];
     const pendingSlots = allSlots.filter(s => !s.resolved).length;
 
     // ── Pending skill/save choice pools from features ─────────────────────
@@ -151,6 +207,18 @@ export async function getDnd5eCharacterSheet(characterId: string) {
         savingThrowChoicePool:  string | null;
         expertiseChoiceCount:   number | null;
         expertiseChoicePool:    string | null;
+        grantsFeatCategory:      string | null;
+        grantsFeatId:            string | null;
+        toolChoiceCount:         number | null;
+        toolChoicePool:          string | null;
+        languageChoiceCount:     number | null;
+        languageChoicePool:      string | null;
+        resistanceChoiceCount:   number | null;
+        resistanceChoicePool:    string | null;
+        immunityChoiceCount:     number | null;
+        immunityChoicePool:      string | null;
+        vulnerabilityChoiceCount: number | null;
+        vulnerabilityChoicePool:  string | null;
     }[] = [];
 
     for (const cc of enrichedClasses) {
@@ -162,11 +230,24 @@ export async function getDnd5eCharacterSheet(characterId: string) {
             const hasSkillChoice     = f.skillChoiceCount       && f.skillChoicePool;
             const hasSaveChoice      = f.savingThrowChoiceCount && f.savingThrowChoicePool;
             const hasExpertiseChoice = (f as any).expertiseChoiceCount && (f as any).expertiseChoicePool;
-            if (!hasSkillChoice && !hasSaveChoice && !hasExpertiseChoice) continue;
+            const hasFeatGrant       = (f as any).grantsFeatCategory || (f as any).grantsFeatId;
+            const hasToolChoice      = f.toolChoiceCount     && f.toolChoicePool;
+            const hasLanguageChoice  = f.languageChoiceCount && f.languageChoicePool;
+            const hasDmgModChoice    = (f as any).resistanceChoiceCount || (f as any).immunityChoiceCount || (f as any).vulnerabilityChoiceCount;
+            if (!hasSkillChoice && !hasSaveChoice && !hasExpertiseChoice && !hasFeatGrant && !hasToolChoice && !hasLanguageChoice && !hasDmgModChoice) continue;
             const skillDone     = !hasSkillChoice     || resolvedSkillSourceIds.has(f.id);
             const saveDone      = !hasSaveChoice      || resolvedSaveSourceIds.has(f.id);
             const expertiseDone = !hasExpertiseChoice || (skillGrants as any[]).some(g => g.sourceId === f.id && g.value >= 2.0);
-            if (skillDone && saveDone && expertiseDone) continue;
+            // Fixed feat grants are handled automatically on character creation.
+            // Category feat grants need player to pick — considered done if they have at least one feat of that category.
+            const featGrantDone = !hasFeatGrant
+                || !!(f as any).grantsFeatCategory === false  // has fixed grantsFeatId only
+                || (chosenFeats as any[]).some(g => {
+                    const cat = ((f as any).grantsFeatCategory ?? '').toLowerCase();
+                    if (!cat) return true; // fixed feat, always done
+                    return (g.feat?.categories ?? '').split(',').map((s: string) => s.trim().toLowerCase()).includes(cat);
+                });
+            if (skillDone && saveDone && expertiseDone && featGrantDone) continue;
             pendingChoices.push({
                 sourceId:               f.id,
                 sourceType:             f.sourceType,
@@ -177,6 +258,18 @@ export async function getDnd5eCharacterSheet(characterId: string) {
                 savingThrowChoicePool:  hasSaveChoice      && !saveDone      ? f.savingThrowChoicePool  : null,
                 expertiseChoiceCount:   hasExpertiseChoice && !expertiseDone ? (f as any).expertiseChoiceCount : null,
                 expertiseChoicePool:    hasExpertiseChoice && !expertiseDone ? (f as any).expertiseChoicePool  : null,
+                grantsFeatCategory:      hasFeatGrant && !featGrantDone ? ((f as any).grantsFeatCategory ?? null) : null,
+                grantsFeatId:            hasFeatGrant && !featGrantDone ? ((f as any).grantsFeatId       ?? null) : null,
+                toolChoiceCount:         hasToolChoice     ? f.toolChoiceCount     : null,
+                toolChoicePool:          hasToolChoice     ? f.toolChoicePool      : null,
+                languageChoiceCount:     hasLanguageChoice ? f.languageChoiceCount : null,
+                languageChoicePool:      hasLanguageChoice ? f.languageChoicePool  : null,
+                resistanceChoiceCount:   (f as any).resistanceChoiceCount   ?? null,
+                resistanceChoicePool:    (f as any).resistanceChoicePool    ?? null,
+                immunityChoiceCount:     (f as any).immunityChoiceCount     ?? null,
+                immunityChoicePool:      (f as any).immunityChoicePool      ?? null,
+                vulnerabilityChoiceCount: (f as any).vulnerabilityChoiceCount ?? null,
+                vulnerabilityChoicePool:  (f as any).vulnerabilityChoicePool  ?? null,
             });
         }
     }

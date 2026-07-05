@@ -33,7 +33,15 @@ function grantFields(data: FormData) {
 		grantsVulnerabilities:  s('grantsVulnerabilities'),
 		grantsInnateSpells:     s('grantsInnateSpells'),
 		grantsSpeed:            s('grantsSpeed'),
-		grantsSenses:           s('grantsSenses'),
+		grantsSenses:              s('grantsSenses'),
+		resistanceChoiceCount:     n('resistanceChoiceCount'),
+		resistanceChoicePool:      s('resistanceChoicePool') || null,
+		immunityChoiceCount:       n('immunityChoiceCount'),
+		immunityChoicePool:        s('immunityChoicePool') || null,
+		vulnerabilityChoiceCount:  n('vulnerabilityChoiceCount'),
+		vulnerabilityChoicePool:   s('vulnerabilityChoicePool') || null,
+		grantsFeatCategory:     s('grantsFeatCategory') || null,
+		grantsFeatId:           s('grantsFeatId') || null,
 	};
 }
 export const load: PageServerLoad = async ({ params }) => {

@@ -84,6 +84,10 @@
 							<label class="label" for="new-url">Details URL</label>
 							<input id="new-url" name="detailsUrl" type="text" class="input" placeholder="https://…" />
 						</div>
+						<div class="field" style="flex:1 1 140px;">
+							<label class="label" for="new-source">Source</label>
+							<input id="new-source" name="source" type="text" class="input" placeholder="PHB 2024" />
+						</div>
 						<div class="field" style="flex:0 0 110px;">
 							<label class="label" for="new-repeatable">Repeatable</label>
 							<select id="new-repeatable" name="repeatable" class="input input--select">
@@ -207,6 +211,30 @@
 							<label class="label" for="new-grantsVulnerabilities">Vulnerabilities</label>
 							<input id="new-grantsVulnerabilities" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" />
 						</div>
+						<div class="field" style="flex:0 0 70px;">
+							<label class="label" for="new-rcc">Res.picks</label>
+							<input id="new-rcc" name="resistanceChoiceCount" type="number" min="0" class="input" />
+						</div>
+						<div class="field" style="flex:1 1 100px;">
+							<label class="label" for="new-rcp">Res. pool</label>
+							<input id="new-rcp" name="resistanceChoicePool" class="input" placeholder="FIRE,COLD" />
+						</div>
+						<div class="field" style="flex:0 0 70px;">
+							<label class="label" for="new-icc">Imm.picks</label>
+							<input id="new-icc" name="immunityChoiceCount" type="number" min="0" class="input" />
+						</div>
+						<div class="field" style="flex:1 1 100px;">
+							<label class="label" for="new-icp">Imm. pool</label>
+							<input id="new-icp" name="immunityChoicePool" class="input" placeholder="FIRE,COLD" />
+						</div>
+						<div class="field" style="flex:0 0 70px;">
+							<label class="label" for="new-vcc">Vul.picks</label>
+							<input id="new-vcc" name="vulnerabilityChoiceCount" type="number" min="0" class="input" />
+						</div>
+						<div class="field" style="flex:1 1 100px;">
+							<label class="label" for="new-vcp">Vul. pool</label>
+							<input id="new-vcp" name="vulnerabilityChoicePool" class="input" placeholder="FIRE,COLD" />
+						</div>
 						<div class="field" style="flex:1 1 160px;">
 							<label class="label" for="new-grantsSpeed">Speed Bonuses</label>
 							<input id="new-grantsSpeed" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" />
@@ -309,6 +337,10 @@
 										<div class="field" style="flex:2 1 180px;">
 											<label class="label" for="eurl-{feat.id}">Details URL</label>
 											<input id="eurl-{feat.id}" name="detailsUrl" type="text" class="input" value={feat.detailsUrl ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 140px; margin:0;">
+											<label class="label" for="esrc-{feat.id}">Source</label>
+											<input id="esrc-{feat.id}" name="source" type="text" class="input" value={(feat as any).source ?? ''} />
 										</div>
 										<div class="field" style="flex:0 0 110px;">
 											<label class="label" for="erep-{feat.id}">Repeatable</label>
@@ -433,6 +465,30 @@
 											<label class="label" for="fe-{feat.id}-gv">Vulnerabilities</label>
 											<input id="fe-{feat.id}-gv" name="grantsVulnerabilities" class="input" placeholder="Bludgeoning" value={feat.grantsVulnerabilities ?? ''} />
 										</div>
+										<div class="field" style="flex:0 0 70px; margin:0;">
+											<label class="label" for="ercc-{feat.id}">Res.picks</label>
+											<input id="ercc-{feat.id}" name="resistanceChoiceCount" type="number" min="0" class="input" value={(feat as any).resistanceChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 100px; margin:0;">
+											<label class="label" for="ercp-{feat.id}">Res. pool</label>
+											<input id="ercp-{feat.id}" name="resistanceChoicePool" class="input" placeholder="FIRE,COLD" value={(feat as any).resistanceChoicePool ?? ''} />
+										</div>
+										<div class="field" style="flex:0 0 70px; margin:0;">
+											<label class="label" for="eicc-{feat.id}">Imm.picks</label>
+											<input id="eicc-{feat.id}" name="immunityChoiceCount" type="number" min="0" class="input" value={(feat as any).immunityChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 100px; margin:0;">
+											<label class="label" for="eicp-{feat.id}">Imm. pool</label>
+											<input id="eicp-{feat.id}" name="immunityChoicePool" class="input" placeholder="FIRE,COLD" value={(feat as any).immunityChoicePool ?? ''} />
+										</div>
+										<div class="field" style="flex:0 0 70px; margin:0;">
+											<label class="label" for="evcc-{feat.id}">Vul.picks</label>
+											<input id="evcc-{feat.id}" name="vulnerabilityChoiceCount" type="number" min="0" class="input" value={(feat as any).vulnerabilityChoiceCount ?? ''} />
+										</div>
+										<div class="field" style="flex:1 1 100px; margin:0;">
+											<label class="label" for="evcp-{feat.id}">Vul. pool</label>
+											<input id="evcp-{feat.id}" name="vulnerabilityChoicePool" class="input" placeholder="FIRE,COLD" value={(feat as any).vulnerabilityChoicePool ?? ''} />
+										</div>
 										<div class="field" style="flex:1 1 160px; margin:0;">
 											<label class="label" for="fe-{feat.id}-gsp">Speed Bonuses</label>
 											<input id="fe-{feat.id}-gsp" name="grantsSpeed" class="input" placeholder="WALK:10,SWIM:30" value={feat.grantsSpeed ?? ''} />
@@ -485,6 +541,9 @@
 									{/if}
 									{#if feat.detailsUrl}
 										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Reference</p><a href={feat.detailsUrl} target="_blank" style="font-size:0.875rem;">↗ Link</a></div>
+									{/if}
+									{#if (feat as any).source}
+										<div><p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.125rem;">Source</p><p style="margin:0; font-size:0.875rem;">{(feat as any).source}</p></div>
 									{/if}
 								</div>
 								<div><button class="btn btn-ghost btn-sm" onclick={() => editing = feat.id}>Edit</button></div>

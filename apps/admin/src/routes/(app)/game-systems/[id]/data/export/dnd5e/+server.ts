@@ -50,7 +50,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                         savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (f as any).savingThrowChoicePool ?? '',
                         grantsTools: (f as any).grantsTools ?? '', toolChoiceCount: (f as any).toolChoiceCount ?? '', toolChoicePool: (f as any).toolChoicePool ?? '',
                         grantsLanguages: (f as any).grantsLanguages ?? '', languageChoiceCount: (f as any).languageChoiceCount ?? '', languageChoicePool: (f as any).languageChoicePool ?? '',
-                        grantsResistances: (f as any).grantsResistances ?? '', grantsImmunities: (f as any).grantsImmunities ?? '', grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '', grantsInnateSpells: (f as any).grantsInnateSpells ?? '', grantsSpeed: (f as any).grantsSpeed ?? '', grantsSenses: (f as any).grantsSenses ?? '' });
+                        grantsResistances: (f as any).grantsResistances ?? '', grantsImmunities: (f as any).grantsImmunities ?? '', grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '', resistanceChoiceCount: (f as any).resistanceChoiceCount ?? '', resistanceChoicePool: (f as any).resistanceChoicePool ?? '', immunityChoiceCount: (f as any).immunityChoiceCount ?? '', immunityChoicePool: (f as any).immunityChoicePool ?? '', vulnerabilityChoiceCount: (f as any).vulnerabilityChoiceCount ?? '', vulnerabilityChoicePool: (f as any).vulnerabilityChoicePool ?? '', grantsInnateSpells: (f as any).grantsInnateSpells ?? '', grantsSpeed: (f as any).grantsSpeed ?? '', grantsSenses: (f as any).grantsSenses ?? '', grantsFeatCategory: (f as any).grantsFeatCategory ?? '', grantsFeatId: (f as any).grantsFeatId ?? '' });
                 }
             }
             rows.sort((a, b) => a.className.localeCompare(b.className) || a.requiredLevel - b.requiredLevel);
@@ -80,7 +80,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                             savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (f as any).savingThrowChoicePool ?? '',
                             grantsTools: (f as any).grantsTools ?? '', toolChoiceCount: (f as any).toolChoiceCount ?? '', toolChoicePool: (f as any).toolChoicePool ?? '',
                             grantsLanguages: (f as any).grantsLanguages ?? '', languageChoiceCount: (f as any).languageChoiceCount ?? '', languageChoicePool: (f as any).languageChoicePool ?? '',
-                            grantsResistances: (f as any).grantsResistances ?? '', grantsImmunities: (f as any).grantsImmunities ?? '', grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '', grantsInnateSpells: (f as any).grantsInnateSpells ?? '', grantsSpeed: (f as any).grantsSpeed ?? '', grantsSenses: (f as any).grantsSenses ?? '' });
+                            grantsResistances: (f as any).grantsResistances ?? '', grantsImmunities: (f as any).grantsImmunities ?? '', grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '', resistanceChoiceCount: (f as any).resistanceChoiceCount ?? '', resistanceChoicePool: (f as any).resistanceChoicePool ?? '', immunityChoiceCount: (f as any).immunityChoiceCount ?? '', immunityChoicePool: (f as any).immunityChoicePool ?? '', vulnerabilityChoiceCount: (f as any).vulnerabilityChoiceCount ?? '', vulnerabilityChoicePool: (f as any).vulnerabilityChoicePool ?? '', grantsInnateSpells: (f as any).grantsInnateSpells ?? '', grantsSpeed: (f as any).grantsSpeed ?? '', grantsSenses: (f as any).grantsSenses ?? '', grantsFeatCategory: (f as any).grantsFeatCategory ?? '', grantsFeatId: (f as any).grantsFeatId ?? '' });
                     }
                 }
             }
@@ -120,7 +120,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                         savingThrowChoiceCount: (t as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (t as any).savingThrowChoicePool ?? '',
                         grantsTools: (t as any).grantsTools ?? '', toolChoiceCount: (t as any).toolChoiceCount ?? '', toolChoicePool: (t as any).toolChoicePool ?? '',
                         grantsLanguages: (t as any).grantsLanguages ?? '', languageChoiceCount: (t as any).languageChoiceCount ?? '', languageChoicePool: (t as any).languageChoicePool ?? '',
-                        grantsResistances: (t as any).grantsResistances ?? '', grantsImmunities: (t as any).grantsImmunities ?? '', grantsVulnerabilities: (t as any).grantsVulnerabilities ?? '', grantsInnateSpells: (t as any).grantsInnateSpells ?? '' });
+                        grantsResistances: (t as any).grantsResistances ?? '', grantsImmunities: (t as any).grantsImmunities ?? '', grantsVulnerabilities: (t as any).grantsVulnerabilities ?? '', resistanceChoiceCount: (t as any).resistanceChoiceCount ?? '', resistanceChoicePool: (t as any).resistanceChoicePool ?? '', immunityChoiceCount: (t as any).immunityChoiceCount ?? '', immunityChoicePool: (t as any).immunityChoicePool ?? '', vulnerabilityChoiceCount: (t as any).vulnerabilityChoiceCount ?? '', vulnerabilityChoicePool: (t as any).vulnerabilityChoicePool ?? '', grantsInnateSpells: (t as any).grantsInnateSpells ?? '', grantsFeatCategory: (t as any).grantsFeatCategory ?? '', grantsFeatId: (t as any).grantsFeatId ?? '' });
                 }
             }
             rows.sort((a, b) => a.speciesName.localeCompare(b.speciesName) || a.name.localeCompare(b.name));
@@ -155,6 +155,12 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                 grantsResistances:     (b as any).grantsResistances     ?? '',
                 grantsImmunities:      (b as any).grantsImmunities      ?? '',
                 grantsVulnerabilities: (b as any).grantsVulnerabilities ?? '',
+                resistanceChoiceCount:  (b as any).resistanceChoiceCount  ?? '',
+                resistanceChoicePool:   (b as any).resistanceChoicePool   ?? '',
+                immunityChoiceCount:    (b as any).immunityChoiceCount    ?? '',
+                immunityChoicePool:     (b as any).immunityChoicePool     ?? '',
+                vulnerabilityChoiceCount: (b as any).vulnerabilityChoiceCount ?? '',
+                vulnerabilityChoicePool:  (b as any).vulnerabilityChoicePool  ?? '',
                 grantsInnateSpells:     (b as any).grantsInnateSpells     ?? '',
                 grantsSpeed:            (b as any).grantsSpeed            ?? '',
                 grantsSenses:           (b as any).grantsSenses           ?? '',
@@ -174,6 +180,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                 categories:      f.categories      ?? '',
                 prerequisites:   f.prerequisites   ?? '',
                 detailsUrl:      f.detailsUrl       ?? '',
+                source:          (f as any).source   ?? '',
                 isEpicBoon:      f.isEpicBoon,
                 asiAmount:       f.asiAmount        ?? '',
                 asiStatFixed:    f.asiStatFixed     ?? '',
@@ -197,6 +204,12 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                 grantsResistances:     (f as any).grantsResistances     ?? '',
                 grantsImmunities:      (f as any).grantsImmunities      ?? '',
                 grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '',
+                resistanceChoiceCount:  (f as any).resistanceChoiceCount  ?? '',
+                resistanceChoicePool:   (f as any).resistanceChoicePool   ?? '',
+                immunityChoiceCount:    (f as any).immunityChoiceCount    ?? '',
+                immunityChoicePool:     (f as any).immunityChoicePool     ?? '',
+                vulnerabilityChoiceCount: (f as any).vulnerabilityChoiceCount ?? '',
+                vulnerabilityChoicePool:  (f as any).vulnerabilityChoicePool  ?? '',
                 grantsInnateSpells:     (f as any).grantsInnateSpells     ?? '',
                 sortOrder:       f.sortOrder,
             }));

@@ -72,7 +72,7 @@
 		onToggleLanguage?:         (language: string, active: boolean, note?: string) => Promise<void>;
 		onToggleDamageModifier?:   (modifierType: string, damageType: string, active: boolean, note?: string) => Promise<void>;
 		onSaveDetails?:            (details: Record<string, string | number | null>) => Promise<void>;
-		onSaveChoicePoolGrants?:   (opts: { skills: {skill:string;value:number;sourceType:string;sourceId:string}[]; saves: {stat:string;sourceType:string;sourceId:string}[] }) => Promise<void>;
+		onSaveChoicePoolGrants?:   (opts: { skills: {skill:string;value:number;sourceType:string;sourceId:string}[]; saves: {stat:string;sourceType:string;sourceId:string}[]; dmgMods: {modifierType:string;damageType:string;sourceType:string;sourceId:string}[]; tools: {tool:string;sourceType:string;sourceId:string}[]; languages: {language:string;sourceType:string;sourceId:string}[] }) => Promise<void>;
 	} = $props();
 
 	// ── Constants ────────────────────────────────────────────────────────────
@@ -211,6 +211,7 @@
 	let pendingSkillPicks     = $state<Record<string, string[]>>({});
 	let pendingSavePicks      = $state<Record<string, string[]>>({});
 	let pendingExpertisePicks = $state<Record<string, string[]>>({});
+	let pendingDmgModPicks    = $state<Record<string, string[]>>({}); // keyed by sourceId-modType
 	let savingChoices         = $state(false);
 
 	const pendingChoices  = $derived((charSheet?.pendingChoices ?? []) as any[]);
@@ -232,10 +233,21 @@
 		const saves = (pendingSavePicks[sourceId] ?? []).map(stat => ({
 			stat, sourceType, sourceId,
 		}));
-		await onSaveChoicePoolGrants?.({ skills, saves });
+		// Gather dmg mod picks for this sourceId
+		const dmgMods = (['RESISTANCE','IMMUNITY','VULNERABILITY'] as const).flatMap(mod => {
+			const key = `${sourceId}-${mod}`;
+			return (pendingDmgModPicks[key] ?? []).map(dmgType => ({ modifierType: mod, damageType: dmgType, sourceType, sourceId }));
+		});
+		const tools     = (pendingToolPicks[sourceId]     ?? []).map(tool => ({ tool,     sourceType, sourceId }));
+		const languages = (pendingLanguagePicks[sourceId] ?? []).map(lang => ({ language: lang, sourceType, sourceId }));
+		await onSaveChoicePoolGrants?.({ skills, saves, dmgMods, tools, languages });
 		pendingSkillPicks     = { ...pendingSkillPicks,     [sourceId]: [] };
 		pendingSavePicks      = { ...pendingSavePicks,      [sourceId]: [] };
 		pendingExpertisePicks = { ...pendingExpertisePicks, [sourceId]: [] };
+		// Clear dmg mod picks for this sourceId
+		pendingDmgModPicks    = Object.fromEntries(Object.entries(pendingDmgModPicks).filter(([k]) => !k.startsWith(sourceId + '-')));
+		pendingToolPicks      = { ...pendingToolPicks,     [sourceId]: [] };
+		pendingLanguagePicks  = { ...pendingLanguagePicks, [sourceId]: [] };
 		savingChoices = false;
 	}
 
@@ -243,6 +255,25 @@
 		const cur = pendingSkillPicks[sourceId] ?? [];
 		if (cur.includes(skill)) pendingSkillPicks = { ...pendingSkillPicks, [sourceId]: cur.filter(s => s !== skill) };
 		else if (cur.length < max) pendingSkillPicks = { ...pendingSkillPicks, [sourceId]: [...cur, skill] };
+	}
+
+	function togglePendingTool(sourceId: string, tool: string, max: number) {
+		const cur = pendingToolPicks[sourceId] ?? [];
+		if (cur.includes(tool)) pendingToolPicks = { ...pendingToolPicks, [sourceId]: cur.filter(t => t !== tool) };
+		else if (cur.length < max) pendingToolPicks = { ...pendingToolPicks, [sourceId]: [...cur, tool] };
+	}
+
+	function togglePendingLanguage(sourceId: string, lang: string, max: number) {
+		const cur = pendingLanguagePicks[sourceId] ?? [];
+		if (cur.includes(lang)) pendingLanguagePicks = { ...pendingLanguagePicks, [sourceId]: cur.filter(l => l !== lang) };
+		else if (cur.length < max) pendingLanguagePicks = { ...pendingLanguagePicks, [sourceId]: [...cur, lang] };
+	}
+
+	function togglePendingDmgMod(sourceId: string, mod: string, dmgType: string, max: number) {
+		const key = `${sourceId}-${mod}`;
+		const cur = pendingDmgModPicks[key] ?? [];
+		if (cur.includes(dmgType)) pendingDmgModPicks = { ...pendingDmgModPicks, [key]: cur.filter(d => d !== dmgType) };
+		else if (cur.length < max) pendingDmgModPicks = { ...pendingDmgModPicks, [key]: [...cur, dmgType] };
 	}
 
 	function togglePendingExpertise(sourceId: string, skill: string, max: number) {
@@ -293,7 +324,12 @@
 			if (slot.type === 'epic_boon') return true;
 			if (slot.type === 'background_feat') {
 				if (slot.grantsFeatId && !canManage) return f.id === slot.grantsFeatId;
-				if (slot.featCategory) return (f.categories ?? '').split(',').map((s:string) => s.trim()).includes(slot.featCategory);
+				if (slot.featCategory) {
+					const cat = slot.featCategory.toLowerCase();
+					if (cat === 'general') return !f.isEpicBoon;
+					if (cat === 'fighting style') return (f.categories ?? '').split(',').map((s:string) => s.trim().toLowerCase()).includes('fighting style');
+					return (f.categories ?? '').split(',').map((s:string) => s.trim().toLowerCase()).includes(cat);
+				}
 			}
 			return true;
 		}).filter((f:any) => !q ||
@@ -423,6 +459,71 @@
 								{/each}
 							</div>
 						{/if}
+
+						<!-- Tool choice pool -->
+						{#if pc.toolChoicePool}
+							{@const toolPool = pc.toolChoicePool.split(',').map((s:string)=>s.trim()).filter(Boolean)}
+							{@const pickedTools = pendingToolPicks[pc.sourceId] ?? []}
+							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+								Choose {pc.toolChoiceCount} tool{pc.toolChoiceCount !== 1 ? 's' : ''}
+								<span style="font-weight:400;color:var(--text-secondary);">({pickedTools.length}/{Math.min(pc.toolChoiceCount, toolPool.length)} chosen)</span>
+							</p>
+							<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+								{#each toolPool as tool}
+									{@const chosen = pickedTools.includes(tool)}
+									{@const full = !chosen && pickedTools.length >= Math.min(pc.toolChoiceCount, toolPool.length)}
+									<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
+										onclick={() => togglePendingTool(pc.sourceId, tool, pc.toolChoiceCount)}>{tool}</button>
+								{/each}
+							</div>
+						{/if}
+
+						<!-- Language choice pool -->
+						{#if pc.languageChoicePool}
+							{@const langPool = pc.languageChoicePool.split(',').map((s:string)=>s.trim()).filter(Boolean)}
+							{@const pickedLangs = pendingLanguagePicks[pc.sourceId] ?? []}
+							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+								Choose {pc.languageChoiceCount} language{pc.languageChoiceCount !== 1 ? 's' : ''}
+								<span style="font-weight:400;color:var(--text-secondary);">({pickedLangs.length}/{Math.min(pc.languageChoiceCount, langPool.length)} chosen)</span>
+							</p>
+							<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+								{#each langPool as lang}
+									{@const chosen = pickedLangs.includes(lang)}
+									{@const full = !chosen && pickedLangs.length >= Math.min(pc.languageChoiceCount, langPool.length)}
+									<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
+										onclick={() => togglePendingLanguage(pc.sourceId, lang, pc.languageChoiceCount)}>{lang}</button>
+								{/each}
+							</div>
+						{/if}
+
+						<!-- Damage modifier choice pools -->
+						{#each [
+							{ key: 'resistanceChoicePool',     countKey: 'resistanceChoiceCount',     mod: 'Resistance' },
+							{ key: 'immunityChoicePool',       countKey: 'immunityChoiceCount',       mod: 'Immunity' },
+							{ key: 'vulnerabilityChoicePool',  countKey: 'vulnerabilityChoiceCount',  mod: 'Vulnerability' },
+						] as dmgDef}
+							{@const dmgPool = (pc as any)[dmgDef.key] ? (pc as any)[dmgDef.key].split(',').map((s:string)=>s.trim()).filter(Boolean) : []}
+							{@const dmgCount = (pc as any)[dmgDef.countKey] ?? 0}
+							{@const dmgPicked = pendingDmgModPicks[`${pc.sourceId}-${dmgDef.mod}`] ?? []}
+							{#if dmgPool.length && dmgCount}
+								<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+									Choose {dmgCount} {dmgDef.mod}{dmgCount !== 1 ? 's' : ''}
+									<span style="font-weight:400;color:var(--text-secondary);">({dmgPicked.length}/{Math.min(dmgCount, dmgPool.length)} chosen)</span>
+								</p>
+								<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+									{#each dmgPool as dmgType}
+										{@const dmgChosen = dmgPicked.includes(dmgType)}
+										{@const dmgFull = !dmgChosen && dmgPicked.length >= Math.min(dmgCount, dmgPool.length)}
+										<button type="button"
+											class="btn btn-sm {dmgChosen ? 'btn-primary' : 'btn-ghost'}"
+											disabled={dmgFull}
+											onclick={() => togglePendingDmgMod(pc.sourceId, dmgDef.mod, dmgType, dmgCount)}>
+											{dmgType}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						{/each}
 
 						<button
 							class="btn btn-primary btn-sm"

@@ -275,12 +275,36 @@
   /* Scores grid handled below */
 }
 
+/* ── wizard-scores-step layout ─────────────────────────────────── */
+.wizard-scores-step {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .wizard-scores-step {
+    flex-direction: column;
+  }
+  .wizard-scores-step > * {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
 /* ── wizard-scores-grid — desktop 3-col, mobile 2-col ───────────── */
 .wizard-scores-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.625rem;
   margin-bottom: 0.875rem;
+}
+
+/* 6-col variant for standard array assignment (dropdowns) */
+.wizard-scores-grid--6col {
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
 }
 
 /* ── Mobile layout fixes ─────────────────────────────────────────── */
@@ -309,6 +333,9 @@
   }
 
   /* Scores: 2-col on mobile so stat boxes have room to breathe */
+  .wizard-scores-grid--6col {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
   .wizard-scores-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 0.5rem !important;
@@ -351,8 +378,8 @@
 }
 
 .wiz-browser--compact {
-  height: auto;
-  min-height: 0;
+  height: 320px;
+  min-height: 200px;
   max-height: 360px;
 }
 
@@ -362,6 +389,7 @@
   border-right: 1px solid var(--border-muted);
   background: var(--bg-surface);
   overflow: hidden;
+  min-height: 0;
 }
 
 .wiz-browser__search {
@@ -672,8 +700,18 @@
   .wiz-browser__panel { max-height: none; }
 
   /* Toggle: full width on mobile */
-  .wiz-toggle { width: 100%; }
-  .wiz-toggle__btn { flex: 1; }
+  .wiz-toggle {
+    width: 100%;
+    flex-direction: column;
+    border-radius: var(--radius-md);
+  }
+  .wiz-toggle__btn {
+    border-right: none;
+    border-bottom: 1px solid var(--border-base);
+    width: 100%;
+    text-align: center;
+  }
+  .wiz-toggle__btn:last-child { border-bottom: none; }
 }
 
 /* ── wizard-skills-layout — pools + sidebar ─────────────────────── */

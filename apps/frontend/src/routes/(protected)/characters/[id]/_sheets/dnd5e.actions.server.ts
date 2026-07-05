@@ -79,6 +79,16 @@ export const dnd5eActions = {
 		const poolSaves          = data.getAll('poolSave').map((v: any) => v.toString()).filter(Boolean);
 		const poolSaveSources    = data.getAll('poolSaveSource').map((v: any) => v.toString());
 		const poolSaveSourceIds  = data.getAll('poolSaveSourceId').map((v: any) => v.toString());
+		const poolDmgModTypes    = data.getAll('poolDmgModType').map((v: any) => v.toString()).filter(Boolean);
+		const poolDmgModDamages  = data.getAll('poolDmgModDamage').map((v: any) => v.toString());
+		const poolDmgModSources  = data.getAll('poolDmgModSource').map((v: any) => v.toString());
+		const poolDmgModSourceIds = data.getAll('poolDmgModSourceId').map((v: any) => v.toString());
+		const poolTools          = data.getAll('poolTool').map((v: any) => v.toString()).filter(Boolean);
+		const poolToolSources    = data.getAll('poolToolSource').map((v: any) => v.toString());
+		const poolToolSourceIds  = data.getAll('poolToolSourceId').map((v: any) => v.toString());
+		const poolLanguages      = data.getAll('poolLanguage').map((v: any) => v.toString()).filter(Boolean);
+		const poolLanguageSources   = data.getAll('poolLanguageSource').map((v: any) => v.toString());
+		const poolLanguageSourceIds = data.getAll('poolLanguageSourceId').map((v: any) => v.toString());
 		try {
 			if (poolSkills.length) {
 				await dnd5e.addSkillGrants(params.id, poolSkills.map((skill: string, i: number) => ({
@@ -86,6 +96,28 @@ export const dnd5eActions = {
 					value:      poolSkillValues[i] ?? 1.0,
 					sourceType: poolSkillSources[i]   ?? 'PlayerChoice',
 					sourceId:   poolSkillSourceIds[i] || undefined,
+				})));
+			}
+			if (poolDmgModTypes.length) {
+				await dnd5e.addDamageModifierGrants(params.id, poolDmgModTypes.map((modifierType: string, i: number) => ({
+					modifierType,
+					damageType:  poolDmgModDamages[i]   ?? '',
+					sourceType:  poolDmgModSources[i]   ?? 'PlayerChoice',
+					sourceId:    poolDmgModSourceIds[i] || undefined,
+				})));
+			}
+			if (poolTools.length) {
+				await dnd5e.addToolGrants(params.id, poolTools.map((tool: string, i: number) => ({
+					tool,
+					sourceType: poolToolSources[i]   ?? 'PlayerChoice',
+					sourceId:   poolToolSourceIds[i] || undefined,
+				})));
+			}
+			if (poolLanguages.length) {
+				await dnd5e.addLanguageGrants(params.id, poolLanguages.map((language: string, i: number) => ({
+					language,
+					sourceType: poolLanguageSources[i]   ?? 'PlayerChoice',
+					sourceId:   poolLanguageSourceIds[i] || undefined,
 				})));
 			}
 			if (poolSaves.length) {

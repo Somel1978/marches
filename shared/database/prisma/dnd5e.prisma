@@ -85,9 +85,18 @@ model Dnd5eClassFeature {
   grantsResistances     String?  @map("grants_resistances")
   grantsImmunities      String?  @map("grants_immunities")
   grantsVulnerabilities String?  @map("grants_vulnerabilities")
+  resistanceChoiceCount  Int?     @map("resistance_choice_count")
+  resistanceChoicePool   String?  @map("resistance_choice_pool")   // comma-sep damage types
+  immunityChoiceCount    Int?     @map("immunity_choice_count")
+  immunityChoicePool     String?  @map("immunity_choice_pool")     // comma-sep damage types
+  vulnerabilityChoiceCount Int?   @map("vulnerability_choice_count")
+  vulnerabilityChoicePool  String? @map("vulnerability_choice_pool") // comma-sep damage types
   grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
   grantsSpeed       String?  @map("grants_speed")   // "WALK:10,SWIM:30" — additive speed bonuses
-  grantsSenses      String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
+  grantsSenses       String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
+  grantsFeatCategory String?  @map("grants_feat_category")  // player picks any feat of this category
+  grantsFeatId       String?  @map("grants_feat_id")          // auto-grants this specific feat
+  grantsFeat         Dnd5eFeat? @relation("ClassFeatureGrantedFeat", fields: [grantsFeatId], references: [id], onDelete: SetNull)
   createdAt           DateTime   @default(now()) @map("created_at")
   updatedAt           DateTime   @updatedAt      @map("updated_at")
 
@@ -148,9 +157,18 @@ model Dnd5eSubclassFeature {
   grantsResistances     String?  @map("grants_resistances")
   grantsImmunities      String?  @map("grants_immunities")
   grantsVulnerabilities String?  @map("grants_vulnerabilities")
+  resistanceChoiceCount  Int?     @map("resistance_choice_count")
+  resistanceChoicePool   String?  @map("resistance_choice_pool")   // comma-sep damage types
+  immunityChoiceCount    Int?     @map("immunity_choice_count")
+  immunityChoicePool     String?  @map("immunity_choice_pool")     // comma-sep damage types
+  vulnerabilityChoiceCount Int?   @map("vulnerability_choice_count")
+  vulnerabilityChoicePool  String? @map("vulnerability_choice_pool") // comma-sep damage types
   grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
   grantsSpeed       String?  @map("grants_speed")   // "WALK:10,SWIM:30" — additive speed bonuses
-  grantsSenses      String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
+  grantsSenses       String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
+  grantsFeatCategory String?  @map("grants_feat_category")
+  grantsFeatId       String?  @map("grants_feat_id")
+  grantsFeat         Dnd5eFeat? @relation("SubclassFeatureGrantedFeat", fields: [grantsFeatId], references: [id], onDelete: SetNull)
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt      @map("updated_at")
 
@@ -208,9 +226,18 @@ model Dnd5eSpeciesTrait {
   grantsResistances     String?  @map("grants_resistances")    // comma-sep damage types
   grantsImmunities      String?  @map("grants_immunities")     // comma-sep damage types
   grantsVulnerabilities String?  @map("grants_vulnerabilities") // comma-sep damage types
+  resistanceChoiceCount  Int?     @map("resistance_choice_count")
+  resistanceChoicePool   String?  @map("resistance_choice_pool")   // comma-sep damage types
+  immunityChoiceCount    Int?     @map("immunity_choice_count")
+  immunityChoicePool     String?  @map("immunity_choice_pool")     // comma-sep damage types
+  vulnerabilityChoiceCount Int?   @map("vulnerability_choice_count")
+  vulnerabilityChoicePool  String? @map("vulnerability_choice_pool") // comma-sep damage types
   grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:minCharLevel:usesPerDay" 0=at-will
   grantsSpeed       String?  @map("grants_speed")   // "WALK:10,SWIM:30" — additive speed bonuses
-  grantsSenses      String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
+  grantsSenses       String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
+  grantsFeatCategory String?  @map("grants_feat_category")
+  grantsFeatId       String?  @map("grants_feat_id")
+  grantsFeat         Dnd5eFeat? @relation("SpeciesTraitGrantedFeat", fields: [grantsFeatId], references: [id], onDelete: SetNull)
   // Physical characteristics granted by this trait
   size         String?  @map("size")          // fixed size e.g. "Medium"
   sizeChoices  String?  @map("size_choices")  // comma-sep pool if player picks e.g. "Small,Medium"
@@ -274,6 +301,12 @@ model Dnd5eBackground {
   grantsResistances     String?  @map("grants_resistances")
   grantsImmunities      String?  @map("grants_immunities")
   grantsVulnerabilities String?  @map("grants_vulnerabilities")
+  resistanceChoiceCount  Int?     @map("resistance_choice_count")
+  resistanceChoicePool   String?  @map("resistance_choice_pool")   // comma-sep damage types
+  immunityChoiceCount    Int?     @map("immunity_choice_count")
+  immunityChoicePool     String?  @map("immunity_choice_pool")     // comma-sep damage types
+  vulnerabilityChoiceCount Int?   @map("vulnerability_choice_count")
+  vulnerabilityChoicePool  String? @map("vulnerability_choice_pool") // comma-sep damage types
   grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
   grantsSpeed       String?  @map("grants_speed")   // "WALK:10,SWIM:30" — additive speed bonuses
   grantsSenses      String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
@@ -336,6 +369,7 @@ model Dnd5eFeat {
   categories    String?
   prerequisites String?
   detailsUrl    String?  @map("details_url")
+  source        String?
   isAvailable   Boolean  @default(true)  @map("is_available")
   isEpicBoon    Boolean  @default(false) @map("is_epic_boon")
   asiAmount     Int?     @map("asi_amount")       // null = no grant; 1 = +1; 2 = +2
@@ -362,6 +396,12 @@ model Dnd5eFeat {
   grantsResistances     String?  @map("grants_resistances")
   grantsImmunities      String?  @map("grants_immunities")
   grantsVulnerabilities String?  @map("grants_vulnerabilities")
+  resistanceChoiceCount  Int?     @map("resistance_choice_count")
+  resistanceChoicePool   String?  @map("resistance_choice_pool")   // comma-sep damage types
+  immunityChoiceCount    Int?     @map("immunity_choice_count")
+  immunityChoicePool     String?  @map("immunity_choice_pool")     // comma-sep damage types
+  vulnerabilityChoiceCount Int?   @map("vulnerability_choice_count")
+  vulnerabilityChoicePool  String? @map("vulnerability_choice_pool") // comma-sep damage types
   grantsInnateSpells    String?  @map("grants_innate_spells")  // "SpellName:usesPerDay,..." 0=at-will
   grantsSpeed       String?  @map("grants_speed")   // "WALK:10,SWIM:30" — additive speed bonuses
   grantsSenses      String?  @map("grants_senses")  // free text e.g. "Blindsense 10 ft"
@@ -370,7 +410,10 @@ model Dnd5eFeat {
   updatedAt     DateTime @updatedAt      @map("updated_at")
 
   characterFeats       Dnd5eCharacterFeat[]
-  grantedByBackgrounds Dnd5eBackground[]     @relation("BackgroundGrantedFeat")
+  grantedByBackgrounds      Dnd5eBackground[]       @relation("BackgroundGrantedFeat")
+  grantedByClassFeatures    Dnd5eClassFeature[]     @relation("ClassFeatureGrantedFeat")
+  grantedBySubclassFeatures Dnd5eSubclassFeature[]  @relation("SubclassFeatureGrantedFeat")
+  grantedBySpeciesTraits    Dnd5eSpeciesTrait[]     @relation("SpeciesTraitGrantedFeat")
 
   @@unique([gameSystemId, uploadId])
   @@map("feats")

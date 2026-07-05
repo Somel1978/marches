@@ -101,6 +101,22 @@ export const actions: Actions = {
 				});
 			}
 
+			// Save feat grants from class/subclass features and species traits
+			const featureGrantedFeatIds  = data.getAll('featureGrantedFeatId').map(v => v.toString()).filter(Boolean);
+			const featureGrantedFeatSrcs = data.getAll('featureGrantedFeatSrc').map(v => v.toString());
+			for (let i = 0; i < featureGrantedFeatIds.length; i++) {
+				const featId   = featureGrantedFeatIds[i];
+				const sourceKey = featureGrantedFeatSrcs[i] ?? 'feature';
+				// sourceKey format: 'cf-{featureId}' | 'sf-{featureId}' | 'st-{traitId}'
+				const sourceType = sourceKey.startsWith('cf-') ? 'ClassFeature'
+					: sourceKey.startsWith('sf-') ? 'SubclassFeature'
+					: 'SpeciesTrait';
+				await dnd5e.addCharacterFeat(character.id, featId, {
+					sourceClassId: sourceType,
+					sourceLevel:   1,
+				});
+			}
+
 			// Save ASI / Feat choices from the ASI step
 			// Each slot is submitted as parallel arrays of asi_* fields
 			const asiSourceClassIds = data.getAll('asi_sourceClassId').map(v => v.toString());

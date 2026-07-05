@@ -69,6 +69,9 @@ const TRAIT_GRANT_FIELDS = [
     'grantsTools', 'toolChoiceCount', 'toolChoicePool',
     'grantsLanguages', 'languageChoiceCount', 'languageChoicePool',
     'grantsResistances', 'grantsImmunities', 'grantsVulnerabilities',
+    'resistanceChoiceCount', 'resistanceChoicePool',
+    'immunityChoiceCount', 'immunityChoicePool',
+    'vulnerabilityChoiceCount', 'vulnerabilityChoicePool',
     'grantsInnateSpells',
     'size', 'sizeChoices', 'senses',
 ] as const;
@@ -80,6 +83,9 @@ type TraitGrantInput = Partial<{
     grantsTools: string | null; toolChoiceCount: number | null; toolChoicePool: string | null;
     grantsLanguages: string | null; languageChoiceCount: number | null; languageChoicePool: string | null;
     grantsResistances: string | null; grantsImmunities: string | null; grantsVulnerabilities: string | null;
+    resistanceChoiceCount: number | null; resistanceChoicePool: string | null;
+    immunityChoiceCount: number | null; immunityChoicePool: string | null;
+    vulnerabilityChoiceCount: number | null; vulnerabilityChoicePool: string | null;
     grantsInnateSpells: string | null;
     size: string | null; sizeChoices: string | null; senses: string | null;
 }>;
@@ -115,6 +121,9 @@ type BackgroundGrantInput = Partial<{
     grantsTools: string | null; toolChoiceCount: number | null; toolChoicePool: string | null;
     grantsLanguages: string | null; languageChoiceCount: number | null; languageChoicePool: string | null;
     grantsResistances: string | null; grantsImmunities: string | null; grantsVulnerabilities: string | null;
+    resistanceChoiceCount: number | null; resistanceChoicePool: string | null;
+    immunityChoiceCount: number | null; immunityChoicePool: string | null;
+    vulnerabilityChoiceCount: number | null; vulnerabilityChoicePool: string | null;
     grantsInnateSpells: string | null;
     grantsSpeed: string | null;
     grantsSenses: string | null;

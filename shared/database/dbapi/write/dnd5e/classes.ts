@@ -60,9 +60,14 @@ export async function createClassFeature(input: {
     grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
     grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
     grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    resistanceChoiceCount?:   number | null; resistanceChoicePool?:   string | null;
+    immunityChoiceCount?:     number | null; immunityChoicePool?:     string | null;
+    vulnerabilityChoiceCount?: number | null; vulnerabilityChoicePool?: string | null;
     grantsInnateSpells?: string | null;
     grantsSpeed?: string | null;
     grantsSenses?: string | null;
+    grantsFeatCategory?: string | null;
+    grantsFeatId?: string | null;
 }, actorId: string) {
     return db.dnd5eClassFeature.create({ data: {
         classId:            input.classId,
@@ -90,9 +95,17 @@ export async function createClassFeature(input: {
         grantsResistances:       input.grantsResistances       ?? null,
         grantsImmunities:        input.grantsImmunities        ?? null,
         grantsVulnerabilities:   input.grantsVulnerabilities   ?? null,
+        resistanceChoiceCount:    input.resistanceChoiceCount    ?? null,
+        resistanceChoicePool:     input.resistanceChoicePool     ?? null,
+        immunityChoiceCount:      input.immunityChoiceCount      ?? null,
+        immunityChoicePool:       input.immunityChoicePool       ?? null,
+        vulnerabilityChoiceCount: input.vulnerabilityChoiceCount ?? null,
+        vulnerabilityChoicePool:  input.vulnerabilityChoicePool  ?? null,
         grantsInnateSpells:      input.grantsInnateSpells      ?? null,
         grantsSpeed:             input.grantsSpeed             ?? null,
         grantsSenses:            input.grantsSenses            ?? null,
+        grantsFeatCategory:      input.grantsFeatCategory      ?? null,
+        grantsFeatId:            input.grantsFeatId            ?? null,
     }});
 }
 
@@ -105,9 +118,14 @@ export async function updateClassFeature(id: string, input: {
     grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
     grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
     grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    resistanceChoiceCount?:   number | null; resistanceChoicePool?:   string | null;
+    immunityChoiceCount?:     number | null; immunityChoicePool?:     string | null;
+    vulnerabilityChoiceCount?: number | null; vulnerabilityChoicePool?: string | null;
     grantsInnateSpells?: string | null;
     grantsSpeed?: string | null;
     grantsSenses?: string | null;
+    grantsFeatCategory?: string | null;
+    grantsFeatId?: string | null;
 } ) {
     return db.dnd5eClassFeature.update({ where: { id }, data: input });
 }
@@ -153,9 +171,14 @@ export async function createSubclassFeature(input: {
     grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
     grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
     grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    resistanceChoiceCount?:   number | null; resistanceChoicePool?:   string | null;
+    immunityChoiceCount?:     number | null; immunityChoicePool?:     string | null;
+    vulnerabilityChoiceCount?: number | null; vulnerabilityChoicePool?: string | null;
     grantsInnateSpells?: string | null;
     grantsSpeed?: string | null;
     grantsSenses?: string | null;
+    grantsFeatCategory?: string | null;
+    grantsFeatId?: string | null;
 } ) {
     return db.dnd5eSubclassFeature.create({ data: {
         subclassId:         input.subclassId,
@@ -183,9 +206,17 @@ export async function createSubclassFeature(input: {
         grantsResistances:       input.grantsResistances       ?? null,
         grantsImmunities:        input.grantsImmunities        ?? null,
         grantsVulnerabilities:   input.grantsVulnerabilities   ?? null,
+        resistanceChoiceCount:    input.resistanceChoiceCount    ?? null,
+        resistanceChoicePool:     input.resistanceChoicePool     ?? null,
+        immunityChoiceCount:      input.immunityChoiceCount      ?? null,
+        immunityChoicePool:       input.immunityChoicePool       ?? null,
+        vulnerabilityChoiceCount: input.vulnerabilityChoiceCount ?? null,
+        vulnerabilityChoicePool:  input.vulnerabilityChoicePool  ?? null,
         grantsInnateSpells:      input.grantsInnateSpells      ?? null,
         grantsSpeed:             input.grantsSpeed             ?? null,
         grantsSenses:            input.grantsSenses            ?? null,
+        grantsFeatCategory:      input.grantsFeatCategory      ?? null,
+        grantsFeatId:            input.grantsFeatId            ?? null,
     }});
 }
 
@@ -198,9 +229,14 @@ export async function updateSubclassFeature(id: string, input: {
     grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
     grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
     grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    resistanceChoiceCount?:   number | null; resistanceChoicePool?:   string | null;
+    immunityChoiceCount?:     number | null; immunityChoicePool?:     string | null;
+    vulnerabilityChoiceCount?: number | null; vulnerabilityChoicePool?: string | null;
     grantsInnateSpells?: string | null;
     grantsSpeed?: string | null;
     grantsSenses?: string | null;
+    grantsFeatCategory?: string | null;
+    grantsFeatId?: string | null;
 } ) {
     return db.dnd5eSubclassFeature.update({ where: { id }, data: input });
 }
