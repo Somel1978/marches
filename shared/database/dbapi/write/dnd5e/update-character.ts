@@ -3,6 +3,7 @@ import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError } from '@core/errors';
 import { syncBackgroundFeatGrant } from './background-feat-grant.ts';
+import { syncSpeciesTraitGrants } from './species-trait-grants.ts';
 import { createNotificationsForAdmins } from '../notifications/notifications.ts';
 import type { ClassAllocationInput } from './create-character.ts';
 
@@ -61,9 +62,9 @@ export async function updateDnd5eCharacterFields(
     const character = await db.character.findUnique({ where: { id } });
     if (!character) throw new NotFoundError('Character', id);
 
-    const sheet = await db.dnd5eCharacterSheet.findUnique({ where: { characterId: id }, select: { backgroundId: true } });
+    const sheet = await db.dnd5eCharacterSheet.findUnique({ where: { characterId: id }, select: { speciesId: true, backgroundId: true } });
 
-    return db.$transaction(async (tx) => {
+    await db.$transaction(async (tx) => {
         await tx.dnd5eCharacterSheet.upsert({
             where:  { characterId: id },
             create: { characterId: id, speciesId: input.speciesId ?? null, backgroundId: input.backgroundId ?? null, size: input.size ?? null },
@@ -79,4 +80,10 @@ export async function updateDnd5eCharacterFields(
         }
         await logAudit(tx, { actorId, action: 'UPDATE', resourceKey: 'Character', resourceId: id, before: character, after: input });
     });
+
+    // Keep species-trait-sourced fixed grants in sync when species changes.
+    // Runs outside the transaction (uses its own internal batched deletes/creates).
+    if (input.speciesId !== undefined) {
+        await syncSpeciesTraitGrants(id, character.gameSystemId, character.level, input.speciesId, sheet?.speciesId ?? null);
+    }
 }

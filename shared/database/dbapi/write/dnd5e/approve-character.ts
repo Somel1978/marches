@@ -2,6 +2,8 @@
 import { db, Prisma } from '../../../index.ts';
 import { parseAndFilterInnateSpells, addInnateSpellGrants, removeInnateSpellGrantsBySource } from './innate-spells.ts';
 import { approveCharacter, rejectCharacter } from '../characters/approve.ts';
+import { syncBackgroundFeatGrant } from './background-feat-grant.ts';
+import { syncSpeciesTraitGrants } from './species-trait-grants.ts';
 
 // Apply auto-granted skills, saves, tools, languages, and damage modifiers
 // from class features for a character's current level allocation.
@@ -25,6 +27,30 @@ async function applyClassFeatureGrants(characterId: string, characterLevel: numb
         for (const f of allFeatures) {
             const sourceId   = f.id;
             const sourceType = f.sourceType;
+
+            const fixedProfSkills = new Set(
+                ((f as any).grantsSkills ?? '').split(',').map((s: string) => s.trim()).filter(Boolean)
+            );
+            const fixedExpertiseSkills = new Set(
+                ((f as any).grantsExpertise ?? '').split(',').map((s: string) => s.trim()).filter(Boolean)
+            );
+            const fixedHalfSkills = new Set(
+                ((f as any).grantsHalfSkills ?? '').split(',').map((s: string) => s.trim()).filter(Boolean)
+            );
+
+            // Preserve player-resolved choice pools (skills/expertise/half) — these are
+            // written at creation/level-up and must survive approval re-sync of fixed grants.
+            const existingSkillGrants = await db.dnd5eCharacterSkillGrant.findMany({
+                where: { characterId, sourceId },
+            });
+            const preservedSkillGrants = existingSkillGrants.filter(g => {
+                const skill = g.skill as string;
+                const value = g.value as number;
+                if (value === 1.0 && fixedProfSkills.has(skill)) return false;
+                if (value === 2.0 && fixedExpertiseSkills.has(skill)) return false;
+                if (value === 0.5 && fixedHalfSkills.has(skill)) return false;
+                return true;
+            });
 
             // Remove existing grants from this feature (handles level-down cleanly)
             await db.dnd5eCharacterSkillGrant.deleteMany({ where: { characterId, sourceId } });
@@ -50,6 +76,17 @@ async function applyClassFeatureGrants(characterId: string, characterLevel: numb
             if (skillGrants.length) {
                 await db.dnd5eCharacterSkillGrant.createMany({
                     data: skillGrants.map(g => ({ characterId, skill: g.skill as any, value: g.value, sourceType, sourceId })),
+                });
+            }
+            if (preservedSkillGrants.length) {
+                await db.dnd5eCharacterSkillGrant.createMany({
+                    data: preservedSkillGrants.map(g => ({
+                        characterId,
+                        skill: g.skill as any,
+                        value: g.value,
+                        sourceType: g.sourceType,
+                        sourceId: g.sourceId,
+                    })),
                 });
             }
 
@@ -160,6 +197,11 @@ export async function approveDnd5eCharacter(id: string, actorId: string) {
                         pendingChanges: Prisma.JsonNull,
                     },
                 });
+
+                // Keep the auto-granted background feat in sync when background changes.
+                if (pending.backgroundId !== undefined) {
+                    await syncBackgroundFeatGrant(tx, id, pending.backgroundId, sheet.backgroundId ?? null);
+                }
             }
 
             if (pending.worldId !== undefined || pending.isGlobal !== undefined) {
@@ -174,6 +216,19 @@ export async function approveDnd5eCharacter(id: string, actorId: string) {
         });
         const freshChar = await db.character.findUnique({ where: { id }, select: { level: true, gameSystemId: true } });
         await applyClassFeatureGrants(id, freshChar?.level ?? newLevel, freshChar?.gameSystemId ?? '');
+
+        // Keep species-trait-sourced grants (skills/tools/languages/dmg mods/innate
+        // spells) in sync when species changes. Fixed grants only — choice pools
+        // still require the player to pick via the pending-choices UI.
+        if (sheet && pending.speciesId !== undefined) {
+            await syncSpeciesTraitGrants(
+                id,
+                freshChar?.gameSystemId ?? '',
+                freshChar?.level ?? newLevel,
+                pending.speciesId,
+                sheet.speciesId ?? null,
+            );
+        }
     }
 
     return approveCharacter(id, actorId, newLevel);

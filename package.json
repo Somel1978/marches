@@ -9,7 +9,9 @@
     "dev:admin": "turbo dev --filter=@apps/admin -- --host",
     "dev:all": "turbo dev --filter=@apps/* -- --host",
     "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,js,svelte,json,md}\""
+    "format": "prettier --write \"**/*.{ts,js,svelte,json,md}\"",
+    "docs:check": "tsx scripts/docs-check.ts",
+    "docs:generate-deps": "tsx scripts/generate-dependency-map.ts"
   },
   "devDependencies": {
     "dotenv-cli": "^11.0.0",

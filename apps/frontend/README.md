@@ -1,8 +1,15 @@
-# Marches
+# @apps/frontend
 
-A geo-localized quest platform for tabletop RPG communities. Players discover and complete quests on a real-world map, manage characters, and interact through Discord integration.
+> Project documentation: [../../docs/README.md](../../docs/README.md) · Setup: [../../docs/setup.md](../../docs/setup.md)
+
+Player-facing SvelteKit application (`http://localhost:5173`).
 
 ---
+
+# Marches Frontend (legacy README below)
+
+The sections below duplicate the root README and may be outdated. Prefer `docs/` for current reference.
+
 
 ## Architecture
 

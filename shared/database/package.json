@@ -12,7 +12,8 @@
     "db:generate": "dotenv -e ../../.env -- prisma generate",
     "db:seed": "dotenv -e ../../.env -- tsx seed.ts",
     "db:push": "dotenv -e ../../.env -- prisma db push",
-    "db:studio": "dotenv -e ../../.env -- bash -c 'prisma studio --browser none --port 5555'"
+    "db:studio": "dotenv -e ../../.env -- bash -c 'prisma studio --browser none --port 5555'",
+    "check:dnd5e-sync": "tsx scripts/check-dnd5e-sync.ts"
   },
   "prisma": {
     "config": "prisma.config.ts"

@@ -211,6 +211,8 @@
 	let pendingSkillPicks     = $state<Record<string, string[]>>({});
 	let pendingSavePicks      = $state<Record<string, string[]>>({});
 	let pendingExpertisePicks = $state<Record<string, string[]>>({});
+	let pendingToolPicks      = $state<Record<string, string[]>>({});
+	let pendingLanguagePicks  = $state<Record<string, string[]>>({});
 	let pendingDmgModPicks    = $state<Record<string, string[]>>({}); // keyed by sourceId-modType
 	let savingChoices         = $state(false);
 
@@ -727,11 +729,11 @@
 								{:else if charSheet.traitSizeChoices}
 									<span class="badge badge-warning" style="cursor:default;">Size: not chosen</span>
 								{/if}
-								{#if charSheet.traitSizeChoices && onSaveSize}
+								{#if canEdit && charSheet.traitSizeChoices && onSaveSize && !charSheet.sheet?.size && !charSheet.traitSize}
 									<div style="display:flex;gap:0.25rem;flex-wrap:wrap;margin-top:0.125rem;">
 										{#each charSheet.traitSizeChoices.split(',').map((s: string) => s.trim()).filter(Boolean) as opt}
 											<button type="button"
-												class="btn btn-sm {charSheet.sheet?.size === opt ? 'btn-primary' : 'btn-ghost'}"
+												class="btn btn-sm btn-ghost"
 												onclick={() => onSaveSize!(opt)}>
 												{opt}
 											</button>

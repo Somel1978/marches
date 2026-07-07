@@ -2,6 +2,8 @@
 
 A geo-localized quest platform for tabletop RPG communities. Players discover and complete quests on a real-world map, manage characters, and interact through Discord integration.
 
+**Documentation:** [docs/README.md](docs/README.md) · [Setup & commands](docs/setup.md) · [Changelog](CHANGELOG.md)
+
 ---
 
 ## Architecture
@@ -12,7 +14,8 @@ Marches is a **pnpm monorepo** powered by **Turborepo**. The codebase is divided
 marches/
 ├── apps/
 │   ├── admin/      — Management interface (admin panel)
-│   └── frontend/   — Player-facing application
+│   ├── frontend/   — Player-facing application
+│   └── discord/    — Discord bot (slash commands, notifications)
 └── shared/
     ├── database/   — @core/database
     ├── rbac/       — @core/rbac
@@ -50,7 +53,7 @@ apps (admin / frontend)
 | Styling | Tailwind CSS v4 |
 | Database | PostgreSQL (multi-schema) |
 | ORM | Prisma v7 (prismaSchemaFolder) |
-| Auth | better-auth v1.4.22 |
+| Auth | better-auth ~1.5.0 |
 | Monorepo | pnpm workspaces + Turborepo |
 | Runtime | Node.js v24 |
 
@@ -423,6 +426,12 @@ src/routes/
     +layout.svelte            Inherits root layout
     profile/                  Three sections: profile details, change password, change email
     profile/email-changed/    Landing after email change verification → redirects to /profile?emailChanged=1
+    characters/               Character hub, detail sheet, D&D 5e creation wizard
+    characters/new/dnd5e/     6-step inline D&D 5e wizard (`_wizard/` module)
+    dm/                       DM hub (worlds, quests, characters, marketplace, …)
+    marketplace/              Item browse and transactions
+    token-store/              Boost purchases
+    world/                    World landing pages, journal, quests
 ```
 
 ---
@@ -450,60 +459,30 @@ HTTP request
 
 ## Environment variables
 
-All vars live in the **monorepo root `.env`**. All scripts reference `../../.env`.
+All vars live in the **monorepo root `.env`**. Full list, pm2 notes, and Discord vars: **[docs/setup.md](docs/setup.md)**.
+
+Quick start:
 
 ```bash
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/website_db"
-
-# Auth
-BETTER_AUTH_SECRET="<32+ char random string>"
-
-# Comma-separated hostnames for dynamic baseURL resolution (Better Auth 1.5+)
-ALLOWED_HOSTS=10.0.0.183:5173,10.0.0.183:5174,www.example.com,admin.example.com
-
-# Canonical public URL for email verification links
-SITE_URL=https://www.example.com
-
-# Trusted origins for Better Auth CSRF validation
-TRUSTED_ORIGINS=http://localhost:5173,http://localhost:5174
-
-# Port overrides for dev environment
-FRONTEND_PORT=5173
-ADMIN_PORT=5174
-
-# GitHub OAuth (optional — leave empty to disable)
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
-
-# Seeding
-SEED_ADMIN_PASSWORD="<strong password>"  # used by init-admin script
+cp .env.example .env
+# Set DATABASE_URL, BETTER_AUTH_SECRET, ALLOWED_HOSTS, SITE_URL, SEED_ADMIN_PASSWORD
 ```
 
 ---
 
 ## Getting started
 
+See **[docs/setup.md](docs/setup.md)** for full install, env, pm2, and test commands.
+
 ```bash
-# Install dependencies
 pnpm install
-
-# Set up environment
-cp .env.example .env
-# Edit .env with your DATABASE_URL, BETTER_AUTH_SECRET, ALLOWED_HOSTS, SITE_URL, SEED_ADMIN_PASSWORD
-
-# Push schema to DB and generate Prisma client
+cp .env.example .env   # then edit — see docs/setup.md
 pnpm --filter @core/database db:push
 pnpm --filter @core/database db:generate
-
-# Seed reference data
 pnpm --filter @core/database db:seed
-
-# Create admin account (sets password via better-auth)
 pnpm --filter @apps/admin init-admin
-
-# Start development
 pnpm dev:all
+pnpm docs:check        # validate documentation links
 ```
 
 After setup:

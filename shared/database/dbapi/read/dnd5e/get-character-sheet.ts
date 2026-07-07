@@ -194,8 +194,13 @@ export async function getDnd5eCharacterSheet(characterId: string) {
     // ── Pending skill/save choice pools from features ─────────────────────
     // Features that have skillChoicePool or savingThrowChoicePool but haven't
     // been resolved yet (no skill/save grant with that sourceId exists).
-    const resolvedSkillSourceIds = new Set((skillGrants as any[]).map(g => g.sourceId).filter(Boolean));
-    const resolvedSaveSourceIds  = new Set((saveGrants  as any[]).map(g => g.sourceId).filter(Boolean));
+    const resolvedSkillSourceIds     = new Set((skillGrants     as any[]).map(g => g.sourceId).filter(Boolean));
+    const resolvedSaveSourceIds      = new Set((saveGrants      as any[]).map(g => g.sourceId).filter(Boolean));
+    const resolvedToolSourceIds      = new Set((toolGrants      as any[]).map(g => g.sourceId).filter(Boolean));
+    const resolvedLanguageSourceIds  = new Set((languageGrants  as any[]).map(g => g.sourceId).filter(Boolean));
+    const resolvedResistanceSourceIds    = new Set((damageModifierGrants as any[]).filter(g => g.modifierType === 'RESISTANCE').map(g => g.sourceId).filter(Boolean));
+    const resolvedImmunitySourceIds      = new Set((damageModifierGrants as any[]).filter(g => g.modifierType === 'IMMUNITY').map(g => g.sourceId).filter(Boolean));
+    const resolvedVulnerabilitySourceIds = new Set((damageModifierGrants as any[]).filter(g => g.modifierType === 'VULNERABILITY').map(g => g.sourceId).filter(Boolean));
 
     const pendingChoices: {
         sourceId:               string;
@@ -238,16 +243,22 @@ export async function getDnd5eCharacterSheet(characterId: string) {
             const skillDone     = !hasSkillChoice     || resolvedSkillSourceIds.has(f.id);
             const saveDone      = !hasSaveChoice      || resolvedSaveSourceIds.has(f.id);
             const expertiseDone = !hasExpertiseChoice || (skillGrants as any[]).some(g => g.sourceId === f.id && g.value >= 2.0);
+            const toolDone      = !hasToolChoice      || resolvedToolSourceIds.has(f.id);
+            const languageDone  = !hasLanguageChoice  || resolvedLanguageSourceIds.has(f.id);
+            const resistanceDone    = !(f as any).resistanceChoiceCount    || resolvedResistanceSourceIds.has(f.id);
+            const immunityDone      = !(f as any).immunityChoiceCount      || resolvedImmunitySourceIds.has(f.id);
+            const vulnerabilityDone = !(f as any).vulnerabilityChoiceCount || resolvedVulnerabilitySourceIds.has(f.id);
             // Fixed feat grants are handled automatically on character creation.
             // Category feat grants need player to pick — considered done if they have at least one feat of that category.
             const featGrantDone = !hasFeatGrant
-                || !!(f as any).grantsFeatCategory === false  // has fixed grantsFeatId only
+                || !(f as any).grantsFeatCategory  // has fixed grantsFeatId only — always done
                 || (chosenFeats as any[]).some(g => {
                     const cat = ((f as any).grantsFeatCategory ?? '').toLowerCase();
                     if (!cat) return true; // fixed feat, always done
                     return (g.feat?.categories ?? '').split(',').map((s: string) => s.trim().toLowerCase()).includes(cat);
                 });
-            if (skillDone && saveDone && expertiseDone && featGrantDone) continue;
+            if (skillDone && saveDone && expertiseDone && featGrantDone
+                && toolDone && languageDone && resistanceDone && immunityDone && vulnerabilityDone) continue;
             pendingChoices.push({
                 sourceId:               f.id,
                 sourceType:             f.sourceType,
@@ -260,16 +271,16 @@ export async function getDnd5eCharacterSheet(characterId: string) {
                 expertiseChoicePool:    hasExpertiseChoice && !expertiseDone ? (f as any).expertiseChoicePool  : null,
                 grantsFeatCategory:      hasFeatGrant && !featGrantDone ? ((f as any).grantsFeatCategory ?? null) : null,
                 grantsFeatId:            hasFeatGrant && !featGrantDone ? ((f as any).grantsFeatId       ?? null) : null,
-                toolChoiceCount:         hasToolChoice     ? f.toolChoiceCount     : null,
-                toolChoicePool:          hasToolChoice     ? f.toolChoicePool      : null,
-                languageChoiceCount:     hasLanguageChoice ? f.languageChoiceCount : null,
-                languageChoicePool:      hasLanguageChoice ? f.languageChoicePool  : null,
-                resistanceChoiceCount:   (f as any).resistanceChoiceCount   ?? null,
-                resistanceChoicePool:    (f as any).resistanceChoicePool    ?? null,
-                immunityChoiceCount:     (f as any).immunityChoiceCount     ?? null,
-                immunityChoicePool:      (f as any).immunityChoicePool      ?? null,
-                vulnerabilityChoiceCount: (f as any).vulnerabilityChoiceCount ?? null,
-                vulnerabilityChoicePool:  (f as any).vulnerabilityChoicePool  ?? null,
+                toolChoiceCount:         hasToolChoice     && !toolDone     ? f.toolChoiceCount     : null,
+                toolChoicePool:          hasToolChoice     && !toolDone     ? f.toolChoicePool      : null,
+                languageChoiceCount:     hasLanguageChoice && !languageDone ? f.languageChoiceCount : null,
+                languageChoicePool:      hasLanguageChoice && !languageDone ? f.languageChoicePool  : null,
+                resistanceChoiceCount:   !resistanceDone    ? (f as any).resistanceChoiceCount    ?? null : null,
+                resistanceChoicePool:    !resistanceDone    ? (f as any).resistanceChoicePool     ?? null : null,
+                immunityChoiceCount:     !immunityDone      ? (f as any).immunityChoiceCount      ?? null : null,
+                immunityChoicePool:      !immunityDone      ? (f as any).immunityChoicePool       ?? null : null,
+                vulnerabilityChoiceCount: !vulnerabilityDone ? (f as any).vulnerabilityChoiceCount ?? null : null,
+                vulnerabilityChoicePool:  !vulnerabilityDone ? (f as any).vulnerabilityChoicePool  ?? null : null,
             });
         }
     }

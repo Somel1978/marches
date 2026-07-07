@@ -1,3 +1,11 @@
+# @apps/admin
+
+> Project documentation: [../../docs/README.md](../../docs/README.md) · Setup: [../../docs/setup.md](../../docs/setup.md)
+
+Admin SvelteKit application (`http://localhost:5174`).
+
+---
+
 # sv
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
