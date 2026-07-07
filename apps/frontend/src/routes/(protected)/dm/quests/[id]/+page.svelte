@@ -364,22 +364,37 @@
 	{#if data.quest.status === 'PUBLISHED' && (data as any).availablePlayers?.length}
 		<div class="card">
 			<h3 class="section-title">Available players ({(data as any).availablePlayers.length})</h3>
-			<p class="field-hint" style="margin-bottom:0.75rem;">These players are available at the quest time and not yet signed up.</p>
+			<p class="field-hint" style="margin-bottom:0.75rem;">
+				These players are available at
+				{#if data.quest.scheduledAt}
+					<strong>{new Date(data.quest.scheduledAt).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</strong>
+				{:else}
+					the quest time
+				{/if}
+				and are not yet signed up.
+			</p>
 			{#if (form as any)?.inviteSuccess}<div class="form-success" style="margin-bottom:0.75rem;">Invite sent!</div>{/if}
-			<div style="display:flex; flex-direction:column; gap:0.5rem;">
-				{#each (data as any).availablePlayers as char}
-					<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:0.625rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
-						<div>
-							<p style="font-weight:600; font-size:0.9rem; margin:0;">{char.name}</p>
-							<p style="font-size:0.8125rem; color:var(--text-muted); margin:0;">Level {char.totalLevel ?? '?'} · {char.status}</p>
+			<div class="avail-dash__mobile-players">
+				{#each (data as any).availablePlayers as char (char.id)}
+					<article class="avail-dash__mobile-card">
+						<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+							<div class="avail-dash__player" style="flex:1; min-width:0;">
+								<div class="signup-card__level">{char.totalLevel ?? '?'}</div>
+								<div class="avail-dash__player-meta">
+									<span class="avail-dash__player-name">{char.name}</span>
+									{#if char.playerName}
+										<span class="table__muted" style="font-size:0.8125rem;">{char.playerName}</span>
+									{/if}
+								</div>
+							</div>
+							<form method="post" action="?/invite" use:enhance={() => {
+								return async ({ update }) => { await update(); await invalidateAll(); };
+							}}>
+								<input type="hidden" name="characterId" value={char.id} />
+								<button type="submit" class="btn btn-primary btn-sm">Send invite</button>
+							</form>
 						</div>
-						<form method="post" action="?/invite" use:enhance={() => {
-							return async ({ update }) => { await update(); await invalidateAll(); };
-						}}>
-							<input type="hidden" name="characterId" value={char.id} />
-							<button type="submit" class="btn btn-primary btn-sm">Send invite</button>
-						</form>
-					</div>
+					</article>
 				{/each}
 			</div>
 		</div>

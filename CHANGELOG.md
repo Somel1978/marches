@@ -37,7 +37,25 @@
 
 ---
 
-### Session 77 — D&D 5e Skill Grant System & Admin UI (2026-06-24)
+### Session 80 — Availability Dashboard Redesign & DM Alignment (2026-07-07)
+
+**Player availability — dashboard UX**
+- `/availability` redesigned: read-only **Community overview** heatmap + per-player **timeline blocks** (merged 30-min slots)
+- Players set times via **Add / Edit modal** (date, From/Until selects, GLOBAL/WORLD scope + world checkboxes) — no click-to-set on heatmap
+- Server actions: `setRange`, `updateRange`, `clearRange`, `clearDay`
+- **Mobile:** day tabs + single-day density strip + one full-width timeline per player (no horizontal scroll on narrow screens)
+- Shared helpers moved to `apps/frontend/src/lib/availability/utils.ts` (route `availability-utils.ts` re-exports)
+
+**DM availability — aligned layout**
+- New read-only `DmAvailabilityDashboard.svelte` + `build-availability-dashboard.ts` shared loader
+- `/dm` — full week dashboard (all players, all worlds)
+- `/dm/worlds/[worldId]` — world-scoped dashboard (GLOBAL + WORLD slots for that world; chars filtered by `acceptsGlobalCharacters`)
+- `/dm/worlds/[worldId]/quests` — same panel above quest table for scheduling context
+- `/dm/quests/[id]` — “Available players” invite list uses matching card styling; shows quest time + player name
+
+**CSS:** `shared/ui/styles/components/availability.css` — `.avail-dash__*` dashboard layout + DM embedded/read-only variants
+
+---
 
 **Skill Grant System — Schema**
 - `Dnd5eClass` — `skillChoiceCount Int?` added directly; `savingThrows Dnd5eClassSavingThrow[]` and `skillOptions Dnd5eClassSkillOption[]` junction relations (already existed from earlier work)

@@ -2,6 +2,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import DmAvailabilityDashboard from '$lib/dm/DmAvailabilityDashboard.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -9,6 +10,7 @@
 	const world      = $derived((data as any).world);
 	const canManage  = $derived((data as any).canManage === true);
 	const currentStatus = $derived((data as any).status ?? null);
+	const availability = $derived((data as any).availability);
 
 	const statusColors: Record<string, string> = {
 		DRAFT:                   'badge-muted',
@@ -40,6 +42,22 @@
 
 {#if form?.message}<div class="form-error">{(form as any).message}</div>{/if}
 {#if (form as any)?.success}<div class="form-success">Done.</div>{/if}
+
+<!-- Player availability while scheduling quests -->
+<div class="card" style="margin-bottom:1.5rem;">
+	<h3 class="section-title">Player availability</h3>
+	<DmAvailabilityDashboard
+		weekStart={availability.weekStart}
+		heatmapData={availability.heatmapData}
+		dayPlayerCounts={availability.dayPlayerCounts}
+		playerRows={availability.playerRows}
+		totalPlayers={availability.totalPlayers}
+		worldMap={availability.worldMap}
+		basePath="/dm/worlds/{world.id}/quests"
+		sectionHint="Players available for this world when scheduling quests. Click a block to see characters."
+		embedded={true}
+	/>
+</div>
 
 <!-- Status filter -->
 <div class="card" style="margin-bottom:1.5rem; display:flex; gap:0.375rem; flex-wrap:wrap; align-items:center;">

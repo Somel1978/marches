@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/dm/quests/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { availability, characters, dms, quests, worlds, notifications, db, platform } from '@core/database';
+import { availability, characters, dms, quests, worlds, notifications, db, platform, users } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -123,7 +123,19 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		if (userIds.length) {
 			const signedUpCharIds = new Set(access.quest.signups.map((s: any) => s.characterId));
 			const allChars = (await Promise.all(userIds.map((uid: unknown) => characters.getByUserId(uid as string)))).flat();
-			availablePlayers = allChars.filter((c: any) => !signedUpCharIds.has(c.id) && c.status === 'ACTIVE');
+			const userRecords = await Promise.all(userIds.map((uid) => users.getById(uid as string)));
+			const userNames = Object.fromEntries(
+				userRecords.filter(Boolean).map((u: any) => [u.id, u.name]),
+			);
+			availablePlayers = allChars
+				.filter((c: any) => !signedUpCharIds.has(c.id) && c.status === 'ACTIVE')
+				.map((c: any) => ({
+					...c,
+					playerName: userNames[(c as any).userId] ?? null,
+					totalLevel:
+						(c as any).totalLevel ??
+						((c as any).classes ?? []).reduce((s: number, cl: any) => s + (cl.allocatedLevel ?? 0), 0),
+				}));
 		}
 	}
 

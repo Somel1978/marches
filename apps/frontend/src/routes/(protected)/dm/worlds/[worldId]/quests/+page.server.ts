@@ -2,6 +2,7 @@
 import { fail } from '@sveltejs/kit';
 import { quests, db } from '@core/database';
 import { isMarchesError } from '@core/errors';
+import { loadWorldAvailability } from '$lib/dm/build-availability-dashboard';
 import type { PageServerLoad, Actions } from './$types';
 
 async function assertCanManage(worldId: string, userId: string) {
@@ -15,19 +16,24 @@ async function assertCanManage(worldId: string, userId: string) {
 }
 
 export const load: PageServerLoad = async ({ params, parent, url }) => {
-	const { canManage } = await parent();
+	const { canManage, world } = await parent();
 
 	const status = url.searchParams.get('status') ?? undefined;
 	const page   = Number(url.searchParams.get('page') ?? 1);
+	const weekParam = url.searchParams.get('week');
+	const acceptsGlobal = (world as any).acceptsGlobalCharacters !== false;
 
-	const result = await quests.getAll({
-		worldId: params.worldId,
-		status,
-		page,
-		perPage: 20,
-	});
+	const [result, availability] = await Promise.all([
+		quests.getAll({
+			worldId: params.worldId,
+			status,
+			page,
+			perPage: 20,
+		}),
+		loadWorldAvailability(params.worldId, weekParam, acceptsGlobal),
+	]);
 
-	return { ...result, status: status ?? null, canManage };
+	return { ...result, status: status ?? null, canManage, availability };
 };
 
 export const actions: Actions = {

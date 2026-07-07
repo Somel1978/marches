@@ -18,7 +18,9 @@
 # Feature Specific
 ## Availability
     - Frontend:
-        - Mobile: tooltip with availability button placed outside viewport — FIXED (flip below cell when near top of screen)
+        - Player page: dashboard with read-only heatmap + timeline blocks + add/edit modal — DONE (Session 80)
+        - Mobile: horizontal scroll on week grid — FIXED (day tabs + single-day view ≤768px)
+        - DM views (`/dm`, world dashboard, world quests) aligned to same layout — DONE (Session 80)
 
 ## Characters
     - Frontend:

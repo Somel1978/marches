@@ -2,319 +2,445 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll, goto } from '$app/navigation';
+	import { Avatar } from '@core/ui';
+	import {
+		DAYS,
+		SLOTS_PER_DAY,
+		slotToTime,
+		blockTimeLabel,
+		userAccent,
+		blockStyle,
+		type AvailBlock,
+	} from '$lib/availability/utils';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	const DAYS  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-	const SLOTS = Array.from({ length: 48 }, (_, i) => ({
-		idx:   i,
-		label: `${Math.floor(i/2).toString().padStart(2,'0')}:${i%2===0?'00':'30'}`,
-	}));
-
-	const heatmap      = $derived((data as any).heatmapData  as Record<string,number>);
-	const mySlotMap    = $derived((data as any).mySlotMap    as Record<string,{date:string;scope:string;worldIds:string[]}>);
+	const heatmap      = $derived((data as any).heatmapData as Record<string, number>);
+	const dayCounts    = $derived((data as any).dayPlayerCounts as Record<number, number>);
+	const playerRows   = $derived((data as any).playerRows ?? []);
 	const totalPlayers = $derived((data as any).totalPlayers as number);
-	const allWorlds    = $derived((data as any).allWorlds    ?? []);
+	const allWorlds    = $derived((data as any).allWorlds ?? []);
+	const worldMap     = $derived((data as any).worldMap ?? {});
 	const weekStart    = $derived(new Date((data as any).weekStart));
-	const maxCount     = $derived(Math.max(1,...Object.values(heatmap??{}).map(Number)));
 
-	function dayDate(i: number) { const d=new Date(weekStart); d.setUTCDate(weekStart.getUTCDate()+i); return d; }
-	function dateKey(d: Date)   { return d.toISOString().split('T')[0]; }
-	const weekLabel = $derived(()=>{
-		const end=new Date(weekStart); end.setDate(weekStart.getDate()+6);
-		const f=(d:Date)=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+	const maxCount = $derived(Math.max(1, ...Object.values(heatmap ?? {}).map(Number)));
+
+	const HOUR_MARKS = [0, 6, 12, 18, 24];
+
+	function dayDate(i: number) {
+		const d = new Date(weekStart);
+		d.setUTCDate(weekStart.getUTCDate() + i);
+		return d;
+	}
+	function dateKey(d: Date) {
+		return d.toISOString().split('T')[0];
+	}
+
+	const weekLabel = $derived.by(() => {
+		const end = new Date(weekStart);
+		end.setUTCDate(weekStart.getUTCDate() + 6);
+		const f = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 		return `${f(weekStart)} – ${f(end)}`;
 	});
-	function prevWeek() { const d=new Date(weekStart); d.setUTCDate(d.getUTCDate()-7); goto(`/availability?week=${dateKey(d)}`); }
-	function nextWeek() { const d=new Date(weekStart); d.setUTCDate(d.getUTCDate()+7); goto(`/availability?week=${dateKey(d)}`); }
 
-	function getCount(di:number,si:number)  { return (heatmap??{})[`${di}:${si}`]??0; }
-	function getMySlot(di:number,si:number) { return (mySlotMap??{})[`${di}:${si}`]??null; }
+	function prevWeek() {
+		const d = new Date(weekStart);
+		d.setUTCDate(d.getUTCDate() - 7);
+		goto(`/availability?week=${dateKey(d)}`);
+	}
+	function nextWeek() {
+		const d = new Date(weekStart);
+		d.setUTCDate(d.getUTCDate() + 7);
+		goto(`/availability?week=${dateKey(d)}`);
+	}
 
-	const C:[number,number,number][] = [[24,12,4],[70,35,10],[120,58,16],[175,95,24],[220,140,36],[248,185,65]];
-	function lerpColor(t:number) {
-		const s=Math.max(0,Math.min(1,t))*5,lo=Math.floor(s),hi=Math.min(lo+1,5),f=s-lo;
-		const [r,g,b]=[0,1,2].map(i=>Math.round(C[lo][i]+f*(C[hi][i]-C[lo][i])));
+	const C: [number, number, number][] = [[24, 12, 4], [70, 35, 10], [120, 58, 16], [175, 95, 24], [220, 140, 36], [248, 185, 65]];
+	function lerpColor(t: number) {
+		const s = Math.max(0, Math.min(1, t)) * 5;
+		const lo = Math.floor(s);
+		const hi = Math.min(lo + 1, 5);
+		const f = s - lo;
+		const [r, g, b] = [0, 1, 2].map((i) => Math.round(C[lo][i] + f * (C[hi][i] - C[lo][i])));
 		return `rgb(${r},${g},${b})`;
 	}
-	function cellStyle(di:number,si:number) {
-		const count=getCount(di,si),isMine=!!getMySlot(di,si);
-		if(count===0) return `background:#180a02;${isMine?' outline:1.5px solid rgba(245,175,70,.7); outline-offset:-1px;':''}`;
-		const t=count/maxCount,bg=lerpColor(t);
-		const op=(0.18+t*0.62).toFixed(2),r=(0.65+t*0.65).toFixed(1),sp=Math.max(2.5,7.5-t*5).toFixed(1);
-		let s=`background-color:${bg}; background-image:radial-gradient(circle,rgba(255,210,110,${op}) ${r}px,transparent ${r}px); background-size:${sp}px ${sp}px;`;
-		if(isMine) s+=' outline:1.5px solid rgba(245,175,70,.75); outline-offset:-1px;';
-		return s;
+
+	function densityColor(di: number, si: number) {
+		const count = heatmap?.[`${di}:${si}`] ?? 0;
+		if (count === 0) return '#180a02';
+		return lerpColor(count / maxCount);
 	}
 
-	// ── Tooltip — click only ─────────────────────────────────────────
-	type Tip = { di:number;si:number;x:number;y:number;flipped:boolean;count:number;isMine:boolean };
-	let tip = $state<Tip|null>(null);
+	// ── Add / edit modal ───────────────────────────────────────────────────
+	type ModalState = {
+		mode: 'add' | 'edit';
+		date: string;
+		startTime: string;
+		endTime: string;
+		scope: 'GLOBAL' | 'WORLD';
+		worldIds: Set<string>;
+		editBlock?: AvailBlock;
+	};
 
-	function onCellClick(e: MouseEvent, di:number, si:number) {
-		if(selecting){ toggleCell(di,si); return; }
-		if(tip?.di===di&&tip?.si===si){ tip=null; return; }
-		const r=(e.currentTarget as HTMLElement).getBoundingClientRect();
-		const vw=window.innerWidth;
-		const vh=window.innerHeight;
-		const x=Math.min(Math.max(r.left+r.width/2-74,6),vw-160);
-		// Flip tooltip below the cell if there's not enough space above
-		const tipH=120; // approx tooltip height
-		const y=r.top>tipH ? r.top : r.bottom;
-		const flipped=r.top<=tipH;
-		tip={di,si,x,y,flipped,count:getCount(di,si),isMine:!!getMySlot(di,si)};
+	let modal = $state<ModalState | null>(null);
+	let viewDayIdx = $state(0);
+
+	function todayDayIdxInWeek(ws: Date): number {
+		const now = new Date();
+		const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+		for (let i = 0; i < 7; i++) {
+			const d = new Date(ws);
+			d.setUTCDate(ws.getUTCDate() + i);
+			if (Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) === todayUtc) return i;
+		}
+		return 0;
 	}
-	function onPageClick(e: MouseEvent) {
-		const t=e.target as HTMLElement;
-		if(tip&&!t.closest('.avail__cell')&&!t.closest('.avail__tooltip')) tip=null;
+
+	$effect.pre(() => {
+		viewDayIdx = todayDayIdxInWeek(weekStart);
+	});
+
+	const TIME_OPTIONS = Array.from({ length: 49 }, (_, i) => {
+		const label = i === 48 ? '24:00' : slotToTime(i);
+		return { value: label, slot: i };
+	});
+
+	function openAddModal(dayIdx?: number) {
+		const di = dayIdx ?? viewDayIdx;
+		const d = dayDate(di);
+		viewDayIdx = di;
+		modal = {
+			mode: 'add',
+			date: dateKey(d),
+			startTime: '18:00',
+			endTime: '22:00',
+			scope: 'GLOBAL',
+			worldIds: new Set(),
+		};
 	}
 
-	// ── Modal ────────────────────────────────────────────────────────
-	type Modal = {di:number;si:number;date:string;label:string;scope:'GLOBAL'|'WORLD';worldIds:Set<string>;isSaved:boolean};
-	let modal = $state<Modal|null>(null);
-
-	function openModal() {
-		if(!tip) return;
-		const {di,si}=tip,ex=getMySlot(di,si);
-		modal={di,si,date:dateKey(dayDate(di)),label:`${DAYS[di]} · ${SLOTS[si].label}`,
-			scope:(ex?.scope as any)??'GLOBAL',worldIds:new Set(ex?.worldIds??[]),isSaved:!!ex};
-		tip=null;
+	function openEditBlock(block: AvailBlock) {
+		viewDayIdx = block.dayIdx;
+		modal = {
+			mode: 'edit',
+			date: block.date,
+			startTime: slotToTime(block.startSlot),
+			endTime: slotToTime(block.endSlot + 1),
+			scope: (block.scope as 'GLOBAL' | 'WORLD') ?? 'GLOBAL',
+			worldIds: new Set(block.worldIds),
+			editBlock: block,
+		};
 	}
-	function closeModal() { modal=null; }
 
-	// ── Multi-select ────────────────────────────────────────────────
-	let selecting = $state(false);
-	let selected  = $state<Set<string>>(new Set());
-
-	function toggleSelect() { selecting = !selecting; selected = new Set(); tip = null; }
-	function toggleCell(di:number,si:number) {
-		const key=`${di}:${si}`, s=new Set(selected);
-		if(s.has(key))s.delete(key); else s.add(key);
-		selected=s;
+	function closeModal() {
+		modal = null;
 	}
-	function clearSelection() { selected=new Set(); selecting=false; }
 
-	type BulkModal = { cells:{di:number;si:number;date:string}[]; scope:'GLOBAL'|'WORLD'; worldIds:Set<string>; };
-	let bulkModal = $state<BulkModal|null>(null);
-	function openBulkModal() {
-		const cells=[...selected].map(k=>{const[di,si]=k.split(':').map(Number);return{di,si,date:dateKey(dayDate(di))};});
-		bulkModal={cells,scope:'GLOBAL',worldIds:new Set()};
+	function densityAtDay(di: number) {
+		return dayCounts[di] ?? 0;
 	}
-	function closeBulkModal() { bulkModal=null; }
 
-	const LEGEND=[0,0.2,0.4,0.6,0.8,1.0];
+	function scopeLabel(scope: string, worldIds: string[]) {
+		if (scope === 'GLOBAL') return '🌐 Global';
+		const names = worldIds.map((id) => worldMap[id] ?? id).slice(0, 2);
+		const extra = worldIds.length > 2 ? ` +${worldIds.length - 2}` : '';
+		return `🌍 ${names.join(', ')}${extra}`;
+	}
+
+	const LEGEND = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
 </script>
 
-<svelte:window onclick={onPageClick} />
+<svelte:head><title>Availability — Marches</title></svelte:head>
 
-<div class="avail">
-	<div class="avail__header">
+<div class="avail-dash">
+	<header class="avail-dash__header">
 		<div>
-			<h2 class="avail__title">Availability</h2>
-			<p class="avail__week-label">{weekLabel()}</p>
+			<h2 class="avail-dash__title">Availability</h2>
+			<p class="avail-dash__subtitle">{weekLabel}</p>
 		</div>
-		<div class="avail__header-actions">
-			<button class="avail__nav-btn" onclick={prevWeek}>‹</button>
-			<button class="avail__nav-btn avail__nav-btn--today" onclick={()=>goto('/availability')}>Today</button>
-			<button class="avail__nav-btn" onclick={nextWeek}>›</button>
-			<button class="avail__nav-btn {selecting?'avail__nav-btn--selecting':''}"
-				onclick={toggleSelect}>
-				{selecting ? '✕ Cancel' : 'Select slots'}
+		<div class="avail-dash__header-actions">
+			<div class="avail-dash__week-nav">
+				<button type="button" class="avail-dash__nav" onclick={prevWeek} aria-label="Previous week">‹</button>
+				<button type="button" class="avail-dash__nav avail-dash__nav--text" onclick={() => goto('/availability')}>Today</button>
+				<button type="button" class="avail-dash__nav" onclick={nextWeek} aria-label="Next week">›</button>
+			</div>
+			<button type="button" class="btn btn-primary btn-sm avail-dash__add-btn" onclick={() => openAddModal()}>+ Add availability</button>
+		</div>
+	</header>
+
+	{#if form?.message}
+		<div class="form-error">{form.message}</div>
+	{/if}
+
+	<!-- Day picker (mobile primary; highlights day on desktop too) -->
+	<div class="avail-dash__day-tabs" role="tablist" aria-label="Day of week">
+		{#each DAYS as day, di}
+			<button
+				type="button"
+				role="tab"
+				class="avail-dash__day-tab {viewDayIdx === di ? 'avail-dash__day-tab--active' : ''}"
+				aria-selected={viewDayIdx === di}
+				onclick={() => { viewDayIdx = di; }}
+			>
+				<span class="avail-dash__day-tab-name">{day}</span>
+				<span class="avail-dash__day-tab-date">{dayDate(di).getUTCDate()}/{dayDate(di).getUTCMonth() + 1}</span>
+				{#if densityAtDay(di) > 0}
+					<span class="avail-dash__day-tab-badge">{densityAtDay(di)}</span>
+				{/if}
 			</button>
-		</div>
+		{/each}
 	</div>
 
-	<div class="avail__scroll">
-		<div class="avail__grid">
-			<div class="avail__corner"></div>
-			{#each DAYS as day, di}
-				<div class="avail__day-head">
-					<span class="avail__day-name">{day}</span>
-					<span class="avail__day-date">{dayDate(di).getDate()}/{dayDate(di).getMonth()+1}</span>
-				</div>
-			{/each}
+	<!-- Read-only community density overview -->
+	<section class="avail-dash__section" aria-label="Community availability overview">
+		<h3 class="avail-dash__section-title">Community overview</h3>
+		<p class="avail-dash__section-hint">Heatmap shows how many players are free — view only. Use the form to set your times.</p>
 
-			{#each SLOTS as {idx:si,label}}
-				<div class="avail__time {si%2===0?'avail__time--hour':''}">
-					{#if si===0}<span class="avail__time-icon">🌙</span>
-					{:else if si===22}<span class="avail__time-icon">☀️</span>{/if}
-					{#if si%2===0}{label}{/if}
-				</div>
-				{#each DAYS as _, di}
-					<button
-						class="avail__cell {getMySlot(di,si)?'avail__cell--mine':''} {tip?.di===di&&tip?.si===si?'avail__cell--active':''} {selected.has(`${di}:${si}`)?'avail__cell--selected':''}"
-						style={cellStyle(di,si)}
-						onclick={(e)=>onCellClick(e,di,si)}
-						aria-label="{DAYS[di]} {label}: {getCount(di,si)} players"
-					></button>
+		<!-- Mobile: single day strip, full width -->
+		<div class="avail-dash__mobile-only">
+			<p class="avail-dash__mobile-day-label">{DAYS[viewDayIdx]} · {dayDate(viewDayIdx).getUTCDate()}/{dayDate(viewDayIdx).getUTCMonth() + 1}</p>
+			<div class="avail-dash__overview-strip avail-dash__overview-strip--mobile" aria-hidden="true">
+				{#each Array(SLOTS_PER_DAY) as _, si}
+					<div class="avail-dash__overview-cell" style="background:{densityColor(viewDayIdx, si)}"></div>
 				{/each}
-			{/each}
-
-			<div class="avail__trend" aria-hidden="true">
-				<svg viewBox="0 0 700 576" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-					<defs>
-						<filter id="avail-glow">
-							<feGaussianBlur stdDeviation="2.5" result="blur"/>
-							<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-						</filter>
-					</defs>
-					<path d="M 0,296 C 80,280 160,310 240,292 C 320,274 400,306 480,288 C 540,274 600,298 700,284"
-						fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="8" stroke-linecap="round" filter="url(#avail-glow)"/>
-					<path d="M 0,296 C 80,280 160,310 240,292 C 320,274 400,306 480,288 C 540,274 600,298 700,284"
-						fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.8" stroke-linecap="round"/>
-				</svg>
 			</div>
 		</div>
-	</div>
 
-	<div class="avail__footer">
-		<span class="avail__footer-note">Based on {totalPlayers} active player account{totalPlayers!==1?'s':''}</span>
-		<div class="avail__legend">
-			<span class="avail__legend-lbl">Less</span>
-			{#each LEGEND as t}
-				<div class="avail__legend-swatch" style="background:{lerpColor(t)};"></div>
-			{/each}
-			<span class="avail__legend-lbl">More</span>
+		<!-- Desktop: full week -->
+		<div class="avail-dash__desktop-only avail-dash__overview-scroll">
+			<div class="avail-dash__overview">
+				<div class="avail-dash__overview-corner"></div>
+				{#each DAYS as day, di}
+					<div class="avail-dash__overview-day {viewDayIdx === di ? 'avail-dash__overview-day--active' : ''}">
+						<span class="avail-dash__overview-day-name">{day}</span>
+						<span class="avail-dash__overview-day-date">{dayDate(di).getUTCDate()}/{dayDate(di).getUTCMonth() + 1}</span>
+					</div>
+				{/each}
+				<div class="avail-dash__overview-label">All players</div>
+				{#each DAYS as _, di}
+					<div class="avail-dash__overview-strip" aria-hidden="true">
+						{#each Array(SLOTS_PER_DAY) as _, si}
+							<div class="avail-dash__overview-cell" style="background:{densityColor(di, si)}"></div>
+						{/each}
+					</div>
+				{/each}
+			</div>
 		</div>
-	</div>
+	</section>
+
+	<!-- Player timelines -->
+	<section class="avail-dash__section" aria-label="Player availability timelines">
+		<h3 class="avail-dash__section-title">Player schedules</h3>
+
+		<!-- Mobile: one card per player, one timeline -->
+		<div class="avail-dash__mobile-only avail-dash__mobile-players">
+			{#each playerRows as row (row.userId)}
+				<article class="avail-dash__mobile-card">
+					<div class="avail-dash__player">
+						<Avatar name={row.name} image={row.image} size="sm" />
+						<div class="avail-dash__player-meta">
+							<span class="avail-dash__player-name">{row.name}{row.isMe ? ' (you)' : ''}</span>
+							{#if row.isMe}
+								<button type="button" class="avail-dash__player-add" onclick={() => openAddModal(viewDayIdx)}>+ Add</button>
+							{/if}
+						</div>
+					</div>
+					<div class="avail-dash__day-track avail-dash__day-track--mobile">
+						<div class="avail-dash__day-hours" aria-hidden="true">
+							{#each HOUR_MARKS as h}
+								<span style="left:{(h / 24) * 100}%">{h === 24 ? '0:00' : `${h}:00`}</span>
+							{/each}
+						</div>
+						{#each row.blocks.filter((b: AvailBlock) => b.dayIdx === viewDayIdx) as block (block.date + block.startSlot)}
+							<button
+								type="button"
+								class="avail-dash__block"
+								style="{blockStyle(block.startSlot, block.endSlot)} background:{userAccent(row.userId, row.isMe)}"
+								disabled={!row.isMe}
+								onclick={() => row.isMe && openEditBlock(block)}
+							>
+								<span class="avail-dash__block-label">{blockTimeLabel(block.startSlot, block.endSlot)}</span>
+							</button>
+						{:else}
+							<span class="avail-dash__empty-day">No availability</span>
+						{/each}
+					</div>
+				</article>
+			{/each}
+		</div>
+
+		<!-- Desktop: week grid -->
+		<div class="avail-dash__desktop-only avail-dash__timeline-scroll">
+			<div class="avail-dash__timeline-grid">
+				<div class="avail-dash__timeline-corner"></div>
+				{#each DAYS as day, di}
+					<div class="avail-dash__timeline-dayhead {viewDayIdx === di ? 'avail-dash__timeline-dayhead--active' : ''}">
+						<span>{day}</span>
+						<span class="avail-dash__timeline-daydate">{dayDate(di).getUTCDate()}/{dayDate(di).getUTCMonth() + 1}</span>
+					</div>
+				{/each}
+
+				{#each playerRows as row (row.userId)}
+					<div class="avail-dash__player">
+						<Avatar name={row.name} image={row.image} size="sm" />
+						<div class="avail-dash__player-meta">
+							<span class="avail-dash__player-name">{row.name}{row.isMe ? ' (you)' : ''}</span>
+							{#if row.isMe}
+								<button type="button" class="avail-dash__player-add" onclick={() => openAddModal()}>+ Add</button>
+							{/if}
+						</div>
+					</div>
+					{#each DAYS as _, di}
+						<div class="avail-dash__day-track {viewDayIdx === di ? 'avail-dash__day-track--active' : ''}">
+							<div class="avail-dash__day-hours" aria-hidden="true">
+								{#each HOUR_MARKS as h}
+									<span style="left:{(h / 24) * 100}%">{h === 24 ? '0:00' : `${h}:00`}</span>
+								{/each}
+							</div>
+							{#each row.blocks.filter((b: AvailBlock) => b.dayIdx === di) as block (block.date + block.startSlot)}
+								<button
+									type="button"
+									class="avail-dash__block"
+									style="{blockStyle(block.startSlot, block.endSlot)} background:{userAccent(row.userId, row.isMe)}"
+									title="{blockTimeLabel(block.startSlot, block.endSlot)} · {scopeLabel(block.scope, block.worldIds)}"
+									disabled={!row.isMe}
+									onclick={() => row.isMe && openEditBlock(block)}
+								>
+									<span class="avail-dash__block-label">{slotToTime(block.startSlot)}</span>
+								</button>
+							{/each}
+						</div>
+					{/each}
+				{/each}
+			</div>
+		</div>
+	</section>
+
+	<footer class="avail-dash__footer">
+		<span class="avail-dash__footer-note">Based on {totalPlayers} active player account{totalPlayers !== 1 ? 's' : ''} this week</span>
+		<div class="avail-dash__legend">
+			<span class="avail-dash__legend-lbl">Less</span>
+			{#each LEGEND as t}
+				<div class="avail-dash__legend-swatch" style="background:{lerpColor(t)}"></div>
+			{/each}
+			<span class="avail-dash__legend-lbl">More</span>
+		</div>
+	</footer>
 </div>
 
-{#if selecting && selected.size > 0}
-	<div class="avail__bulk-bar">
-		<span class="avail__bulk-count">{selected.size} slot{selected.size!==1?'s':''} selected</span>
-		<div style="display:flex;gap:0.5rem; flex-wrap:wrap">
-			<button class="btn btn-ghost btn-sm" onclick={clearSelection}>Clear</button>
-			<button class="btn btn-primary btn-sm" onclick={openBulkModal}>Set availability</button>
-		</div>
-	</div>
-{/if}
-
-{#if tip}
-	<div class="avail__tooltip" style="left:{tip.x}px; top:{tip.flipped ? tip.y + 'px' : (tip.y - 130) + 'px'};" role="tooltip">
-		<div class="avail__tip-day">{DAYS[tip.di]}</div>
-		<div class="avail__tip-time">{SLOTS[tip.si].label}</div>
-		<div class="avail__tip-count">{tip.count} {tip.count===1?'Player':'Players'} 🐾</div>
-		<button class="avail__tip-btn" onclick={openModal}>
-			{tip.isMine?'Edit my slot':'Set availability'}
-		</button>
-	</div>
-{/if}
-
 {#if modal}
-	<div class="avail__backdrop" role="presentation" onclick={closeModal}
-		onkeydown={(e)=>{if(e.key==='Escape')closeModal();}}>
-		<div class="avail__modal" role="dialog" aria-modal="true" aria-label="Set availability"
-			onclick={(e)=>e.stopPropagation()}
-			onkeydown={(e)=>{if(e.key==='Escape')closeModal();}}
+	<div class="avail-dash__backdrop" role="presentation" onclick={closeModal}
+		onkeydown={(e) => { if (e.key === 'Escape') closeModal(); }}>
+		<div class="avail-dash__modal" role="dialog" aria-modal="true" aria-label={modal.mode === 'add' ? 'Add availability' : 'Edit availability'}
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => { if (e.key === 'Escape') closeModal(); }}
 			tabindex="0">
-			<div class="avail__modal-hdr">
-				<h3 class="avail__modal-title">{modal.label}</h3>
-				<button class="avail__modal-close" onclick={closeModal} aria-label="Close">✕</button>
+			<div class="avail-dash__modal-hdr">
+				<div>
+					<h3 class="avail-dash__modal-title">{modal.mode === 'add' ? 'Add availability' : 'Edit availability'}</h3>
+					<p class="avail-dash__modal-sub">Set when you can join quests</p>
+				</div>
+				<button type="button" class="avail-dash__modal-close" onclick={closeModal} aria-label="Close">✕</button>
 			</div>
-			<form method="post" action="?/setSlot" use:enhance={()=>{
-				return async({update})=>{closeModal();await update();await invalidateAll();};
+
+			<form method="post" action={modal.mode === 'edit' ? '?/updateRange' : '?/setRange'} use:enhance={() => {
+				return async ({ update, result }) => {
+					if (result.type === 'success') { closeModal(); await update(); await invalidateAll(); }
+				};
 			}}>
-				<input type="hidden" name="date" value={modal.date}/>
-				<input type="hidden" name="slot" value={modal.si}/>
+				{#if modal.mode === 'edit' && modal.editBlock}
+					<input type="hidden" name="oldDate" value={modal.editBlock.date} />
+					<input type="hidden" name="oldStartSlot" value={modal.editBlock.startSlot} />
+					<input type="hidden" name="oldEndSlot" value={modal.editBlock.endSlot} />
+				{/if}
+				<div class="field">
+					<label class="label" for="avail-date">Date</label>
+					<input id="avail-date" class="input" type="date" name="date" required bind:value={modal.date} />
+				</div>
+
+				<div class="avail-dash__time-row">
+					<div class="field">
+						<label class="label" for="avail-start">From</label>
+						<select id="avail-start" class="input" name="startTime" bind:value={modal.startTime}>
+							{#each TIME_OPTIONS.slice(0, 48) as opt}
+								<option value={opt.value}>{opt.value}</option>
+							{/each}
+						</select>
+					</div>
+					<div class="field">
+						<label class="label" for="avail-end">Until</label>
+						<select id="avail-end" class="input" name="endTime" bind:value={modal.endTime}>
+							{#each TIME_OPTIONS.slice(1) as opt}
+								<option value={opt.value}>{opt.value}</option>
+							{/each}
+						</select>
+					</div>
+				</div>
+
 				<div class="avail__scopes">
-					<label class="avail__scope {modal.scope==='GLOBAL'?'avail__scope--on':''}">
-						<input type="radio" name="scope" value="GLOBAL" bind:group={modal.scope}/>
-						<div><p class="avail__scope-name">🌐 Global</p><p class="avail__scope-desc">Available for quests in any world</p></div>
+					<label class="avail__scope {modal.scope === 'GLOBAL' ? 'avail__scope--on' : ''}">
+						<input type="radio" name="scope" value="GLOBAL" bind:group={modal.scope} />
+						<div>
+							<p class="avail__scope-name">🌐 Global</p>
+							<p class="avail__scope-desc">Available for quests in any world</p>
+						</div>
 					</label>
-					<label class="avail__scope {modal.scope==='WORLD'?'avail__scope--on':''}">
-						<input type="radio" name="scope" value="WORLD" bind:group={modal.scope}/>
-						<div><p class="avail__scope-name">🌍 World-specific</p><p class="avail__scope-desc">Available only for selected worlds</p></div>
+					<label class="avail__scope {modal.scope === 'WORLD' ? 'avail__scope--on' : ''}">
+						<input type="radio" name="scope" value="WORLD" bind:group={modal.scope} />
+						<div>
+							<p class="avail__scope-name">🌍 World-specific</p>
+							<p class="avail__scope-desc">Only for selected worlds</p>
+						</div>
 					</label>
 				</div>
-				{#if modal.scope==='WORLD'&&allWorlds.length}
+
+				{#if modal.scope === 'WORLD' && allWorlds.length}
 					<div class="avail__worlds">
 						{#each allWorlds as w}
 							<label class="avail__world-opt">
 								<input type="checkbox" name="worldIds" value={(w as any).id}
 									checked={modal.worldIds.has((w as any).id)}
-									onchange={(e)=>{
-										if((e.currentTarget as HTMLInputElement).checked)modal!.worldIds.add((w as any).id);
-										else modal!.worldIds.delete((w as any).id);
-										modal!.worldIds=new Set(modal!.worldIds);
-									}}/>
+									onchange={(e) => {
+										const id = (w as any).id;
+										if ((e.currentTarget as HTMLInputElement).checked) modal!.worldIds.add(id);
+										else modal!.worldIds.delete(id);
+										modal!.worldIds = new Set(modal!.worldIds);
+									}} />
 								{(w as any).name}
 							</label>
 						{/each}
 					</div>
 				{/if}
+
+				{#if modal.date}
+					<p class="avail-dash__modal-stat">
+						Players free on this day: <strong>{densityAtDay(
+							(() => { const d = new Date(modal!.date + 'T00:00:00.000Z'); const dow = d.getUTCDay(); return dow === 0 ? 6 : dow - 1; })()
+						)}</strong>
+					</p>
+				{/if}
+
 				<div class="avail__modal-actions">
 					<button type="button" class="btn btn-ghost btn-sm" onclick={closeModal}>Cancel</button>
 					<button type="submit" class="btn btn-primary btn-sm"
-						disabled={modal.scope==='WORLD'&&modal.worldIds.size===0}>
-						{modal.isSaved?'Update':'Save'}
+						disabled={modal.scope === 'WORLD' && modal.worldIds.size === 0}>
+						{modal.mode === 'add' ? 'Add slot' : 'Update'}
 					</button>
 				</div>
 			</form>
-			{#if modal.isSaved}
-				<form method="post" action="?/clearSlot" use:enhance={()=>{
-					return async({update})=>{closeModal();await update();await invalidateAll();};
+
+			{#if modal.mode === 'edit' && modal.editBlock}
+				<form method="post" action="?/clearRange" use:enhance={() => {
+					return async ({ update, result }) => {
+						if (result.type === 'success') { closeModal(); await update(); await invalidateAll(); }
+					};
 				}}>
-					<input type="hidden" name="date" value={modal.date}/>
-					<input type="hidden" name="slot" value={modal.si}/>
-					<button type="submit" class="avail__remove-btn">Remove this slot</button>
+					<input type="hidden" name="date" value={modal.editBlock.date} />
+					<input type="hidden" name="startSlot" value={modal.editBlock.startSlot} />
+					<input type="hidden" name="endSlot" value={modal.editBlock.endSlot} />
+					<button type="submit" class="avail__remove-btn">Remove this time block</button>
 				</form>
 			{/if}
-		</div>
-	</div>
-{/if}
-
-{#if bulkModal}
-	<div class="avail__backdrop" role="presentation" onclick={closeBulkModal}
-		onkeydown={(e)=>{if(e.key==='Escape')closeBulkModal();}}>
-		<div class="avail__modal" role="dialog" aria-modal="true" tabindex="0"
-			onclick={(e)=>e.stopPropagation()}
-			onkeydown={(e)=>{if(e.key==='Escape')closeBulkModal();}}>
-			<div class="avail__modal-hdr">
-				<h3 class="avail__modal-title">Set {bulkModal.cells.length} slot{bulkModal.cells.length!==1?'s':''}</h3>
-				<button class="avail__modal-close" onclick={closeBulkModal}>✕</button>
-			</div>
-			<form method="post" action="?/setSlots" use:enhance={()=>{
-				return async({update})=>{closeBulkModal();clearSelection();await update();await invalidateAll();};
-			}}>
-				{#each bulkModal.cells as c}
-					<input type="hidden" name="dates" value={c.date}/>
-					<input type="hidden" name="slots" value={c.si}/>
-				{/each}
-				<div class="avail__scopes">
-					<label class="avail__scope {bulkModal.scope==='GLOBAL'?'avail__scope--on':''}">
-						<input type="radio" name="scope" value="GLOBAL" bind:group={bulkModal.scope}/>
-						<div><p class="avail__scope-name">🌐 Global</p><p class="avail__scope-desc">Available for quests in any world</p></div>
-					</label>
-					<label class="avail__scope {bulkModal.scope==='WORLD'?'avail__scope--on':''}">
-						<input type="radio" name="scope" value="WORLD" bind:group={bulkModal.scope}/>
-						<div><p class="avail__scope-name">🌍 World-specific</p><p class="avail__scope-desc">Selected worlds only</p></div>
-					</label>
-				</div>
-				{#if bulkModal.scope==='WORLD'&&allWorlds.length}
-					<div class="avail__worlds">
-						{#each allWorlds as w}
-							<label class="avail__world-opt">
-								<input type="checkbox" name="worldIds" value={(w as any).id}
-									checked={bulkModal.worldIds.has((w as any).id)}
-									onchange={(e)=>{
-										if((e.currentTarget as HTMLInputElement).checked)bulkModal!.worldIds.add((w as any).id);
-										else bulkModal!.worldIds.delete((w as any).id);
-										bulkModal!.worldIds=new Set(bulkModal!.worldIds);
-									}}/>
-								{(w as any).name}
-							</label>
-						{/each}
-					</div>
-				{/if}
-				<div class="avail__modal-actions">
-					<button type="button" class="btn btn-ghost btn-sm" onclick={closeBulkModal}>Cancel</button>
-					<button type="submit" class="btn btn-primary btn-sm"
-						disabled={bulkModal.scope==='WORLD'&&bulkModal.worldIds.size===0}>
-						Save all
-					</button>
-				</div>
-			</form>
 		</div>
 	</div>
 {/if}

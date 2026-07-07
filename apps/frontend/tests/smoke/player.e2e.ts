@@ -44,7 +44,8 @@ test.describe('Player pages — smoke', () => {
 
 	test('availability', async ({ page }) => {
 		await page.goto('/availability');
-		await expect(page.locator('h1, h2, .section-title').first()).toBeVisible();
+		await expect(page.locator('.avail-dash__title, h2').first()).toBeVisible();
+		await expect(page.getByRole('button', { name: '+ Add availability' })).toBeVisible();
 	});
 
 	test('profile', async ({ page }) => {

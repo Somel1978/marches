@@ -271,16 +271,32 @@ TavernMessage: id, channelId, authorType, authorId, authorName, authorAvatar?,
 
 ---
 
-### 27. DM Hub World Dashboard — Player Availability ✅
+### 27. DM Hub — Player Availability Dashboard ✅
 
-**Behaviour:**
-- `/dm` root — shows all players' availability (no world filter)
-- `/dm/worlds/[worldId]` dashboard — shows:
-  - WORLD-scoped slots targeting this world (always)
-  - GLOBAL-scoped slots only if `world.acceptsGlobalCharacters = true` AND user has chars in world
-- Character visibility: `acceptsGlobal` → all active chars; else → world chars only
-- Day picker with prev/next navigation
-- Character level shown as `Lv X` badge (sum of `classes.allocatedLevel`)
+**Shared component:** `apps/frontend/src/lib/dm/DmAvailabilityDashboard.svelte`  
+**Server loader:** `apps/frontend/src/lib/dm/build-availability-dashboard.ts`  
+**Utils:** `apps/frontend/src/lib/availability/utils.ts` (slot merge, week bounds, timeline block layout)
+
+**Layout (matches player `/availability`):**
+- Week navigation via `?week=` (Mon–Sun UTC week)
+- Day tabs with player-count badges
+- Read-only community heatmap (density by half-hour)
+- Per-player timeline rows (merged blocks); click block → scope badge + character tags
+- Mobile: single selected day, no horizontal scroll
+
+**Pages:**
+| Route | Scope |
+|---|---|
+| `/dm` | All players, all slots |
+| `/dm/worlds/[worldId]` | GLOBAL + WORLD slots targeting this world |
+| `/dm/worlds/[worldId]/quests` | Same world filter, embedded above quest table |
+
+**World filter rules (unchanged):**
+- Slot visible if `scope=GLOBAL` OR (`scope=WORLD` and worldId in `worldIds`)
+- Character tags: if `acceptsGlobalCharacters` → all active chars; else → chars assigned to this world only
+- User names via `users.getById` per player (not bulk `getAll` cap)
+
+**Quest invite list:** `/dm/quests/[id]` — available players at `scheduledAt` slot; card layout aligned with dashboard; `worldId` resolved via `regionId` (§36)
 
 ---
 
@@ -538,7 +554,24 @@ E2E: `apps/frontend/tests/interactions/character-wizard.e2e.ts`
 **File:** `apps/frontend/src/routes/(protected)/dm/quests/[id]/+page.server.ts`
 ---
 
-### 37. Skill & Saving Throw Override System ✅
+### 38. Player Availability Dashboard ✅
+
+**Route:** `/availability` (`apps/frontend/src/routes/(protected)/availability/`)
+
+**UX:**
+- **Community overview** — heatmap is view-only (shows how many players are free per half-hour)
+- **Player schedules** — horizontal timeline blocks per player (adjacent 30-min slots merged)
+- **Add / Edit modal** — date picker, From/Until time selects (30-min steps), GLOBAL/WORLD scope, world checkboxes
+- Current user row pinned first; only own blocks are clickable (opens edit modal)
+- Week nav: `?week=YYYY-MM-DD` (Monday-based UTC week)
+
+**Server actions:** `setRange`, `updateRange`, `clearRange`, `clearDay` on `+page.server.ts`
+
+**Mobile (≤768px):** day tabs default to today; one density strip + one timeline per player for selected day — avoids 900px grid horizontal scroll
+
+**CSS:** `.avail-dash__*` in `shared/ui/styles/components/availability.css`
+
+---
 
 **Overview:** DMs and Admins can manually override any character's skill proficiency or saving throw proficiency directly from the character sheet. The override is tracked as a single row with an optional note recording who changed it and why. Removing the override restores the natural grants from class, background, species, feats, etc.
 

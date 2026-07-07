@@ -110,7 +110,7 @@ marches/
 ✅ 14. GameSystem refactor (dnd5e schema)
 ✅ 15. Character system expansion
 ✅ 16. Frontend navigation redesign
-✅ 17. Availability heatmap redesign (frontend)
+✅ 17. Availability dashboard redesign — player heatmap (read-only) + timeline blocks + add/edit modal; DM views aligned
 ✅ 18. Admin character sheet layout (tabbed)
 ✅ 19. World landing page card layout
 ✅ 20. World marketplace (per-world stock, price overrides, level restrictions) — schema + workflows + admin pages + frontend filter

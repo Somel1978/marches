@@ -280,7 +280,7 @@ Feature settings always go in the feature seed file, never in 01-platform.
 /rewards/achievements
 /rewards/grant
 (dashboard enhanced with platform stats)
-/availability  — daily view, player+character detail per slot, admin delete
+/availability  — week dashboard: read-only heatmap, player timeline blocks, add/edit modal (setRange actions)
 /news          — list + create announcements
 /news/[id]     — edit with markdown editor + enricher help panel
 /journal       — list journals
@@ -296,6 +296,7 @@ Feature settings always go in the feature seed file, never in 01-platform.
 /characters, /characters/new, /characters/[id]
 /quests, /quests/[id]
 /dm, /dm/profile, /dm/quests/new, /dm/quests/[id]
+  — /dm and /dm/worlds/[worldId] (+ /quests) embed DmAvailabilityDashboard (read-only week view)
 /dm-request
 /marketplace, /marketplace/[id]
 /stats
@@ -332,15 +333,18 @@ shared/ui/styles/components/
   character.css     — character cards, portrait, avatar, lightbox, class allocation,
                       sheet-class, sheet-feature, sheet-trait
   world.css         — .worlds-page, .worlds-section, .region-grid, .region-card, ...
-  availability.css  — .avail, .avail__grid, .avail__cell, .avail__tip, .avail__bulk-bar, ...
+  availability.css  — .avail-dash__* (player + DM dashboard), .avail__scope, .avail__modal (add/edit)
   world-map.css     — .world-map-marker, .world-map-label
   markdown.css      — .markdown-body (headings, lists, code, tables)
 ```
 
 ### Frontend-only utilities (`apps/frontend/src/lib/`)
 ```
-themes.ts   — getAvailableThemes(), validateTheme() — parses tokens.css via Vite ?raw import
-rarity.ts   — rarityBadge(rarity), rarityLabel(rarity) — D&D 5e rarity → badge class mapping
+themes.ts              — getAvailableThemes(), validateTheme() — parses tokens.css via Vite ?raw import
+rarity.ts              — rarityBadge(rarity), rarityLabel(rarity) — D&D 5e rarity → badge class mapping
+availability/utils.ts  — slot/calendar helpers, mergeSlotsToBlocks, weekBounds, blockStyle
+dm/build-availability-dashboard.ts — server-side heatmap + playerRows builder for DM views
+dm/DmAvailabilityDashboard.svelte  — read-only week dashboard (heatmap + timelines)
 ```
 
 ### Shared UI Components
