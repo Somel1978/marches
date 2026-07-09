@@ -1,44 +1,30 @@
 <!-- apps/frontend/src/routes/(protected)/marketplace/+page.svelte -->
 <script lang="ts">
 	import { rarityBadge, rarityLabel } from '$lib/rarity';
+	import {
+		marketplaceFiltersActive,
+		marketplaceItemUrl,
+		marketplaceListUrl,
+		type MarketplaceFilters,
+	} from '$lib/marketplace/filters';
 	import type { PageData } from './$types';
+
 	let { data }: { data: PageData } = $props();
 
+	const filters = $derived((data as any).filters as MarketplaceFilters);
 
 	const CATEGORIES = ['Combat', 'Consumable', 'Utility', 'Destroyable'];
-	const RARITIES   = ['Mundane', 'Common', 'Uncommon', 'Rare', 'Very_Rare', 'Legendary', 'Artifact'];
-
-	function param(key: string) {
-		if (typeof window === 'undefined') return '';
-		return new URL(window.location.href).searchParams.get(key) ?? '';
-	}
-
-	function sortUrl(field: string) {
-		if (typeof window === 'undefined') return '';
-		const u   = new URL(window.location.href);
-		const cur = u.searchParams.get('sortBy');
-		const dir = cur === field && u.searchParams.get('sortDir') === 'asc' ? 'desc' : 'asc';
-		u.searchParams.set('sortBy', field); u.searchParams.set('sortDir', dir); u.searchParams.delete('page');
-		return u.search;
-	}
-
-	function sortIcon(field: string) {
-		if (param('sortBy') !== field) return '↕';
-		return param('sortDir') === 'asc' ? '↑' : '↓';
-	}
+	const RARITIES = ['Mundane', 'Common', 'Uncommon', 'Rare', 'Very_Rare', 'Legendary', 'Artifact'];
 
 	function pageUrl(p: number) {
-		if (typeof window === 'undefined') return `?page=${p}`;
-		const u = new URL(window.location.href);
-		u.searchParams.set('page', String(p));
-		return u.search;
+		return marketplaceListUrl(filters, { page: String(p) });
 	}
 
 	function paginationPages(current: number, total: number): (number | '…')[] {
 		if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
 		const pages: (number | '…')[] = [1];
 		if (current > 4) pages.push('…');
-		for (let p = Math.max(2, current - 2); p <= Math.min(total - 1, current + 2); p++) pages.push(p);
+		for (let pg = Math.max(2, current - 2); pg <= Math.min(total - 1, current + 2); pg++) pages.push(pg);
 		if (current < total - 3) pages.push('…');
 		pages.push(total);
 		return pages;
@@ -54,53 +40,79 @@
 	</div>
 
 	<!-- Filters -->
-	<form method="get" style="background:var(--bg-surface); border:1px solid var(--border-muted); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.5rem;">
+	<form
+		method="get"
+		action="/marketplace"
+		style="background:var(--bg-surface); border:1px solid var(--border-muted); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.5rem;"
+	>
 		<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:0.75rem; margin-bottom:0.75rem;">
 			<div class="field" style="margin:0;">
 				<label class="label" for="f-search">Name</label>
-				<input id="f-search" name="search" type="text" class="input" placeholder="Search…" value={param('search')} />
+				<input id="f-search" name="search" type="text" class="input" placeholder="Search…" value={filters.search} />
 			</div>
 			<div class="field" style="margin:0;">
 				<label class="label" for="f-world">World</label>
 				<select id="f-world" name="worldId" class="input input--select">
 					<option value="">All worlds</option>
 					{#each ((data as any).activeWorlds ?? []) as w}
-						<option value={(w as any).id} selected={param('worldId') === (w as any).id}>{(w as any).name}</option>
+						<option value={(w as any).id} selected={filters.worldId === (w as any).id}>{(w as any).name}</option>
 					{/each}
 				</select>
 			</div>
 			<div class="field" style="margin:0;">
 				<label class="label" for="f-source">Source</label>
-				<input id="f-source" name="source" type="text" class="input" placeholder="e.g. PHB" value={param('source')} />
+				<input id="f-source" name="source" type="text" class="input" placeholder="e.g. PHB" value={filters.source} />
 			</div>
 			<div class="field" style="margin:0;">
 				<label class="label" for="f-minprice">Min price (GP)</label>
-				<input id="f-minprice" name="minPrice" type="number" class="input" placeholder="0" value={param('minPrice')} min="0" step="0.01" />
+				<input
+					id="f-minprice"
+					name="minPrice"
+					type="number"
+					class="input"
+					placeholder="0"
+					value={filters.minPrice}
+					min="0"
+					step="0.01"
+				/>
 			</div>
 			<div class="field" style="margin:0;">
 				<label class="label" for="f-maxprice">Max price (GP)</label>
-				<input id="f-maxprice" name="maxPrice" type="number" class="input" placeholder="Any" value={param('maxPrice')} min="0" step="0.01" />
+				<input
+					id="f-maxprice"
+					name="maxPrice"
+					type="number"
+					class="input"
+					placeholder="Any"
+					value={filters.maxPrice}
+					min="0"
+					step="0.01"
+				/>
 			</div>
 			<div class="field" style="margin:0;">
 				<label class="label" for="f-category">Category</label>
 				<select id="f-category" name="category" class="input input--select">
 					<option value="">All</option>
-					{#each CATEGORIES as c}<option value={c} selected={param('category') === c}>{c}</option>{/each}
+					{#each CATEGORIES as c}
+						<option value={c} selected={filters.category === c}>{c}</option>
+					{/each}
 				</select>
 			</div>
 			<div class="field" style="margin:0;">
 				<label class="label" for="f-rarity">Rarity</label>
 				<select id="f-rarity" name="rarity" class="input input--select">
 					<option value="">All</option>
-					{#each RARITIES as r}<option value={r} selected={param('rarity') === r}>{r.replace('_', ' ')}</option>{/each}
+					{#each RARITIES as r}
+						<option value={r} selected={filters.rarity === r}>{r.replace('_', ' ')}</option>
+					{/each}
 				</select>
 			</div>
 			<div class="field" style="margin:0;">
 				<label class="label" for="f-attunement">Attunement</label>
 				<select id="f-attunement" name="attunement" class="input input--select">
 					<option value="">Any</option>
-					<option value="true"  selected={param('attunement') === 'true'}>Required</option>
-					<option value="false" selected={param('attunement') === 'false'}>Not required</option>
+					<option value="true" selected={filters.attunement === 'true'}>Required</option>
+					<option value="false" selected={filters.attunement === 'false'}>Not required</option>
 				</select>
 			</div>
 		</div>
@@ -108,21 +120,23 @@
 			<label class="label" for="f-sortby">Sort by</label>
 			<div style="display:flex; gap:0.375rem; flex-wrap:wrap">
 				<select id="f-sortby" name="sortBy" class="input input--select" style="flex:1;">
-					<option value="name"     selected={param('sortBy') === 'name'    || !param('sortBy')}>Name</option>
-					<option value="buyPrice" selected={param('sortBy') === 'buyPrice'}>Price</option>
-					<option value="rarity"   selected={param('sortBy') === 'rarity'  }>Rarity</option>
-					<option value="category" selected={param('sortBy') === 'category'}>Category</option>
-					<option value="source"   selected={param('sortBy') === 'source'  }>Source</option>
+					<option value="name" selected={filters.sortBy === 'name'}>Name</option>
+					<option value="buyPrice" selected={filters.sortBy === 'buyPrice'}>Price</option>
+					<option value="rarity" selected={filters.sortBy === 'rarity'}>Rarity</option>
+					<option value="category" selected={filters.sortBy === 'category'}>Category</option>
+					<option value="source" selected={filters.sortBy === 'source'}>Source</option>
 				</select>
 				<select name="sortDir" class="input input--select" style="width:80px;">
-					<option value="asc"  selected={param('sortDir') === 'asc'  || !param('sortDir')}>↑ Asc</option>
-					<option value="desc" selected={param('sortDir') === 'desc'}>↓ Desc</option>
+					<option value="asc" selected={filters.sortDir === 'asc'}>↑ Asc</option>
+					<option value="desc" selected={filters.sortDir === 'desc'}>↓ Desc</option>
 				</select>
 			</div>
 		</div>
 		<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.75rem;">
 			<button type="submit" class="btn btn-primary btn-sm">Apply filters</button>
-			<a href="/marketplace" class="btn btn-ghost btn-sm">Reset</a>
+			{#if marketplaceFiltersActive(filters)}
+				<a href="/marketplace" class="btn btn-ghost btn-sm">Reset</a>
+			{/if}
 		</div>
 	</form>
 
@@ -133,10 +147,14 @@
 	{:else}
 		<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1rem;">
 			{#each data.items as item}
-				<a href="/marketplace/{item.id}{(data as any).worldId ? `?worldId=${(data as any).worldId}` : ''}" style="text-decoration:none; color:inherit;">
+				<a href={marketplaceItemUrl(item.id, filters)} style="text-decoration:none; color:inherit;">
 					<div class="card" style="height:100%; display:flex; flex-direction:column; gap:0.5rem;">
 						{#if item.imageUrl}
-							<img src={item.imageUrl} alt={item.name} style="width:48px; height:48px; object-fit:contain; border-radius:var(--radius-sm);" />
+							<img
+								src={item.imageUrl}
+								alt={item.name}
+								style="width:48px; height:48px; object-fit:contain; border-radius:var(--radius-sm);"
+							/>
 						{/if}
 						<p style="font-weight:700; font-size:0.9375rem; margin:0;">{item.name}</p>
 						<div style="display:flex; gap:0.375rem; flex-wrap:wrap;">
