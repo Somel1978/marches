@@ -20,7 +20,9 @@ export async function createCharacter(
         worldId?:      string;
         isGlobal?:     boolean;
         level?:        number;
-        totalXp?:      number;
+        totalXp?:         number;
+        totalMilestones?: number;
+        progressionMode?: 'XP' | 'MILESTONE';
     },
     actorId?: string,
 ) {
@@ -41,7 +43,11 @@ export async function createCharacter(
                 gameSystemId:  input.gameSystemId,
                 name:          input.name,
                 level:         input.level  ?? 0,
-                totalXp:       input.totalXp ?? 0,
+                // A brand new character has already "earned" the level they were built at.
+                earnedLevel:   input.level  ?? 0,
+                progressionMode: input.progressionMode ?? 'XP',
+                totalXp:         input.totalXp         ?? 0,
+                totalMilestones: input.totalMilestones ?? 0,
                 avatarUrl:     input.avatarUrl   ?? null,
                 portraitUrl:   input.portraitUrl ?? null,
                 description:   input.description ?? null,

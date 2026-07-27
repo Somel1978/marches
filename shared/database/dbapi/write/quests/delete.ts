@@ -1,6 +1,6 @@
 // shared/database/dbapi/write/quests/delete.ts
 import { db } from '../../../index.ts';
-import { checkLevelChange } from '../characters/level-check.ts';
+import { applyProgressionChange } from '../characters/progression.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError } from '@core/errors';
 
@@ -47,43 +47,44 @@ export async function deleteQuest(id: string, actorId: string, revertRewards = f
 
             // Find all CharacterTransactions sourced from this quest
             const txns = await tx.characterTransaction.findMany({
-                where: { sourceId: id, sourceType: 'QUEST', type: { in: ['XP', 'GOLD', 'TOKEN', 'REWARD'] as any[] } },
+                where: { sourceId: id, sourceType: 'QUEST', type: { in: ['XP', 'GOLD', 'TOKEN', 'MILESTONE', 'REWARD'] as any[] } },
             });
 
             // Group by characterId and sum deltas per type
-            const revertMap: Record<string, { xp: number; gold: number; tokens: number }> = {};
+            const revertMap: Record<string, { xp: number; gold: number; tokens: number; milestones: number }> = {};
             for (const t of txns) {
-                if (!revertMap[t.characterId]) revertMap[t.characterId] = { xp: 0, gold: 0, tokens: 0 };
+                if (!revertMap[t.characterId]) revertMap[t.characterId] = { xp: 0, gold: 0, tokens: 0, milestones: 0 };
                 if (t.type === 'XP' || t.type === 'REWARD') revertMap[t.characterId].xp     += (t.delta ?? 0);
                 if (t.type === 'GOLD')                          revertMap[t.characterId].gold   += (t.delta ?? 0);
                 if (t.type === 'TOKEN')                         revertMap[t.characterId].tokens += (t.delta ?? 0);
+                if (t.type === 'MILESTONE')                     revertMap[t.characterId].milestones += (t.delta ?? 0);
             }
 
             // Reverse the grants on each character (skip zero amounts)
             for (const [characterId, deltas] of Object.entries(revertMap)) {
                 const data: any = {};
-                if (deltas.xp     > 0) data.totalXp     = { decrement: deltas.xp };
                 if (deltas.gold   > 0) data.totalGold   = { decrement: deltas.gold };
                 if (deltas.tokens > 0) data.totalTokens = { decrement: deltas.tokens };
-                if (Object.keys(data).length === 0) continue;
-                await tx.character.update({ where: { id: characterId }, data });
-                // Write reversal transactions for audit trail
-                if (deltas.xp > 0) {
-                    await tx.characterTransaction.create({
-                        data: { characterId, type: 'XP', delta: -deltas.xp, sourceType: 'ADMIN',
-                                note: `Quest deleted — XP reverted (quest: ${quest.title})`, createdBy: actorId },
-                    });
-                    // Check if XP loss causes level-down
-                    const char = await tx.character.findUnique({
-                        where: { id: characterId },
-                    });
-                    if (char && char.level > 0) {
-                        const prevXp = (char.totalXp ?? 0);
-                        const newXp  = prevXp - deltas.xp;
-                        await checkLevelChange(tx, characterId, char.userId, char.gameSystemId,
-                            prevXp, Math.max(0, newXp), char.level, actorId);
-                    }
+                if (Object.keys(data).length) {
+                    await tx.character.update({ where: { id: characterId }, data });
                 }
+
+                // XP and milestone reversal go through the progression path so a
+                // resulting level-down is detected the same way everywhere else.
+                if (deltas.xp > 0 || deltas.milestones > 0) {
+                    await applyProgressionChange(tx, {
+                        characterId,
+                        actorId,
+                        xpDelta:        -deltas.xp,
+                        milestoneDelta: -deltas.milestones,
+                        source: {
+                            type: 'ADMIN',
+                            note: `Quest deleted — XP reverted (quest: ${quest.title})`,
+                        },
+                        milestoneNote: `Quest deleted — milestone reverted (quest: ${quest.title})`,
+                    });
+                }
+
                 if (deltas.gold > 0) await tx.characterTransaction.create({
                     data: { characterId, type: 'GOLD', delta: -deltas.gold, sourceType: 'ADMIN',
                             note: `Quest deleted — gold reverted (quest: ${quest.title})`, createdBy: actorId },

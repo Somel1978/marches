@@ -2,6 +2,7 @@
 import { db } from '../../../index.ts';
 import { ValidationError } from '@core/errors';
 import { createCharacter } from '../characters/create.ts';
+import { getEffectiveThresholds, resolveProgressionMode } from '../characters/progression.ts';
 
 export type ClassAllocationInput = {
     classId:        string;
@@ -34,21 +35,26 @@ export async function createDnd5eCharacter(
 
     const initialLevel = input.classes.reduce((s, c) => s + c.allocatedLevel, 0);
 
-    // Find the minimum XP required to be at this level from progression thresholds.
-    // Without this, a character created above level 1 would have 0 XP, breaking
-    // level-up detection and all XP-dependent logic.
-    let startingXp = 0;
+    // The character snapshots its progression mode at creation: world override
+    // first, then the game system default. It stays fixed for the character's life
+    // so a global character behaves consistently across every world it visits.
+    const progressionMode = await resolveProgressionMode(db, input.gameSystemId, input.worldId);
+
+    // Seed the running total to the minimum needed for this level. Without it a
+    // character created above level 1 would sit at 0 and immediately read as a
+    // level-down. Which column we seed depends on the mode.
+    let startingXp         = 0;
+    let startingMilestones = 0;
     if (initialLevel > 0) {
-        const thresholds = await db.progressionThreshold.findMany({
-            where:   { gameSystemId: input.gameSystemId },
-            orderBy: { xpRequired: 'asc' },
-            select:  { xpRequired: true },
-        });
-        // Level = number of thresholds cleared (same logic as level-check.ts).
-        // To be at initialLevel, the character must have cleared initialLevel thresholds.
-        // Minimum XP = xpRequired of the Nth threshold (0-indexed: initialLevel - 1).
-        if (initialLevel > 0 && thresholds.length >= initialLevel) {
-            startingXp = thresholds[initialLevel - 1].xpRequired;
+        // Home-world sparse overrides apply at create so starting totals match
+        // the ladder the character will actually level against.
+        const thresholds = await getEffectiveThresholds(db, input.gameSystemId, input.worldId);
+        // Level = number of thresholds cleared, so being at initialLevel means
+        // clearing the Nth threshold (0-indexed: initialLevel - 1).
+        if (thresholds.length >= initialLevel) {
+            const t = thresholds[initialLevel - 1];
+            if (progressionMode === 'MILESTONE') startingMilestones = t.milestoneRequired;
+            else                                 startingXp         = t.xpRequired;
         }
     }
 
@@ -62,8 +68,10 @@ export async function createDnd5eCharacter(
         description:  input.description,
         worldId:      input.worldId,
         isGlobal:     input.isGlobal,
-        level:        initialLevel,
-        totalXp:      startingXp,
+        level:           initialLevel,
+        progressionMode,
+        totalXp:         startingXp,
+        totalMilestones: startingMilestones,
     }, actorId);
 
     // Create dnd5e-specific data

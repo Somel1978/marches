@@ -728,3 +728,60 @@ model Dnd5eCharacterDamageModifierGrant {
   @@map("character_damage_modifier_grants")
   @@schema("dnd5e")
 }
+
+// ── Encounter planner ─────────────────────────────────────────────────────────
+// Lookup tables driving the Encounter Planner tool (/tools/eplanner).
+// Seeded with 2024 DMG values; editable in Admin → Tools → Encounter Planner.
+
+// XP awarded per monster challenge rating (CR 0–45; fractional CRs 0.125/0.25/0.5)
+model Dnd5eEncounterXp {
+  id           String @id @default(uuid())
+  gameSystemId String @map("game_system_id")
+  cr           Float
+  xp           Int
+
+  @@unique([gameSystemId, cr])
+  @@map("encounter_xp")
+  @@schema("dnd5e")
+}
+
+// Per-character encounter XP budget thresholds by party level (1–20)
+model Dnd5eEncounterLevelThreshold {
+  id           String @id @default(uuid())
+  gameSystemId String @map("game_system_id")
+  level        Int
+  low          Int
+  moderate     Int
+  high         Int
+
+  @@unique([gameSystemId, level])
+  @@map("encounter_level_thresholds")
+  @@schema("dnd5e")
+}
+
+// Encounter XP multiplier by monster count (approximate lookup: highest minCount ≤ count wins)
+model Dnd5eEncounterMultiplier {
+  id           String @id @default(uuid())
+  gameSystemId String @map("game_system_id")
+  minCount     Int    @map("min_count")
+  multiplier   Float
+
+  @@unique([gameSystemId, minCount])
+  @@map("encounter_multipliers")
+  @@schema("dnd5e")
+}
+
+// Scalar config — one row per game system
+model Dnd5eEncounterConfig {
+  id                     String @id @default(uuid())
+  gameSystemId           String @map("game_system_id")
+  moderateRatio          Float  @default(0.3) @map("moderate_ratio")   // mission tier: > this = Moderate
+  highRatio              Float  @default(0.7) @map("high_ratio")       // mission tier: > this = High
+  extremeRatio           Float  @default(1.2) @map("extreme_ratio")    // mission tier: > this = Extreme
+  rewardGpRate           Float  @default(0.2) @map("reward_gp_rate")   // GP per reward XP
+  adventureDayMultiplier Float  @default(4)   @map("adventure_day_multiplier") // ADXP = high threshold × this × party size
+
+  @@unique([gameSystemId])
+  @@map("encounter_config")
+  @@schema("dnd5e")
+}

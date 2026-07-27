@@ -140,7 +140,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	const canApprove = !!(await checkCanApprove(params.id, locals.user!.id));
-	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds, questRatings, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES, destroyableInventory, itemUsages, availablePlayers, canApprove };
+	const encounterConfig = await quests.loadEncounterConfig();
+	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds, questRatings, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES, destroyableInventory, itemUsages, availablePlayers, canApprove, encounterConfig };
 };
 
 export const actions: Actions = {
@@ -233,7 +234,10 @@ export const actions: Actions = {
 
 		const data        = await request.formData();
 		const description = data.get('description')?.toString().trim() || undefined;
-		const missionXp   = Number(data.get('missionXp')   ?? 0);
+		const missionXpRaw  = Number(data.get('missionXp') ?? 0);
+		const planJson      = data.get('encounterPlan')?.toString() ?? '';
+		const { missionXp, encounterPlan } = await quests.resolveMissionXp(planJson, missionXpRaw);
+		const milestoneAward = Math.max(0, Number(data.get('milestoneAward') ?? 0));
 		const minCapacity = Number(data.get('minCapacity') ?? 2);
 		const maxCapacity = Number(data.get('maxCapacity') ?? 6);
 		const minLevel    = Number(data.get('minLevel')    ?? 1);
@@ -242,7 +246,7 @@ export const actions: Actions = {
 		try {
 			const regionId   = data.get('regionId')?.toString()   || undefined;
 			const locationId = data.get('locationId')?.toString() || undefined;
-			await quests.update(params.id, { missionXp, minCapacity, maxCapacity, minLevel, maxLevel, regionId, locationId, description }, locals.user!.id);
+			await quests.update(params.id, { missionXp, milestoneAward, encounterPlan, minCapacity, maxCapacity, minLevel, maxLevel, regionId, locationId, description }, locals.user!.id);
 			return { success: true, action: 'details_updated' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

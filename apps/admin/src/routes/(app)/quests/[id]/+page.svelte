@@ -160,6 +160,11 @@
 						<label class="label" for="missionXp">Mission XP</label>
 						<input id="missionXp" name="missionXp" type="number" class="input" min="0" value={data.quest.missionXp} required />
 					</div>
+					<div class="field">
+						<label class="label" for="milestoneAward">Milestone credits</label>
+						<input id="milestoneAward" name="milestoneAward" type="number" class="input" min="0" value={(data.quest as any).milestoneAward ?? 0} />
+						<p class="field-hint">Awarded to each participant in full — not divided among the party.</p>
+					</div>
 					<div style="display:flex; gap:1rem; flex-wrap:wrap;">
 						<div class="field" style="flex:1; min-width:100px;">
 							<label class="label" for="minCap">Min players</label>

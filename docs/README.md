@@ -31,6 +31,12 @@ Central index for project documentation. **Reference docs** describe how the sys
 | [dnd5e/wizard.md](./dnd5e/wizard.md) | 6-step character creation wizard (`_wizard/` module) |
 | [dnd5e/import-guide.md](./dnd5e/import-guide.md) | Import column reference (validated by `check:dnd5e-sync`) |
 
+### Tools
+
+| Doc | Purpose |
+|---|---|
+| [tools/encounter-planner.md](./tools/encounter-planner.md) | `/tools/eplanner` calculator + admin variable editor |
+
 ---
 
 ## History & planning

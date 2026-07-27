@@ -21,12 +21,13 @@
 
 	// Tabs only visible when canManage = true
 	const manageTabs = $derived(canManage ? [
-		{ href: `/dm/worlds/${world.id}/edit`,        label: 'Settings'    },
-		{ href: `/dm/worlds/${world.id}/regions`,     label: 'Regions'     },
-		{ href: `/dm/worlds/${world.id}/marketplace`, label: 'Marketplace' },
-		{ href: `/dm/worlds/${world.id}/token-store`, label: 'Token Store' },
-		{ href: `/dm/worlds/${world.id}/journal`,     label: 'Journal'     },
-		{ href: `/dm/worlds/${world.id}/audit`,       label: 'Audit log'   },
+		{ href: `/dm/worlds/${world.id}/edit`,         label: 'Settings'    },
+		{ href: `/dm/worlds/${world.id}/progression`,  label: 'Progression' },
+		{ href: `/dm/worlds/${world.id}/regions`,      label: 'Regions'     },
+		{ href: `/dm/worlds/${world.id}/marketplace`,  label: 'Marketplace' },
+		{ href: `/dm/worlds/${world.id}/token-store`,  label: 'Token Store' },
+		{ href: `/dm/worlds/${world.id}/journal`,      label: 'Journal'     },
+		{ href: `/dm/worlds/${world.id}/audit`,        label: 'Audit log'   },
 	] : []);
 
 	const navLinks = $derived([...baseTabs, ...manageTabs]);

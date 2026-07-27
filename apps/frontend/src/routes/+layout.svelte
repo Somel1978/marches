@@ -56,6 +56,7 @@
 				{ href: '/tavern',                 label: 'Tavern'         },
 				{ href: '/characters/public',      label: 'Characters'     },
 				{ href: '/tools/dndpointbuy',      label: 'Point Buy'      },
+				{ href: '/tools/eplanner',         label: 'Encounter Planner' },
 			],
 		},
 	];

@@ -19,7 +19,7 @@ export async function createGameSystem(
 
 export async function updateGameSystem(
     id: string,
-    input: { name?: string; slug?: string; description?: string; isActive?: boolean },
+    input: { name?: string; slug?: string; description?: string; isActive?: boolean; defaultProgressionMode?: 'XP' | 'MILESTONE' },
     actorId?: string,
 ) {
     const gs = await db.gameSystem.findUnique({ where: { id } });

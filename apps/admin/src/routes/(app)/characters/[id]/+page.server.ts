@@ -110,6 +110,22 @@ export const actions: Actions = {
 		}
 	},
 
+	setProgressionMode: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const mode = data.get('progressionMode')?.toString();
+		const seed = data.get('seedCredits') === 'true';
+		if (mode !== 'XP' && mode !== 'MILESTONE') return fail(400, { message: 'Invalid progression mode.' });
+		try {
+			await characters.setProgressionMode(params.id, mode, locals.user!.id, seed);
+			return { progressionSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
 	adjustCurrency: async ({ params, request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'Character', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });

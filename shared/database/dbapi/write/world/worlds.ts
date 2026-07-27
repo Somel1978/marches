@@ -27,7 +27,12 @@ export async function createWorld(
 
 export async function updateWorld(
     id: string,
-    input: { name?: string; description?: string | null; mapImageUrl?: string | null; isActive?: boolean; acceptsGlobalCharacters?: boolean },
+    input: {
+        name?: string; description?: string | null; mapImageUrl?: string | null;
+        isActive?: boolean; acceptsGlobalCharacters?: boolean;
+        /** null = inherit the game system default */
+        progressionMode?: 'XP' | 'MILESTONE' | null;
+    },
     actorId: string,
 ) {
     const world = await db.world.findUnique({ where: { id } });

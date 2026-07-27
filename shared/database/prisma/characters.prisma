@@ -30,6 +30,7 @@ enum TransactionType {
   XP
   GOLD
   TOKEN
+  MILESTONE
   STATUS
   ITEM
   REWARD
@@ -61,7 +62,14 @@ model Character {
   userId       String                  @map("user_id")
   gameSystemId String                  @map("game_system_id")
   name         String                  @unique
-  level        Int                     @default(0)          // universal level — written by system on create/approve/level-change
+  // Approved level — always equals the sum of allocated class levels.
+  // Written only on create, on approval, and by admin class edits. Used for all gating.
+  level        Int                     @default(0)
+  // Level the character's progression totals entitle them to. Written only by
+  // applyProgressionChange. Diverges from `level` while an allocation is pending.
+  earnedLevel  Int                     @default(0)  @map("earned_level")
+  // Snapshot of World.progressionMode ?? GameSystem.defaultProgressionMode at creation.
+  progressionMode ProgressionMode      @default(XP) @map("progression_mode")
   avatarUrl    String?                 @map("avatar_url")
   portraitUrl  String?                 @map("portrait_url")
   isPrivate    Boolean                 @default(false) @map("is_private")
@@ -71,6 +79,8 @@ model Character {
   totalXp      Int                     @default(0)  @map("total_xp")
   totalGold    Int                     @default(0)  @map("total_gold")
   totalTokens  Int                     @default(0)  @map("total_tokens")
+  // Milestone credits earned. Drives levelling only in MILESTONE mode.
+  totalMilestones Int                  @default(0)  @map("total_milestones")
   restUntil    DateTime?               @map("rest_until")
   description  String?                 // backstory / character description
   worldId      String?                 @map("world_id")   // null = unassigned

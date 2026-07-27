@@ -52,14 +52,19 @@ Notification — userId, type, title, message, actionUrl, isRead, createdAt
 **Triggered by:** Admin approving a quest result (`approveQuestResult`)
 
 **Per participating character:**
-1. XP awarded → `CharacterTransaction(XP)` + `character.totalXp` incremented
-2. Gold awarded → `CharacterTransaction(GOLD)` + `character.totalGold` incremented
-3. Tokens awarded → `CharacterTransaction(TOKEN)` + `character.totalTokens` incremented
-4. `character.restUntil` set to `now + character.restDays` days
-5. Level-up detection: compare new XP against `ProgressionThreshold` for character's game system
-   - Crossed threshold → status `LEVEL_UP_PENDING` + `LEVEL_UP` notification to player
-   - Not crossed → status `RESTING` + `QUEST_COMPLETE` notification to player
-6. `CharacterTransaction(STATUS)` written with rest end date
+1. Gold and tokens awarded → `CharacterTransaction(GOLD|TOKEN)` + totals incremented
+2. Mission XP, bonus XP and milestone credits go through `applyProgressionChange`,
+   which writes the `XP` / `MILESTONE` transactions, updates the totals, sets
+   `restUntil`, and owns the level decision:
+   - `earnedLevel` above approved `level` → `PENDING` + `LEVEL_UP_PENDING` + `CHARACTER_LEVEL_UP` notification
+   - `earnedLevel` below approved `level` → `PENDING` + `LEVEL_DOWN_PENDING` + `CHARACTER_LEVEL_DOWN` notification
+   - equal → `RESTING` + `QUEST_REST` + `QUEST_COMPLETE` notification to player
+3. `CharacterTransaction(STATUS)` written with rest end date
+
+**Reward division.** XP, gold and tokens are divided equally among confirmed
+players. `Quest.milestoneAward` is **not** divided — each participant receives
+the full amount. Credits only affect characters on milestone progression, but
+they are recorded for everyone so a later mode switch keeps its history.
 
 **DM Rating:**
 - Players can rate DM 1-5 stars + optional comment on completed quests they participated in
@@ -71,8 +76,20 @@ Notification — userId, type, title, message, actionUrl, isRead, createdAt
 - Stored in `dms.dm_ratings` — supports future stats: filter by dmProfileId + quest main DM
 
 **Sign-up enforcement:**
-- Character level (sum of `allocatedLevel` across classes) must be within quest min/max
-- Enforced in `quests.signup()` dbapi before creating the signup record
+- Approved `Character.level` must be within quest min/max
+- Enforced in `quests.signup()` dbapi before creating the signup record, and
+  mirrored by the eligibility filter on the quest detail page
+- Characters in `LEVEL_UP_PENDING` / `LEVEL_DOWN_PENDING` cannot sign up at all
+
+**World progression ladder overrides:**
+- Game system owns the full threshold ladder; worlds store sparse
+  `WorldProgressionOverride` rows (`thresholdId` + optional `xpRequired` /
+  `milestoneRequired`)
+- Effective ladder for a character = system + overrides for their **home**
+  `worldId`. Globals ignore world overrides. Quest world is never used for
+  ladder resolution
+- Editable by admins and by DMs with `WorldDM.canManage` (DM hub Progression tab)
+- Saving overrides re-resolves home-world characters’ `earnedLevel`
 
 ---
 

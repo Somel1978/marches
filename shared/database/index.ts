@@ -83,6 +83,8 @@ import { saveCharacterMood, saveDnd5eCharacterDetails } from './dbapi/write/dnd5
 import { updateDnd5eCharacterClasses } from './dbapi/write/dnd5e/update-classes.ts';
 import { getAllDnd5eSpells, getDnd5eSpellById, getDnd5eSpellsForCharacter, getDnd5eSpellSlotProgressions, getDnd5eSpellSlotProgressionByClass, getDnd5eSpellsKnownProgressions, getDnd5eSpellsKnownProgressionByClass, getDnd5eSpellbooks } from './dbapi/read/dnd5e/get-spells.ts';
 import { upsertDnd5eSpell, updateDnd5eSpell, deleteDnd5eSpell, upsertSpellSlotProgression, deleteSpellSlotProgressionClass, upsertSpellsKnownProgression, deleteSpellsKnownProgressionClass, createSpellbook, updateSpellbook, deleteSpellbook, addSpellbookEntry, removeSpellbookEntry, toggleSpellbookEntryPrepared } from './dbapi/write/dnd5e/spells.ts';
+import { getEncounterConfig } from './dbapi/read/dnd5e/encounter-planner.ts';
+import { upsertEncounterXp, deleteEncounterXp, upsertEncounterLevelThreshold, deleteEncounterLevelThreshold, upsertEncounterMultiplier, deleteEncounterMultiplier, updateEncounterConfig, resetEncounterPlanner } from './dbapi/write/dnd5e/encounter-planner.ts';
 
 // ── Achievements ─────────────────────────────────────────────────────────────────
 import { createAchievement, updateAchievement, grantAchievement, revokeAchievement } from './dbapi/write/rewards/achievements.ts';
@@ -120,6 +122,9 @@ import { createWorld, updateWorld, createRegion,
          updateWorldDMPermission, removeDMFromWorld, createLocation,
          updateLocation                              } from './dbapi/write/world/worlds.ts';
 import { upsertWikiPage                              } from './dbapi/write/world/wiki.ts';
+import {
+    upsertWorldProgressionOverrides, getWorldProgressionOverrides, countWorldHomeCharacters,
+} from './dbapi/write/world/progression-overrides.ts';
 
 // ── Marketplace ──────────────────────────────────────────────────────────────────
 import { getMarketplaceItems, getMarketplaceItemById, getAllMarketplaceItemsForExport,
@@ -140,6 +145,7 @@ import { upsertWorldMarketplaceItem, deleteWorldMarketplaceItem,
 // ── Quests ───────────────────────────────────────────────────────────────────────
 import { getAllQuests                                     } from './dbapi/read/quests/get-all.ts';
 import { getQuestById, getQuestsByDM, getQuestResultWithCharacters } from './dbapi/read/quests/get-by-id.ts';
+import { resolveQuestMissionXp, loadEncounterPlannerClientConfig } from './dbapi/read/quests/encounter-plan.ts';
 import { createQuest                                     } from './dbapi/write/quests/create.ts';
 import { updateQuest, updateQuestRewards, addCoDM,
          removeCoDM                                      } from './dbapi/write/quests/update.ts';
@@ -176,6 +182,10 @@ import { updateCharacterStatus                   } from './dbapi/write/character
 import { approveCharacter, rejectCharacter, dispatchApproveCharacter, dispatchRejectCharacter } from './dbapi/write/characters/approve.ts';
 import { deleteCharacter                             } from './dbapi/write/characters/delete.ts';
 import { adjustCurrency                              } from './dbapi/write/characters/adjust-currency.ts';
+import {
+    setCharacterProgressionMode, resolveEarnedLevel, resolveProgressionMode,
+    getEffectiveThresholds,
+} from './dbapi/write/characters/progression.ts';
 import { grantCharacterSlot                      } from './dbapi/write/characters/slot-grant.ts';
 import { checkAndClearRest, clearAllExpiredRest   } from './dbapi/write/characters/check-rest.ts';
 
@@ -269,6 +279,13 @@ export const characters = {
     dispatchReject:   dispatchRejectCharacter,
     delete:           deleteCharacter,
     adjustCurrency,
+    setProgressionMode: (characterId: string, mode: 'XP' | 'MILESTONE', actorId: string, seedTotal?: boolean) =>
+        setCharacterProgressionMode(db, characterId, mode, actorId, seedTotal),
+    resolveEarnedLevel,
+    getEffectiveThresholds: (gameSystemId: string, worldId?: string | null) =>
+        getEffectiveThresholds(db, gameSystemId, worldId),
+    resolveProgressionMode: (gameSystemId: string, worldId?: string | null) =>
+        resolveProgressionMode(db, gameSystemId, worldId),
     grantSlot:        grantCharacterSlot,
     checkRest:        checkAndClearRest,
     clearExpiredRest: clearAllExpiredRest,
@@ -299,6 +316,8 @@ export const quests = {
     approveResult:         approveQuestResult,
     rejectResult:          rejectQuestResult,
     delete:                deleteQuest,
+    resolveMissionXp:      resolveQuestMissionXp,
+    loadEncounterConfig:   loadEncounterPlannerClientConfig,
 };
 
 export const marketplace = {
@@ -360,6 +379,11 @@ export const worlds = {
     wiki: {
         get:          getWikiPage,
         upsert:       upsertWikiPage,
+    },
+    progression: {
+        getOverrides:      getWorldProgressionOverrides,
+        upsertOverrides:   upsertWorldProgressionOverrides,
+        countHomeCharacters: countWorldHomeCharacters,
     },
 };
 
@@ -607,6 +631,17 @@ export const dnd5e = {
         create:    createDnd5eBackground,
         update:    updateDnd5eBackground,
         delete:    deleteDnd5eBackground,
+    },
+    encounterPlanner: {
+        getConfig:              getEncounterConfig,
+        upsertXp:               upsertEncounterXp,
+        deleteXp:               deleteEncounterXp,
+        upsertLevelThreshold:   upsertEncounterLevelThreshold,
+        deleteLevelThreshold:   deleteEncounterLevelThreshold,
+        upsertMultiplier:       upsertEncounterMultiplier,
+        deleteMultiplier:       deleteEncounterMultiplier,
+        updateConfig:           updateEncounterConfig,
+        reset:                  resetEncounterPlanner,
     },
     getSystemData:       getDnd5eSystemData,
     invalidateSystemCache: invalidateDnd5eSystemDataCache,

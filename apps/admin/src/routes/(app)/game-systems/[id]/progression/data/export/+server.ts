@@ -16,10 +16,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         .slice()
         .sort((a: any, b: any) => a.xpRequired - b.xpRequired)
         .map((t: any) => ({
-            label:       t.label,
-            xpRequired:  t.xpRequired,
-            description: t.description ?? '',
-            sortOrder:   t.sortOrder,
+            label:             t.label,
+            xpRequired:        t.xpRequired,
+            milestoneRequired: t.milestoneRequired ?? 0,
+            description:       t.description ?? '',
+            sortOrder:         t.sortOrder,
         }));
 
     const ws = XLSX.utils.json_to_sheet(rows);

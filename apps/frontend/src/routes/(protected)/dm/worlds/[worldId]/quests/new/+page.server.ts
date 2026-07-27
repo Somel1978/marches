@@ -11,9 +11,11 @@ export const load: PageServerLoad = async ({ parent }) => {
 	const { dmProfile, myWorlds } = await parent();
 
 	const settings = await platform.getSettingsMap();
+	const encounterConfig = await quests.loadEncounterConfig();
 
 	return {
 		dmProfile,
+		encounterConfig,
 		// myWorlds already has all regions + locations from getWorldsByDMProfile
 		allWorlds:      myWorlds,
 		itemRarities:   ITEM_RARITIES,
@@ -37,7 +39,10 @@ export const actions: Actions = {
 		const deadlineRaw    = data.get('signupDeadline')?.toString()     || null;
 		const scheduledAt    = scheduledRaw  ? new Date(scheduledRaw)  : null;
 		const signupDeadline = deadlineRaw   ? new Date(deadlineRaw)   : null;
-		const missionXp      = Number(data.get('missionXp')   ?? 0);
+		const missionXpRaw   = Number(data.get('missionXp') ?? 0);
+		const planJson       = data.get('encounterPlan')?.toString() ?? '';
+		const { missionXp, encounterPlan } = await quests.resolveMissionXp(planJson, missionXpRaw);
+		const milestoneAward = Math.max(0, Number(data.get('milestoneAward') ?? 0));
 		const minCapacity    = Number(data.get('minCapacity') ?? 2);
 		const maxCapacity    = Number(data.get('maxCapacity') ?? 6);
 		const minLevel       = Number(data.get('minLevel')    ?? 1);
@@ -62,7 +67,7 @@ export const actions: Actions = {
 				dmProfileId: dmProfile.id,
 				title, description: description || undefined, rules: rules || undefined,
 				scheduledAt, signupDeadline,
-				missionXp, minCapacity, maxCapacity, minLevel, maxLevel, rewards,
+				missionXp, milestoneAward, encounterPlan, minCapacity, maxCapacity, minLevel, maxLevel, rewards,
 				regionId, locationId,
 			}, locals.user!.id);
 			redirect(302, `/dm/quests/${quest.id}`);

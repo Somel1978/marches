@@ -50,6 +50,9 @@ model Quest {
   description String?
   rules       String?     // pre-populated from DM profile rules
   missionXp   Int         @default(0) @map("mission_xp")
+  // Milestone credits granted to each participant on completion. Not divided among the party.
+  milestoneAward Int      @default(0) @map("milestone_award")
+  encounterPlan Json?     @map("encounter_plan") // Encounter planner inputs (dnd5e); missionXp derived on save
   minCapacity Int         @default(2)  @map("min_capacity")
   maxCapacity Int         @default(6)  @map("max_capacity")
   minLevel    Int         @default(1)  @map("min_level")
@@ -124,6 +127,7 @@ model QuestResult {
   questId     String            @unique @map("quest_id")
   quest       Quest             @relation(fields: [questId], references: [id], onDelete: Cascade)
   missionXp   Int               @map("mission_xp")
+  milestoneAward Int            @default(0) @map("milestone_award")
   submittedBy String            @map("submitted_by")  // dmProfileId
   status      QuestResultStatus @default(PENDING_APPROVAL)
   reviewNote  String?           @map("review_note")
@@ -144,6 +148,7 @@ model QuestResultCharacter {
   xpAwarded     Int         @default(0) @map("xp_awarded")
   goldAwarded   Int         @default(0) @map("gold_awarded")
   tokensAwarded   Int         @default(0) @map("tokens_awarded")
+  milestonesAwarded Int       @default(0) @map("milestones_awarded")
   itemGrantedId   String?     @map("item_granted_id")
   itemGrantedName String?     @map("item_granted_name")
 

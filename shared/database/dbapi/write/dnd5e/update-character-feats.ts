@@ -146,6 +146,39 @@ export async function addDnd5eCharacterFeat(
     return record;
 }
 
+/**
+ * Drop ASI/feat picks that no longer have a slot after a level-down or a
+ * multiclass reshuffle: either the granting class level is gone, or the class
+ * itself was removed. Stat bumps and grants are reversed, not orphaned.
+ *
+ * Call after the character's class rows have been rewritten.
+ */
+export async function pruneDnd5eFeatsAboveAllocation(characterId: string, actorId?: string) {
+    const classes = await db.dnd5eCharacterClass.findMany({
+        where:  { characterId },
+        select: { classId: true, allocatedLevel: true },
+    });
+    const allocationByClass = new Map(classes.map(c => [c.classId, c.allocatedLevel]));
+
+    // Slot-bound feats only — picks with no sourceClassId are not level-gated.
+    const slotFeats = await db.dnd5eCharacterFeat.findMany({
+        where:  { characterId, sourceClassId: { not: null } },
+        select: { id: true, sourceClassId: true, sourceLevel: true },
+    });
+
+    const orphaned = slotFeats.filter((f) => {
+        const allocated = allocationByClass.get(f.sourceClassId!);
+        if (allocated === undefined) return true;             // class removed entirely
+        return (f.sourceLevel ?? 0) > allocated;              // level no longer reached
+    });
+
+    for (const f of orphaned) {
+        await removeDnd5eCharacterFeat(f.id, actorId);
+    }
+
+    return orphaned.length;
+}
+
 export async function removeDnd5eCharacterFeat(id: string, actorId?: string) {
     const row = await db.dnd5eCharacterFeat.findUnique({ where: { id }, include: { feat: true } });
     if (!row) throw new NotFoundError('Dnd5eCharacterFeat', id);

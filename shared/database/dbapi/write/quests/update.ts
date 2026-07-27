@@ -1,8 +1,9 @@
 // shared/database/dbapi/write/quests/update.ts
-import { db } from '../../../index.ts';
+import { db, Prisma } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
+import type { QuestEncounterPlan } from '../../read/quests/encounter-plan.ts';
 
 export async function updateQuest(
     id: string,
@@ -11,6 +12,8 @@ export async function updateQuest(
         description?: string;
         rules?:       string;
         missionXp?:   number;
+        milestoneAward?: number;
+        encounterPlan?: QuestEncounterPlan | null;
         minCapacity?: number;
         maxCapacity?: number;
         minLevel?:    number;
@@ -37,7 +40,14 @@ export async function updateQuest(
     }
 
     return db.$transaction(async (tx) => {
-        const updated = await tx.quest.update({ where: { id }, data: input });
+        const { encounterPlan, ...rest } = input;
+        const updated = await tx.quest.update({
+            where: { id },
+            data: {
+                ...rest,
+                ...(encounterPlan !== undefined && { encounterPlan: encounterPlan ?? Prisma.JsonNull }),
+            },
+        });
         await logAudit(tx, { actorId, action: 'UPDATE', resourceKey: 'Quest', resourceId: id, before: quest, after: updated });
         return updated;
     });

@@ -59,7 +59,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const pendingBuys   = pendingTx.items.filter((t: any) => t.type === 'BUY');
 	const pendingSells  = pendingTx.items.filter((t: any) => t.type === 'SELL');
 	const globalSellPct = Number(settings['marketplace.sellPricePercent'] ?? 50);
-	const progressionThresholds = (gameSystem as any)?.progressionThresholds ?? [];
+	// Home-world sparse overrides layered on the game-system ladder.
+	const progressionThresholds = await characters.getEffectiveThresholds(
+		character.gameSystemId,
+		(character as any).worldId ?? null,
+	);
 
 	let worldSellPct = globalSellPct;
 	let worldItemMap: Record<string, any> = {};

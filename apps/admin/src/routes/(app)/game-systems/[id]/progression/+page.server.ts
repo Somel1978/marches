@@ -12,16 +12,36 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
+	setMode: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const mode = data.get('defaultProgressionMode')?.toString();
+		if (mode !== 'XP' && mode !== 'MILESTONE') return fail(400, { message: 'Invalid progression mode.' });
+		try {
+			await gameSystems.update(params.id, { defaultProgressionMode: mode }, locals.user!.id);
+			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
 	create: async ({ params, request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'GameSystem', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
 		const data        = await request.formData();
 		const label       = data.get('label')?.toString().trim()       ?? '';
 		const xpRequired  = parseInt(data.get('xpRequired')?.toString() ?? '', 10);
+		const milestoneRequired = parseInt(data.get('milestoneRequired')?.toString() ?? '0', 10);
 		const description = data.get('description')?.toString().trim() || undefined;
 		if (!label || xpRequired === null || isNaN(xpRequired)) return fail(400, { message: 'Label and XP required.' });
 		try {
-			await gameSystems.progression.create({ gameSystemId: params.id, label, xpRequired, description }, locals.user!.id);
+			await gameSystems.progression.create({
+				gameSystemId: params.id, label, xpRequired,
+				milestoneRequired: isNaN(milestoneRequired) ? 0 : Math.max(0, milestoneRequired),
+				description,
+			}, locals.user!.id);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -36,9 +56,14 @@ export const actions: Actions = {
 		const id          = data.get('id')?.toString() ?? '';
 		const label       = data.get('label')?.toString().trim()       ?? '';
 		const xpRequired  = parseInt(data.get('xpRequired')?.toString() ?? '', 10);
+		const milestoneRequired = parseInt(data.get('milestoneRequired')?.toString() ?? '0', 10);
 		const description = data.get('description')?.toString().trim() || null;
 		try {
-			await gameSystems.progression.update(id, { label, xpRequired, description: description ?? undefined }, locals.user!.id);
+			await gameSystems.progression.update(id, {
+				label, xpRequired,
+				milestoneRequired: isNaN(milestoneRequired) ? 0 : Math.max(0, milestoneRequired),
+				description: description ?? undefined,
+			}, locals.user!.id);
 			return { success: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

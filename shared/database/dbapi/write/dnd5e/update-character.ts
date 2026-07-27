@@ -19,6 +19,12 @@ export async function submitDnd5eStructuralChanges(
         isGlobal?:     boolean;
     },
     actorId?: string,
+    /**
+     * Pass `preserve` when the submission is resolving a level change, so the
+     * character keeps LEVEL_UP_PENDING / LEVEL_DOWN_PENDING and the approval
+     * messaging stays accurate. Defaults to a plain structural edit.
+     */
+    reasonMode: 'edit' | 'preserve' = 'edit',
 ) {
     const character = await db.character.findUnique({ where: { id }, include: { classes: true, dnd5eSheet: true } });
     if (!character) throw new NotFoundError('Character', id);
@@ -40,9 +46,16 @@ export async function submitDnd5eStructuralChanges(
             update: { pendingChanges: pendingChanges as any },
         });
 
+        const keepReason = reasonMode === 'preserve'
+            && (character.statusReason === 'LEVEL_UP_PENDING' || character.statusReason === 'LEVEL_DOWN_PENDING');
+
         const updated = await tx.character.update({
             where: { id },
-            data:  { status: 'PENDING', statusReason: 'EDIT_PENDING', statusChangedAt: new Date() },
+            data:  {
+                status:          'PENDING',
+                statusReason:    keepReason ? character.statusReason : 'EDIT_PENDING',
+                statusChangedAt: new Date(),
+            },
         });
         await logAudit(tx, { actorId, action: 'UPDATE', resourceKey: 'Character', resourceId: id, before: character, after: updated });
         return updated;

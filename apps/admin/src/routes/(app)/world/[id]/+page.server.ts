@@ -1,6 +1,6 @@
 // apps/admin/src/routes/(app)/world/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { worlds, dms, tavern } from '@core/database';
+import { worlds, dms, tavern, gameSystems } from '@core/database';
 import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -8,15 +8,24 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const can = checkPermission(locals.permissions, { resourceKey: 'World', action: 'read' });
 	if (!can.allowed) throw error(403, 'Forbidden');
-	const [world, allDMs] = await Promise.all([
+	const [world, allDMs, activeSystems, overrides, homeCharacterCount] = await Promise.all([
 		worlds.getById(params.id),
 		dms.profiles.getAll(),
+		gameSystems.getActive(),
+		worlds.progression.getOverrides(params.id),
+		worlds.progression.countHomeCharacters(params.id),
 	]);
 	if (!world) throw error(404, 'World not found');
 	// Ensure tavern channel exists — creates it for worlds that pre-date the tavern feature
 	await tavern.channels.ensureWorld(params.id, world.name);
 	const tavernChannel = await tavern.channels.getByWorldId(params.id);
-	return { world, allDMs, tavernChannel };
+	const gameSystem = activeSystems[0] ?? null;
+	const systemThresholds = ((gameSystem as any)?.progressionThresholds ?? []).slice()
+		.sort((a: any, b: any) => a.xpRequired - b.xpRequired);
+	return {
+		world, allDMs, tavernChannel,
+		gameSystem, systemThresholds, overrides, homeCharacterCount,
+	};
 };
 
 export const actions: Actions = {
@@ -24,6 +33,7 @@ export const actions: Actions = {
 		const can = checkPermission(locals.permissions, { resourceKey: 'World', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
 		const data = await request.formData();
+		const modeRaw = data.get('progressionMode')?.toString() ?? '';
 		try {
 			await worlds.update(params.id, {
 				name:                    data.get('name')?.toString().trim()        || undefined,
@@ -31,6 +41,7 @@ export const actions: Actions = {
 				mapImageUrl:             data.get('mapImageUrl')?.toString().trim() || null,
 				isActive:                data.get('isActive') === 'true',
 				acceptsGlobalCharacters: data.get('acceptsGlobalCharacters') !== 'false',
+				progressionMode:         modeRaw === 'XP' || modeRaw === 'MILESTONE' ? modeRaw : null,
 			}, locals.user!.id);
 			return { worldSuccess: true };
 		} catch (e) {
@@ -116,6 +127,27 @@ export const actions: Actions = {
 		try {
 			await worlds.regions.update(regionId, { mapX, mapY }, locals.user!.id);
 			return { markerSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveProgressionOverrides: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'World', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const ids = data.getAll('thresholdId').map(String);
+		const xps = data.getAll('xpRequired').map(v => v.toString().trim());
+		const mss = data.getAll('milestoneRequired').map(v => v.toString().trim());
+		const rows = ids.map((thresholdId, i) => ({
+			thresholdId,
+			xpRequired:        xps[i] === '' ? null : Number(xps[i]),
+			milestoneRequired: mss[i] === '' ? null : Number(mss[i]),
+		}));
+		try {
+			const result = await worlds.progression.upsertOverrides(params.id, rows, locals.user!.id);
+			return { progressionSuccess: true, ...result };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

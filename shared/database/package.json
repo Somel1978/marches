@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./eplanner-calc": "./dbapi/read/dnd5e/eplanner-calc.ts"
   },
   "main": "./index.ts",
   "types": "./index.ts",
@@ -13,7 +14,8 @@
     "db:seed": "dotenv -e ../../.env -- tsx seed.ts",
     "db:push": "dotenv -e ../../.env -- prisma db push",
     "db:studio": "dotenv -e ../../.env -- bash -c 'prisma studio --browser none --port 5555'",
-    "check:dnd5e-sync": "tsx scripts/check-dnd5e-sync.ts"
+    "check:dnd5e-sync": "tsx scripts/check-dnd5e-sync.ts",
+    "backfill:progression": "dotenv -e ../../.env -- tsx scripts/backfill-progression.ts"
   },
   "prisma": {
     "config": "prisma.config.ts"

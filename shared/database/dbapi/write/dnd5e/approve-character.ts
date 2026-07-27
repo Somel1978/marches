@@ -4,6 +4,8 @@ import { parseAndFilterInnateSpells, addInnateSpellGrants, removeInnateSpellGran
 import { approveCharacter, rejectCharacter } from '../characters/approve.ts';
 import { syncBackgroundFeatGrant } from './background-feat-grant.ts';
 import { syncSpeciesTraitGrants } from './species-trait-grants.ts';
+import { pruneDnd5eFeatsAboveAllocation } from './update-character-feats.ts';
+import { reconcileProgression } from '../characters/progression.ts';
 
 // Apply auto-granted skills, saves, tools, languages, and damage modifiers
 // from class features for a character's current level allocation.
@@ -214,6 +216,10 @@ export async function approveDnd5eCharacter(id: string, actorId: string) {
                 });
             }
         });
+        // Class rows changed, so ASI/feat picks tied to levels that no longer
+        // exist must be reversed before grants are re-synced.
+        if (pending.classes) await pruneDnd5eFeatsAboveAllocation(id, actorId);
+
         const freshChar = await db.character.findUnique({ where: { id }, select: { level: true, gameSystemId: true } });
         await applyClassFeatureGrants(id, freshChar?.level ?? newLevel, freshChar?.gameSystemId ?? '');
 
@@ -231,7 +237,14 @@ export async function approveDnd5eCharacter(id: string, actorId: string) {
         }
     }
 
-    return approveCharacter(id, actorId, newLevel);
+    const approved = await approveCharacter(id, actorId, newLevel);
+
+    // approveCharacter clears the status, so reconcile last. Normally a no-op
+    // (the submitted allocation had to match earnedLevel), but a structural edit
+    // can change the class total, which must re-open a pending level state.
+    await db.$transaction(tx => reconcileProgression(tx, id, { actorId }));
+
+    return approved;
 }
 
 // Clear dnd5e pendingChanges then reject

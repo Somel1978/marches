@@ -15,7 +15,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const myChars  = await characters.getByUserId(locals.user!.id);
 	const eligible = myChars.filter(c => {
 		if (c.status !== 'ACTIVE') return false;
-		const level = (c as any).classes?.reduce((s: number, cc: any) => s + cc.allocatedLevel, 0) ?? 0;
+		// Approved level, matching the server-side gate in quests/signup.ts.
+		const level = c.level ?? 0;
 		return level >= quest.minLevel && level <= quest.maxLevel;
 	});
 

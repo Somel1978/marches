@@ -3,9 +3,22 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
+	import EncounterPlannerPanel from '../_planner/EncounterPlannerPanel.svelte';
+	import { planFromStored, parseStoredPlan } from '../_planner/planner.ts';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const canApprove = $derived((data as any).canApprove === true);
+	let detailsTab = $state<'details' | 'planner'>('details');
+	let previewMissionXp = $state(0);
+	let plannerState = $state(planFromStored(null, { partySize: 4, level: 5 }));
+
+	$effect.pre(() => {
+		previewMissionXp = data.quest.missionXp;
+		plannerState = planFromStored(
+			parseStoredPlan((data.quest as any).encounterPlan),
+			{ partySize: data.quest.maxCapacity, level: data.quest.minLevel },
+		);
+	});
 
 	const statusColors: Record<string, string> = {
 		DRAFT:            'badge-muted',
@@ -161,9 +174,16 @@
 
 	<div class="sections">
 		<div class="card">
-			<h3 class="section-title">Details</h3>
+			<div class="tabs" style="margin-bottom:1rem;">
+				<button type="button" class="tab {detailsTab === 'details' ? 'tab--active' : ''}" onclick={() => detailsTab = 'details'}>Details</button>
+				<button type="button" class="tab {detailsTab === 'planner' ? 'tab--active' : ''}" onclick={() => detailsTab = 'planner'}>
+					Encounter Planner
+					{#if previewMissionXp > 0}<span style="margin-left:0.375rem; font-size:0.75rem; opacity:0.8;">{previewMissionXp.toLocaleString()} XP</span>{/if}
+				</button>
+			</div>
 			{#if isReadOnly}<p class="field-hint" style="margin-bottom:0.75rem; color:var(--color-warning);">This quest is {data.quest.status.toLowerCase()} — read only.</p>{/if}
 			<form method="post" action="?/updateDetails" use:enhance={e_reload}>
+				<div style:display={detailsTab === 'details' ? undefined : 'none'}>
 				<fieldset disabled={isReadOnly} style="border:none; padding:0; margin:0;">
 				<div class="fields">
 					<div class="field">
@@ -171,9 +191,16 @@
 						<textarea id="qdesc" name="description" class="input" rows="3">{data.quest.description ?? ''}</textarea>
 					</div>
 					<div class="field">
-						<label class="label" for="missionXp">Mission XP</label>
-						<input id="missionXp" name="missionXp" type="number" class="input" min="0" value={data.quest.missionXp} required />
-						<p class="field-hint">Divided equally among confirmed players.</p>
+						<span class="label">Mission XP</span>
+						<p style="margin:0; font-size:1.125rem; font-weight:700; font-variant-numeric:tabular-nums;">
+							{previewMissionXp.toLocaleString()}
+						</p>
+						<p class="field-hint">From Encounter Planner — divided equally among confirmed players.</p>
+					</div>
+					<div class="field">
+						<label class="label" for="milestoneAward">Milestone credits <span class="optional">(optional)</span></label>
+						<input id="milestoneAward" name="milestoneAward" type="number" class="input" min="0" value={(data.quest as any).milestoneAward ?? 0} />
+						<p class="field-hint">Each participant earns this many credits — not divided among the party. Only affects characters on milestone progression.</p>
 					</div>
 					<div style="display:flex; gap:1rem; flex-wrap:wrap;">
 						<div class="field" style="flex:1; min-width:100px;">
@@ -239,6 +266,21 @@
 						<input type="hidden" name="locationId" value={selectedLocationId} />
 					{/if}
 				</fieldset>
+				</div>
+
+				{#if data.encounterConfig}
+					<div style:display={detailsTab === 'planner' ? undefined : 'none'}>
+						<EncounterPlannerPanel
+							config={data.encounterConfig}
+							bind:planner={plannerState}
+							disabled={isReadOnly}
+							onMissionXp={(xp) => previewMissionXp = xp}
+						/>
+					</div>
+				{:else}
+					<input type="hidden" name="missionXp" value={data.quest.missionXp} />
+				{/if}
+
 				{#if !isReadOnly}
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">Save details</button>

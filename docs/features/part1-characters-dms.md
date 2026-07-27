@@ -214,42 +214,97 @@ gameSystems.progression.{create, update, delete}
 **Models:**
 ```
 Character              — status, statusReason, speciesId, backgroundId,
-                         pendingChanges Json?, xp, gold, tokens, restUntil,
-                         description, worldId, isGlobal
+                         pendingChanges Json?, level, earnedLevel,
+                         progressionMode, xp, gold, tokens, totalMilestones,
+                         restUntil, description, worldId, isGlobal
 CharacterClass         — classId (String), subclassId (String?), allocatedLevel
                          (plain strings — cross-schema FK resolved at app level)
 CharacterSlotGrant     — delta grants per user
-CharacterTransaction   — audit trail (XP|GOLD|TOKEN|STATUS|ITEM|REWARD)
+CharacterTransaction   — audit trail (XP|GOLD|TOKEN|MILESTONE|STATUS|ITEM|REWARD)
 CharacterInventory     — itemId, itemName, itemCategory, itemRarity,
                          itemSource, purchasePrice, canSell, sourceType,
                          sourceId, transactionId
 ```
 
+**Two level fields — never conflated:**
+
+| Field | Meaning | Written by |
+|---|---|---|
+| `level` | Approved level, always equals `sum(allocatedLevel)` | create, approval, admin class edits |
+| `earnedLevel` | Level the progression totals entitle the character to | `applyProgressionChange` only |
+
+All gating (quest signup, quest eligibility lists, marketplace, region access) reads
+`level`. Only the "Level N available" prompts read `earnedLevel`. When the two
+diverge the character is parked in `LEVEL_UP_PENDING` or `LEVEL_DOWN_PENDING`
+until an allocation is submitted and approved.
+
+**Progression modes.** `Character.progressionMode` is snapshotted at creation from
+`World.progressionMode ?? GameSystem.defaultProgressionMode`, and an admin can
+change it later. Both modes resolve level identically — count the
+`ProgressionThreshold` rows cleared — they just read a different column:
+
+| Mode | Character total | Threshold column |
+|---|---|---|
+| `XP` | `totalXp` | `xpRequired` |
+| `MILESTONE` | `totalMilestones` | `milestoneRequired` |
+
+Milestone characters still receive and record XP; it just does not drive their
+levelling. If every `milestoneRequired` is still 0 the ladder counts as
+unconfigured and milestone levelling is inert rather than jumping everyone to
+max level.
+
+**Effective ladder (system + sparse world overrides).**
+`getEffectiveThresholds(gameSystemId, character.worldId)` loads the game-system
+`ProgressionThreshold` rows, then layers sparse `WorldProgressionOverride` diffs
+for the character’s **home world** (`Character.worldId`). Null override columns
+inherit the system value. Global characters (`worldId` null) always use the pure
+game-system ladder — the quest’s world never changes the ladder.
+
+- Admin and `canManage` DMs edit overrides (admin world page; DM hub
+  `/dm/worlds/[worldId]/progression`)
+- Saving overrides re-resolves `earnedLevel` for every character with that home
+  world via `reconcileProgression` (may open level-up/down pending)
+
 **CharacterStatusReason enum:**
 ```
-NEW_CHARACTER    — new character awaiting first approval
-EDIT_PENDING     — player submitted structural changes, awaiting approval
-LEVEL_UP_PENDING — unallocated levels after XP threshold crossed
-QUEST_REST       — recovering after quest, clears after restDays
-ADMIN            — manually set by admin
-SYSTEM           — set by platform (e.g. quest death)
+NEW_CHARACTER      — new character awaiting first approval
+EDIT_PENDING       — player submitted structural changes, awaiting approval
+LEVEL_UP_PENDING   — earnedLevel above approved level, player must allocate
+LEVEL_DOWN_PENDING — earnedLevel below approved level, player must reduce classes
+QUEST_REST         — recovering after quest, clears after restDays
+ADMIN              — manually set by admin
+SYSTEM             — set by platform (e.g. quest death)
 ```
 
 **Status flow:**
 ```
 PENDING (NEW_CHARACTER)   → ACTIVE (approved) | REJECTED
-ACTIVE                    → PENDING (EDIT_PENDING)     → ACTIVE (approved) | ACTIVE (rejected, reverts)
-                          → PENDING (LEVEL_UP_PENDING) → ACTIVE (approved) | ACTIVE (rejected, reverts)
-                          → RESTING (QUEST_REST)       → ACTIVE (rest cleared)
+ACTIVE                    → PENDING (EDIT_PENDING)       → ACTIVE (approved) | ACTIVE (rejected, reverts)
+                          → PENDING (LEVEL_UP_PENDING)   → ACTIVE (approved) | ACTIVE (rejected, reverts)
+                          → PENDING (LEVEL_DOWN_PENDING) → ACTIVE (approved) | ACTIVE (rejected, reverts)
+                          → RESTING (QUEST_REST)         → ACTIVE (rest cleared)
                           → SUSPENDED | RETIRED | DECEASED
 ```
+
+Rejecting an allocation cannot corrupt the level: the progression path never
+writes `level`, so classes and `level` stay consistent with no revert logic.
+
+**Single progression path.** `applyProgressionChange`
+(`shared/database/dbapi/write/characters/progression.ts`) is the only place a
+level change is decided. Quest result approval, admin XP/credit adjustments,
+token store boosts and reverts, and quest deletion reversals all route through
+it. It applies the deltas, writes the `CharacterTransaction` rows, recomputes
+`earnedLevel`, and sets the pending state — guarded in both directions so a
+repeat award does not re-notify. Callers that have already mutated the totals
+themselves call `reconcileProgression` instead.
 
 **Edit workflow — two paths:**
 - **Free fields** (name, avatarUrl, portraitUrl, description) → `updateFreeFields` → saves immediately, no approval needed
 - **Structural fields** (species, background, classes/levels/subclasses) → `submitStructuralChanges` → saves snapshot to `pendingChanges Json` + sets status PENDING/EDIT_PENDING → admin approval required
 - **Approval** → `approveCharacter` reads `pendingChanges`, applies to actual fields, clears `pendingChanges`, sets ACTIVE
 - **Rejection** → clears `pendingChanges`, reverts to ACTIVE
-- **Level-up** → same path as structural edit via `submitChanges` with classes only → LEVEL_UP_PENDING
+- **Level-up / level-down** → same path as structural edit via `submitChanges` with classes only, passing `'preserve'` so the existing `LEVEL_UP_PENDING` / `LEVEL_DOWN_PENDING` reason survives instead of being overwritten with `EDIT_PENDING`
+- **Delevel cleanup** → on approval, ASI/feat picks whose `sourceLevel` exceeds the new `allocatedLevel` (or whose class was dropped) are removed and their stat bumps reversed
 
 **Character sheet enrichment (`getCharacterById`):**
 - Loads `speciesRef` + all traits from `dnd5e.species`

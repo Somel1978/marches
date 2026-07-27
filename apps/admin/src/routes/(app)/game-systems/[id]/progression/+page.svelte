@@ -8,6 +8,9 @@
 	let { data, form }: { data: PageData; form: any } = $props();
 	const system     = $derived((data as any).system);
 	const thresholds = $derived((system?.progressionThresholds ?? []).slice().sort((a: any, b: any) => a.xpRequired - b.xpRequired));
+	// Every milestoneRequired at 0 means the ladder was never filled in, and
+	// milestone levelling is inert until it is.
+	const milestoneLadderSet = $derived(thresholds.some((t: any) => (t.milestoneRequired ?? 0) > 0));
 
 	let editing = $state<string | null>(null);
 
@@ -45,18 +48,47 @@
 		</div>
 	{/if}
 
+	<!-- Default progression mode -->
+	<div class="card" style="margin-bottom:1rem;">
+		<h3 class="section-title">Default progression mode</h3>
+		<form method="post" action="?/setMode"
+			use:enhance={() => async ({ update }) => { await update(); await invalidateAll(); }}>
+			<div style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap;">
+				<div class="field" style="flex:0 0 200px; margin:0;">
+					<label class="label" for="defaultProgressionMode">Mode</label>
+					<select id="defaultProgressionMode" name="defaultProgressionMode" class="input" value={system.defaultProgressionMode ?? 'XP'}>
+						<option value="XP">XP</option>
+						<option value="MILESTONE">Milestone</option>
+					</select>
+				</div>
+				<button type="submit" class="btn btn-primary btn-sm">Save</button>
+			</div>
+			<p class="field-hint" style="margin-top:0.5rem;">
+				New characters snapshot this at creation. A world can override it, and an admin can change it per character.
+			</p>
+		</form>
+		{#if thresholds.length && !milestoneLadderSet}
+			<div style="margin-top:0.75rem;padding:0.75rem 1rem;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.4);border-radius:var(--radius-md);">
+				<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0;">
+					No milestone requirements are set below, so milestone levelling is inert —
+					characters on milestone progression will not gain levels until you fill in the Milestones column.
+				</p>
+			</div>
+		{/if}
+	</div>
+
 	<!-- Existing thresholds -->
 	<div class="card" style="margin-bottom:1rem;">
 		<h3 class="section-title">Thresholds ({thresholds.length})</h3>
 		{#if thresholds.length}
 			<div class="table-wrap">
 				<table class="table">
-				<thead><tr><th>Label</th><th>XP Required</th><th>Description</th><th></th></tr></thead>
+				<thead><tr><th>Label</th><th>XP Required</th><th>Milestones</th><th>Description</th><th></th></tr></thead>
 				<tbody>
 					{#each thresholds as t}
 						{#if editing === t.id}
 							<tr>
-								<td colspan="4">
+								<td colspan="5">
 									<form method="post" action="?/update"
 										use:enhance={() => async ({ update }) => { await update(); await invalidateAll(); editing = null; }}>
 										<input type="hidden" name="id" value={t.id} />
@@ -68,6 +100,10 @@
 											<div class="field" style="flex:0 0 120px; margin:0;">
 												<label class="label" for="edit-xp-{t.id}">XP Required</label>
 												<input id="edit-xp-{t.id}" name="xpRequired" type="number" class="input" value={t.xpRequired} required />
+											</div>
+											<div class="field" style="flex:0 0 120px; margin:0;">
+												<label class="label" for="edit-ms-{t.id}">Milestones</label>
+												<input id="edit-ms-{t.id}" name="milestoneRequired" type="number" class="input" min="0" value={t.milestoneRequired ?? 0} />
 											</div>
 											<div class="field" style="flex:2 1 200px; margin:0;">
 												<label class="label" for="edit-desc-{t.id}">Description</label>
@@ -83,6 +119,7 @@
 							<tr>
 								<td style="font-weight:600;">{t.label}</td>
 								<td>{t.xpRequired.toLocaleString()} XP</td>
+								<td>{(t.milestoneRequired ?? 0).toLocaleString()}</td>
 								<td class="table__muted">{t.description ?? '—'}</td>
 								<td style="display:flex; gap:0.5rem; flex-wrap:wrap">
 									<button type="button" class="btn btn-ghost btn-sm" onclick={() => editing = t.id}>Edit</button>
@@ -118,6 +155,10 @@
 				<div class="field" style="flex:0 0 120px; margin:0;">
 					<label class="label" for="xpRequired">XP Required</label>
 					<input id="xpRequired" name="xpRequired" type="number" class="input" min="0" required />
+				</div>
+				<div class="field" style="flex:0 0 120px; margin:0;">
+					<label class="label" for="milestoneRequired">Milestones</label>
+					<input id="milestoneRequired" name="milestoneRequired" type="number" class="input" min="0" value="0" />
 				</div>
 				<div class="field" style="flex:2 1 200px; margin:0;">
 					<label class="label" for="desc">Description <span class="optional">(optional)</span></label>

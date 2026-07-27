@@ -40,6 +40,8 @@ model World {
   mapImageUrl  String?  @map("map_image_url")
   isActive              Boolean  @default(true)  @map("is_active")
   acceptsGlobalCharacters Boolean  @default(true)  @map("accepts_global_characters")
+  // null = inherit GameSystem.defaultProgressionMode
+  progressionMode ProgressionMode? @map("progression_mode")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt      @map("updated_at")
 
@@ -49,8 +51,28 @@ model World {
   tavernChannel TavernChannel?
   factions     Faction[]
   npcs         Npc[]
+  // Sparse diffs on top of GameSystem ProgressionThreshold rows.
+  progressionOverrides WorldProgressionOverride[]
 
   @@map("worlds")
+  @@schema("world")
+}
+
+// Sparse world ladder override. null column = inherit the system threshold value.
+// A row with both override columns null must not be stored — delete instead.
+model WorldProgressionOverride {
+  id                String   @id @default(uuid())
+  worldId           String   @map("world_id")
+  world             World    @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  // ProgressionThreshold.id (cross-schema; resolved at app level)
+  thresholdId       String   @map("threshold_id")
+  xpRequired        Int?     @map("xp_required")
+  milestoneRequired Int?     @map("milestone_required")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@unique([worldId, thresholdId])
+  @@map("world_progression_overrides")
   @@schema("world")
 }
 

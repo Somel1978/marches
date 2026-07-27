@@ -80,6 +80,7 @@ export const actions: Actions = {
 
 		const data        = await request.formData();
 		const missionXp   = Number(data.get('missionXp')   ?? 0);
+		const milestoneAward = Math.max(0, Number(data.get('milestoneAward') ?? 0));
 		const minCapacity = Number(data.get('minCapacity') ?? 2);
 		const maxCapacity = Number(data.get('maxCapacity') ?? 6);
 		const minLevel    = Number(data.get('minLevel')    ?? 1);
@@ -88,7 +89,7 @@ export const actions: Actions = {
 		try {
 			const regionId   = data.get('regionId')?.toString()   || null;
 			const locationId = data.get('locationId')?.toString() || null;
-			await quests.update(params.id, { missionXp, minCapacity, maxCapacity, minLevel, maxLevel }, locals.user!.id);
+			await quests.update(params.id, { missionXp, milestoneAward, minCapacity, maxCapacity, minLevel, maxLevel }, locals.user!.id);
 			return { success: true, action: 'details_updated' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

@@ -68,7 +68,7 @@
 				<tbody>
 					{#each data.quests as quest}
 						<tr>
-							<td><strong>{quest.title}</strong></td>
+							<td><a href="/dm/quests/{quest.id}"><strong>{quest.title}</strong></a></td>
 							<td><span class="badge {statusColors[quest.status] ?? 'badge-muted'}">{quest.status.replace('_', ' ')}</span></td>
 							<td class="table__muted col-hide-mobile">{quest.signups.length}/{quest.maxCapacity}</td>
 							<td class="table__action"><a href="/dm/quests/{quest.id}" class="btn btn-ghost btn-sm">Manage</a></td>

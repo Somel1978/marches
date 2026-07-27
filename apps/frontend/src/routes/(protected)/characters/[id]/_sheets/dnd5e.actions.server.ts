@@ -1,7 +1,7 @@
 // apps/frontend/src/routes/(protected)/characters/[id]/_sheets/dnd5e.actions.server.ts
 // All dnd5e-specific form actions. Called from +page.server.ts when gameSystem.slug === 'dnd5e'.
 import { fail } from '@sveltejs/kit';
-import { characters, db } from '@core/database';
+import { characters } from '@core/database';
 import { isMarchesError } from '@core/errors';
 
 export const dnd5eActions = {
@@ -42,10 +42,8 @@ export const dnd5eActions = {
 		if (!['ACTIVE','RESTING','PENDING'].includes(character.status))
 			return fail(400, { message: 'Cannot submit level-up at this time.' });
 		const { dnd5e } = await import('@core/database');
-		const thresholds = await db.progressionThreshold.findMany({
-			where: { gameSystemId: character.gameSystemId }, orderBy: { xpRequired: 'asc' },
-		});
-		const earnedLevel = thresholds.filter((t: any) => (character.totalXp ?? 0) >= t.xpRequired).length;
+		// earnedLevel is maintained by the progression path — no threshold math here.
+		const earnedLevel = (character as any).earnedLevel ?? 0;
 		const data        = await request.formData();
 		const classIds    = data.getAll('classId').map((v: any) => v.toString()).filter(Boolean);
 		const subclassIds = data.getAll('subclassId').map((v: any) => v.toString());
@@ -58,7 +56,7 @@ export const dnd5eActions = {
 		if (submittedTotal !== earnedLevel)
 			return fail(400, { message: `Your class levels must total exactly ${earnedLevel}. You submitted ${submittedTotal}.` });
 		try {
-			await dnd5e.submitChanges(params.id, { classes }, locals.user!.id);
+			await dnd5e.submitChanges(params.id, { classes }, locals.user!.id, 'preserve');
 			return { levelUpSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });

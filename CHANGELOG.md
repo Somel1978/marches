@@ -130,6 +130,49 @@
 - `auth.ts` — `BETTER_AUTH_SECRET ?? ''` fallback to satisfy TypeScript `string` type
 - `characters/create.ts` — missing `.ts` extension on dispatcher import
 
+### Session 81 — Encounter Planner Tool (2026-07-09)
+
+**New feature — standalone encounter planner (not tied to quests)**
+- Player tool at `/tools/eplanner` (frontend): add encounters dynamically, pick monster CRs, live mission XP / difficulty tier / reward XP & GP calculation
+- Admin editor at `/tools/eplanner` (admin, new "Tools" nav section): edit CR→XP table, level thresholds, monster-count multipliers, mission config scalars; audited; reset-to-defaults action
+- Logic ported from `NH Mission.xlsx` (2024 DMG encounter budgets); workbook no longer needed
+
+**Database (`dnd5e` schema — game data, keyed by `gameSystemId`)**
+- New models: `Dnd5eEncounterXp` (CR→XP), `Dnd5eEncounterLevelThreshold` (level × low/moderate/high), `Dnd5eEncounterMultiplier` (count breakpoints), `Dnd5eEncounterConfig` (tier ratios, GP rate, adventure-day multiplier)
+- `seeds/04b-dnd5e.seed.ts` — seeds 2024 DMG defaults (49 CR rows, 20 levels, 5 multipliers, config row); idempotent
+- `dbapi/read/dnd5e/encounter-planner.ts` — `getEncounterConfig()` merges DB rows over defaults
+- `dbapi/write/dnd5e/encounter-planner.ts` — upsert/delete per table, `updateEncounterConfig`, `resetEncounterPlanner`; all audit-logged
+- `dbapi/read/dnd5e/eplanner-calc.ts` — pure `calculateMission(input, config)`, no DB imports; exported as `@core/database/eplanner-calc` subpath for browser use
+- `dbapi/read/dnd5e/eplanner-defaults.ts` — default tables (seed + reset source)
+- `index.ts` — `dnd5e.encounterPlanner.*` namespace
+
+**Frontend**
+- `apps/frontend/src/routes/(protected)/tools/eplanner/` — `+page.server.ts` (config load), `+page.svelte` (party bar, encounter cards, sticky mission summary)
+- Nav: "Encounter Planner" added to Community group
+
+**Admin**
+- `apps/admin/src/routes/(app)/tools/eplanner/` — `+page.server.ts` (GameSystem read/update permission checks, form actions), `+page.svelte` (config, thresholds, multipliers, CR table editors)
+- `lib/nav.ts` — new "Tools" section
+
+**Docs**
+- `docs/tools/encounter-planner.md` — formula reference, models, routes
+
+---
+
+### Session 82 — Encounter Planner Quest Integration (2026-07-26)
+
+**Quest forms — Encounter Planner tab**
+- New `Quest.encounterPlan` JSON field stores planner inputs; `Quest.missionXp` recalculated server-side on save via `quests.resolveMissionXp()`
+- Shared module `dm/quests/_planner/` — `EncounterPlannerPanel.svelte`, `planner.ts`, `types.ts`
+- **Details | Encounter Planner** tabs on `/dm/quests/new`, `/dm/quests/[id]`, `/dm/worlds/…/quests/new`
+- Manual Mission XP input removed from Details tab; read-only preview shows calculated total
+- `dbapi/read/quests/encounter-plan.ts` — parse, resolve, `loadEncounterPlannerClientConfig()`
+
+**Bug fixed**
+- DM quest manage page crashed on load: `EncounterPlannerPanel` prop named `state` shadowed Svelte 5's `$state` rune; renamed to `planner`
+
+---
+
 ### Session 73 — Dev Environment, ASI Wizard Step, Auth & Build Fixes (2026-06-08)
 
 **Dev Environment**
@@ -1063,3 +1106,88 @@ All internal links updated. `progression/` stays at root (universal).
 - Marketplace import was storing NaN for weight when source data had empty/non-numeric values (e.g. blank, N/A)
 - 327 affected items identified, export handled NaN gracefully, reimport cleaned all to null
 - Import now sanitizes weight: only stores numeric values, null otherwise
+---
+
+### Session 83 — Unified Progression System (XP + Milestone) (2026-07-27)
+
+**Root cause fixed.** `Character.level` was written by two unrelated writers with two
+different meanings — `level-check.ts` wrote the XP-threshold count, while
+`approve-character.ts` and `update-classes.ts` wrote `sum(allocatedLevel)` — and a
+third algorithm in `submit-result.ts` detected level-ups by threshold identity and
+wrote neither. Every level-up/down inconsistency followed from that.
+
+**Schema — level split and milestone progression**
+- `enum ProgressionMode { XP MILESTONE }` (`gamesystem` schema)
+- `GameSystem.defaultProgressionMode`, `World.progressionMode` (nullable override)
+- `ProgressionThreshold.milestoneRequired Int @default(0)`
+- `Character.earnedLevel`, `Character.progressionMode`, `Character.totalMilestones`;
+  `Character.level` redefined as approved/allocated level only
+- `TransactionType` gains `MILESTONE`
+- `Quest.milestoneAward`, `QuestResult.milestoneAward`, `QuestResultCharacter.milestonesAwarded`
+
+**Single progression path**
+- New `shared/database/dbapi/write/characters/progression.ts` — `resolveEarnedLevel`,
+  `applyProgressionChange`, `reconcileProgression`, `setCharacterProgressionMode`,
+  `resolveProgressionMode`, `isLadderConfigured`
+- Deleted `shared/database/dbapi/write/characters/level-check.ts`
+- Idempotency guarded in **both** directions (previously level-up only)
+- Rewired: `quests/submit-result.ts`, `characters/adjust-currency.ts`,
+  `quests/delete.ts`, `token-store/transactions.ts`, `dnd5e/create-character.ts`,
+  `dnd5e/update-classes.ts`, `dnd5e/approve-character.ts`
+- An unconfigured milestone ladder (all `milestoneRequired` at 0) is inert rather than
+  jumping characters to max level
+
+**Bugs fixed**
+- Quest level-up no longer skips `RESTING` — `restUntil` is always written and status
+  precedence is decided centrally
+- `submitDnd5eStructuralChanges` gained a `reasonMode` parameter so `submitLevelUp`
+  preserves `LEVEL_UP_PENDING` / `LEVEL_DOWN_PENDING` instead of overwriting with
+  `EDIT_PENDING`
+- Quest deletion XP reversal double-decremented before checking for a level-down
+- Quest eligibility filter on `quests/[id]/+page.server.ts` summed `allocatedLevel`
+  while `quests/signup.ts` gated on `Character.level` — both now read `level`
+- Delevel left orphaned `Dnd5eCharacterFeat` rows; `pruneDnd5eFeatsAboveAllocation`
+  now removes picks above the new allocation and reverses their ASI stat bumps
+- Rejecting an allocation can no longer corrupt `level`, since progression never
+  writes it
+- `Prisma.JsonNull` used for `Quest.encounterPlan` clears (pre-existing type error)
+
+**UI**
+- Game system progression admin: default-mode selector, `milestoneRequired` column in
+  the inline editor, unconfigured-ladder warning, and the column added to the
+  progression import template and export
+- World admin: progression mode override (blank = inherit)
+- Character admin: milestone stat card, earned-level stat card, `MILESTONE` currency
+  adjustment, and a mode switcher that seeds the new total to hold the current level
+- DM and admin quest forms: milestone credit input with a per-participant hint
+- Character page: progression bar reads the mode and renders credits or XP;
+  `availableLevel` sourced from `earnedLevel` instead of client-side threshold math
+
+**Backfill**
+- `shared/database/scripts/backfill-progression.ts` (`pnpm --filter @core/database
+  backfill:progression [-- --apply]`) — dry-run by default, sets `earnedLevel` from
+  the progression totals and `level` from `sum(allocatedLevel)`
+
+---
+
+### Session 84 — Sparse World Progression Ladder Overrides (2026-07-27)
+
+**Schema**
+- `WorldProgressionOverride` — sparse per-world diffs on `ProgressionThreshold`
+  (`thresholdId`, optional `xpRequired` / `milestoneRequired`; both-null rows are not stored)
+
+**Resolve path**
+- `getEffectiveThresholds(gameSystemId, worldId)` merges system ladder + home-world
+  overrides; globals (`worldId` null) always use the pure system ladder
+- Wired through `reconcileProgression`, mode seeding, character create, token-store
+  revoke warning, and character page progression bar
+
+**Write + re-resolve**
+- `worlds.progression.upsertOverrides` replace-sets diffs, audits, then
+  `reconcileProgression` for every character with that home world
+
+**UI**
+- Shared `WorldProgressionLadderEditor` (`@core/ui`)
+- Admin world page: ladder override section under progression mode
+- DM hub: `/dm/worlds/[worldId]/progression` (canManage) + nav tab; also world
+  progression mode for new characters
