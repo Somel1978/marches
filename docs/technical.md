@@ -492,10 +492,13 @@ Players connect Discord via **Profile → Connect Discord** → OAuth flow store
 - **Domain:** `https://www.binderbrew.quest`
 
 ### Files
-- `ecosystem.config.js` — pm2 config at monorepo root
+- `ecosystem.dev.config.js` — pm2 config for the dev environment
+- `ecosystem.prod.config.js` — pm2 config for production
 - `shared/rbac/cache.ts` — must be ASCII-only (no unicode chars, Rolldown rejects non-UTF-8)
 
-### ecosystem.config.js
+PM2 requires the filename pattern `ecosystem.*.config.js` (not `ecosystem.configdev.js` / `ecosystem.configprod.js`).
+
+### ecosystem.prod.config.js
 ```js
 module.exports = {
   apps: [
@@ -587,7 +590,7 @@ pm2 restart all
 
 # After .env changes (must reload env)
 pm2 delete all
-pm2 start ecosystem.config.js
+pm2 start ecosystem.prod.config.js   # or ecosystem.dev.config.js on the dev host
 pm2 save
 ```
 
@@ -596,7 +599,7 @@ pm2 save
 npm install -g pm2
 pnpm install
 pnpm build
-pm2 start ecosystem.config.js
+pm2 start ecosystem.prod.config.js   # or ecosystem.dev.config.js on the dev host
 pm2 save
 pm2 startup   # copy and run the printed command for reboot persistence
 ```

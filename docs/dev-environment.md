@@ -71,12 +71,13 @@ pnpm --filter @core/database db:seed
 pnpm --filter @apps/admin init-admin
 ```
 
-### Step 6 — Create dev ecosystem.config.js
+### Step 6 — Create ecosystem.dev.config.js
+PM2 requires the filename pattern `ecosystem.*.config.js` (e.g. `ecosystem.dev.config.js`).
 This file is **not committed to git** — it lives only on the server and differs per environment.
 
 ```bash
-cat > /home/marches/dev/ecosystem.config.js << 'EOFINNER'
-// ecosystem.config.js
+cat > /home/marches/dev/ecosystem.dev.config.js << 'EOFINNER'
+// ecosystem.dev.config.js
 module.exports = {
   apps: [
     {
@@ -110,7 +111,7 @@ EOFINNER
 ```bash
 cd /home/marches/dev
 pnpm build
-pm2 start ecosystem.config.js
+pm2 start ecosystem.dev.config.js
 pm2 save
 ```
 

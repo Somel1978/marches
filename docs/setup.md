@@ -77,9 +77,13 @@ pnpm dev:admin        # admin only (port 5174)
 pnpm build
 ```
 
-### Start all services (first time or after ecosystem.config.js changes)
+### Start all services (first time or after ecosystem config changes)
 ```bash
-pm2 delete all && pm2 start ecosystem.config.js && pm2 save
+# Dev
+pm2 delete all && pm2 start ecosystem.dev.config.js && pm2 save
+
+# Prod
+pm2 delete all && pm2 start ecosystem.prod.config.js && pm2 save
 ```
 
 ### Standard redeploy (code changes only)
@@ -89,7 +93,11 @@ git pull && pnpm install && pnpm build && pm2 restart all
 
 ### After .env changes
 ```bash
-pm2 delete all && pm2 start ecosystem.config.js && pm2 save
+# Dev
+pm2 delete all && pm2 start ecosystem.dev.config.js && pm2 save
+
+# Prod
+pm2 delete all && pm2 start ecosystem.prod.config.js && pm2 save
 ```
 
 ### Logs
@@ -100,8 +108,17 @@ pm2 logs thebnb-discord         # discord bot only
 pm2 logs --lines 50             # last 50 lines
 ```
 
-### ecosystem.config.js (monorepo root)
-Update `cwd` and `--env-file` paths to match your deployment directory:
+### PM2 ecosystem configs (monorepo root)
+PM2 expects the filename pattern `ecosystem.*.config.js`. Use:
+
+| Environment | File |
+|---|---|
+| Dev | `ecosystem.dev.config.js` |
+| Prod | `ecosystem.prod.config.js` |
+
+Update `cwd` and `--env-file` paths to match your deployment directory.
+
+**`ecosystem.prod.config.js` example:**
 
 ```js
 module.exports = {

@@ -1191,3 +1191,14 @@ wrote neither. Every level-up/down inconsistency followed from that.
 - Admin world page: ladder override section under progression mode
 - DM hub: `/dm/worlds/[worldId]/progression` (canManage) + nav tab; also world
   progression mode for new characters
+
+---
+
+### Session 85 — PM2 ecosystem config filenames (2026-07-29)
+
+Renamed PM2 configs to the pattern PM2 expects (`ecosystem.*.config.js`):
+- `ecosystem.dev.config.js` (dev)
+- `ecosystem.prod.config.js` (prod)
+
+Updated [docs/setup.md](docs/setup.md), [docs/technical.md](docs/technical.md), and
+[docs/dev-environment.md](docs/dev-environment.md) start/redeploy commands accordingly.
