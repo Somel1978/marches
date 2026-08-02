@@ -471,6 +471,22 @@
 - `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/quests/new/+page.server.ts`
 - `shared/database/index.ts`
 
+### `shared/database/dbapi/read/world/get-neural-map.ts`
+**Exports:** getNeuralMap, listNeuralCandidates, HydratedNeuralNode, HydratedNeuralEdge, NeuralCandidate
+
+**Called by:**
+- `shared/database/index.ts` (`worlds.neural`)
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/neural/+page.server.ts`
+- `apps/admin/src/routes/(app)/world/[id]/neural/+page.server.ts`
+
+### `shared/database/dbapi/write/world/neural-map.ts`
+**Exports:** addNeuralNode, updateNeuralNode, removeNeuralNode, addNeuralEdge, updateNeuralEdge, removeNeuralEdge
+
+**Called by:**
+- `shared/database/index.ts` (`worlds.neural`)
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/neural/+page.server.ts`
+- `apps/admin/src/routes/(app)/world/[id]/neural/+page.server.ts`
+
 ## DB Transactions — Transactions
 
 ### `shared/database/dbapi/transactions/register-user.ts`

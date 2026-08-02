@@ -126,6 +126,11 @@ import { upsertWikiPage                              } from './dbapi/write/world
 import {
     upsertWorldProgressionOverrides, getWorldProgressionOverrides, countWorldHomeCharacters,
 } from './dbapi/write/world/progression-overrides.ts';
+import { getNeuralMap, listNeuralCandidates } from './dbapi/read/world/get-neural-map.ts';
+import {
+	addNeuralNode, updateNeuralNode, removeNeuralNode,
+	addNeuralEdge, updateNeuralEdge, removeNeuralEdge,
+} from './dbapi/write/world/neural-map.ts';
 
 // ── Marketplace ──────────────────────────────────────────────────────────────────
 import { getMarketplaceItems, getMarketplaceItemById, getAllMarketplaceItemsForExport,
@@ -385,6 +390,16 @@ export const worlds = {
         getOverrides:      getWorldProgressionOverrides,
         upsertOverrides:   upsertWorldProgressionOverrides,
         countHomeCharacters: countWorldHomeCharacters,
+    },
+    neural: {
+        getMap:          getNeuralMap,
+        listCandidates:  listNeuralCandidates,
+        addNode:         addNeuralNode,
+        updateNode:      updateNeuralNode,
+        removeNode:      removeNeuralNode,
+        addEdge:         addNeuralEdge,
+        updateEdge:      updateNeuralEdge,
+        removeEdge:      removeNeuralEdge,
     },
 };
 

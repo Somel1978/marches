@@ -1217,3 +1217,13 @@ Community reference browser at `/tools/codex`, gated by `dnd5eDescriptions` / `r
 - Spell damage parsing: `/` between types = choose one (`1d8 Acid / Cold / Fire`); `+` between dice groups = additive (`1d10 Piercing + 2d6 Cold`) — Codex, spellbook, Discord
 - `SpellDamageBadges`: neutral dice pill + emoji + type name (Codex, spellbook, spell detail, cantrip scaling); `choose one` before slash-separated types
 - Codex: entity types start unchecked — user selects what to search
+
+### Session 87 — World Neural Map lore board (2026-08-02)
+
+DM/Admin plot envisioning tool (authored connections, not DB-relation graph):
+- Schema: `NeuralEntityType`, `NeuralMapNode`, `NeuralMapEdge` (world-scoped; soft entity IDs)
+- API: `worlds.neural` — getMap, listCandidates, add/update/remove node & edge
+- UI: `WorldNeuralMap` (`@core/ui`) — pan/zoom, drag nodes, connect mode, sidebar picker, edge labels
+- Placeable types: Region, Location, Faction, NPC, Quest, Character, Journal
+- DM hub: `/dm/worlds/[worldId]/neural` (canManage tab); Admin: `/world/[id]/neural`
+- Node click opens the entity’s existing detail page

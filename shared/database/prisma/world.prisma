@@ -32,6 +32,18 @@ enum WikiEntityType {
   @@schema("world")
 }
 
+enum NeuralEntityType {
+  REGION
+  LOCATION
+  FACTION
+  NPC
+  QUEST
+  CHARACTER
+  JOURNAL
+
+  @@schema("world")
+}
+
 model World {
   id           String   @id @default(uuid())
   name         String
@@ -53,6 +65,8 @@ model World {
   npcs         Npc[]
   // Sparse diffs on top of GameSystem ProgressionThreshold rows.
   progressionOverrides WorldProgressionOverride[]
+  neuralNodes  NeuralMapNode[]
+  neuralEdges  NeuralMapEdge[]
 
   @@map("worlds")
   @@schema("world")
@@ -176,5 +190,48 @@ model WorldDM {
 
   @@unique([worldId, dmProfileId])
   @@map("world_dms")
+  @@schema("world")
+}
+
+// DM-authored lore board: place world entities and draw plot connections.
+// Entity refs are soft IDs (cross-schema); hydrate names at read time.
+model NeuralMapNode {
+  id         String           @id @default(uuid())
+  worldId    String           @map("world_id")
+  world      World            @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  entityType NeuralEntityType @map("entity_type")
+  entityId   String           @map("entity_id")
+  // Normalized canvas coords (0–1000 space)
+  posX       Float            @default(500) @map("pos_x")
+  posY       Float            @default(500) @map("pos_y")
+  note       String?
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt      @map("updated_at")
+
+  edgesFrom  NeuralMapEdge[]  @relation("NeuralEdgeFrom")
+  edgesTo    NeuralMapEdge[]  @relation("NeuralEdgeTo")
+
+  @@unique([worldId, entityType, entityId])
+  @@index([worldId])
+  @@map("neural_map_nodes")
+  @@schema("world")
+}
+
+model NeuralMapEdge {
+  id         String        @id @default(uuid())
+  worldId    String        @map("world_id")
+  world      World         @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  fromNodeId String        @map("from_node_id")
+  fromNode   NeuralMapNode @relation("NeuralEdgeFrom", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNodeId   String        @map("to_node_id")
+  toNode     NeuralMapNode @relation("NeuralEdgeTo", fields: [toNodeId], references: [id], onDelete: Cascade)
+  label      String?
+  notes      String?
+  directed   Boolean       @default(true)
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt      @map("updated_at")
+
+  @@index([worldId])
+  @@map("neural_map_edges")
   @@schema("world")
 }

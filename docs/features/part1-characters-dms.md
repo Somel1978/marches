@@ -539,6 +539,8 @@ Location       — regionId, name, slug, description, type, minLevel,
 WikiPage       — entityType (WORLD|REGION|LOCATION), entityId,
                  title, content (markdown)
 WikiRevision   — pageId, content, editedBy (full history)
+NeuralMapNode  — worldId, entityType, entityId, posX/posY, note
+NeuralMapEdge  — worldId, fromNodeId, toNodeId, label, notes, directed
 ```
 
 **Multiple worlds:** supported from the start. Each world is independent
@@ -548,6 +550,14 @@ with its own map and regions.
 Admin clicks "Place marker" on a region then clicks the map to set X/Y%
 position. Frontend renders glowing dots at those positions.
 
+**Neural map (lore board):** DM/Admin plot tool — **not** a visualization of
+database FKs. Managing DMs (`WorldDM.canManage`) and admins place world
+elements (Region, Location, Faction, NPC, Quest, Character, Journal) on a
+canvas and author labeled connections for plot envisioning. Clicking a node
+opens that entity’s existing detail page. One board per world.
+API: `worlds.neural.*`. UI: `WorldNeuralMap` in `@core/ui`.
+Routes: `/dm/worlds/[worldId]/neural` (canManage), `/world/[id]/neural` (admin).
+
 **Wiki:** markdown content, full revision history. Every edit saves
 current content as a WikiRevision before overwriting. Rendered via
 `renderMarkdown()` from `@core/ui`.
@@ -556,6 +566,7 @@ current content as a WikiRevision before overwriting. Rendered via
 ```
 /world                               — world list + create
 /world/[id]                          — edit world, map, region list + add region, assign/remove world DMs
+/world/[id]/neural                   — lore neural map (place entities, author connections)
 /world/[id]/regions/[regionId]       — edit region, assign DMs, wiki, locations
 /world/[id]/regions/[regionId]/locations/[locationId] — edit location, wiki
 /world/settings                      — showDangerRating, showLevelRange

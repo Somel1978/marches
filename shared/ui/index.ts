@@ -21,6 +21,13 @@ export { default as DescriptionText } from './components/ui/DescriptionText.svel
 export { default as NotificationBell } from './components/ui/NotificationBell.svelte';
 export { default as ConfirmModal } from './components/ui/ConfirmModal.svelte';
 export { default as WorldProgressionLadderEditor } from './src/progression/WorldProgressionLadderEditor.svelte';
+export { default as WorldNeuralMap } from './src/world/WorldNeuralMap.svelte';
+export type {
+	NeuralEntityType,
+	NeuralMapNodeView,
+	NeuralMapEdgeView,
+	NeuralCandidateView,
+} from './src/world/neural-map-types.ts';
 // Game system components — dnd5e
 export { default as Dnd5eCharacterSheet }    from './src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte';
 export { default as Dnd5eCharacterCreation } from './src/gamesystems/dnd5e/Dnd5eCharacterCreation.svelte';
