@@ -2,6 +2,13 @@
 <!-- Pure UI component — no SvelteKit imports. All actions via callbacks. -->
 <script lang="ts">
 	import { confirmModal } from '../../../components/ui/confirm-modal-singleton.ts';
+	import {
+		parseSpellDamage as parseDamage,
+		spellOrdinal as ordinal,
+		spellLevelLabel as levelLabel,
+		spellDamageRaw,
+	} from './spell-display.ts';
+	import Dnd5eSpellDetail from './Dnd5eSpellDetail.svelte';
 	let {
 		charSheet, systemData, spellbooks = [],
 		onCreateSpellbook, onRenameSpellbook, onDeleteSpellbook,
@@ -19,29 +26,6 @@
 		canEdit?: boolean;
 		canViewDescriptions?: boolean;
 	} = $props();
-
-	// ── Damage type colours ───────────────────────────────────────────────────
-	const DMG_COLORS: Record<string, string> = {
-		acid:'#4caf50', bludgeoning:'#78909c', cold:'#4fc3f7', fire:'#ff6d00',
-		force:'#9c27b0', lightning:'#ffd600', necrotic:'#6a1b9a', piercing:'#607d8b',
-		poison:'#2e7d32', psychic:'#e91e63', radiant:'#ffb300', slashing:'#546e7a',
-		thunder:'#1e88e5',
-	};
-
-	function parseDamage(raw: string | null | undefined): { dice: string; type: string; color: string }[] {
-		if (!raw) return [];
-		return raw.split('+').map(part => {
-			const t     = part.trim();
-			const match = t.match(/^([\dd\s]+)\s+(.+)$/i);
-			if (!match) return { dice: t, type: '', color: '#78909c' };
-			const type  = match[2].trim();
-			return { dice: match[1].trim(), type, color: DMG_COLORS[type.toLowerCase()] ?? '#78909c' };
-		});
-	}
-
-	function ordinal(n: number) { return `${n}${n===1?'st':n===2?'nd':n===3?'rd':'th'}`; }
-
-	function levelLabel(n: number) { return n === 0 ? 'Cantrip' : `${ordinal(n)} Level`; }
 
 	// ── Computed data ─────────────────────────────────────────────────────────
 	const spellcastingClasses = $derived(
@@ -357,7 +341,7 @@
 								{@const sp = allSpells.find((s: any) => s.spellId === entry.spellId)}
 								{#if sp}
 									{@const isExpanded = expandedEntry === entry.id}
-									{@const dmgParts   = parseDamage(sp.level === 0 ? sp.cantripDamage : sp.spellDamage)}
+									{@const dmgParts   = parseDamage(spellDamageRaw(sp))}
 									<div style="background:var(--bg-overlay);border-radius:var(--radius-md);overflow:hidden;border:1px solid {isExpanded ? 'var(--border-accent)' : 'transparent'};">
 
 										<!-- Collapsed header -->
@@ -377,139 +361,17 @@
 										<!-- Expanded body -->
 										{#if isExpanded}
 											<div style="padding:0.875rem;border-top:1px solid var(--border-muted);display:flex;flex-direction:column;gap:0.875rem;">
-
-												<!-- Properties grid — auto-wrap on mobile -->
-												<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:0.5rem;">
-													{#if sp.castingTime}
-														<div style="padding:0.5rem;background:var(--bg-surface);border-radius:var(--radius-sm);text-align:center;">
-															<div style="font-size:1.125rem;margin-bottom:0.125rem;">⚡</div>
-															<div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);">{sp.castingTime}</div>
-															<div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.125rem;">Casting Time</div>
-														</div>
+												<Dnd5eSpellDetail spell={sp} {canViewDescriptions} />
+												<div style="display:flex;gap:0.375rem;justify-content:flex-end;flex-wrap:wrap;">
+													{#if sp.level > 0}
+														<button type="button" class="btn btn-sm" class:btn-primary={entry.prepared} class:btn-ghost={!entry.prepared}
+															onclick={() => handleToggle(entry.id, !entry.prepared)}>
+															{entry.prepared ? '✓ Prepared' : 'Prepare'}
+														</button>
 													{/if}
-													{#if sp.rangeOrigin || sp.rangeValue}
-														<div style="padding:0.5rem;background:var(--bg-surface);border-radius:var(--radius-sm);text-align:center;">
-															<div style="font-size:1.125rem;margin-bottom:0.125rem;">{sp.rangeOrigin === 'Self' ? '🧍' : '📏'}</div>
-															<div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);">{sp.rangeOrigin === 'Self' ? 'Self' : [sp.rangeOrigin, sp.rangeValue ? `${sp.rangeValue} ft` : ''].filter(Boolean).join(' ')}</div>
-															<div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.125rem;">Range</div>
-														</div>
+													{#if canEdit}
+														<button type="button" class="btn btn-danger btn-sm" onclick={() => handleRemoveEntry(entry.id, sp.name)}>Remove</button>
 													{/if}
-													{#if sp.durationType}
-														<div style="padding:0.5rem;background:var(--bg-surface);border-radius:var(--radius-sm);text-align:center;">
-															<div style="font-size:1.125rem;margin-bottom:0.125rem;">⏳</div>
-															<div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);">
-																{[sp.durationInterval, sp.durationUnit, sp.durationType !== 'Timed' ? sp.durationType : ''].filter(Boolean).join(' ')}
-															</div>
-															<div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.125rem;">Duration</div>
-														</div>
-													{/if}
-													{#if sp.components}
-														<div style="padding:0.5rem;background:var(--bg-surface);border-radius:var(--radius-sm);text-align:center;">
-															<div style="font-size:1.125rem;margin-bottom:0.125rem;">✦</div>
-															<div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);">{sp.components.split('(')[0].trim()}</div>
-															<div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.125rem;">Components</div>
-														</div>
-													{/if}
-													{#if sp.aoeType && sp.aoeValue}
-														<div style="padding:0.5rem;background:var(--bg-surface);border-radius:var(--radius-sm);text-align:center;">
-															<div style="font-size:1.125rem;margin-bottom:0.125rem;">💥</div>
-															<div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);">{sp.aoeValue} ft {sp.aoeType}</div>
-															<div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.125rem;">Area</div>
-														</div>
-													{/if}
-													{#if sp.requiresSavingThrow}
-														<div style="padding:0.5rem;background:var(--bg-surface);border-radius:var(--radius-sm);text-align:center;">
-															<div style="font-size:1.125rem;margin-bottom:0.125rem;">🎲</div>
-															<div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);">{sp.savingThrow ? sp.savingThrow.slice(0,3).toUpperCase() + ' Save' : 'Save'}</div>
-															<div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.125rem;">Saving Throw</div>
-														</div>
-													{/if}
-													{#if sp.requiresAttackRoll}
-														<div style="padding:0.5rem;background:var(--bg-surface);border-radius:var(--radius-sm);text-align:center;">
-															<div style="font-size:1.125rem;margin-bottom:0.125rem;">⚔</div>
-															<div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);">Attack</div>
-															<div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.125rem;">Attack Roll</div>
-														</div>
-													{/if}
-												</div>
-
-												<!-- Components material note -->
-												{#if sp.components?.includes('(')}
-													<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);">Material: {sp.components.match(/\(([^)]+)\)/)?.[1] ?? ''}</p>
-												{/if}
-
-												<!-- Description -->
-												{#if canViewDescriptions}
-													{#if sp.description}
-														<p style="margin:0;font-size:0.875rem;color:var(--text-secondary);line-height:1.5;">{sp.description}</p>
-													{/if}
-												{:else}
-													<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
-												{/if}
-
-												<!-- Damage + scaling -->
-												{#if dmgParts.length > 0}
-													<div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
-														<span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Damage:</span>
-														{#each dmgParts as d, di}
-															{#if di > 0}<span style="color:var(--text-muted);">+</span>{/if}
-															<span style="padding:0.25rem 0.625rem;border-radius:99px;font-size:0.9375rem;font-weight:700;background:{d.color};color:#fff;">{d.dice}</span>
-															<span style="font-size:0.875rem;font-weight:600;color:var(--text-primary);">{d.type}</span>
-														{/each}
-													</div>
-
-													<!-- Cantrip scaling -->
-													{#if sp.level === 0 && (sp.cantripDamageLvl5 || sp.cantripDamageLvl11 || sp.cantripDamageLvl17)}
-														<div style="display:flex;gap:0.75rem;flex-wrap:wrap;font-size:0.8125rem;color:var(--text-secondary);">
-															{#if sp.cantripDamageLvl5}  <span>Lv 5: <strong>{sp.cantripDamageLvl5}</strong></span>{/if}
-															{#if sp.cantripDamageLvl11} <span>Lv 11: <strong>{sp.cantripDamageLvl11}</strong></span>{/if}
-															{#if sp.cantripDamageLvl17} <span>Lv 17: <strong>{sp.cantripDamageLvl17}</strong></span>{/if}
-														</div>
-													{/if}
-												{/if}
-
-												<!-- At Higher Levels -->
-												{#if sp.canCastAtHigherLevel && (sp.spellUpcastPerSlot || sp.spellUpcastEveryTwoSlots || sp.spellProgression || sp.spellProgressionNote)}
-													<div style="padding:0.625rem 0.875rem;background:rgba(184,115,74,0.1);border-radius:var(--radius-sm);border-left:3px solid var(--brand-accent);">
-														<p style="margin:0 0 0.25rem;font-size:0.75rem;font-weight:700;color:var(--brand-accent);">At Higher Levels</p>
-														<p style="margin:0;font-size:0.875rem;color:var(--text-secondary);">
-															{#if sp.spellUpcastPerSlot}
-																{sp.spellUpcastPerSlot} for each slot level above {ordinal(sp.level)}.
-															{:else if sp.spellUpcastEveryTwoSlots}
-																{sp.spellUpcastEveryTwoSlots} for every two slot levels above {ordinal(sp.level)}.
-															{:else if sp.spellProgressionNote}
-																{sp.spellProgressionNote}
-															{:else if sp.spellProgression}
-																{sp.spellProgression}
-															{/if}
-														</p>
-													</div>
-												{/if}
-
-												<!-- Tags + actions -->
-												<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;padding-top:0.25rem;border-top:1px solid var(--border-muted);">
-													{#if sp.sourceBook}
-														<span style="font-size:0.75rem;color:var(--text-muted);">📖 {sp.sourceBook}</span>
-													{/if}
-													{#if sp.tags}
-														{#each sp.tags.split(',') as tag}
-															<span class="badge badge-muted">{tag.trim()}</span>
-														{/each}
-													{/if}
-													{#if sp.link}
-														<a href={sp.link} target="_blank" style="font-size:0.875rem;color:var(--brand-accent);">D&D Beyond ↗</a>
-													{/if}
-													<div style="margin-left:auto;display:flex;gap:0.375rem;">
-														{#if sp.level > 0}
-															<button class="btn btn-sm" class:btn-primary={entry.prepared} class:btn-ghost={!entry.prepared}
-																onclick={() => handleToggle(entry.id, !entry.prepared)}>
-																{entry.prepared ? '✓ Prepared' : 'Prepare'}
-															</button>
-														{/if}
-														{#if canEdit}
-															<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);"  onclick={() => handleRemoveEntry(entry.id, sp.name)}>Remove</button>
-														{/if}
-													</div>
 												</div>
 											</div>
 										{:else}
@@ -582,7 +444,7 @@
 												{levelLabel(lvl)}
 											</div>
 											{#each spells as sp}
-												{@const dmg = parseDamage(sp.level === 0 ? sp.cantripDamage : sp.spellDamage)}
+												{@const dmg = parseDamage(spellDamageRaw(sp))}
 												<button type="button" style="width:100%;text-align:left;padding:0.5rem 0.75rem;background:none;border:none;border-bottom:1px solid var(--border-muted);cursor:pointer;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;"
 													onclick={() => handleAddEntry(bookId, cc, sp.spellId)}>
 													<span style="font-weight:600;font-size:0.9375rem;flex:1;min-width:120px;">{sp.name}</span>

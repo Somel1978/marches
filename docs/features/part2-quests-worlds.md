@@ -152,9 +152,10 @@ Community:  News
 - Active group trigger highlighted when any child route is current (`groupActive()` helper)
 - Invisible `::after` pseudo-element bridges gap between trigger and menu to prevent premature close
 - `padding-top` on `.nav-group__menu` adds extra hover area
-- Mobile hamburger expands full menu with group section headers (`.nav-mobile__group-title` in `nav-mobile.css`)
+- Mobile hamburger: each nav section (Adventure / Campaign / Community / DM / Account) independently collapses; the section matching the current route opens on menu open
+- Mobile menu scrolls (`max-height: calc(100dvh - 3.5rem)`) so longer lists stay reachable
 - All dropdown CSS in `shared/ui/styles/components/site.css`
-- Mobile group titles in `shared/ui/styles/components/nav-mobile.css`
+- Mobile accordion styles in `shared/ui/styles/components/nav-mobile.css`
 
 ---
 
@@ -466,8 +467,11 @@ subclassName      String    @default("")   // denormalized
 | Marketplace item detail | Item description |
 | Token store list | Item description snippet |
 | Token store item detail | Item description |
+| Codex (`/tools/codex`) | Entire page (403 if denied); Community nav link only when allowed |
 
 **What is NOT gated** — world lore always visible: world/region/location descriptions, journal descriptions, faction descriptions, quest descriptions.
+
+**Codex tool:** structured AND filters over Classes (nested features/subclasses), Species (traits), Feats, Backgrounds, and Spells. See [tools/codex.md](../tools/codex.md).
 
 **Prop chain:** `canViewDescriptions` resolved in page server → passed through page svelte → `Dnd5eSheetSection` / `DmDnd5eSheetSection` → `Dnd5eCharacterSheet` → `Dnd5eSpellbooks`
 

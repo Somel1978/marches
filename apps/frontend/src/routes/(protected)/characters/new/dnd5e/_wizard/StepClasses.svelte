@@ -8,6 +8,7 @@
 	pool (from the first allocated class) is shown right under "Your classes".
 -->
 <script lang="ts">
+	import { DescriptionText } from '@core/ui';
 	import { SKILL_DISPLAY, STAT_ABBR } from '@core/ui/gamesystems/dnd5e/skills.ts';
 	import type { WizardState } from './wizard-state.svelte.ts';
 	import type { ChoicePoolSpec } from './types.ts';
@@ -166,7 +167,7 @@
 												{#if sel}
 													<h4 class="wiz-panel__title">{sel.name}</h4>
 													{#if sel.source}<p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 6px;">{sel.source}</p>{/if}
-													{#if canViewDescriptions && sel.description}<p class="wiz-panel__desc">{sel.description}</p>{:else if !canViewDescriptions}<p class="wiz-panel__desc" style="font-style:italic;color:var(--text-muted);">📖 Description not available.</p>{/if}
+													{#if canViewDescriptions && sel.description}<DescriptionText text={sel.description} class="wiz-panel__desc" />{:else if !canViewDescriptions}<p class="wiz-panel__desc" style="font-style:italic;color:var(--text-muted);">📖 Description not available.</p>{/if}
 												{/if}
 											{:else}
 												<div class="wiz-browser__empty" style="min-height:60px;"><p>Select a subclass to view details.</p></div>
@@ -195,7 +196,7 @@
 													{#if fixedFeat}
 														<div style="border-left:3px solid var(--border-accent);background:var(--bg-overlay);border-radius:0 var(--radius-md) var(--radius-md) 0;padding:8px 10px;margin-bottom:0.375rem;">
 															<p style="margin:0 0 3px;font-size:0.875rem;font-weight:700;color:var(--accent-light);">🏅 {fixedFeat.name}</p>
-															{#if canViewDescriptions && fixedFeat.description}<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;">{fixedFeat.description}</p>{/if}
+															{#if canViewDescriptions && fixedFeat.description}<DescriptionText text={fixedFeat.description} class="wiz-inline-desc" />{/if}
 														</div>
 													{/if}
 												{:else if featSrc.category}
@@ -316,7 +317,7 @@
 				</div>
 
 				{#if canViewDescriptions && bc.description}
-					<p class="wiz-panel__desc">{bc.description}</p>
+					<DescriptionText text={bc.description} class="wiz-panel__desc" />
 				{:else if !canViewDescriptions}
 					<p class="wiz-panel__desc" style="font-style:italic;color:var(--text-muted);">📖 Description not available — contact your DM.</p>
 				{/if}
@@ -354,7 +355,7 @@
 									{#if browseSub}
 										{@const bs = browseSub as any}
 										{#if canViewDescriptions && bs.description}
-											<p style="font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;margin:0;">{bs.description}</p>
+											<DescriptionText text={bs.description} class="wiz-inline-desc" />
 										{:else if !canViewDescriptions}
 											<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;margin:0;">📖 Description not available — contact your DM.</p>
 										{/if}
@@ -388,7 +389,9 @@
 									</button>
 									{#if open && feat.description}
 										{#if canViewDescriptions}
-											<div class="feat-row__body">{feat.description}</div>
+											<div class="feat-row__body">
+												<DescriptionText text={feat.description} />
+											</div>
 										{:else}
 											<div class="feat-row__body" style="font-style:italic;color:var(--text-muted);">📖 Description not available — contact your DM.</div>
 										{/if}

@@ -2,6 +2,7 @@
 <!-- Pure UI component — no SvelteKit imports. All actions via callbacks. -->
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import DescriptionText      from '../../../components/ui/DescriptionText.svelte';
 	import Dnd5eSpellbooks      from './Dnd5eSpellbooks.svelte';
 	import Dnd5eSkillsPanel     from './Dnd5eSkillsPanel.svelte';
 	import Dnd5eCharacterDetails from './Dnd5eCharacterDetails.svelte';
@@ -909,10 +910,8 @@
 					{#if featRef}
 						<div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border-muted);">
 							{#if canViewDescriptions}
-								{#if canViewDescriptions}
-									{#if featRef.description}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.25rem;">{featRef.description}</p>{/if}
-								{:else}
-									<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
+								{#if featRef.description}
+									<DescriptionText text={featRef.description} class="sheet-desc" />
 								{/if}
 							{:else}
 								<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>

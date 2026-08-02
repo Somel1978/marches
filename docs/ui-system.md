@@ -312,6 +312,15 @@ Single source of truth for D&D 5e item rarity display.
 ### `renderMarkdown(content)` → `string`
 Wraps `marked` with GFM + line breaks. Use with `{@html}`.
 
+### `looksLikeMarkdown(content)` → `boolean`
+Heuristic for intentional Markdown (`**bold**`, `#` headings, lists, links,
+fenced code, blockquotes). Does **not** treat stray single `*` as Markdown.
+
+### `DescriptionText`
+Renders D&D (and similar) description fields: Markdown via `renderMarkdown` +
+`.markdown-body` when `looksLikeMarkdown` is true; otherwise escaped plain text
+with preserved newlines. Used by Codex, wizard, spell detail, character sheet.
+
 ### `generateFantasyName(speciesName?)` → `string`
 Syllable-based name generator. Species: `elf`, `dwarf`, `halfling`, `human`, `tiefling`.
 

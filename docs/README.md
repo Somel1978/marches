@@ -36,6 +36,7 @@ Central index for project documentation. **Reference docs** describe how the sys
 | Doc | Purpose |
 |---|---|
 | [tools/encounter-planner.md](./tools/encounter-planner.md) | `/tools/eplanner` calculator + admin variable editor |
+| [tools/codex.md](./tools/codex.md) | `/tools/codex` D&D 5e structured reference search (`dnd5eDescriptions`) |
 
 ---
 

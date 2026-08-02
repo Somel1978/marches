@@ -13,6 +13,8 @@
 	  needs to trigger side effects like ASI stat auto-fill in the parent).
 -->
 <script lang="ts">
+	import { DescriptionText } from '@core/ui';
+
 	let {
 		feats,
 		selectedId,
@@ -77,7 +79,7 @@
 			<h4 class="wiz-panel__title" style="font-size:0.9375rem;">{activeFeat.name}</h4>
 			{#if activeFeat.prerequisites}<p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 6px;">Prereq: {activeFeat.prerequisites}</p>{/if}
 			{#if canViewDescriptions && activeFeat.description}
-				<p class="wiz-panel__desc">{activeFeat.description}</p>
+				<DescriptionText text={activeFeat.description} class="wiz-panel__desc" />
 			{:else if !canViewDescriptions}
 				<p class="wiz-panel__desc" style="font-style:italic;color:var(--text-muted);">📖 Description not available — contact your DM.</p>
 			{/if}

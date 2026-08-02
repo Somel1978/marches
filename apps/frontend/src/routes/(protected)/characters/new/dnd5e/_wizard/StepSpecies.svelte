@@ -7,6 +7,7 @@
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { DescriptionText } from '@core/ui';
 	import { SKILL_DISPLAY, STAT_ABBR } from '@core/ui/gamesystems/dnd5e/skills.ts';
 	import type { WizardState } from './wizard-state.svelte.ts';
 	import type { ChoicePoolSpec } from './types.ts';
@@ -125,7 +126,7 @@
 			</div>
 
 			{#if canViewDescriptions && selectedSpecies.description}
-				<p class="wiz-panel__desc">{selectedSpecies.description}</p>
+				<DescriptionText text={selectedSpecies.description} class="wiz-panel__desc" />
 			{/if}
 
 			<!-- Auto-granted skills/expertise summary -->
@@ -177,7 +178,7 @@
 								{t.name}{#if (t as any).requiredLevel > 1} <span style="font-weight:400;color:var(--text-muted);">(Lv {(t as any).requiredLevel})</span>{/if}
 							</p>
 							{#if canViewDescriptions && t.description}
-								<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;">{t.description}</p>
+								<DescriptionText text={t.description} class="wiz-inline-desc" />
 							{:else if !canViewDescriptions}
 								<p style="margin:0;font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
 							{/if}
@@ -194,7 +195,7 @@
 										{#if fixedFeat}
 											<div style="border-left:3px solid var(--border-accent);background:var(--bg-overlay);border-radius:0 var(--radius-md) var(--radius-md) 0;padding:8px 10px;">
 												<p style="margin:0 0 3px;font-size:0.875rem;font-weight:700;color:var(--accent-light);">🏅 {fixedFeat.name}</p>
-												{#if canViewDescriptions && fixedFeat.description}<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;">{fixedFeat.description}</p>{/if}
+												{#if canViewDescriptions && fixedFeat.description}<DescriptionText text={fixedFeat.description} class="wiz-inline-desc" />{/if}
 											</div>
 										{/if}
 									{:else if featSrc.category}

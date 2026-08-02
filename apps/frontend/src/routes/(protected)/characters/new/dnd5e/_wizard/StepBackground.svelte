@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { DescriptionText } from '@core/ui';
 	import { SKILL_DISPLAY, STAT_ABBR } from '@core/ui/gamesystems/dnd5e/skills.ts';
 	import type { WizardState } from './wizard-state.svelte.ts';
 	import * as grants from './grants.ts';
@@ -92,7 +93,7 @@
 			<h3 class="wiz-panel__title">{bg.name}</h3>
 
 			{#if bg.shortDescription}
-				<p class="wiz-panel__desc">{bg.shortDescription}</p>
+				<DescriptionText text={bg.shortDescription} class="wiz-panel__desc" />
 			{/if}
 
 			{#if bg.skillGrants?.length || bg.toolProficiencies || bg.languages || bg.grantsSkills || bg.grantsTools || bg.grantsLanguages}
@@ -114,7 +115,7 @@
 					<div style="border-left:3px solid var(--border-accent);background:var(--bg-surface);border-radius:0 var(--radius-md) var(--radius-md) 0;padding:8px 10px;">
 						<p style="margin:0 0 3px;font-size:0.875rem;font-weight:700;color:var(--accent-light);">🏅 {bg.grantsFeat.name}</p>
 						{#if canViewDescriptions && bg.grantsFeat.description}
-							<p style="margin:0;font-size:0.8125rem;color:var(--text-secondary);line-height:1.5;">{bg.grantsFeat.description}</p>
+							<DescriptionText text={bg.grantsFeat.description} class="wiz-inline-desc" />
 						{:else if !canViewDescriptions}
 							<p style="margin:0;font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
 						{/if}

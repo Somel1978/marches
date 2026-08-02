@@ -12,7 +12,15 @@
 
 	type Reward = { type: string; amount: number; itemRarity?: string; itemCategory?: string; itemMaxValue?: number };
 	let rewards = $state<Reward[]>([{ type: 'XP', amount: 0 }, { type: 'GOLD', amount: 0 }]);
-	let plannerState = $state(defaultPlannerState({ partySize: data.globalMaxCap }));
+	let plannerState = $state(defaultPlannerState());
+	let plannerSeeded = false;
+
+	$effect.pre(() => {
+		const cap = data.globalMaxCap;
+		if (plannerSeeded) return;
+		plannerSeeded = true;
+		plannerState = defaultPlannerState({ partySize: cap });
+	});
 
 	function addReward() { rewards = [...rewards, { type: 'GOLD', amount: 0 }]; }
 	function removeReward(i: number) { rewards = rewards.filter((_, idx) => idx !== i); }

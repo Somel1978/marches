@@ -71,6 +71,7 @@ import { addScoreAuditEntry, addScoreAuditEntries, applyManualScoreAdjustment } 
 import { getScoreAuditForCharacter, getScoreAuditForStat } from './dbapi/read/dnd5e/get-score-audit.ts';
 import { enrichDnd5eSignups } from './dbapi/read/dnd5e/enrich-signups.ts';
 import { getDnd5eClasses, getAllDnd5eClasses, getDnd5eClassById, getDnd5eSpecies, getAllDnd5eSpecies, getDnd5eBackgrounds, getAllDnd5eBackgrounds, getDnd5eSystemData, invalidateDnd5eSystemDataCache } from './dbapi/read/dnd5e/get-classes.ts';
+import { getDnd5eCodexData } from './dbapi/read/dnd5e/get-codex.ts';
 import { createDnd5eClass, updateDnd5eClass, deleteDnd5eClass, createClassFeature, updateClassFeature, deleteClassFeature, createDnd5eSubclass, updateDnd5eSubclass, updateSubclass, deleteDnd5eSubclass, createSubclassFeature, updateSubclassFeature, deleteSubclassFeature, updateClassSavingThrows, updateClassSkillPool } from './dbapi/write/dnd5e/classes.ts';
 import { createDnd5eSpecies, updateDnd5eSpecies, deleteDnd5eSpecies, createSpeciesTrait, updateSpeciesTrait, deleteSpeciesTrait, updateSpeciesTraitSpeeds, createDnd5eBackground, updateDnd5eBackground, deleteDnd5eBackground } from './dbapi/write/dnd5e/species.ts';
 import { createDnd5eCharacter } from './dbapi/write/dnd5e/create-character.ts';
@@ -644,6 +645,7 @@ export const dnd5e = {
         reset:                  resetEncounterPlanner,
     },
     getSystemData:       getDnd5eSystemData,
+    getCodexData:        getDnd5eCodexData,
     invalidateSystemCache: invalidateDnd5eSystemDataCache,
     getCharacterSheet:   getDnd5eCharacterSheet,
     enrichSignups:       enrichDnd5eSignups,

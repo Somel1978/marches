@@ -38,22 +38,78 @@
     flex-direction: column;
     background: var(--bg-surface);
     border-top: 1px solid var(--border-muted);
-    padding: 0.75rem 1rem 1rem;
-    gap: 0.125rem;
+    padding: 0.5rem 0.75rem 0.75rem;
+    gap: 0.25rem;
     position: relative;
     z-index: 100;
+    max-height: calc(100dvh - 3.5rem);
+    overflow-y: auto;
+  }
+
+  .nav-mobile__section {
+    border-bottom: 1px solid var(--border-muted);
+  }
+  .nav-mobile__section:last-child { border-bottom: none; }
+
+  .nav-mobile__group-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.75rem 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: left;
+  }
+  .nav-mobile__group-toggle:hover { color: var(--text-secondary); }
+  .nav-mobile__group-toggle--active { color: var(--accent-light); }
+  .nav-mobile__group-toggle--open { color: var(--text-secondary); }
+  .nav-mobile__group-toggle--open.nav-mobile__group-toggle--active {
+    color: var(--accent-light);
+  }
+
+  .nav-mobile__chevron {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+  }
+  .nav-mobile__group-toggle--open .nav-mobile__chevron {
+    transform: rotate(180deg);
+  }
+
+  .nav-mobile__section-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0 0 0.5rem;
   }
 
   .nav-mobile__link {
     display: block;
-    padding: 0.625rem 0.5rem;
+    padding: 0.625rem 0.75rem;
     font-size: 0.9375rem;
     color: var(--text-primary);
     text-decoration: none;
     border-radius: var(--radius-sm);
   }
+  .nav-mobile__link:hover { background: var(--bg-overlay); }
+  .nav-mobile__link--button {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+  }
 
-
+  /* Legacy static title (kept for any remaining call sites) */
   .nav-mobile__group-title {
     padding: 0.625rem 1rem 0.25rem;
     font-size: 0.6875rem;
@@ -61,10 +117,6 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
-  }
-
-  .nav-mobile__link:hover {
-    background: var(--bg-overlay);
   }
 
   @media (max-width: 640px) {

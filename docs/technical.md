@@ -329,7 +329,7 @@ shared/ui/styles/components/
                       New: .btn-xs, .badge-info, .badge-rarity-* (6 fixed D&D rarity colours)
   layout.css        — .page, .sections, .field, .form-actions, .input, .input-toggle
   site.css          — nav-bar, nav-group dropdowns, site layout, .tabs, .tab, .tab--active
-  nav-mobile.css    — hamburger nav (≤640px) + .nav-mobile__group-title
+  nav-mobile.css    — hamburger nav (≤640px) + collapsible .nav-mobile__section accordion
   character.css     — character cards, portrait, avatar, lightbox, class allocation,
                       sheet-class, sheet-feature, sheet-trait
   world.css         — .worlds-page, .worlds-section, .region-grid, .region-card, ...

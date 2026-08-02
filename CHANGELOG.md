@@ -1202,3 +1202,15 @@ Renamed PM2 configs to the pattern PM2 expects (`ecosystem.*.config.js`):
 
 Updated [docs/setup.md](docs/setup.md), [docs/technical.md](docs/technical.md), and
 [docs/dev-environment.md](docs/dev-environment.md) start/redeploy commands accordingly.
+
+### Session 86 — D&D 5e Codex Community tool (2026-07-30)
+
+Community reference browser at `/tools/codex`, gated by `dnd5eDescriptions` / `read`:
+- `dnd5e.getCodexData` — available-only classes/species/feats/backgrounds + non-legacy spells
+- Structured filter rows (field / operator / value) with per-row **AND / OR**; nested results under parents
+- Friendly field labels; multi-prop fields (e.g. Skills, Size, Grants ASI, feat Description+snippet)
+- Community nav **Codex** link only when `canViewDescriptions` is true
+- Docs: [tools/codex.md](docs/tools/codex.md), feature note under §31
+- Mobile nav: all sections independently collapse (Adventure / Campaign / Community / DM / Account); active section opens on menu open; menu scrolls on short viewports
+- Codex spell results use shared `Dnd5eSpellDetail` (casting time, range, duration, components, AoE, saves/attacks, damage, cantrip scaling, upcast, lists/tags) matching the spellbook card
+- `DescriptionText` + `looksLikeMarkdown`: auto-render Markdown in descriptions when detected (Codex, wizard, spell detail, sheet); plain text otherwise — no corpus rewrite
