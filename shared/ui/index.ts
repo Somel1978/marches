@@ -28,8 +28,11 @@ export { default as Dnd5eAsiFeatsPanel }    from './src/gamesystems/dnd5e/Dnd5eA
 export { default as Dnd5eCharacterCard }     from './src/gamesystems/dnd5e/Dnd5eCharacterCard.svelte';
 export { default as Dnd5eSpellbooks }        from './src/gamesystems/dnd5e/Dnd5eSpellbooks.svelte';
 export { default as Dnd5eSpellDetail }       from './src/gamesystems/dnd5e/Dnd5eSpellDetail.svelte';
+export { default as SpellDamageBadges }      from './src/gamesystems/dnd5e/SpellDamageBadges.svelte';
 export {
 	parseSpellDamage,
+	spellDamageTypeColor,
+	spellDamageTypeIcon,
 	spellLevelLabel,
 	spellDamageRaw,
 } from './src/gamesystems/dnd5e/spell-display.ts';

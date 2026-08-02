@@ -2,8 +2,8 @@
 <!-- Presentational spell body — matches spellbook expanded card layout. -->
 <script lang="ts">
 	import DescriptionText from '../../../components/ui/DescriptionText.svelte';
+	import SpellDamageBadges from './SpellDamageBadges.svelte';
 	import {
-		parseSpellDamage,
 		spellRangeLabel,
 		spellDurationLabel,
 		spellComponentsShort,
@@ -20,7 +20,7 @@
 		canViewDescriptions?: boolean;
 	} = $props();
 
-	const dmgParts = $derived(parseSpellDamage(spellDamageRaw(spell)));
+	const dmgRaw = $derived(spellDamageRaw(spell));
 	const range = $derived(spellRangeLabel(spell));
 	const duration = $derived(spellDurationLabel(spell));
 	const componentsShort = $derived(spellComponentsShort(spell.components));
@@ -30,6 +30,9 @@
 		spell.tags
 			? String(spell.tags).split(',').map((t: string) => t.trim()).filter(Boolean)
 			: [] as string[],
+	);
+	const hasScaling = $derived(
+		spell.level === 0 && !!(spell.cantripDamageLvl5 || spell.cantripDamageLvl11 || spell.cantripDamageLvl17),
 	);
 </script>
 
@@ -93,23 +96,34 @@
 		<p class="spell-detail__gated">Description not available — contact your DM.</p>
 	{/if}
 
-	{#if dmgParts.length}
+	{#if dmgRaw}
 		<div class="spell-detail__damage">
 			<span class="spell-detail__damage-label">Damage</span>
-			{#each dmgParts as d, di}
-				{#if di > 0}<span class="spell-detail__damage-plus">+</span>{/if}
-				<span class="spell-detail__dmg-pill" style="background:{d.color};">{d.dice}</span>
-				{#if d.type}<span class="spell-detail__damage-type">{d.type}</span>{/if}
-			{/each}
+			<SpellDamageBadges raw={dmgRaw} />
 		</div>
+	{/if}
 
-		{#if spell.level === 0 && (spell.cantripDamageLvl5 || spell.cantripDamageLvl11 || spell.cantripDamageLvl17)}
-			<div class="spell-detail__scaling">
-				{#if spell.cantripDamageLvl5}<span>Lv 5: <strong>{spell.cantripDamageLvl5}</strong></span>{/if}
-				{#if spell.cantripDamageLvl11}<span>Lv 11: <strong>{spell.cantripDamageLvl11}</strong></span>{/if}
-				{#if spell.cantripDamageLvl17}<span>Lv 17: <strong>{spell.cantripDamageLvl17}</strong></span>{/if}
-			</div>
-		{/if}
+	{#if hasScaling}
+		<div class="spell-detail__scaling">
+			{#if spell.cantripDamageLvl5}
+				<div class="spell-detail__scaling-row">
+					<span class="spell-detail__scaling-lvl">Lv 5</span>
+					<SpellDamageBadges raw={spell.cantripDamageLvl5} size="sm" />
+				</div>
+			{/if}
+			{#if spell.cantripDamageLvl11}
+				<div class="spell-detail__scaling-row">
+					<span class="spell-detail__scaling-lvl">Lv 11</span>
+					<SpellDamageBadges raw={spell.cantripDamageLvl11} size="sm" />
+				</div>
+			{/if}
+			{#if spell.cantripDamageLvl17}
+				<div class="spell-detail__scaling-row">
+					<span class="spell-detail__scaling-lvl">Lv 17</span>
+					<SpellDamageBadges raw={spell.cantripDamageLvl17} size="sm" />
+				</div>
+			{/if}
+		</div>
 	{/if}
 
 	{#if upcast}
@@ -206,28 +220,24 @@
 		color: var(--text-muted);
 	}
 
-	.spell-detail__damage-plus { color: var(--text-muted); }
-
-	.spell-detail__dmg-pill {
-		padding: 0.25rem 0.625rem;
-		border-radius: 99px;
-		font-size: 0.875rem;
-		font-weight: 700;
-		color: #fff;
-	}
-
-	.spell-detail__damage-type {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: var(--text-primary);
-	}
-
 	.spell-detail__scaling {
 		display: flex;
-		gap: 0.75rem;
+		flex-direction: column;
+		gap: 0.375rem;
+	}
+
+	.spell-detail__scaling-row {
+		display: flex;
 		flex-wrap: wrap;
-		font-size: 0.8125rem;
-		color: var(--text-secondary);
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.spell-detail__scaling-lvl {
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: var(--text-muted);
+		min-width: 2.75rem;
 	}
 
 	.spell-detail__upcast {

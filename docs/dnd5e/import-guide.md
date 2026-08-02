@@ -211,11 +211,21 @@ Several import types share the same grant field set. These are documented once h
 | `Ritual` | | boolean |
 | `Is Homebrew` | | boolean |
 | `Is Legacy` | | boolean |
-| `Cantrip Damage` | | Damage dice at level 1 e.g. `1d10` |
+| `Cantrip Damage` | | Damage at level 1 — see damage format below |
 | `Cantrip Dmg Lvl 5` | | Damage dice at character level 5 |
 | `Cantrip Dmg Lvl 11` | | Damage dice at character level 11 |
 | `Cantrip Dmg Lvl 17` | | Damage dice at character level 17 |
-| `Spell Damage` | | Base spell damage dice |
+| `Spell Damage` | | Base spell damage — see damage format below |
+
+**Spell / cantrip damage format**
+
+| Syntax | Meaning | Example |
+|---|---|---|
+| `NdX Type` | Fixed dice + type | `1d10 Piercing` |
+| `NdX Type / Type / …` | Same dice; **choose one** type | `1d8 Acid / Cold / Fire / Lightning / Poison / Thunder` |
+| `… + …` | **Additive** dice groups | `1d10 Piercing + 2d6 Cold` |
+
+Combine as needed, e.g. `2d6 Fire + 1d8 Acid / Cold` (additive fire, plus choose-one acid/cold).
 | `Upcast Per Slot` | | Additional dice per spell slot level above minimum |
 | `Upcast Every 2 Slots` | | Additional dice per 2 slot levels above minimum |
 | `Spell Progression` | | Progression type identifier |

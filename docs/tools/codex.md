@@ -24,7 +24,7 @@ read-only.
 
 ## Filters (client)
 
-1. Multi-select entity types
+1. Multi-select entity types — **none selected by default**; pick what to search first
 2. Field + operator + value rows, combined **left-to-right** with per-row **AND / OR**
 3. Friendly field labels (optgrouped); some labels search multiple DB props (OR within the field)
 4. Field catalog changes with selected types

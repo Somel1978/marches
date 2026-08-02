@@ -3,7 +3,7 @@
 	import {
 		DescriptionText,
 		Dnd5eSpellDetail,
-		parseSpellDamage,
+		SpellDamageBadges,
 		spellLevelLabel,
 		spellDamageRaw,
 	} from '@core/ui';
@@ -24,7 +24,7 @@
 		{ id: 'spells',      label: 'Spells' },
 	];
 
-	let selectedTypes = $state<CodexType[]>(['classes', 'species', 'feats', 'backgrounds', 'spells']);
+	let selectedTypes = $state<CodexType[]>([]);
 	let nextFilterId  = $state(1);
 	let filters       = $state<FilterRow[]>([]);
 
@@ -440,7 +440,6 @@
 				<h3 class="section-title">Spells <span class="badge badge-muted">{spellResults.length}</span></h3>
 				<div class="codex-list">
 					{#each spellResults as s}
-						{@const dmgParts = parseSpellDamage(spellDamageRaw(s))}
 						<details class="codex-item">
 							<summary class="codex-item__summary">
 								<span class="codex-item__title">{s.name}</span>
@@ -448,11 +447,7 @@
 								{#if s.school}<span class="badge badge-muted">{s.school}</span>{/if}
 								{#if s.concentration}<span class="badge badge-muted">Conc.</span>{/if}
 								{#if s.ritual}<span class="badge badge-muted">Ritual</span>{/if}
-								{#each dmgParts as d}
-									<span class="codex-dmg-pill" style="background:{d.color};">
-										{d.dice}{d.type ? ` ${d.type}` : ''}
-									</span>
-								{/each}
+								<SpellDamageBadges raw={spellDamageRaw(s)} size="sm" />
 							</summary>
 							<div class="codex-item__body">
 								<Dnd5eSpellDetail spell={s} canViewDescriptions={true} />
@@ -586,11 +581,4 @@
 		background: var(--bg-surface);
 	}
 
-	.codex-dmg-pill {
-		padding: 0.125rem 0.5rem;
-		border-radius: 99px;
-		font-size: 0.75rem;
-		font-weight: 700;
-		color: #fff;
-	}
 </style>

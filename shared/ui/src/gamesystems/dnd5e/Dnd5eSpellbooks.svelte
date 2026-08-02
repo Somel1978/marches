@@ -3,12 +3,12 @@
 <script lang="ts">
 	import { confirmModal } from '../../../components/ui/confirm-modal-singleton.ts';
 	import {
-		parseSpellDamage as parseDamage,
 		spellOrdinal as ordinal,
 		spellLevelLabel as levelLabel,
 		spellDamageRaw,
 	} from './spell-display.ts';
 	import Dnd5eSpellDetail from './Dnd5eSpellDetail.svelte';
+	import SpellDamageBadges from './SpellDamageBadges.svelte';
 	let {
 		charSheet, systemData, spellbooks = [],
 		onCreateSpellbook, onRenameSpellbook, onDeleteSpellbook,
@@ -341,7 +341,6 @@
 								{@const sp = allSpells.find((s: any) => s.spellId === entry.spellId)}
 								{#if sp}
 									{@const isExpanded = expandedEntry === entry.id}
-									{@const dmgParts   = parseDamage(spellDamageRaw(sp))}
 									<div style="background:var(--bg-overlay);border-radius:var(--radius-md);overflow:hidden;border:1px solid {isExpanded ? 'var(--border-accent)' : 'transparent'};">
 
 										<!-- Collapsed header -->
@@ -352,9 +351,7 @@
 											<span class="badge badge-muted">{sp.school}</span>
 											{#if sp.concentration}<span class="badge badge-muted">Conc.</span>{/if}
 											{#if sp.ritual}<span class="badge badge-muted">Ritual</span>{/if}
-											{#each dmgParts as d}
-												<span style="padding:0.2rem 0.5rem;border-radius:99px;font-size:0.8125rem;font-weight:700;background:{d.color};color:#fff;">{d.dice} {d.type}</span>
-											{/each}
+											<SpellDamageBadges raw={spellDamageRaw(sp)} size="sm" />
 											<span style="color:var(--text-muted);font-size:0.875rem;">{isExpanded ? '▲' : '▼'}</span>
 										</button>
 
@@ -444,16 +441,13 @@
 												{levelLabel(lvl)}
 											</div>
 											{#each spells as sp}
-												{@const dmg = parseDamage(spellDamageRaw(sp))}
 												<button type="button" style="width:100%;text-align:left;padding:0.5rem 0.75rem;background:none;border:none;border-bottom:1px solid var(--border-muted);cursor:pointer;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;"
 													onclick={() => handleAddEntry(bookId, cc, sp.spellId)}>
 													<span style="font-weight:600;font-size:0.9375rem;flex:1;min-width:120px;">{sp.name}</span>
 													<span style="font-size:0.8125rem;color:var(--text-muted);">{sp.school}</span>
 													{#if sp.concentration}<span class="badge badge-muted" style="font-size:0.625rem;">Conc.</span>{/if}
 													{#if sp.ritual}<span class="badge badge-muted" style="font-size:0.625rem;">Ritual</span>{/if}
-													{#each dmg as d}
-														<span style="padding:0.125rem 0.4rem;border-radius:99px;font-size:0.75rem;font-weight:700;background:{d.color};color:#fff;">{d.dice} {d.type}</span>
-													{/each}
+													<SpellDamageBadges raw={spellDamageRaw(sp)} size="sm" />
 													<span style="font-size:0.8125rem;color:var(--brand-accent);font-weight:700;">+</span>
 												</button>
 											{/each}

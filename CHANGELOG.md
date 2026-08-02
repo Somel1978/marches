@@ -1214,3 +1214,6 @@ Community reference browser at `/tools/codex`, gated by `dnd5eDescriptions` / `r
 - Mobile nav: all sections independently collapse (Adventure / Campaign / Community / DM / Account); active section opens on menu open; menu scrolls on short viewports
 - Codex spell results use shared `Dnd5eSpellDetail` (casting time, range, duration, components, AoE, saves/attacks, damage, cantrip scaling, upcast, lists/tags) matching the spellbook card
 - `DescriptionText` + `looksLikeMarkdown`: auto-render Markdown in descriptions when detected (Codex, wizard, spell detail, sheet); plain text otherwise — no corpus rewrite
+- Spell damage parsing: `/` between types = choose one (`1d8 Acid / Cold / Fire`); `+` between dice groups = additive (`1d10 Piercing + 2d6 Cold`) — Codex, spellbook, Discord
+- `SpellDamageBadges`: neutral dice pill + emoji + type name (Codex, spellbook, spell detail, cantrip scaling); `choose one` before slash-separated types
+- Codex: entity types start unchecked — user selects what to search

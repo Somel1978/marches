@@ -62,9 +62,19 @@ export async function handleSpellInfoCommand(interaction: ChatInputCommandIntera
 
     const dmgRaw = spell.level === 0 ? spell.cantripDamage : spell.spellDamage;
     if (dmgRaw) {
-        const parts = dmgRaw.split('+').map((p: string) => {
+        // + = additive dice groups; / = choose one damage type
+        const parts = dmgRaw.split(/\s+\+\s+/).map((p: string) => {
             const m = p.trim().match(/^([\dd\s]+)\s+(.+)$/i);
-            return m ? `${dmgEmoji(m[2].trim())} **${m[1].trim()}** ${m[2].trim()}` : p.trim();
+            if (!m) return p.trim();
+            const dice = m[1].trim();
+            const typeRaw = m[2].trim();
+            const choice = /\//.test(typeRaw);
+            const types = choice
+                ? typeRaw.split(/\s*\/\s*/).map(s => s.trim()).filter(Boolean)
+                : [typeRaw];
+            const emoji = dmgEmoji(types[0] ?? '');
+            const typeLabel = choice ? `${types.join(' / ')} _(choose one)_` : types[0];
+            return `${emoji} **${dice}** ${typeLabel}`;
         });
         embed.addFields({ name: '💥 Damage', value: parts.join(' + '), inline: false });
 

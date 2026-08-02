@@ -420,7 +420,7 @@ subclassName      String    @default("")   // denormalized
   - Max Spell Level: derived from highest non-zero slot in slot progression for character's class/level
 - Spell picker: filter bar (text search, level dropdown, school dropdown, Concentration toggle, Ritual toggle); results grouped by level with sticky headers
 - Expanded spell card: property tiles grid (`auto-fill minmax(100px, 1fr)`): Casting Time ⚡, Range 📏/🧍, Duration ⏳, Components ✦, AoE 💥, Saving Throw 🎲 (shows ability e.g. "WIS Save"), Attack Roll ⚔; damage with solid-color type pills (white text); cantrip scaling; At Higher Levels callout with contextual text ("for each slot level above Xth" or "for every two slot levels above Xth"); source book; DDB link
-- Collapsed header: name · level badge · school · Conc · Ritual · damage pills · chevron (damage pills kept in header for combat scanning)
+- Collapsed header: name · level badge · school · Conc · Ritual · damage chips (dice + emoji/type) · chevron (kept in header for combat scanning)
 - Spell removal requires confirmation via `confirmModal`
 
 ---
