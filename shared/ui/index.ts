@@ -22,12 +22,34 @@ export { default as NotificationBell } from './components/ui/NotificationBell.sv
 export { default as ConfirmModal } from './components/ui/ConfirmModal.svelte';
 export { default as WorldProgressionLadderEditor } from './src/progression/WorldProgressionLadderEditor.svelte';
 export { default as WorldNeuralMap } from './src/world/WorldNeuralMap.svelte';
+export { default as WorldCalendarEditor } from './src/world/WorldCalendarEditor.svelte';
+export { default as WorldTimeline } from './src/world/WorldTimeline.svelte';
+export { default as FantasyDateField } from './src/world/FantasyDateField.svelte';
+export { default as RegionWeatherPanel } from './src/world/RegionWeatherPanel.svelte';
 export type {
 	NeuralEntityType,
 	NeuralMapNodeView,
 	NeuralMapEdgeView,
 	NeuralCandidateView,
 } from './src/world/neural-map-types.ts';
+export type {
+	CalendarDef,
+	CalendarMonthDef,
+	CalendarWeekdayDef,
+	CalendarEraDef,
+	CalendarMoonDef,
+	TimelineEntryView,
+	RegionWeatherRow,
+} from './src/world/calendar-types.ts';
+export {
+	formatDate as formatWorldDate,
+	fromAbsoluteDay,
+	toAbsoluteDay,
+	overviewStats,
+	sortedMonths,
+	moonPhase,
+	moonsOnDay,
+} from './src/world/calendar-engine.ts';
 // Game system components — dnd5e
 export { default as Dnd5eCharacterSheet }    from './src/gamesystems/dnd5e/Dnd5eCharacterSheet.svelte';
 export { default as Dnd5eCharacterCreation } from './src/gamesystems/dnd5e/Dnd5eCharacterCreation.svelte';

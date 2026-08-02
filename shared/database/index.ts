@@ -131,6 +131,28 @@ import {
 	addNeuralNode, updateNeuralNode, removeNeuralNode,
 	addNeuralEdge, updateNeuralEdge, removeNeuralEdge,
 } from './dbapi/write/world/neural-map.ts';
+import {
+	listPlotQuestsByWorld, getPlotQuestById, listLinkableSystemQuests,
+} from './dbapi/read/world/get-plot-quests.ts';
+import {
+	createPlotQuest, updatePlotQuest, deletePlotQuest,
+	linkSystemQuestToPlot, unlinkSystemQuestFromPlot,
+} from './dbapi/write/world/plot-quests.ts';
+import { getWorldCalendar, getWorldCalendarOverview } from './dbapi/read/world/get-calendar.ts';
+import { ensureWorldCalendar, saveWorldCalendar } from './dbapi/write/world/calendar.ts';
+import { listTimelineEntries, getTimelineEventById, listRegionWeather, monthDayRange } from './dbapi/read/world/get-timeline.ts';
+import {
+	createTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
+} from './dbapi/write/world/timeline.ts';
+import {
+	createRegionWeather, updateRegionWeather, deleteRegionWeather,
+	createNpcSchedule, updateNpcSchedule, deleteNpcSchedule,
+} from './dbapi/write/world/timeline-weather-npc.ts';
+import {
+	daysInYear, formatDate, fromAbsoluteDay, toAbsoluteDay, overviewStats,
+	gregorianCalendarTemplate, validateCalendarShape, sortedMonths, sortedWeekdays, sortedEras,
+	moonPhase, moonsOnDay,
+} from './lib/calendar/index.ts';
 
 // ── Marketplace ──────────────────────────────────────────────────────────────────
 import { getMarketplaceItems, getMarketplaceItemById, getAllMarketplaceItemsForExport,
@@ -400,6 +422,50 @@ export const worlds = {
         addEdge:         addNeuralEdge,
         updateEdge:      updateNeuralEdge,
         removeEdge:      removeNeuralEdge,
+    },
+    plotQuests: {
+        listByWorld:     listPlotQuestsByWorld,
+        getById:         getPlotQuestById,
+        listLinkableQuests: listLinkableSystemQuests,
+        create:          createPlotQuest,
+        update:          updatePlotQuest,
+        delete:          deletePlotQuest,
+        linkQuest:       linkSystemQuestToPlot,
+        unlinkQuest:     unlinkSystemQuestFromPlot,
+    },
+    calendar: {
+        get:        getWorldCalendar,
+        overview:   getWorldCalendarOverview,
+        ensure:     ensureWorldCalendar,
+        save:       saveWorldCalendar,
+        // pure helpers re-exported for consumers
+        formatDate,
+        fromAbsoluteDay,
+        toAbsoluteDay,
+        overviewStats,
+        daysInYear,
+        sortedMonths,
+        sortedWeekdays,
+        sortedEras,
+        validate:   validateCalendarShape,
+        gregorianTemplate: gregorianCalendarTemplate,
+        moonPhase,
+        moonsOnDay,
+    },
+    timeline: {
+        listEntries: listTimelineEntries,
+        getEvent:    getTimelineEventById,
+        monthRange:  monthDayRange,
+        listWeather: listRegionWeather,
+        createEvent: createTimelineEvent,
+        updateEvent: updateTimelineEvent,
+        deleteEvent: deleteTimelineEvent,
+        createWeather: createRegionWeather,
+        updateWeather: updateRegionWeather,
+        deleteWeather: deleteRegionWeather,
+        createNpcSchedule,
+        updateNpcSchedule,
+        deleteNpcSchedule,
     },
 };
 

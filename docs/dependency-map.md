@@ -487,6 +487,20 @@
 - `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/neural/+page.server.ts`
 - `apps/admin/src/routes/(app)/world/[id]/neural/+page.server.ts`
 
+### `shared/database/dbapi/read/world/get-plot-quests.ts`
+**Exports:** listPlotQuestsByWorld, getPlotQuestById, listLinkableSystemQuests
+
+**Called by:**
+- `shared/database/index.ts` (`worlds.plotQuests`)
+- DM/Admin plot-quests and faction/NPC pages
+
+### `shared/database/dbapi/write/world/plot-quests.ts`
+**Exports:** createPlotQuest, updatePlotQuest, deletePlotQuest, linkSystemQuestToPlot, unlinkSystemQuestFromPlot
+
+**Called by:**
+- `shared/database/index.ts` (`worlds.plotQuests`)
+- DM/Admin plot-quests detail actions
+
 ## DB Transactions — Transactions
 
 ### `shared/database/dbapi/transactions/register-user.ts`

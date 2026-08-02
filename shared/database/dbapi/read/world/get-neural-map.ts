@@ -49,7 +49,7 @@ async function hydrateEntityNames(
 	const key = (t: NeuralEntityType, id: string) => `${t}:${id}`;
 
 	const [
-		regions, locations, factions, npcs, quests, characters, journals,
+		regions, locations, factions, npcs, quests, characters, journals, plotQuests,
 	] = await Promise.all([
 		byType.has('REGION')
 			? db.region.findMany({
@@ -93,6 +93,12 @@ async function hydrateEntityNames(
 				select: { id: true, title: true },
 			})
 			: [],
+		byType.has('PLOT_QUEST')
+			? db.plotQuest.findMany({
+				where: { id: { in: byType.get('PLOT_QUEST')! } },
+				select: { id: true, title: true },
+			})
+			: [],
 	]);
 
 	for (const r of regions) out.set(key('REGION', r.id), { name: r.name });
@@ -102,6 +108,7 @@ async function hydrateEntityNames(
 	for (const q of quests) out.set(key('QUEST', q.id), { name: q.title });
 	for (const c of characters) out.set(key('CHARACTER', c.id), { name: c.name });
 	for (const j of journals) out.set(key('JOURNAL', j.id), { name: j.title });
+	for (const p of plotQuests) out.set(key('PLOT_QUEST', p.id), { name: p.title });
 
 	return out;
 }
@@ -162,7 +169,7 @@ export async function listNeuralCandidates(worldId: string): Promise<NeuralCandi
 	});
 	const regionIds = regions.map(r => r.id);
 
-	const [factions, npcs, quests, characters, journals] = await Promise.all([
+	const [factions, npcs, quests, characters, journals, plotQuests] = await Promise.all([
 		db.faction.findMany({
 			where: { worldId },
 			select: { id: true, name: true },
@@ -191,6 +198,11 @@ export async function listNeuralCandidates(worldId: string): Promise<NeuralCandi
 			where: { worldId },
 			select: { id: true, title: true },
 			orderBy: { sortOrder: 'asc' },
+		}),
+		db.plotQuest.findMany({
+			where: { worldId },
+			select: { id: true, title: true, status: true },
+			orderBy: { title: 'asc' },
 		}),
 	]);
 
@@ -235,6 +247,11 @@ export async function listNeuralCandidates(worldId: string): Promise<NeuralCandi
 	for (const j of journals) {
 		if (!placedKeys.has(`JOURNAL:${j.id}`)) {
 			out.push({ entityType: 'JOURNAL', entityId: j.id, name: j.title });
+		}
+	}
+	for (const p of plotQuests) {
+		if (!placedKeys.has(`PLOT_QUEST:${p.id}`)) {
+			out.push({ entityType: 'PLOT_QUEST', entityId: p.id, name: p.title, subtitle: p.status });
 		}
 	}
 

@@ -40,6 +40,9 @@
 		<a href="/world/{data.world.id}/marketplace" class="btn btn-ghost btn-sm">🛒 Marketplace</a>
 		<a href="/world/{data.world.id}/journal" class="btn btn-ghost btn-sm">📖 Journal</a>
 		<a href="/world/{data.world.id}/neural" class="btn btn-ghost btn-sm">🕸 Neural</a>
+		<a href="/world/{data.world.id}/timeline" class="btn btn-ghost btn-sm">📅 Timeline</a>
+		<a href="/world/{data.world.id}/calendar" class="btn btn-ghost btn-sm">🗓 Calendar</a>
+		<a href="/world/{data.world.id}/plot-quests" class="btn btn-ghost btn-sm">📜 Plot Quests</a>
 		<a href="/world/{data.world.id}/factions" class="btn btn-ghost btn-sm">🛡 Factions</a>
 		<a href="/world/{data.world.id}/npcs" class="btn btn-ghost btn-sm">👤 NPCs</a>
 	</div>

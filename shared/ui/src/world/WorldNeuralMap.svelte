@@ -9,17 +9,18 @@
 	} from './neural-map-types.ts';
 
 	const TYPE_META: Record<NeuralEntityType, { label: string; icon: string }> = {
-		REGION:    { label: 'Region',    icon: '🗺' },
-		LOCATION:  { label: 'Location',  icon: '📍' },
-		FACTION:   { label: 'Faction',   icon: '🛡' },
-		NPC:       { label: 'NPC',       icon: '👤' },
-		QUEST:     { label: 'Quest',     icon: '⚔' },
-		CHARACTER: { label: 'Character', icon: '🎭' },
-		JOURNAL:   { label: 'Journal',   icon: '📖' },
+		REGION:     { label: 'Region',     icon: '🗺' },
+		LOCATION:   { label: 'Location',   icon: '📍' },
+		FACTION:    { label: 'Faction',    icon: '🛡' },
+		NPC:        { label: 'NPC',        icon: '👤' },
+		QUEST:      { label: 'Quest',      icon: '⚔' },
+		CHARACTER:  { label: 'Character',  icon: '🎭' },
+		JOURNAL:    { label: 'Journal',    icon: '📖' },
+		PLOT_QUEST: { label: 'Plot quest', icon: '📜' },
 	};
 
 	const TYPE_ORDER: NeuralEntityType[] = [
-		'REGION', 'LOCATION', 'FACTION', 'NPC', 'QUEST', 'CHARACTER', 'JOURNAL',
+		'REGION', 'LOCATION', 'FACTION', 'NPC', 'QUEST', 'PLOT_QUEST', 'CHARACTER', 'JOURNAL',
 	];
 
 	let {
@@ -69,6 +70,10 @@
 	let edgeNotesDraft = $state('');
 	let busy = $state(false);
 	let boardEl = $state<HTMLDivElement | null>(null);
+	/** Node pending remove confirmation (panel, not `<dialog>` — avoids canvas/pointer conflicts). */
+	let pendingRemoveNode = $state<NeuralMapNodeView | null>(null);
+	let selectedNodeId = $state<string | null>(null);
+	const selectedNode = $derived(localNodes.find(n => n.id === selectedNodeId) ?? null);
 
 	const nodeById = $derived(Object.fromEntries(localNodes.map(n => [n.id, n])));
 
@@ -116,7 +121,10 @@
 	}
 
 	function onBoardPointerDown(e: PointerEvent) {
-		if ((e.target as HTMLElement).closest('.neural-node, .neural-edge-hit, .neural-edge-label')) return;
+		// Ignore nodes, remove buttons, edge hits — otherwise pointer capture steals the click.
+		if ((e.target as HTMLElement).closest(
+			'.neural-node, .neural-node__rm, .neural-node-wrap, .neural-edge-hit, .neural-edge-label',
+		)) return;
 		if (e.button !== 0) return;
 		panning = true;
 		panStart = { x: e.clientX, y: e.clientY, panX, panY };
@@ -184,8 +192,12 @@
 
 	function onNodeClick(e: MouseEvent, node: NeuralMapNodeView) {
 		e.stopPropagation();
-		// Single click: connect mode only. Open page on double-click.
-		if (mode === 'connect') void connectNode(node);
+		if (mode === 'connect') {
+			void connectNode(node);
+			return;
+		}
+		selectedNodeId = node.id;
+		selectedEdgeId = null;
 	}
 
 	function openNodePage(node: NeuralMapNodeView) {
@@ -226,11 +238,35 @@
 		}
 	}
 
-	async function removeNode(id: string) {
-		if (!canEdit || busy) return;
+	function askRemoveNode(node: NeuralMapNodeView, e?: Event) {
+		e?.stopPropagation();
+		e?.preventDefault();
+		if (!canEdit) return;
+		pendingRemoveNode = node;
+		selectedNodeId = node.id;
+		selectedEdgeId = null;
+	}
+
+	function cancelRemoveNode() {
+		pendingRemoveNode = null;
+	}
+
+	async function confirmRemoveNodeAction() {
+		const node = pendingRemoveNode;
+		if (!node || !canEdit) return;
+		pendingRemoveNode = null;
 		busy = true;
-		try { await onRemoveNode?.(id); }
-		finally { busy = false; }
+		try {
+			await onRemoveNode?.(node.id);
+			localNodes = localNodes.filter(n => n.id !== node.id);
+			if (selectedNodeId === node.id) selectedNodeId = null;
+			if (connectFrom === node.id) connectFrom = null;
+			if (selectedEdge && (selectedEdge.fromNodeId === node.id || selectedEdge.toNodeId === node.id)) {
+				selectedEdgeId = null;
+			}
+		} finally {
+			busy = false;
+		}
 	}
 
 	function selectEdge(edgeId: string, e?: Event) {
@@ -462,9 +498,12 @@
 							<button
 								type="button"
 								class="neural-node__rm"
-								title="Remove from board"
 								aria-label="Remove {node.name} from board"
-								onclick={() => removeNode(node.id)}
+								onpointerdown={(ev) => {
+									// Stop board pan / node drag; do NOT preventDefault (that suppresses click).
+									ev.stopPropagation();
+								}}
+								onclick={(ev) => askRemoveNode(node, ev)}
 							>×</button>
 						{/if}
 					</div>
@@ -472,7 +511,34 @@
 			</div>
 		</div>
 
-		{#if selectedEdge}
+		{#if pendingRemoveNode}
+			<div class="neural__confirm-panel" role="alertdialog" aria-labelledby="neural-rm-title" aria-describedby="neural-rm-desc">
+				<h4 id="neural-rm-title">Remove from board</h4>
+				<p id="neural-rm-desc">
+					Remove “{pendingRemoveNode.name}” from the neural map? Connections to it will also be removed. The entity itself is not deleted.
+				</p>
+				<div class="neural__edge-actions">
+					<button type="button" class="btn btn-ghost btn-sm" onclick={cancelRemoveNode}>Cancel</button>
+					<button type="button" class="btn btn-danger btn-sm" onclick={confirmRemoveNodeAction} disabled={busy}>Remove</button>
+				</div>
+			</div>
+		{:else if selectedNode}
+			<div class="neural__edge-panel">
+				<h4>{selectedNode.name}</h4>
+				<p class="neural__hint">{TYPE_META[selectedNode.entityType].label}</p>
+				<div class="neural__edge-actions">
+					{#if canEdit}
+						<button type="button" class="btn btn-danger btn-sm" onclick={() => askRemoveNode(selectedNode)}>Remove from board</button>
+					{/if}
+					<button
+						type="button"
+						class="btn btn-ghost btn-sm"
+						onclick={() => { const href = hrefFor(selectedNode); if (href) window.location.href = href; }}
+					>Open</button>
+					<button type="button" class="btn btn-ghost btn-sm" onclick={() => selectedNodeId = null}>Close</button>
+				</div>
+			</div>
+		{:else if selectedEdge}
 			<div class="neural__edge-panel">
 				<h4>Connection</h4>
 				{#if canEdit}
@@ -724,13 +790,16 @@
 		font-size: 0.85rem;
 		line-height: 1;
 		cursor: pointer;
-		display: none;
+		display: grid;
 		place-items: center;
 		padding: 0;
 		z-index: 3;
 	}
-	.neural-node-wrap:hover .neural-node__rm,
-	.neural-node-wrap:focus-within .neural-node__rm { display: grid; }
+	.neural-node__rm:hover {
+		background: var(--color-danger, #c62828);
+		border-color: var(--color-danger, #c62828);
+		color: #fff;
+	}
 
 	.neural-node--region { border-top: 3px solid #5c6bc0; }
 	.neural-node--location { border-top: 3px solid #26a69a; }
@@ -739,8 +808,10 @@
 	.neural-node--quest { border-top: 3px solid #c62828; }
 	.neural-node--character { border-top: 3px solid #7b1fa2; }
 	.neural-node--journal { border-top: 3px solid #1565c0; }
+	.neural-node--plot_quest { border-top: 3px solid #6a1b9a; }
 
-	.neural__edge-panel {
+	.neural__edge-panel,
+	.neural__confirm-panel {
 		position: absolute;
 		right: 0.75rem;
 		bottom: 0.75rem;
@@ -751,8 +822,14 @@
 		background: var(--bg-surface);
 		box-shadow: 0 8px 28px rgba(0,0,0,0.35);
 		z-index: 5;
+		pointer-events: auto;
 	}
-	.neural__edge-panel h4 { margin: 0 0 0.5rem; font-size: 0.9rem; }
+	.neural__confirm-panel {
+		border-color: color-mix(in srgb, var(--color-danger, #c62828) 45%, var(--border-base));
+	}
+	.neural__edge-panel h4,
+	.neural__confirm-panel h4 { margin: 0 0 0.5rem; font-size: 0.9rem; }
+	.neural__confirm-panel p { margin: 0; font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.45; }
 	.neural__edge-panel .label { margin-top: 0.4rem; }
 	.neural__edge-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
 

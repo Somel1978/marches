@@ -5,7 +5,7 @@ import { NotFoundError, ValidationError } from '@core/errors';
 import type { NeuralEntityType } from '@prisma/client';
 
 const ENTITY_TYPES: NeuralEntityType[] = [
-	'REGION', 'LOCATION', 'FACTION', 'NPC', 'QUEST', 'CHARACTER', 'JOURNAL',
+	'REGION', 'LOCATION', 'FACTION', 'NPC', 'QUEST', 'CHARACTER', 'JOURNAL', 'PLOT_QUEST',
 ];
 
 function parseEntityType(raw: string): NeuralEntityType {
@@ -75,6 +75,14 @@ async function assertEntityInWorld(
 				select: { id: true },
 			});
 			if (!j) throw new ValidationError('Journal not found in this world.');
+			return;
+		}
+		case 'PLOT_QUEST': {
+			const p = await db.plotQuest.findFirst({
+				where: { id: entityId, worldId },
+				select: { id: true },
+			});
+			if (!p) throw new ValidationError('Plot quest not found in this world.');
 			return;
 		}
 	}

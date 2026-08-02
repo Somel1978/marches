@@ -1227,3 +1227,82 @@ DM/Admin plot envisioning tool (authored connections, not DB-relation graph):
 - Placeable types: Region, Location, Faction, NPC, Quest, Character, Journal
 - DM hub: `/dm/worlds/[worldId]/neural` (canManage tab); Admin: `/world/[id]/neural`
 - Node click opens the entity’s existing detail page
+
+### Session 88 — Plot Quests foundation (2026-08-02)
+
+World lore plot layer (separate from system play-session Quests; Session rename deferred):
+- Schema: `PlotQuest`, `PlotQuestQuest`; `FactionQuest` / `NpcQuest` now use `plotQuestId` (old session links cleared)
+- API: `worlds.plotQuests` CRUD + link/unlink system Quests; faction/NPC plot links
+- DM/Admin: `/…/plot-quests` list + detail (link Quests, factions, NPCs); Neural map `PLOT_QUEST`
+- Faction/NPC editors: “Associated plot quests”; player faction page no longer lists system Quests
+- RBAC resource `PlotQuest` in world seed (re-seed or grant in admin if needed)
+- Timeline-ready: `deadlineAt` on PlotQuest for a future world timeline / world calendar
+
+### Session 89 — DM world hub sectioned nav (2026-08-02)
+
+- Replaced flat world-hub tab strip with two-line nav: section (Play, Economy, World Building, Configuration) + page links for the open section
+- Dashboard under Play; Quest DMs only see allowed items; horizontal scroll on narrow screens
+- Plot Quest deadline UI notes future world timeline + calendar binding
+
+### Session 90 — Neural map remove-node fix (2026-08-02)
+
+- Node × was swallowed by board pan pointer-capture; exclude remove control from pan and stop propagation
+- Remove confirmation uses an in-map panel (same pattern as connection delete); also available via selected-node panel
+- Fixed `preventDefault` on × pointerdown suppressing the click; failed remove actions now throw instead of silently no-oping
+
+### Session 91 — World Timeline + Calendar Phase 1 (2026-08-02)
+
+- Schema: `WorldCalendar` (+ months/weekdays/eras/moons), `TimelineEvent`; `PlotQuest.deadlineAt` → `deadlineDay` (absolute day)
+- Calendar engine + Gregorian ensure-on-read; `worlds.calendar.*` / `worlds.timeline.*`
+- DM Play: Timeline (all assigned DMs) + Calendar editor (`canManage`); Admin + player `/world/[slug]/timeline`
+- Timeline List + Calendar views; Events CRUD (wars/etc); Plot Quest fantasy date picker
+- Phase 2 deferred: Gantt, region weather, NPC schedules
+
+### Session 92 — World Timeline Phase 2 (2026-08-02)
+
+- Schema: `RegionWeather`, `NpcSchedule`; Gantt view enabled in calendar settings
+- Timeline aggregates weather + NPC schedules; CRUD for both (canManage / Admin)
+- Gantt view in `WorldTimeline`; moon phase emoji on Calendar day cells
+- New calendars default `enableGanttView: true`
+
+### Session 93 — World calendar current date (2026-08-02)
+
+- `WorldCalendar.currentDay` — world “today”; set in Calendar editor Overview
+- Timeline shows current date on all views: persistent Today bar; Calendar cell highlight; List divider + “today” on spanning entries; Gantt vertical marker when in range
+- Timeline Calendar view opens on the month containing the current date
+
+### Session 94 — Timeline entry date pickers (2026-08-02)
+
+- Event / weather / NPC schedule forms use `FantasyDateField` (year/month/day) instead of raw absolute-day numbers
+- New entries default start date to world `currentDay`
+
+### Session 95 — Timeline today markers on List/Gantt (2026-08-02)
+
+- Gantt range always includes world `currentDay` (was missing the today line when today fell outside event span)
+- List/Gantt mark entries that span today with a Today badge; Gantt shows a labeled today axis line
+
+### Session 96 — Calendar date format corruption (2026-08-02)
+
+- Fix `formatDate`: token replace no longer rewrites letters inside month names (`May`→`5ay`, `November`→`Nove0ber`)
+- Harden `FantasyDateField` numeric year/month/day; optional end date seeds from start/current day
+
+### Session 97 — FantasyDateField day/month order + sync (2026-08-02)
+
+- Date fields use Day → Month → Year (D/M/Y) so “1/05–3/05” is not typed into the Year box
+- Remove bidirectional `$effect` loops that could stomp in-progress edits; commit on input
+- Preview line shows the resolved formatted date (`= May 3rd, 0001 CE`)
+
+### Session 98 — Gantt today-line alignment (2026-08-02)
+
+- Fix Gantt today marker drift: axis + rows share a fixed actions column and matching track border box so `left:%` lines up
+
+### Session 99 — Region weather (not timeline events) (2026-08-02)
+
+- Weather CRUD moves to region pages (`RegionWeatherPanel`); timeline only displays weather and links to the region
+- Remove Timeline “+ Weather” authoring
+
+### Session 100 — Default world on first DM approval (2026-08-02)
+
+- Approving a DM role request creates a default world for first-time DMs and assigns them `canManage`
+- If the DM already has world assignments, skip creation and notify admins (`DM_REAPPROVED_WITH_WORLDS`)
+- Move `DM_REQUEST_PENDING` admin notify to request submit (was incorrectly fired on approve)

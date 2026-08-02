@@ -62,23 +62,23 @@ export async function getFactionBySlug(worldId: string, slug: string) {
 }
 
 // Resolve cross-schema references: territories → region/location names,
-// quest links → quest title/status, renown rows → character name + owner.
+// plot-quest links → plot title/status, renown rows → character name + owner.
 async function enrichFaction(faction: any) {
-    const regionIds   = faction.territories.filter((t: any) => t.entityType === 'REGION').map((t: any) => t.entityId);
-    const locationIds = faction.territories.filter((t: any) => t.entityType === 'LOCATION').map((t: any) => t.entityId);
-    const questIds    = faction.quests.map((q: any) => q.questId);
-    const charIds     = faction.renown.map((r: any) => r.characterId);
+    const regionIds     = faction.territories.filter((t: any) => t.entityType === 'REGION').map((t: any) => t.entityId);
+    const locationIds   = faction.territories.filter((t: any) => t.entityType === 'LOCATION').map((t: any) => t.entityId);
+    const plotQuestIds  = faction.quests.map((q: any) => q.plotQuestId);
+    const charIds       = faction.renown.map((r: any) => r.characterId);
 
-    const [regions, locations, quests, chars] = await Promise.all([
+    const [regions, locations, plotQuests, chars] = await Promise.all([
         regionIds.length   ? db.region.findMany({   where: { id: { in: regionIds } },   select: { id: true, name: true, slug: true, worldId: true } }) : Promise.resolve([]),
         locationIds.length ? db.location.findMany({ where: { id: { in: locationIds } }, select: { id: true, name: true, slug: true, regionId: true } }) : Promise.resolve([]),
-        questIds.length    ? db.quest.findMany({    where: { id: { in: questIds } },    select: { id: true, title: true, status: true } })              : Promise.resolve([]),
+        plotQuestIds.length ? db.plotQuest.findMany({ where: { id: { in: plotQuestIds } }, select: { id: true, title: true, status: true, deadlineDay: true } }) : Promise.resolve([]),
         charIds.length     ? db.character.findMany({ where: { id: { in: charIds } },    select: { id: true, name: true, userId: true, level: true, avatarUrl: true } }) : Promise.resolve([]),
     ]);
 
     const regionMap   = Object.fromEntries(regions.map(r => [r.id, r]));
     const locationMap = Object.fromEntries(locations.map(l => [l.id, l]));
-    const questMap    = Object.fromEntries(quests.map(q => [q.id, q]));
+    const plotMap     = Object.fromEntries(plotQuests.map(q => [q.id, q]));
     const charMap     = Object.fromEntries(chars.map(c => [c.id, c]));
 
     return {
@@ -87,7 +87,7 @@ async function enrichFaction(faction: any) {
             ...t,
             entity: t.entityType === 'REGION' ? regionMap[t.entityId] ?? null : locationMap[t.entityId] ?? null,
         })),
-        quests: faction.quests.map((q: any) => ({ ...q, quest: questMap[q.questId] ?? null })),
+        quests: faction.quests.map((q: any) => ({ ...q, plotQuest: plotMap[q.plotQuestId] ?? null })),
         renown: faction.renown.map((r: any) => ({ ...r, character: charMap[r.characterId] ?? null })),
         // Merge both relation directions into a single list of "other faction + type"
         relations: [

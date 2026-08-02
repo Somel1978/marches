@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/npcs/[npcId]/+page.server.ts
 import { fail, error, redirect } from '@sveltejs/kit';
-import { factions, quests, db } from '@core/database';
+import { factions, worlds, db } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -23,10 +23,10 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 	// Any assigned DM may view (NPC sheets are DM material); mutations gated by canManage.
 	const { world, canManage } = await parent();
 
-	const [npc, factionList, worldQuests] = await Promise.all([
+	const [npc, factionList, worldPlotQuests] = await Promise.all([
 		factions.npcs.getById(params.npcId),
 		factions.getByWorld(params.worldId),
-		quests.getAll({ worldId: params.worldId, perPage: 200 }),
+		worlds.plotQuests.listByWorld(params.worldId),
 	]);
 	if (!npc || npc.worldId !== params.worldId) throw error(404, 'NPC not found');
 
@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 		npc,
 		factions:     factionList,
 		factionRanks: factionDetail?.ranks ?? [],
-		worldQuests:  (worldQuests as any).items ?? [],
+		worldPlotQuests,
 	};
 };
 
@@ -90,11 +90,11 @@ export const actions: Actions = {
 
 	addQuest: async ({ params, request, locals }) => {
 		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
-		const data    = await request.formData();
-		const questId = data.get('questId')?.toString() ?? '';
-		if (!questId) return fail(400, { message: 'Quest required.' });
+		const data = await request.formData();
+		const plotQuestId = data.get('plotQuestId')?.toString() ?? '';
+		if (!plotQuestId) return fail(400, { message: 'Plot quest required.' });
 		try {
-			await factions.npcs.questLinks.add(params.npcId, questId, locals.user!.id);
+			await factions.npcs.questLinks.add(params.npcId, plotQuestId, locals.user!.id);
 			return { questSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -106,7 +106,7 @@ export const actions: Actions = {
 		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
 		const data   = await request.formData();
 		const linkId = data.get('linkId')?.toString() ?? '';
-		if (!linkId) return fail(400, { message: 'Quest link required.' });
+		if (!linkId) return fail(400, { message: 'Plot quest link required.' });
 		try {
 			await factions.npcs.questLinks.remove(linkId, locals.user!.id);
 			return { questSuccess: true };

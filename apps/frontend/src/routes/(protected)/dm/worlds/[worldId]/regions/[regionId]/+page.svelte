@@ -1,6 +1,6 @@
 <!-- apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/regions/[regionId]/+page.svelte -->
 <script lang="ts">
-	import { renderMarkdown } from '@core/ui';
+	import { RegionWeatherPanel, renderMarkdown } from '@core/ui';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
@@ -132,6 +132,18 @@
 		<p class="table__empty">No wiki page yet.</p>
 	{/if}
 </div>
+
+<!-- Weather (region-scoped; also shown on world timeline) -->
+{#if data.calendar}
+	<div style="margin-bottom:1rem;">
+		<RegionWeatherPanel
+			calendar={data.calendar}
+			weather={data.weather}
+			canEdit={canManage}
+			onSaved={async () => { await invalidateAll(); }}
+		/>
+	</div>
+{/if}
 
 <!-- Locations -->
 <div class="card">

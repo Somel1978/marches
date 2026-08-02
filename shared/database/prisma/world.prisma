@@ -40,6 +40,17 @@ enum NeuralEntityType {
   QUEST
   CHARACTER
   JOURNAL
+  PLOT_QUEST
+
+  @@schema("world")
+}
+
+enum PlotQuestStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  FAILED
+  ABANDONED
 
   @@schema("world")
 }
@@ -67,8 +78,229 @@ model World {
   progressionOverrides WorldProgressionOverride[]
   neuralNodes  NeuralMapNode[]
   neuralEdges  NeuralMapEdge[]
+  plotQuests   PlotQuest[]
+  calendar     WorldCalendar?
+  timelineEvents TimelineEvent[]
+  regionWeather  RegionWeather[]
+  npcSchedules   NpcSchedule[]
 
   @@map("worlds")
+  @@schema("world")
+}
+
+// ── World calendar / timeline ────────────────────────────────────────────────
+
+enum CalendarEraDirection {
+  FORWARD
+  BACKWARD
+
+  @@schema("world")
+}
+
+enum TimelineViewKind {
+  LIST
+  CALENDAR
+  GANTT
+
+  @@schema("world")
+}
+
+enum WeatherCondition {
+  CLEAR
+  CLOUDY
+  RAIN
+  STORM
+  SNOW
+  FOG
+  HEAT
+  COLD
+  OTHER
+
+  @@schema("world")
+}
+
+enum TimelineEventType {
+  WAR
+  FESTIVAL
+  DISASTER
+  POLITICAL
+  OTHER
+
+  @@schema("world")
+}
+
+enum TimelineVisibility {
+  PUBLIC
+  DM_ONLY
+
+  @@schema("world")
+}
+
+enum CalendarTimeFormat {
+  H24
+  H12
+
+  @@schema("world")
+}
+
+/** One calendar definition per world. Dates use absoluteDay (days since epoch day 0). */
+model WorldCalendar {
+  id                     String            @id @default(uuid())
+  worldId                String            @unique @map("world_id")
+  world                  World             @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  hoursPerDay            Int               @default(24) @map("hours_per_day")
+  minutesPerHour         Int               @default(60) @map("minutes_per_hour")
+  epochWeekdayIndex      Int               @default(0) @map("epoch_weekday_index")
+  weekdaysResetEachMonth Boolean           @default(false) @map("weekdays_reset_each_month")
+  erasStartOnZero        Boolean           @default(false) @map("eras_start_on_zero")
+  dateFormat             String            @default("MMMM D^, YYYY E") @map("date_format")
+  timeFormat             CalendarTimeFormat @default(H24) @map("time_format")
+  enableListView         Boolean           @default(true) @map("enable_list_view")
+  enableCalendarView     Boolean           @default(true) @map("enable_calendar_view")
+  enableGanttView        Boolean           @default(false) @map("enable_gantt_view")
+  defaultView            TimelineViewKind  @default(LIST) @map("default_view")
+  /// World “today” as absolute day (timeline / clock).
+  currentDay             Int               @default(0) @map("current_day")
+  timelineStartDay       Int?              @map("timeline_start_day")
+  timelineEndDay         Int?              @map("timeline_end_day")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+
+  months   WorldCalendarMonth[]
+  weekdays WorldCalendarWeekday[]
+  eras     WorldCalendarEra[]
+  moons    WorldCalendarMoon[]
+
+  @@map("world_calendars")
+  @@schema("world")
+}
+
+model WorldCalendarMonth {
+  id           String        @id @default(uuid())
+  calendarId   String        @map("calendar_id")
+  calendar     WorldCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  name         String
+  abbreviation String?
+  dayCount     Int           @map("day_count")
+  sortOrder    Int           @default(0) @map("sort_order")
+
+  @@index([calendarId])
+  @@map("world_calendar_months")
+  @@schema("world")
+}
+
+model WorldCalendarWeekday {
+  id           String        @id @default(uuid())
+  calendarId   String        @map("calendar_id")
+  calendar     WorldCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  name         String
+  abbreviation String?
+  sortOrder    Int           @default(0) @map("sort_order")
+
+  @@index([calendarId])
+  @@map("world_calendar_weekdays")
+  @@schema("world")
+}
+
+model WorldCalendarEra {
+  id           String               @id @default(uuid())
+  calendarId   String               @map("calendar_id")
+  calendar     WorldCalendar        @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  name         String
+  abbreviation String
+  direction    CalendarEraDirection @default(FORWARD)
+  startDay     Int                  @default(0) @map("start_day")
+  sortOrder    Int                  @default(0) @map("sort_order")
+
+  @@index([calendarId])
+  @@map("world_calendar_eras")
+  @@schema("world")
+}
+
+model WorldCalendarMoon {
+  id               String        @id @default(uuid())
+  calendarId       String        @map("calendar_id")
+  calendar         WorldCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  name             String
+  cycleLengthDays  Float         @map("cycle_length_days")
+  offsetDays       Float         @default(0) @map("offset_days")
+  sortOrder        Int           @default(0) @map("sort_order")
+
+  @@index([calendarId])
+  @@map("world_calendar_moons")
+  @@schema("world")
+}
+
+model TimelineEvent {
+  id          String             @id @default(uuid())
+  worldId     String             @map("world_id")
+  world       World              @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  title       String
+  summary     String?
+  description String?
+  eventType   TimelineEventType  @default(OTHER) @map("event_type")
+  startDay    Int                @map("start_day")
+  endDay      Int?               @map("end_day")
+  startMinute Int?               @map("start_minute")
+  endMinute   Int?               @map("end_minute")
+  visibility  TimelineVisibility @default(PUBLIC)
+  // Soft IDs (same-schema but optional; not FK to keep editor flexible)
+  regionId    String?            @map("region_id")
+  factionId   String?            @map("faction_id")
+  createdBy   String             @map("created_by")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@index([worldId, startDay])
+  @@map("timeline_events")
+  @@schema("world")
+}
+
+/** Region weather overlay on the world timeline (Phase 2). */
+model RegionWeather {
+  id          String             @id @default(uuid())
+  worldId     String             @map("world_id")
+  world       World              @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  // Soft Region.id
+  regionId    String             @map("region_id")
+  condition   WeatherCondition   @default(CLEAR)
+  title       String?
+  summary     String?
+  startDay    Int                @map("start_day")
+  endDay      Int?               @map("end_day")
+  visibility  TimelineVisibility @default(PUBLIC)
+  createdBy   String             @map("created_by")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@index([worldId, startDay])
+  @@index([regionId])
+  @@map("region_weather")
+  @@schema("world")
+}
+
+/** NPC schedule blocks on the world timeline (Phase 2). */
+model NpcSchedule {
+  id           String             @id @default(uuid())
+  worldId      String             @map("world_id")
+  world        World              @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  // Soft Npc.id
+  npcId        String             @map("npc_id")
+  title        String
+  summary      String?
+  locationNote String?            @map("location_note")
+  startDay     Int                @map("start_day")
+  endDay       Int?               @map("end_day")
+  startMinute  Int?               @map("start_minute")
+  endMinute    Int?               @map("end_minute")
+  visibility   TimelineVisibility @default(PUBLIC)
+  createdBy    String             @map("created_by")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  @@index([worldId, startDay])
+  @@index([npcId])
+  @@map("npc_schedules")
   @@schema("world")
 }
 
@@ -233,5 +465,44 @@ model NeuralMapEdge {
 
   @@index([worldId])
   @@map("neural_map_edges")
+  @@schema("world")
+}
+
+// World lore / plot missions (not system play-session Quests).
+// Faction/NPC associations live in factions.FactionQuest / NpcQuest (soft plotQuestId).
+// System Quests link via PlotQuestQuest.
+model PlotQuest {
+  id          String          @id @default(uuid())
+  worldId     String          @map("world_id")
+  world       World           @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  title       String
+  summary     String?
+  description String?         // markdown lore
+  status      PlotQuestStatus @default(DRAFT)
+  // Absolute day on the world calendar (null = no deadline). Replaces Gregorian deadlineAt.
+  deadlineDay Int?            @map("deadline_day")
+  sortOrder   Int             @default(0) @map("sort_order")
+  createdBy   String          @map("created_by")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt      @map("updated_at")
+
+  linkedQuests PlotQuestQuest[]
+
+  @@index([worldId])
+  @@map("plot_quests")
+  @@schema("world")
+}
+
+model PlotQuestQuest {
+  id          String    @id @default(uuid())
+  plotQuestId String    @map("plot_quest_id")
+  plotQuest   PlotQuest @relation(fields: [plotQuestId], references: [id], onDelete: Cascade)
+  // quests.Quest — soft ID (cross-schema)
+  questId     String    @map("quest_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([plotQuestId, questId])
+  @@index([questId])
+  @@map("plot_quest_quests")
   @@schema("world")
 }

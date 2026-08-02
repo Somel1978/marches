@@ -1,6 +1,6 @@
 // apps/admin/src/routes/(app)/world/[id]/factions/[factionId]/+page.server.ts
 import { fail, error, redirect } from '@sveltejs/kit';
-import { factions, worlds, characters, quests } from '@core/database';
+import { factions, worlds, characters } from '@core/database';
 import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
@@ -14,12 +14,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const can = checkPermission(locals.permissions, { resourceKey: 'World', action: 'read' });
 	if (!can.allowed) throw error(403, 'Forbidden');
 
-	const [world, faction, allFactions, allCharacters, worldQuests] = await Promise.all([
+	const [world, faction, allFactions, allCharacters, worldPlotQuests] = await Promise.all([
 		worlds.getById(params.id),
 		factions.getById(params.factionId),
 		factions.getByWorld(params.id),
 		characters.getAll({ perPage: 500 }),
-		quests.getAll({ worldId: params.id, perPage: 200 }),
+		worlds.plotQuests.listByWorld(params.id),
 	]);
 	if (!world) throw error(404, 'World not found');
 	if (!faction || faction.worldId !== params.id) throw error(404, 'Faction not found');
@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		faction,
 		otherFactions: (allFactions as any[]).filter((f) => f.id !== faction.id),
 		allCharacters: (allCharacters as any).items ?? [],
-		worldQuests:   (worldQuests as any).items ?? [],
+		worldPlotQuests,
 	};
 };
 
@@ -238,15 +238,15 @@ export const actions: Actions = {
 		}
 	},
 
-	// ── Quest links ────────────────────────────────────────────────────────
+	// ── Plot quest links ───────────────────────────────────────────────────
 	addQuest: async ({ params, request, locals }) => {
 		const can = checkPermission(locals.permissions, { resourceKey: 'World', action: 'update' });
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
-		const data    = await request.formData();
-		const questId = data.get('questId')?.toString() ?? '';
-		if (!questId) return fail(400, { message: 'Quest required.' });
+		const data = await request.formData();
+		const plotQuestId = data.get('plotQuestId')?.toString() ?? '';
+		if (!plotQuestId) return fail(400, { message: 'Plot quest required.' });
 		try {
-			await factions.questLinks.add(params.factionId, questId, locals.user!.id);
+			await factions.questLinks.add(params.factionId, plotQuestId, locals.user!.id);
 			return { questSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -259,7 +259,7 @@ export const actions: Actions = {
 		if (!can.allowed) return fail(403, { message: 'Forbidden' });
 		const data   = await request.formData();
 		const linkId = data.get('linkId')?.toString() ?? '';
-		if (!linkId) return fail(400, { message: 'Quest link required.' });
+		if (!linkId) return fail(400, { message: 'Plot quest link required.' });
 		try {
 			await factions.questLinks.remove(linkId, locals.user!.id);
 			return { questSuccess: true };

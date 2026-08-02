@@ -21,7 +21,8 @@ Notification — userId, type, title, message, actionUrl, isRead, createdAt
 | Quest result submitted | All SUPERADMIN users |
 | Quest result approved | DM |
 | Quest result rejected | DM |
-| DM role request submitted | All SUPERADMIN users |
+| DM role request submitted | All SUPERADMIN / User-read-ALL admins |
+| DM re-approved with existing worlds | Same admins (`DM_REAPPROVED_WITH_WORLDS`) |
 | Marketplace purchase created | All SUPERADMIN users |
 | Marketplace purchase approved | Player |
 | Marketplace purchase rejected | Player |

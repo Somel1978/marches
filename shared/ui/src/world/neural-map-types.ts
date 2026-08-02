@@ -1,7 +1,7 @@
 // shared/ui/src/world/neural-map-types.ts
 
 export type NeuralEntityType =
-	| 'REGION' | 'LOCATION' | 'FACTION' | 'NPC' | 'QUEST' | 'CHARACTER' | 'JOURNAL';
+	| 'REGION' | 'LOCATION' | 'FACTION' | 'NPC' | 'QUEST' | 'CHARACTER' | 'JOURNAL' | 'PLOT_QUEST';
 
 export type NeuralMapNodeView = {
 	id: string;

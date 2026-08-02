@@ -391,8 +391,13 @@ and submit-result level-up detection. All use `db.characterClass.aggregate._sum.
 
 **Key decisions:**
 - DM role ≠ DM profile. Nav checks `hasDMProfile` (active profile in `dms.dm_profiles`)
-- Approving role request: assigns role, creates DMProfile, calls `invalidateUserPermissions`
+- Approving role request: assigns role, creates/reactivates DMProfile, calls `invalidateUserPermissions`
+- First-time DM approval (no prior `WorldDM` rows): creates a default world
+  (`"{name}'s World"`) with the user as `canManage` DM + tavern channel
+- Re-approval when the DM already has world assignments: skips world creation
+  and notifies admins (`DM_REAPPROVED_WITH_WORLDS`)
 - Revoking: DMProfile.isActive=false, removes UserRole, sets request to REJECTED
+  (WorldDM rows are kept, so a later re-approval does not spawn another default world)
 - `/dm-request` redirects to `/dm` only if active DM profile exists
 
 ---
@@ -552,11 +557,47 @@ position. Frontend renders glowing dots at those positions.
 
 **Neural map (lore board):** DM/Admin plot tool — **not** a visualization of
 database FKs. Managing DMs (`WorldDM.canManage`) and admins place world
-elements (Region, Location, Faction, NPC, Quest, Character, Journal) on a
-canvas and author labeled connections for plot envisioning. Clicking a node
-opens that entity’s existing detail page. One board per world.
+elements (Region, Location, Faction, NPC, Quest, PlotQuest, Character, Journal)
+on a canvas and author labeled connections for plot envisioning. Double-click
+a node to open its detail page. One board per world.
 API: `worlds.neural.*`. UI: `WorldNeuralMap` in `@core/ui`.
 Routes: `/dm/worlds/[worldId]/neural` (canManage), `/world/[id]/neural` (admin).
+Removing a node asks for confirmation; only the board placement (and its
+edges) are deleted — not the underlying entity.
+
+**Plot Quests (lore missions):** World-scoped plot entities distinct from
+system **Quests** (scheduled play sessions). Status + optional `deadlineDay`
+(absolute day on the world calendar). Factions/NPCs associate via
+`FactionQuest` / `NpcQuest` → `plotQuestId`. System Quests attach via
+`PlotQuestQuest` (M:N).
+DM/Admin routes: `/dm/worlds/[w]/plot-quests`, `/world/[id]/plot-quests`.
+Renaming system Quests → “Sessions” is deferred pending feedback.
+
+**World calendar + timeline:** One `WorldCalendar` per world
+(months, weekdays, day length, eras, moons, date format, `currentDay`
+as world “today”). Defaults to Gregorian on first access. Canonical
+dates use integer `absoluteDay`.
+Timeline List / Calendar / Gantt views aggregate:
+`TimelineEvent` (wars/etc), `RegionWeather`, `NpcSchedule`, and
+plot-quest deadlines. Visibility `PUBLIC` | `DM_ONLY`. All views surface
+`currentDay` (Today bar; List divider; Calendar highlight; Gantt axis).
+Entries spanning today get a Today badge on List/Gantt. Gantt range always
+includes `currentDay`. Calendar day cells show moon phases when moons are defined.
+Create/edit forms use `FantasyDateField` (Day → Month → Year, not raw
+absolute days); new entries default start to `currentDay`.
+**Weather** is managed on the region page (not as a timeline event); the
+timeline still shows weather periods and links to the region.
+- DM Play: `/dm/worlds/[w]/timeline` (all assigned DMs), `/calendar` (`canManage`)
+- DM/Admin region: weather periods under `/regions/[regionId]`
+- Players: `/world/[slug]/timeline` (public entries + ACTIVE/COMPLETED deadlines)
+- Admin: `/world/[id]/timeline`, `/calendar`
+
+**DM world hub nav:** Two-line sectioned nav in
+`/dm/worlds/[worldId]/+layout.svelte` — section row (Play / Economy /
+World Building / Configuration), then a second horizontal row of pages for
+the open section. Play includes Timeline + Calendar (`manageOnly`).
+`manageOnly` items hidden for Quest DMs. Rows scroll horizontally on narrow
+viewports.
 
 **Wiki:** markdown content, full revision history. Every edit saves
 current content as a WikiRevision before overwriting. Rendered via
@@ -567,7 +608,7 @@ current content as a WikiRevision before overwriting. Rendered via
 /world                               — world list + create
 /world/[id]                          — edit world, map, region list + add region, assign/remove world DMs
 /world/[id]/neural                   — lore neural map (place entities, author connections)
-/world/[id]/regions/[regionId]       — edit region, assign DMs, wiki, locations
+/world/[id]/regions/[regionId]       — edit region, assign DMs, wiki, weather, locations
 /world/[id]/regions/[regionId]/locations/[locationId] — edit location, wiki
 /world/settings                      — showDangerRating, showLevelRange
 ```

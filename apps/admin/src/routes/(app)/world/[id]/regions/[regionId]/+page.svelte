@@ -1,6 +1,6 @@
 <!-- apps/admin/src/routes/(app)/world/[id]/regions/[regionId]/+page.svelte -->
 <script lang="ts">
-	import { renderMarkdown } from '@core/ui';
+	import { RegionWeatherPanel, renderMarkdown } from '@core/ui';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
@@ -8,6 +8,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let addingLocation = $state(false);
 	let editingWiki    = $state(false);
+	const canEditWeather = $derived(data.canEdit === true);
 
 	const dangerColors: Record<string, string> = {
 		Safe:     'badge-success',
@@ -167,6 +168,18 @@
 			<p class="table__empty">No wiki page yet.</p>
 		{/if}
 	</div>
+
+	<!-- Weather (region-scoped; also shown on world timeline) -->
+	{#if data.calendar}
+		<div style="margin-bottom:1rem;">
+			<RegionWeatherPanel
+				calendar={data.calendar}
+				weather={data.weather}
+				canEdit={canEditWeather}
+				onSaved={async () => { await invalidateAll(); }}
+			/>
+		</div>
+	{/if}
 
 	<!-- Locations -->
 	<div class="card">

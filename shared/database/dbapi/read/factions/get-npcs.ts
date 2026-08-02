@@ -66,9 +66,14 @@ export async function getNpcById(id: string) {
     });
     if (!npc) return null;
 
-    const questIds = npc.quests.map(q => q.questId);
-    const [quests, location] = await Promise.all([
-        questIds.length ? db.quest.findMany({ where: { id: { in: questIds } }, select: { id: true, title: true, status: true } }) : Promise.resolve([]),
+    const plotQuestIds = npc.quests.map(q => q.plotQuestId);
+    const [plotQuests, location] = await Promise.all([
+        plotQuestIds.length
+            ? db.plotQuest.findMany({
+                where: { id: { in: plotQuestIds } },
+                select: { id: true, title: true, status: true, deadlineDay: true },
+              })
+            : Promise.resolve([]),
         npc.locationId
             ? db.location.findUnique({
                 where:   { id: npc.locationId },
@@ -76,12 +81,12 @@ export async function getNpcById(id: string) {
               })
             : Promise.resolve(null),
     ]);
-    const questMap = Object.fromEntries(quests.map(q => [q.id, q]));
+    const plotMap = Object.fromEntries(plotQuests.map(q => [q.id, q]));
 
     return {
         ...npc,
         location,
-        quests: npc.quests.map(q => ({ ...q, quest: questMap[q.questId] ?? null })),
+        quests: npc.quests.map(q => ({ ...q, plotQuest: plotMap[q.plotQuestId] ?? null })),
     };
 }
 

@@ -14,7 +14,9 @@
 		}
 		const res = await fetch(`?/${action}`, { method: 'POST', body: fd });
 		if (!res.ok) {
-			console.error('Neural map action failed', action, await res.text());
+			const body = await res.text();
+			console.error('Neural map action failed', action, body);
+			throw new Error(`Neural map ${action} failed (${res.status})`);
 		}
 		await invalidateAll();
 	}
@@ -38,6 +40,8 @@
 				return `/dm/worlds/${w}/characters/${node.entityId}`;
 			case 'JOURNAL':
 				return `/dm/worlds/${w}/journal/${node.entityId}`;
+			case 'PLOT_QUEST':
+				return `/dm/worlds/${w}/plot-quests/${node.entityId}`;
 			default:
 				return null;
 		}
