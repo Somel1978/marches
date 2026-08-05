@@ -1,7 +1,7 @@
 # Marches — Codebase Dependency Map
 
 > **Auto-generated** by `pnpm docs:generate-deps`. Do not edit by hand.
-> Generated: 2026-07-07
+> Generated: 2026-08-04
 > See [maintenance.md](./maintenance.md).
 
 ## DB Analytics — Analytics
@@ -120,12 +120,37 @@
 
 ## DB Read — Dnd5e
 
+### `shared/database/dbapi/read/dnd5e/encounter-planner.ts`
+**Exports:** EncounterPlannerTables, getEncounterConfig
+
+**Called by:**
+- `shared/database/dbapi/read/dnd5e/eplanner-calc.ts`
+- `shared/database/dbapi/read/quests/encounter-plan.ts`
+- `shared/database/dbapi/write/dnd5e/encounter-planner.ts`
+- `shared/database/index.ts`
+
 ### `shared/database/dbapi/read/dnd5e/enrich-signups.ts`
 **Exports:** enrichDnd5eSignups
 
 **Called by:**
 - `shared/database/dbapi/read/quests/get-by-id.ts`
 - `shared/database/index.ts`
+
+### `shared/database/dbapi/read/dnd5e/eplanner-calc.ts`
+**Exports:** DifficultyTier, EncounterBreakdown, EncounterInput, EncounterPlannerConfig, MissionInput, MissionResult, calculateMission, monsterCountMultiplier
+
+**Called by:**
+- `shared/database/dbapi/read/dnd5e/encounter-planner.ts`
+- `shared/database/dbapi/read/dnd5e/eplanner-defaults.ts`
+- `shared/database/dbapi/read/quests/encounter-plan.ts`
+
+### `shared/database/dbapi/read/dnd5e/eplanner-defaults.ts`
+**Exports:** EPLANNER_DEFAULTS
+
+**Called by:**
+- `shared/database/dbapi/read/dnd5e/encounter-planner.ts`
+- `shared/database/dbapi/write/dnd5e/encounter-planner.ts`
+- `shared/database/seeds/04b-dnd5e.seed.ts`
 
 ### `shared/database/dbapi/read/dnd5e/feature-names.ts`
 **Exports:** isAsiFeatureName, isEpicBoonFeatureName, normalizeFeatureName
@@ -147,6 +172,13 @@
 **Exports:** getAllDnd5eBackgrounds, getAllDnd5eClasses, getAllDnd5eSpecies, getDnd5eBackgrounds, getDnd5eClassById, getDnd5eClasses, getDnd5eSpecies, getDnd5eSystemData, invalidateDnd5eSystemDataCache
 
 **Called by:**
+- `shared/database/dbapi/read/dnd5e/get-codex.ts`
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/read/dnd5e/get-codex.ts`
+**Exports:** getDnd5eCodexData
+
+**Called by:**
 - `shared/database/index.ts`
 
 ### `shared/database/dbapi/read/dnd5e/get-feats.ts`
@@ -154,6 +186,7 @@
 
 **Called by:**
 - `shared/database/dbapi/read/dnd5e/get-classes.ts`
+- `shared/database/dbapi/read/dnd5e/get-codex.ts`
 - `shared/database/index.ts`
 
 ### `shared/database/dbapi/read/dnd5e/get-score-audit.ts`
@@ -351,6 +384,14 @@
 
 ## DB Read — Quests
 
+### `shared/database/dbapi/read/quests/encounter-plan.ts`
+**Exports:** QuestEncounterPlan, loadEncounterPlannerClientConfig, parseQuestEncounterPlan, planToMissionInput, resolveQuestMissionXp
+
+**Called by:**
+- `shared/database/dbapi/write/quests/create.ts`
+- `shared/database/dbapi/write/quests/update.ts`
+- `shared/database/index.ts`
+
 ### `shared/database/dbapi/read/quests/get-all.ts`
 **Exports:** GetAllQuestsOptions, getAllQuests
 
@@ -451,8 +492,40 @@
 
 ## DB Read — World
 
+### `shared/database/dbapi/read/world/get-calendar.ts`
+**Exports:** WorldCalendarView, getWorldCalendar, getWorldCalendarOverview, toCalendarDef
+
+**Called by:**
+- `shared/database/dbapi/read/world/get-timeline.ts`
+- `shared/database/dbapi/write/world/calendar.ts`
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/read/world/get-neural-map.ts`
+**Exports:** HydratedNeuralEdge, HydratedNeuralNode, NeuralCandidate, getNeuralMap, listNeuralCandidates
+
+**Called by:**
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/read/world/get-plot-progression.ts`
+**Exports:** getPlotPlayLog, getPlotProgression, listPlayerPlotQuests, listPlotQuestsBySystemQuest
+
+**Called by:**
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/read/world/get-plot-quests.ts`
+**Exports:** PlotQuestListItem, getPlotQuestById, listLinkableSystemQuests, listPlotQuestsByWorld
+
+**Called by:**
+- `shared/database/index.ts`
+
 ### `shared/database/dbapi/read/world/get-regions.ts`
 **Exports:** getLocationBySlug, getRegionById, getRegionBySlug
+
+**Called by:**
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/read/world/get-timeline.ts`
+**Exports:** TimelineEntry, TimelineEntryKind, formatDate, fromAbsoluteDay, getTimelineEventById, listRegionWeather, listTimelineEntries, monthDayRange
 
 **Called by:**
 - `shared/database/index.ts`
@@ -470,36 +543,6 @@
 **Called by:**
 - `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/quests/new/+page.server.ts`
 - `shared/database/index.ts`
-
-### `shared/database/dbapi/read/world/get-neural-map.ts`
-**Exports:** getNeuralMap, listNeuralCandidates, HydratedNeuralNode, HydratedNeuralEdge, NeuralCandidate
-
-**Called by:**
-- `shared/database/index.ts` (`worlds.neural`)
-- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/neural/+page.server.ts`
-- `apps/admin/src/routes/(app)/world/[id]/neural/+page.server.ts`
-
-### `shared/database/dbapi/write/world/neural-map.ts`
-**Exports:** addNeuralNode, updateNeuralNode, removeNeuralNode, addNeuralEdge, updateNeuralEdge, removeNeuralEdge
-
-**Called by:**
-- `shared/database/index.ts` (`worlds.neural`)
-- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/neural/+page.server.ts`
-- `apps/admin/src/routes/(app)/world/[id]/neural/+page.server.ts`
-
-### `shared/database/dbapi/read/world/get-plot-quests.ts`
-**Exports:** listPlotQuestsByWorld, getPlotQuestById, listLinkableSystemQuests
-
-**Called by:**
-- `shared/database/index.ts` (`worlds.plotQuests`)
-- DM/Admin plot-quests and faction/NPC pages
-
-### `shared/database/dbapi/write/world/plot-quests.ts`
-**Exports:** createPlotQuest, updatePlotQuest, deletePlotQuest, linkSystemQuestToPlot, unlinkSystemQuestFromPlot
-
-**Called by:**
-- `shared/database/index.ts` (`worlds.plotQuests`)
-- DM/Admin plot-quests detail actions
 
 ## DB Transactions — Transactions
 
@@ -530,6 +573,7 @@
 - `shared/database/dbapi/write/dms/dm-profile.ts`
 - `shared/database/dbapi/write/dms/role-request.ts`
 - `shared/database/dbapi/write/dnd5e/classes.ts`
+- `shared/database/dbapi/write/dnd5e/encounter-planner.ts`
 - `shared/database/dbapi/write/dnd5e/feats.ts`
 - `shared/database/dbapi/write/dnd5e/species.ts`
 - `shared/database/dbapi/write/dnd5e/update-character.ts`
@@ -563,6 +607,13 @@
 - `shared/database/dbapi/write/users/delete.ts`
 - `shared/database/dbapi/write/users/set-password.ts`
 - `shared/database/dbapi/write/users/update.ts`
+- `shared/database/dbapi/write/world/calendar.ts`
+- `shared/database/dbapi/write/world/neural-map.ts`
+- `shared/database/dbapi/write/world/plot-progression.ts`
+- `shared/database/dbapi/write/world/plot-quests.ts`
+- `shared/database/dbapi/write/world/progression-overrides.ts`
+- `shared/database/dbapi/write/world/timeline-weather-npc.ts`
+- `shared/database/dbapi/write/world/timeline.ts`
 - `shared/database/dbapi/write/world/wiki.ts`
 - `shared/database/dbapi/write/world/worlds.ts`
 
@@ -574,7 +625,6 @@
 **Called by:**
 - `apps/discord/src/commands/availability.ts`
 - `apps/frontend/src/routes/(protected)/availability/+page.server.ts`
-- `apps/frontend/src/routes/(protected)/availability/+page.svelte`
 - `shared/database/index.ts`
 
 ## DB Write — Characters
@@ -631,14 +681,24 @@
 - `shared/database/dbapi/read/characters/get-inventory.ts`
 - `shared/database/index.ts`
 
-### `shared/database/dbapi/write/characters/level-check.ts`
-**Exports:** checkLevelChange
+### `shared/database/dbapi/write/characters/progression.ts`
+**Exports:** ProgressionMode, ProgressionResult, ProgressionSource, ProgressionTotals, ThresholdRow, applyProgressionChange, getEffectiveThresholds, isLadderConfigured, progressionTotal, reconcileProgression, resolveEarnedLevel, resolveProgressionMode, setCharacterProgressionMode, thresholdRequirement
 
 **Called by:**
+- `apps/frontend/src/routes/(protected)/characters/[id]/+page.server.ts`
+- `shared/database/dbapi/read/world/get-plot-progression.ts`
 - `shared/database/dbapi/write/characters/adjust-currency.ts`
+- `shared/database/dbapi/write/dnd5e/approve-character.ts`
 - `shared/database/dbapi/write/dnd5e/create-character.ts`
+- `shared/database/dbapi/write/dnd5e/update-classes.ts`
+- `shared/database/dbapi/write/gamesystem/progression.ts`
 - `shared/database/dbapi/write/quests/delete.ts`
+- `shared/database/dbapi/write/quests/submit-result.ts`
 - `shared/database/dbapi/write/token-store/transactions.ts`
+- `shared/database/dbapi/write/world/plot-progression.ts`
+- `shared/database/dbapi/write/world/progression-overrides.ts`
+- `shared/database/index.ts`
+- `shared/database/scripts/backfill-progression.ts`
 
 ### `shared/database/dbapi/write/characters/slot-grant.ts`
 **Exports:** grantCharacterSlot
@@ -744,6 +804,7 @@
 - `apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/classes/[classId]/+page.server.ts`
 - `apps/admin/src/routes/(app)/game-systems/[id]/dnd5e/classes/[classId]/+page.svelte`
 - `shared/database/dbapi/read/dnd5e/get-classes.ts`
+- `shared/database/dbapi/read/dnd5e/get-codex.ts`
 - `shared/database/dbapi/write/characters/update-classes.ts`
 - `shared/database/dbapi/write/dnd5e/update-classes.ts`
 - `shared/database/index.ts`
@@ -755,12 +816,22 @@
 - `shared/database/dbapi/write/dnd5e/update-character.ts`
 - `shared/database/index.ts`
 
+### `shared/database/dbapi/write/dnd5e/encounter-planner.ts`
+**Exports:** deleteEncounterLevelThreshold, deleteEncounterMultiplier, deleteEncounterXp, resetEncounterPlanner, updateEncounterConfig, upsertEncounterLevelThreshold, upsertEncounterMultiplier, upsertEncounterXp
+
+**Called by:**
+- `shared/database/dbapi/read/dnd5e/encounter-planner.ts`
+- `shared/database/dbapi/read/quests/encounter-plan.ts`
+- `shared/database/index.ts`
+
 ### `shared/database/dbapi/write/dnd5e/feats.ts`
 **Exports:** createDnd5eFeat, deleteDnd5eFeat, updateDnd5eFeat
 
 **Called by:**
 - `shared/database/dbapi/read/dnd5e/get-classes.ts`
+- `shared/database/dbapi/read/dnd5e/get-codex.ts`
 - `shared/database/dbapi/read/dnd5e/get-feats.ts`
+- `shared/database/dbapi/write/dnd5e/approve-character.ts`
 - `shared/database/dbapi/write/dnd5e/update-character-feats.ts`
 - `shared/database/index.ts`
 
@@ -848,9 +919,10 @@
 - `shared/database/index.ts`
 
 ### `shared/database/dbapi/write/dnd5e/update-character-feats.ts`
-**Exports:** addDnd5eCharacterFeat, removeDnd5eCharacterFeat
+**Exports:** addDnd5eCharacterFeat, pruneDnd5eFeatsAboveAllocation, removeDnd5eCharacterFeat
 
 **Called by:**
+- `shared/database/dbapi/write/dnd5e/approve-character.ts`
 - `shared/database/index.ts`
 
 ### `shared/database/dbapi/write/dnd5e/update-character.ts`
@@ -880,12 +952,14 @@
 
 **Called by:**
 - `shared/database/dbapi/read/factions/get-npcs.ts`
+- `shared/database/dbapi/write/world/apply-plot-effects.ts`
 - `shared/database/index.ts`
 
 ### `shared/database/dbapi/write/factions/renown.ts`
 **Exports:** removeFactionRenown, setFactionRenown
 
 **Called by:**
+- `shared/database/dbapi/write/world/apply-plot-effects.ts`
 - `shared/database/index.ts`
 
 ## DB Write — Gamesystem
@@ -900,7 +974,19 @@
 **Exports:** createProgressionThreshold, deleteProgressionThreshold, updateProgressionThreshold
 
 **Called by:**
+- `shared/database/dbapi/read/world/get-plot-progression.ts`
+- `shared/database/dbapi/write/characters/adjust-currency.ts`
+- `shared/database/dbapi/write/characters/progression.ts`
+- `shared/database/dbapi/write/dnd5e/approve-character.ts`
+- `shared/database/dbapi/write/dnd5e/create-character.ts`
+- `shared/database/dbapi/write/dnd5e/update-classes.ts`
+- `shared/database/dbapi/write/quests/delete.ts`
+- `shared/database/dbapi/write/quests/submit-result.ts`
+- `shared/database/dbapi/write/token-store/transactions.ts`
+- `shared/database/dbapi/write/world/plot-progression.ts`
+- `shared/database/dbapi/write/world/progression-overrides.ts`
 - `shared/database/index.ts`
+- `shared/database/scripts/backfill-progression.ts`
 
 ## DB Write — Marketplace
 
@@ -981,7 +1067,7 @@
 - `shared/database/dbapi/read/notifications/get-notifications.ts`
 - `shared/database/dbapi/write/characters/approve.ts`
 - `shared/database/dbapi/write/characters/create.ts`
-- `shared/database/dbapi/write/characters/level-check.ts`
+- `shared/database/dbapi/write/characters/progression.ts`
 - `shared/database/dbapi/write/characters/update-status.ts`
 - `shared/database/dbapi/write/dms/role-request.ts`
 - `shared/database/dbapi/write/dnd5e/update-character.ts`
@@ -1192,6 +1278,66 @@
 - `shared/database/index.ts`
 
 ## DB Write — World
+
+### `shared/database/dbapi/write/world/apply-plot-effects.ts`
+**Exports:** AppliedEffectResult, applyPlotEffectsForNode
+
+**Called by:**
+- `shared/database/dbapi/write/world/plot-progression.ts`
+
+### `shared/database/dbapi/write/world/calendar.ts`
+**Exports:** ensureWorldCalendar, saveWorldCalendar
+
+**Called by:**
+- `shared/database/dbapi/read/world/get-calendar.ts`
+- `shared/database/dbapi/read/world/get-timeline.ts`
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/write/world/neural-map.ts`
+**Exports:** addNeuralEdge, addNeuralNode, removeNeuralEdge, removeNeuralNode, syncProgressionLayer, updateNeuralEdge, updateNeuralNode
+
+**Called by:**
+- `shared/database/dbapi/read/world/get-neural-map.ts`
+- `shared/database/dbapi/write/world/plot-progression.ts`
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/write/world/plot-progression.ts`
+**Exports:** PlotNodeStateNotes, advancePlotNode, applyOverdueNodeTimeouts, applyPlotFailureTimeout, createPlotEdge, createPlotEffect, createPlotEntryRequirement, createPlotNode, createPlotReward, deletePlotEdge, deletePlotEffect, deletePlotEntryRequirement, deletePlotNode, deletePlotReward, setPlotNodeState, updatePlotFailureTimeout, updatePlotNode
+
+**Called by:**
+- `shared/database/dbapi/read/world/get-plot-progression.ts`
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/write/world/plot-quests.ts`
+**Exports:** createPlotQuest, deletePlotQuest, linkSystemQuestToPlot, unlinkSystemQuestFromPlot, updatePlotQuest
+
+**Called by:**
+- `shared/database/dbapi/read/world/get-plot-quests.ts`
+- `shared/database/dbapi/write/world/apply-plot-effects.ts`
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/write/world/progression-overrides.ts`
+**Exports:** WorldOverrideInput, countWorldHomeCharacters, getWorldProgressionOverrides, upsertWorldProgressionOverrides
+
+**Called by:**
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/write/world/timeline-weather-npc.ts`
+**Exports:** createNpcSchedule, createRegionWeather, deleteNpcSchedule, deleteRegionWeather, updateNpcSchedule, updateRegionWeather
+
+**Called by:**
+- `apps/admin/src/routes/(app)/world/[id]/timeline/+page.server.ts`
+- `apps/admin/src/routes/(app)/world/[id]/timeline/+page.svelte`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/timeline/+page.server.ts`
+- `apps/frontend/src/routes/(protected)/dm/worlds/[worldId]/timeline/+page.svelte`
+- `shared/database/index.ts`
+
+### `shared/database/dbapi/write/world/timeline.ts`
+**Exports:** createTimelineEvent, deleteTimelineEvent, updateTimelineEvent
+
+**Called by:**
+- `shared/database/dbapi/read/world/get-timeline.ts`
+- `shared/database/index.ts`
 
 ### `shared/database/dbapi/write/world/wiki.ts`
 **Exports:** upsertWikiPage

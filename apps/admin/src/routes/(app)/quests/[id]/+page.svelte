@@ -147,6 +147,31 @@
 
 	<div class="sections">
 		<div class="card">
+			<h3 class="section-title">Linked plot quests</h3>
+			{#if data.linkedPlotQuests?.length}
+				{#each data.linkedPlotQuests as link (link.linkId)}
+					<div class="faction-subrow">
+						<span class="faction-subrow__grow" style="font-weight:600;">
+							{#if link.plotQuest}
+								<a href="/world/{link.plotQuest.worldId}/plot-quests/{link.plotQuest.id}">{link.plotQuest.title}</a>
+							{:else}
+								(missing plot quest)
+							{/if}
+						</span>
+						{#if link.plotQuest}
+							<span class="badge badge-muted">{link.plotQuest.status}</span>
+						{/if}
+					</div>
+					{#if link.plotQuest?.summary}
+						<p class="table__muted" style="margin:0 0 0.75rem; font-size:0.875rem;">{link.plotQuest.summary}</p>
+					{/if}
+				{/each}
+			{:else}
+				<p class="table__empty">No plot quests linked. Link from a plot quest’s detail page.</p>
+			{/if}
+		</div>
+
+		<div class="card">
 			<h3 class="section-title">Details</h3>
 			{#if data.quest.description}
 				<p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 0.75rem; white-space:pre-wrap;">{data.quest.description}</p>

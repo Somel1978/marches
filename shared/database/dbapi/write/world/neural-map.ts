@@ -2,11 +2,23 @@
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
-import type { NeuralEntityType } from '@prisma/client';
+import type { NeuralEntityType, NeuralMapLayer } from '@prisma/client';
+import { layoutPlotFlowchart } from '../../../lib/plot-graph/layout.ts';
 
 const ENTITY_TYPES: NeuralEntityType[] = [
-	'REGION', 'LOCATION', 'FACTION', 'NPC', 'QUEST', 'CHARACTER', 'JOURNAL', 'PLOT_QUEST',
+	'REGION', 'LOCATION', 'FACTION', 'NPC', 'QUEST', 'CHARACTER', 'JOURNAL', 'PLOT_QUEST', 'PLOT_NODE',
 ];
+
+const LAYERS: NeuralMapLayer[] = ['LORE', 'PROGRESSION'];
+
+function parseLayer(raw: string | undefined | null, entityType: NeuralEntityType): NeuralMapLayer {
+	if (raw) {
+		const l = raw.toUpperCase() as NeuralMapLayer;
+		if (!LAYERS.includes(l)) throw new ValidationError(`Invalid layer: ${raw}`);
+		return l;
+	}
+	return entityType === 'PLOT_NODE' ? 'PROGRESSION' : 'LORE';
+}
 
 function parseEntityType(raw: string): NeuralEntityType {
 	const t = raw.toUpperCase() as NeuralEntityType;
@@ -85,6 +97,14 @@ async function assertEntityInWorld(
 			if (!p) throw new ValidationError('Plot quest not found in this world.');
 			return;
 		}
+		case 'PLOT_NODE': {
+			const n = await db.plotNode.findFirst({
+				where: { id: entityId, plotQuest: { worldId } },
+				select: { id: true },
+			});
+			if (!n) throw new ValidationError('Plot node not found in this world.');
+			return;
+		}
 	}
 }
 
@@ -96,6 +116,7 @@ export async function addNeuralNode(
 		posX?: number;
 		posY?: number;
 		note?: string | null;
+		layer?: string | null;
 	},
 	actorId: string,
 ) {
@@ -104,6 +125,13 @@ export async function addNeuralNode(
 	const entityId = input.entityId?.trim();
 	if (!entityId) throw new ValidationError('entityId is required.');
 	await assertEntityInWorld(worldId, entityType, entityId);
+	const layer = parseLayer(input.layer, entityType);
+	if (entityType === 'PLOT_NODE' && layer !== 'PROGRESSION') {
+		throw new ValidationError('Plot nodes belong on the Progression layer.');
+	}
+	if (entityType !== 'PLOT_NODE' && layer === 'PROGRESSION') {
+		throw new ValidationError('Only plot nodes can be placed on the Progression layer.');
+	}
 
 	const posX = Number.isFinite(input.posX) ? Number(input.posX) : 500 + (Math.random() * 80 - 40);
 	const posY = Number.isFinite(input.posY) ? Number(input.posY) : 500 + (Math.random() * 80 - 40);
@@ -114,6 +142,7 @@ export async function addNeuralNode(
 				worldId,
 				entityType,
 				entityId,
+				layer,
 				posX,
 				posY,
 				note: input.note?.trim() || null,
@@ -183,6 +212,32 @@ export async function removeNeuralNode(nodeId: string, actorId: string, worldId?
 		metadata: { kind: 'neural_node' },
 	});
 	return { ok: true };
+}
+
+/** Move a Progression node by PlotNode entity id (flowchart drag). */
+export async function updateNeuralNodeByEntity(
+	worldId: string,
+	entityType: string,
+	entityId: string,
+	input: { posX?: number; posY?: number },
+	actorId: string,
+) {
+	const type = parseEntityType(entityType);
+	const id = entityId?.trim();
+	if (!id) throw new ValidationError('entityId is required.');
+	const existing = await db.neuralMapNode.findFirst({
+		where: { worldId, entityType: type, entityId: id },
+	});
+	if (!existing) {
+		// Ensure placement exists (sync), then retry
+		if (type === 'PLOT_NODE') await syncProgressionLayer(worldId);
+		const again = await db.neuralMapNode.findFirst({
+			where: { worldId, entityType: type, entityId: id },
+		});
+		if (!again) throw new NotFoundError('NeuralMapNode', id);
+		return updateNeuralNode(again.id, input, actorId, worldId);
+	}
+	return updateNeuralNode(existing.id, input, actorId, worldId);
 }
 
 export async function addNeuralEdge(
@@ -271,4 +326,153 @@ export async function removeNeuralEdge(edgeId: string, actorId: string, worldId?
 		metadata: { kind: 'neural_edge' },
 	});
 	return { ok: true };
+}
+
+async function loadPlotLayoutInputs(plotQuestId: string) {
+	const [nodes, edges] = await Promise.all([
+		db.plotNode.findMany({
+			where: { plotQuestId },
+			select: {
+				id: true,
+				parentNodeId: true,
+				kind: true,
+				sortOrder: true,
+				title: true,
+			},
+			orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
+		}),
+		db.plotEdge.findMany({
+			where: { plotQuestId },
+			select: { fromNodeId: true, toNodeId: true, kind: true },
+		}),
+	]);
+	return { nodes, edges };
+}
+
+/**
+ * Ensure Progression layer has a NeuralMapNode for every PlotNode in the world (or one plot).
+ * - Adds missing placements with a per-plot layout
+ * - Never moves nodes the DM already positioned
+ * - Removes orphan PLOT_NODE placements whose PlotNode was deleted
+ */
+export async function syncProgressionLayer(
+	worldId: string,
+	opts?: { plotQuestId?: string },
+): Promise<{ added: number; removed: number }> {
+	await assertWorld(worldId);
+
+	const plots = await db.plotQuest.findMany({
+		where: {
+			worldId,
+			...(opts?.plotQuestId ? { id: opts.plotQuestId } : {}),
+		},
+		select: { id: true, title: true },
+		orderBy: { title: 'asc' },
+	});
+
+	const allWorldPlotNodes = await db.plotNode.findMany({
+		where: { plotQuest: { worldId } },
+		select: { id: true },
+	});
+	const validIds = new Set(allWorldPlotNodes.map(n => n.id));
+
+	const placed = await db.neuralMapNode.findMany({
+		where: { worldId, entityType: 'PLOT_NODE' },
+		select: { id: true, entityId: true },
+	});
+
+	const orphans = placed.filter(p => !validIds.has(p.entityId));
+	if (orphans.length) {
+		await db.neuralMapNode.deleteMany({ where: { id: { in: orphans.map(o => o.id) } } });
+	}
+
+	const placedIds = new Set(placed.filter(p => validIds.has(p.entityId)).map(p => p.entityId));
+	let added = 0;
+
+	// When syncing one plot, still need global plot index for stable columns — use all world plots order
+	const allPlots = opts?.plotQuestId
+		? await db.plotQuest.findMany({
+			where: { worldId },
+			select: { id: true, title: true },
+			orderBy: { title: 'asc' },
+		})
+		: plots;
+
+	const plotIndexById = new Map(allPlots.map((p, i) => [p.id, i]));
+
+	for (const plot of plots) {
+		const { nodes, edges } = await loadPlotLayoutInputs(plot.id);
+		const missing = nodes.filter(n => !placedIds.has(n.id));
+		if (!missing.length) continue;
+
+		const layout = layoutPlotFlowchart(plotIndexById.get(plot.id) ?? 0, nodes, edges);
+		for (const n of missing) {
+			const p = layout.get(n.id) ?? { posX: 500, posY: 500 };
+			try {
+				await db.neuralMapNode.create({
+					data: {
+						worldId,
+						entityType: 'PLOT_NODE',
+						entityId: n.id,
+						layer: 'PROGRESSION',
+						posX: p.posX,
+						posY: p.posY,
+					},
+				});
+				placedIds.add(n.id);
+				added++;
+			} catch (e: any) {
+				if (e?.code === 'P2002') continue; // race / already placed
+				throw e;
+			}
+		}
+	}
+
+	return { added, removed: orphans.length };
+}
+
+/**
+ * Force-reposition Progression neural nodes with left→right flowchart layout.
+ * Opt-in only — default sync never moves existing placements.
+ */
+export async function relayoutProgressionLayer(
+	worldId: string,
+	opts?: { plotQuestId?: string },
+): Promise<{ updated: number }> {
+	await assertWorld(worldId);
+	await syncProgressionLayer(worldId, opts);
+
+	const plots = await db.plotQuest.findMany({
+		where: {
+			worldId,
+			...(opts?.plotQuestId ? { id: opts.plotQuestId } : {}),
+		},
+		select: { id: true, title: true },
+		orderBy: { title: 'asc' },
+	});
+
+	const allPlots = opts?.plotQuestId
+		? await db.plotQuest.findMany({
+			where: { worldId },
+			select: { id: true, title: true },
+			orderBy: { title: 'asc' },
+		})
+		: plots;
+	const plotIndexById = new Map(allPlots.map((p, i) => [p.id, i]));
+
+	let updated = 0;
+	for (const plot of plots) {
+		const { nodes, edges } = await loadPlotLayoutInputs(plot.id);
+		const layout = layoutPlotFlowchart(plotIndexById.get(plot.id) ?? 0, nodes, edges);
+		for (const n of nodes) {
+			const p = layout.get(n.id);
+			if (!p) continue;
+			const res = await db.neuralMapNode.updateMany({
+				where: { worldId, entityType: 'PLOT_NODE', entityId: n.id },
+				data: { posX: p.posX, posY: p.posY },
+			});
+			updated += res.count;
+		}
+	}
+	return { updated };
 }

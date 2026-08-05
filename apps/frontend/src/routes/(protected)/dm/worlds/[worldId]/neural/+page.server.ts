@@ -23,7 +23,13 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 		worlds.neural.listCandidates(params.worldId),
 	]);
 
-	return { world, canManage, nodes: map.nodes, edges: map.edges, candidates };
+	return {
+		world,
+		canManage,
+		nodes: map.nodes,
+		edges: map.edges,
+		candidates,
+	};
 };
 
 export const actions: Actions = {
@@ -36,6 +42,7 @@ export const actions: Actions = {
 				entityId:   data.get('entityId')?.toString() ?? '',
 				posX:       Number(data.get('posX')),
 				posY:       Number(data.get('posY')),
+				layer:      'LORE',
 			}, locals.user!.id);
 			return { ok: true };
 		} catch (e) {
@@ -82,8 +89,8 @@ export const actions: Actions = {
 		try {
 			await worlds.neural.addEdge(params.worldId, {
 				fromNodeId: data.get('fromNodeId')?.toString() ?? '',
-				toNodeId:   data.get('toNodeId')?.toString() ?? '',
-				label:      data.get('label')?.toString() ?? '',
+				toNodeId: data.get('toNodeId')?.toString() ?? '',
+				label: data.get('label')?.toString() ?? '',
 			}, locals.user!.id);
 			return { ok: true };
 		} catch (e) {

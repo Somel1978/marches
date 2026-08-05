@@ -1,6 +1,6 @@
 // shared/database/dbapi/read/world/get-neural-map.ts
 import { db } from '../../../index.ts';
-import type { NeuralEntityType } from '@prisma/client';
+import type { NeuralEntityType, NeuralMapLayer } from '@prisma/client';
 
 export type NeuralCandidate = {
 	entityType: NeuralEntityType;
@@ -10,6 +10,10 @@ export type NeuralCandidate = {
 	subtitle?: string | null;
 	/** Needed for location hrefs */
 	regionId?: string | null;
+	/** Target board layer for this candidate */
+	layer: NeuralMapLayer;
+	/** For PLOT_NODE → open parent plot quest */
+	plotQuestId?: string | null;
 };
 
 export type HydratedNeuralNode = {
@@ -17,12 +21,24 @@ export type HydratedNeuralNode = {
 	worldId: string;
 	entityType: NeuralEntityType;
 	entityId: string;
+	layer: NeuralMapLayer;
 	posX: number;
 	posY: number;
 	note: string | null;
 	name: string;
 	missing: boolean;
 	regionId?: string | null;
+	plotQuestId?: string | null;
+	/** PLOT_NODE: PlotNode.kind (SCENE, DISCOVERY, …) */
+	plotNodeKind?: string | null;
+	/** PLOT_NODE: parent plot quest title */
+	plotTitle?: string | null;
+	/** Progression layer: persisted PlotNodeState */
+	progressionStatus?: string | null;
+	/** Derived from analysis */
+	progressionAvailable?: boolean;
+	progressionImpossible?: boolean;
+	progressionEntryBlocked?: boolean;
 };
 
 export type HydratedNeuralEdge = {
@@ -37,7 +53,13 @@ export type HydratedNeuralEdge = {
 
 async function hydrateEntityNames(
 	refs: { entityType: NeuralEntityType; entityId: string }[],
-): Promise<Map<string, { name: string; regionId?: string | null }>> {
+): Promise<Map<string, {
+	name: string;
+	regionId?: string | null;
+	plotQuestId?: string | null;
+	plotNodeKind?: string | null;
+	plotTitle?: string | null;
+}>> {
 	const byType = new Map<NeuralEntityType, string[]>();
 	for (const r of refs) {
 		const list = byType.get(r.entityType) ?? [];
@@ -45,11 +67,17 @@ async function hydrateEntityNames(
 		byType.set(r.entityType, list);
 	}
 
-	const out = new Map<string, { name: string; regionId?: string | null }>();
+	const out = new Map<string, {
+		name: string;
+		regionId?: string | null;
+		plotQuestId?: string | null;
+		plotNodeKind?: string | null;
+		plotTitle?: string | null;
+	}>();
 	const key = (t: NeuralEntityType, id: string) => `${t}:${id}`;
 
 	const [
-		regions, locations, factions, npcs, quests, characters, journals, plotQuests,
+		regions, locations, factions, npcs, quests, characters, journals, plotQuests, plotNodes,
 	] = await Promise.all([
 		byType.has('REGION')
 			? db.region.findMany({
@@ -99,6 +127,18 @@ async function hydrateEntityNames(
 				select: { id: true, title: true },
 			})
 			: [],
+		byType.has('PLOT_NODE')
+			? db.plotNode.findMany({
+				where: { id: { in: byType.get('PLOT_NODE')! } },
+				select: {
+					id: true,
+					title: true,
+					kind: true,
+					plotQuestId: true,
+					plotQuest: { select: { title: true } },
+				},
+			})
+			: [],
 	]);
 
 	for (const r of regions) out.set(key('REGION', r.id), { name: r.name });
@@ -109,6 +149,14 @@ async function hydrateEntityNames(
 	for (const c of characters) out.set(key('CHARACTER', c.id), { name: c.name });
 	for (const j of journals) out.set(key('JOURNAL', j.id), { name: j.title });
 	for (const p of plotQuests) out.set(key('PLOT_QUEST', p.id), { name: p.title });
+	for (const pn of plotNodes) {
+		out.set(key('PLOT_NODE', pn.id), {
+			name: pn.title,
+			plotQuestId: pn.plotQuestId,
+			plotNodeKind: pn.kind,
+			plotTitle: pn.plotQuest?.title ?? null,
+		});
+	}
 
 	return out;
 }
@@ -116,9 +164,14 @@ async function hydrateEntityNames(
 export async function getNeuralMap(worldId: string): Promise<{
 	nodes: HydratedNeuralNode[];
 	edges: HydratedNeuralEdge[];
+	/** Deprecated — Progression overlays removed; always empty. Kept for API compat. */
+	overlayEdges: HydratedNeuralEdge[];
 }> {
+	// Lore-only board. Plot flowchart positions still sync via getPlotProgression / createPlotNode.
 	const [nodes, edges] = await Promise.all([
-		db.neuralMapNode.findMany({ where: { worldId } }),
+		db.neuralMapNode.findMany({
+			where: { worldId, layer: 'LORE', entityType: { not: 'PLOT_NODE' } },
+		}),
 		db.neuralMapEdge.findMany({ where: { worldId } }),
 	]);
 
@@ -126,31 +179,41 @@ export async function getNeuralMap(worldId: string): Promise<{
 		nodes.map(n => ({ entityType: n.entityType, entityId: n.entityId })),
 	);
 
+	const hydrated: HydratedNeuralNode[] = nodes.map(n => {
+		const h = names.get(`${n.entityType}:${n.entityId}`);
+		return {
+			id: n.id,
+			worldId: n.worldId,
+			entityType: n.entityType,
+			entityId: n.entityId,
+			layer: n.layer,
+			posX: n.posX,
+			posY: n.posY,
+			note: n.note,
+			name: h?.name ?? '(missing)',
+			missing: !h,
+			regionId: h?.regionId ?? null,
+			plotQuestId: h?.plotQuestId ?? null,
+			plotNodeKind: h?.plotNodeKind ?? null,
+			plotTitle: h?.plotTitle ?? null,
+		};
+	});
+
+	const loreIds = new Set(hydrated.map(n => n.id));
 	return {
-		nodes: nodes.map(n => {
-			const h = names.get(`${n.entityType}:${n.entityId}`);
-			return {
-				id: n.id,
-				worldId: n.worldId,
-				entityType: n.entityType,
-				entityId: n.entityId,
-				posX: n.posX,
-				posY: n.posY,
-				note: n.note,
-				name: h?.name ?? '(missing)',
-				missing: !h,
-				regionId: h?.regionId ?? null,
-			};
-		}),
-		edges: edges.map(e => ({
-			id: e.id,
-			worldId: e.worldId,
-			fromNodeId: e.fromNodeId,
-			toNodeId: e.toNodeId,
-			label: e.label,
-			notes: e.notes,
-			directed: e.directed,
-		})),
+		nodes: hydrated,
+		edges: edges
+			.filter(e => loreIds.has(e.fromNodeId) && loreIds.has(e.toNodeId))
+			.map(e => ({
+				id: e.id,
+				worldId: e.worldId,
+				fromNodeId: e.fromNodeId,
+				toNodeId: e.toNodeId,
+				label: e.label,
+				notes: e.notes,
+				directed: e.directed,
+			})),
+		overlayEdges: [],
 	};
 }
 
@@ -210,7 +273,7 @@ export async function listNeuralCandidates(worldId: string): Promise<NeuralCandi
 
 	for (const r of regions) {
 		if (!placedKeys.has(`REGION:${r.id}`)) {
-			out.push({ entityType: 'REGION', entityId: r.id, name: r.name });
+			out.push({ entityType: 'REGION', entityId: r.id, name: r.name, layer: 'LORE' });
 		}
 		for (const l of r.locations) {
 			if (!placedKeys.has(`LOCATION:${l.id}`)) {
@@ -220,38 +283,45 @@ export async function listNeuralCandidates(worldId: string): Promise<NeuralCandi
 					name: l.name,
 					subtitle: r.name,
 					regionId: l.regionId,
+					layer: 'LORE',
 				});
 			}
 		}
 	}
 	for (const f of factions) {
 		if (!placedKeys.has(`FACTION:${f.id}`)) {
-			out.push({ entityType: 'FACTION', entityId: f.id, name: f.name });
+			out.push({ entityType: 'FACTION', entityId: f.id, name: f.name, layer: 'LORE' });
 		}
 	}
 	for (const n of npcs) {
 		if (!placedKeys.has(`NPC:${n.id}`)) {
-			out.push({ entityType: 'NPC', entityId: n.id, name: n.name });
+			out.push({ entityType: 'NPC', entityId: n.id, name: n.name, layer: 'LORE' });
 		}
 	}
 	for (const q of quests) {
 		if (!placedKeys.has(`QUEST:${q.id}`)) {
-			out.push({ entityType: 'QUEST', entityId: q.id, name: q.title });
+			out.push({ entityType: 'QUEST', entityId: q.id, name: q.title, layer: 'LORE' });
 		}
 	}
 	for (const c of characters) {
 		if (!placedKeys.has(`CHARACTER:${c.id}`)) {
-			out.push({ entityType: 'CHARACTER', entityId: c.id, name: c.name });
+			out.push({ entityType: 'CHARACTER', entityId: c.id, name: c.name, layer: 'LORE' });
 		}
 	}
 	for (const j of journals) {
 		if (!placedKeys.has(`JOURNAL:${j.id}`)) {
-			out.push({ entityType: 'JOURNAL', entityId: j.id, name: j.title });
+			out.push({ entityType: 'JOURNAL', entityId: j.id, name: j.title, layer: 'LORE' });
 		}
 	}
 	for (const p of plotQuests) {
 		if (!placedKeys.has(`PLOT_QUEST:${p.id}`)) {
-			out.push({ entityType: 'PLOT_QUEST', entityId: p.id, name: p.title, subtitle: p.status });
+			out.push({
+				entityType: 'PLOT_QUEST',
+				entityId: p.id,
+				name: p.title,
+				subtitle: p.status,
+				layer: 'LORE',
+			});
 		}
 	}
 

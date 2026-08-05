@@ -128,8 +128,9 @@ import {
 } from './dbapi/write/world/progression-overrides.ts';
 import { getNeuralMap, listNeuralCandidates } from './dbapi/read/world/get-neural-map.ts';
 import {
-	addNeuralNode, updateNeuralNode, removeNeuralNode,
+	addNeuralNode, updateNeuralNode, updateNeuralNodeByEntity, removeNeuralNode,
 	addNeuralEdge, updateNeuralEdge, removeNeuralEdge,
+	syncProgressionLayer, relayoutProgressionLayer,
 } from './dbapi/write/world/neural-map.ts';
 import {
 	listPlotQuestsByWorld, getPlotQuestById, listLinkableSystemQuests,
@@ -138,6 +139,23 @@ import {
 	createPlotQuest, updatePlotQuest, deletePlotQuest,
 	linkSystemQuestToPlot, unlinkSystemQuestFromPlot,
 } from './dbapi/write/world/plot-quests.ts';
+import {
+	getPlotProgression, listPlotQuestsBySystemQuest,
+	listPlayerPlotQuests, getPlotPlayLog,
+} from './dbapi/read/world/get-plot-progression.ts';
+import {
+	createPlotNode, updatePlotNode, deletePlotNode,
+	createPlotEdge, deletePlotEdge, createPlotEdgeFromNeuralNodes, deletePlotEdgeFromNeuralOverlay,
+	setPlotNodeState, advancePlotNode, revertPlotNode, setPlotNodeCurrent,
+	createPlotEntryRequirement, deletePlotEntryRequirement,
+	createPlotEffect, deletePlotEffect,
+	createPlotReward, deletePlotReward,
+	updatePlotFailureTimeout, applyPlotFailureTimeout, applyOverdueNodeTimeouts,
+} from './dbapi/write/world/plot-progression.ts';
+import {
+	assertAcyclic as assertPlotGraphAcyclic,
+	computeProgressionAnalysis,
+} from './lib/plot-graph/index.ts';
 import { getWorldCalendar, getWorldCalendarOverview } from './dbapi/read/world/get-calendar.ts';
 import { ensureWorldCalendar, saveWorldCalendar } from './dbapi/write/world/calendar.ts';
 import { listTimelineEntries, getTimelineEventById, listRegionWeather, monthDayRange } from './dbapi/read/world/get-timeline.ts';
@@ -418,20 +436,49 @@ export const worlds = {
         listCandidates:  listNeuralCandidates,
         addNode:         addNeuralNode,
         updateNode:      updateNeuralNode,
+        updateNodeByEntity: updateNeuralNodeByEntity,
         removeNode:      removeNeuralNode,
         addEdge:         addNeuralEdge,
         updateEdge:      updateNeuralEdge,
         removeEdge:      removeNeuralEdge,
+        syncProgression: syncProgressionLayer,
+        relayoutProgression: relayoutProgressionLayer,
     },
     plotQuests: {
         listByWorld:     listPlotQuestsByWorld,
         getById:         getPlotQuestById,
         listLinkableQuests: listLinkableSystemQuests,
+        listBySystemQuest: listPlotQuestsBySystemQuest,
         create:          createPlotQuest,
         update:          updatePlotQuest,
         delete:          deletePlotQuest,
         linkQuest:       linkSystemQuestToPlot,
         unlinkQuest:     unlinkSystemQuestFromPlot,
+        getProgression:  getPlotProgression,
+        listPlayerPlots: listPlayerPlotQuests,
+        getPlayLog:      getPlotPlayLog,
+        createNode:      createPlotNode,
+        updateNode:      updatePlotNode,
+        deleteNode:      deletePlotNode,
+        createEdge:      createPlotEdge,
+        deleteEdge:      deletePlotEdge,
+        createEdgeFromNeural: createPlotEdgeFromNeuralNodes,
+        deleteEdgeFromNeuralOverlay: deletePlotEdgeFromNeuralOverlay,
+        setNodeState:    setPlotNodeState,
+        advanceNode:     advancePlotNode,
+        revertNode:      revertPlotNode,
+        setNodeCurrent:  setPlotNodeCurrent,
+        createEntryReq:  createPlotEntryRequirement,
+        deleteEntryReq:  deletePlotEntryRequirement,
+        createEffect:    createPlotEffect,
+        deleteEffect:    deletePlotEffect,
+        createReward:    createPlotReward,
+        deleteReward:    deletePlotReward,
+        setFailureTimeout: updatePlotFailureTimeout,
+        applyFailureTimeout: applyPlotFailureTimeout,
+        applyNodeTimeouts: applyOverdueNodeTimeouts,
+        assertAcyclic:   assertPlotGraphAcyclic,
+        analyze:         computeProgressionAnalysis,
     },
     calendar: {
         get:        getWorldCalendar,

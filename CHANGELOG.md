@@ -1306,3 +1306,107 @@ World lore plot layer (separate from system play-session Quests; Session rename 
 - Approving a DM role request creates a default world for first-time DMs and assigns them `canManage`
 - If the DM already has world assignments, skip creation and notify admins (`DM_REAPPROVED_WITH_WORLDS`)
 - Move `DM_REQUEST_PENDING` admin notify to request submit (was incorrectly fired on approve)
+
+### Session 101 — Plot Quest progression graph (2026-08-02)
+
+- PlotQuest progression DAG: objectives, failure package, scenes/discoveries/decisions/exits/endings, Requires/Unlocks/Blocks (incl. cross-plot), node runtime state + analysis
+- Shared editor `PlotQuestProgressionEditor` on DM/Admin plot detail; `failureTimeoutDay` on summary
+- Neural map layers Lore | Progression; place `PLOT_NODE`s; overlay plot edges when endpoints are placed
+- Session quest detail: linked plot quests tab (DM) / card (Admin)
+- API: `worlds.plotQuests.getProgression`, node/edge/state CRUD, `listBySystemQuest`
+
+### Session 102 — Progression entry reqs, neural status, effects (2026-08-03)
+
+- Entry requirements evaluated in analysis (`NPC_ALIVE`, `QUEST_ACCEPTED`, node/objective complete); Entry tab + unmet/blocked reporting
+- Neural Progression nodes show available / entry-blocked / impossible from the same analysis
+- Effects/rewards authoring UI; apply renown / NPC status / lock-plot on COMPLETED|FAILED
+- Failure timeout due banner + `applyFailureTimeout`
+
+### Session 103 — Progression UI rebuild to product tree (2026-08-03)
+
+- Rebuild authoring UI: Objectives / Failure / Progression / Analysis with human labels (no Kind enum dump)
+- Plot `deadlineDay` = global fail timer; remove Summary “Failure timeout”
+- Per-scene and per-objective `PlotNode.failureTimeoutDay`; overdue node apply action
+- Deadline apply uses `deadlineDay` for the Failure package
+
+### Session 104 — Per-piece progression connections (2026-08-03)
+
+- Remove global “How pieces connect” block from Progression tab
+- Unlock / Require / Block forms live on each piece (discovery, option, exit, scene, ending) so scope is obvious
+
+### Session 105 — Progression scene card panels (2026-08-03)
+
+- Scene authoring is card-based: Entry / Discoveries / Decisions / Exits / Links panels load in place
+- Entry requirement and consequence forms open on the owning card (no form dumped at page bottom)
+- “Add scene” is a button that expands the form in place (same pattern as other adds)
+- Endings is its own top-level tab (with Objectives / Failure / Progression / Analysis)
+- Links: Unlocks/Blocks = “when completed”; Requires = separate “needs…” prerequisite (not a completion effect)
+- Discovery / Decision / Exit nodes: description field in Progression editor (create + edit)
+
+### Session 106 — Plot playthrough, Analysis, add-button UX (2026-08-03)
+
+- Add objective / failure condition: button then expand form (same as scene)
+- Analysis: playable-only open scenes; titles + empty hints; blocked endings
+- Engine: ungated LOCKED is not available; COMPLETED/terminal excluded from available
+- Play tab: advance beats with DM/player notes; Complete auto-applies unlocks/blocks
+- `PlotNodeState.playerNote` + `playerNoteVisible`; `advancePlotNode` API
+- Player plot log: `/world/[slug]/plots` + revealed beats detail
+
+### Session 107 — Neural Progression auto-populate (2026-08-04)
+
+- Progression layer auto-fills from each plot’s PlotNodes (`syncProgressionLayer`)
+- Sync on neural map load + plot node create/delete; preserves existing positions
+- Per-plot column layout for new nodes; prune orphan PLOT_NODE placements
+- Default to Progression when plot pieces exist; auto-fit; show Scene/Discovery/… + plot title (Lore = factions/NPCs/plot cards)
+
+### Session 108 — Plot flowchart authoring (2026-08-04)
+
+- Progression tab = plot-scoped flowchart (`PlotFlowchartEditor`): add pieces, Connect → PlotEdge, inspector drawer
+- Left→right layered layout (`layoutPlotFlowchart`) + opt-in `relayoutProgressionLayer` (Relayout on plot + Neural)
+- Neural Progression Connect writes PlotEdge (Unlocks/Blocks/Needs); Lore Connect unchanged
+- World Neural stays multi-plot overview, auto-synced from plot pieces
+- Flowchart UX: top palette is + Scene only; discoveries/decisions/exits added inside a selected scene; endings stay on Endings tab; scene inspector (title/desc/status/failure/entry); deletes use `confirmModal`
+- Plot page: Details | Links side-by-side; Plot structure full-width below; scene description multi-line; canvas shows scene children + branch links (decision→option)
+- Compound scene cards: discoveries/decisions/options/exits nested inside scene cards; edges between scenes/endings from exits/options; richer inspector
+- Restored consequences (PlotEffect) on discoveries, decision options, exits, and endings in the flowchart inspector
+- Restored Unlock/Block/Needs on scene pieces; exit shortcuts to ending/scene; ending shortcuts to finish objectives, open scene, finish plot
+- Ending→objective UNLOCKS completes the objective; CUSTOM `{ finishPlot: true }` marks the plot COMPLETED
+
+### Session 109 — Two-layer Progression UX (Scene graph + Scene flow) (2026-08-05)
+
+- Progression flowchart split into **Scene graph** (scenes/endings + Connect) and **Scene flow** (per-scene editor)
+- Scene flow: left palette (+ Discovery / Decision / Option / Exit), center canvas, right inspector
+- Always-present **Start Node** owns entry requirements and scene-level Unlock / Block / Needs / Consequences
+- In-scene pieces as separate nodes; dashed parent links + solid PlotEdges; ghost targets for outbound links
+- Progression plumbing kept on Start, Discovery, Decision, Option, Exit, Ending (not buried)
+
+### Session 110 — Lore-only Neural, directed connectors, Play on flowchart (2026-08-05)
+
+- Neural map is Lore-only (Progression chip/sync/overlay removed from UI); plot flowchart remains progression source of truth
+- Stronger directed connectors (larger arrows, side docking, parent-link arrows, Flip direction)
+- Play tab uses Scene graph / Scene flow: select option/piece → Taken / Complete / Fail / Miss or set Available/Blocked
+- Play on Draft clarified as DM testing (not blocked); Active = go live for players
+- Play path chooser on decisions; flow paints Taken (purple) / Open (green) / Blocked (red) / Closed (gray); element type colors
+- Play records path state: Taken + miss siblings + close decision; UNLOCKS jump to ACTIVE (current step); canvas Current paint
+- Decision Yes/No is always a step jump (no Unlocks required); Current advances structurally in-scene when no Unlocks
+- Play **Revert step** (confirm dialog): clears that choice + every later choice, restores Current; does not undo world effects
+- Play tab Finish objective / go-to / unlock shortcuts actually save (edge create was unwired in playMode)
+- Play path paint: bright green only on connectors into Current (not outbound option branches)
+- Play path paint: Locked = red, Blocked = amber (distinct); Missed/not-yet-chosen stay gray
+- Progression canvas: fix node drag (suppress native browser drag; pointer capture on board)
+- Out-of-scene ghost targets (e.g. Finish objective chips) are draggable and persist position
+- Plot **Encounter** pieces (Combat / Puzzles / Traps / Social) under Scene; Social faction/NPC from plot Links; full Unlocks/Needs/Blocks/description surface
+- Flowchart drops deleted out-of-scene ghosts (e.g. removed objective) instead of leaving a stale card
+- Scene flow no longer deletes Objectives/Endings via ghost chips — only remove the link; manage those on their tabs
+- **Finish objective** on every linkable piece; Unlocks→Objective always marks COMPLETED (not Current); Decision finish edges fire when a path is taken; Play status Complete/Fail uses advance cascade
+- Scene-flow edit labels: Unlocks→Objective shows as **Finish** on canvas captions, ghost chips, and selected-edge inspector (not only Play chips)
+- Play path paint: soft green only for next step (Current → Available); not the whole Available chain to the end
+- Play **Set as Current** (scene/Start or any open piece): moves sole Current marker; does not wipe Taken history — use to restart from Start after revert
+- Taking an **Exit** completes the parent scene (resolves it) and applies scene Unlocks; Current follows jumps (e.g. Scene 2), not in-scene structural next
+- Scene flow UX: Finish-objective is card/inspector only (`Finishes: …`) — no board connector or objective ghost; path arrows stay for real jumps- Play: decision/option inspector gets Continue to (in-scene) + Go to scene/ending; after taking an option Current always moves to Exit/next in-scene step; Set as Current is primary + clearer errors
+- Play: stop fanning green Current from Available Start; structural next no longer force-opens every Locked Exit after an unrelated path
+- Play: Current is exactly one step — never all Exits at once; extra Unlocks open as Available
+- Play: path choice with no Continue-to clears Current and warns the DM to fix the graph (no scene/Exit fan-out hack)
+- Play path paint: pieces/edges not reachable from Current show as Blocked (amber), not open green
+- Play: Start Node inspector offers **Set Start as Current** (was labeled only as Set scene as Current)
+- Play: taking a decision option keeps Current in-scene (Exit / next piece); out-of-scene Unlocks open as Available until an Exit is taken

@@ -41,6 +41,15 @@ enum NeuralEntityType {
   CHARACTER
   JOURNAL
   PLOT_QUEST
+  /// Progression graph node (PlotNode id)
+  PLOT_NODE
+
+  @@schema("world")
+}
+
+enum NeuralMapLayer {
+  LORE
+  PROGRESSION
 
   @@schema("world")
 }
@@ -51,6 +60,83 @@ enum PlotQuestStatus {
   COMPLETED
   FAILED
   ABANDONED
+
+  @@schema("world")
+}
+
+enum PlotNodeKind {
+  OBJECTIVE
+  FAILURE_CONDITION
+  SCENE
+  DISCOVERY
+  ENCOUNTER
+  DECISION
+  DECISION_OPTION
+  EXIT
+  ENDING
+
+  @@schema("world")
+}
+
+enum PlotEncounterKind {
+  COMBAT
+  PUZZLE
+  TRAP
+  SOCIAL
+
+  @@schema("world")
+}
+
+enum PlotEdgeKind {
+  REQUIRES
+  UNLOCKS
+  BLOCKS
+
+  @@schema("world")
+}
+
+enum PlotNodeStatus {
+  LOCKED
+  AVAILABLE
+  ACTIVE
+  COMPLETED
+  FAILED
+  MISSED
+  BLOCKED
+
+  @@schema("world")
+}
+
+enum PlotObjectiveTier {
+  PRIMARY
+  OPTIONAL
+
+  @@schema("world")
+}
+
+enum PlotEffectKind {
+  REPUTATION
+  NPC_FLAG
+  LOCK_PLOT_QUEST
+  CUSTOM
+
+  @@schema("world")
+}
+
+enum PlotRewardKind {
+  ITEM
+  CURRENCY
+  CUSTOM
+
+  @@schema("world")
+}
+
+enum PlotEntryReqKind {
+  QUEST_ACCEPTED
+  NPC_ALIVE
+  NODE_COMPLETED
+  OBJECTIVE_COMPLETE
+  CUSTOM
 
   @@schema("world")
 }
@@ -433,6 +519,7 @@ model NeuralMapNode {
   world      World            @relation(fields: [worldId], references: [id], onDelete: Cascade)
   entityType NeuralEntityType @map("entity_type")
   entityId   String           @map("entity_id")
+  layer      NeuralMapLayer   @default(LORE)
   // Normalized canvas coords (0–1000 space)
   posX       Float            @default(500) @map("pos_x")
   posY       Float            @default(500) @map("pos_y")
@@ -445,6 +532,7 @@ model NeuralMapNode {
 
   @@unique([worldId, entityType, entityId])
   @@index([worldId])
+  @@index([worldId, layer])
   @@map("neural_map_nodes")
   @@schema("world")
 }
@@ -471,6 +559,7 @@ model NeuralMapEdge {
 // World lore / plot missions (not system play-session Quests).
 // Faction/NPC associations live in factions.FactionQuest / NpcQuest (soft plotQuestId).
 // System Quests link via PlotQuestQuest.
+// Progression = per-plot DAG (scenes → discoveries/decisions/exits → endings).
 model PlotQuest {
   id          String          @id @default(uuid())
   worldId     String          @map("world_id")
@@ -481,12 +570,17 @@ model PlotQuest {
   status      PlotQuestStatus @default(DRAFT)
   // Absolute day on the world calendar (null = no deadline). Replaces Gregorian deadlineAt.
   deadlineDay Int?            @map("deadline_day")
+  /// Optional failure timeout (absolute day); may match or differ from deadlineDay.
+  failureTimeoutDay Int?      @map("failure_timeout_day")
   sortOrder   Int             @default(0) @map("sort_order")
   createdBy   String          @map("created_by")
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt      @map("updated_at")
 
   linkedQuests PlotQuestQuest[]
+  nodes        PlotNode[]
+  edges        PlotEdge[]
+  entryReqs    PlotEntryRequirement[]
 
   @@index([worldId])
   @@map("plot_quests")
@@ -504,5 +598,131 @@ model PlotQuestQuest {
   @@unique([plotQuestId, questId])
   @@index([questId])
   @@map("plot_quest_quests")
+  @@schema("world")
+}
+
+model PlotNode {
+  id            String             @id @default(uuid())
+  plotQuestId   String             @map("plot_quest_id")
+  plotQuest     PlotQuest          @relation(fields: [plotQuestId], references: [id], onDelete: Cascade)
+  parentNodeId  String?            @map("parent_node_id")
+  parent        PlotNode?          @relation("PlotNodeTree", fields: [parentNodeId], references: [id], onDelete: Cascade)
+  children      PlotNode[]         @relation("PlotNodeTree")
+  kind          PlotNodeKind
+  title         String
+  summary       String?
+  description   String?
+  objectiveTier PlotObjectiveTier? @map("objective_tier")
+  /// Encounter subtype (ENCOUNTER only).
+  encounterKind PlotEncounterKind? @map("encounter_kind")
+  /// Soft Faction id for SOCIAL encounters (plot-linked picker).
+  socialFactionId String?          @map("social_faction_id")
+  /// Soft NPC id for SOCIAL encounters (plot-linked picker).
+  socialNpcId     String?          @map("social_npc_id")
+  /// Optional fail-by absolute day (SCENE / OBJECTIVE only). Plot-global fail uses PlotQuest.deadlineDay.
+  failureTimeoutDay Int?           @map("failure_timeout_day")
+  sortOrder     Int                @default(0) @map("sort_order")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt      @map("updated_at")
+
+  edgesFrom  PlotEdge[]            @relation("PlotEdgeFrom")
+  edgesTo    PlotEdge[]            @relation("PlotEdgeTo")
+  entryReqs  PlotEntryRequirement[]
+  effects    PlotEffect[]
+  rewards    PlotReward[]
+  state      PlotNodeState?
+
+  @@index([plotQuestId])
+  @@index([parentNodeId])
+  @@index([plotQuestId, kind])
+  @@map("plot_nodes")
+  @@schema("world")
+}
+
+model PlotEdge {
+  id            String       @id @default(uuid())
+  plotQuestId   String       @map("plot_quest_id")
+  plotQuest     PlotQuest    @relation(fields: [plotQuestId], references: [id], onDelete: Cascade)
+  fromNodeId    String       @map("from_node_id")
+  fromNode      PlotNode     @relation("PlotEdgeFrom", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  /// Same-plot target (mutually exclusive with toPlotQuestId).
+  toNodeId      String?      @map("to_node_id")
+  toNode        PlotNode?    @relation("PlotEdgeTo", fields: [toNodeId], references: [id], onDelete: Cascade)
+  /// Cross-plot unlock/block target (soft PlotQuest id).
+  toPlotQuestId String?      @map("to_plot_quest_id")
+  kind          PlotEdgeKind
+  label         String?
+  notes         String?
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  @@index([plotQuestId])
+  @@index([fromNodeId])
+  @@index([toNodeId])
+  @@index([toPlotQuestId])
+  @@map("plot_edges")
+  @@schema("world")
+}
+
+model PlotEntryRequirement {
+  id          String           @id @default(uuid())
+  plotQuestId String           @map("plot_quest_id")
+  plotQuest   PlotQuest        @relation(fields: [plotQuestId], references: [id], onDelete: Cascade)
+  sceneNodeId String           @map("scene_node_id")
+  sceneNode   PlotNode         @relation(fields: [sceneNodeId], references: [id], onDelete: Cascade)
+  kind        PlotEntryReqKind
+  /// Soft refs / notes depending on kind (npcId, nodeId, custom text).
+  payload     Json?
+  label       String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@index([plotQuestId])
+  @@index([sceneNodeId])
+  @@map("plot_entry_requirements")
+  @@schema("world")
+}
+
+model PlotEffect {
+  id          String         @id @default(uuid())
+  ownerNodeId String         @map("owner_node_id")
+  ownerNode   PlotNode       @relation(fields: [ownerNodeId], references: [id], onDelete: Cascade)
+  kind        PlotEffectKind
+  payload     Json?
+  label       String?
+  sortOrder   Int            @default(0) @map("sort_order")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  @@index([ownerNodeId])
+  @@map("plot_effects")
+  @@schema("world")
+}
+
+model PlotReward {
+  id          String         @id @default(uuid())
+  ownerNodeId String         @map("owner_node_id")
+  ownerNode   PlotNode       @relation(fields: [ownerNodeId], references: [id], onDelete: Cascade)
+  kind        PlotRewardKind
+  payload     Json?
+  label       String?
+  sortOrder   Int            @default(0) @map("sort_order")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  @@index([ownerNodeId])
+  @@map("plot_rewards")
+  @@schema("world")
+}
+
+model PlotNodeState {
+  id                 String         @id @default(uuid())
+  nodeId             String         @unique @map("node_id")
+  node               PlotNode       @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  status             PlotNodeStatus @default(LOCKED)
+  /// DM-only playthrough note
+  note               String?
+  /// Player-facing progression note (shown when playerNoteVisible)
+  playerNote         String?        @map("player_note")
+  playerNoteVisible  Boolean        @default(false) @map("player_note_visible")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  @@map("plot_node_states")
   @@schema("world")
 }

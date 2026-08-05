@@ -5,6 +5,7 @@
 		NeuralCandidateView,
 		NeuralEntityType,
 		NeuralMapEdgeView,
+		NeuralMapLayer,
 		NeuralMapNodeView,
 	} from './neural-map-types.ts';
 
@@ -17,15 +18,30 @@
 		CHARACTER:  { label: 'Character',  icon: '🎭' },
 		JOURNAL:    { label: 'Journal',    icon: '📖' },
 		PLOT_QUEST: { label: 'Plot quest', icon: '📜' },
+		PLOT_NODE:  { label: 'Progression', icon: '◆' },
 	};
 
-	const TYPE_ORDER: NeuralEntityType[] = [
+	const LORE_TYPES: NeuralEntityType[] = [
 		'REGION', 'LOCATION', 'FACTION', 'NPC', 'QUEST', 'PLOT_QUEST', 'CHARACTER', 'JOURNAL',
 	];
+	const PROG_TYPES: NeuralEntityType[] = ['PLOT_NODE'];
+
+	const KIND_LABELS: Record<string, string> = {
+		OBJECTIVE: 'Objective',
+		FAILURE_CONDITION: 'Failure',
+		SCENE: 'Scene',
+		DISCOVERY: 'Discovery',
+		ENCOUNTER: 'Encounter',
+		DECISION: 'Decision',
+		DECISION_OPTION: 'Option',
+		EXIT: 'Exit',
+		ENDING: 'Ending',
+	};
 
 	let {
 		nodes = [],
 		edges = [],
+		overlayEdges = [],
 		candidates = [],
 		canEdit = true,
 		hrefFor,
@@ -35,27 +51,55 @@
 		onAddEdge,
 		onUpdateEdge,
 		onRemoveEdge,
+		onRelayout,
 	}: {
 		nodes?: NeuralMapNodeView[];
 		edges?: NeuralMapEdgeView[];
+		/** PlotEdge overlays (Progression layer) — Connect writes these, not NeuralMapEdge */
+		overlayEdges?: NeuralMapEdgeView[];
 		candidates?: NeuralCandidateView[];
 		canEdit?: boolean;
 		hrefFor: (node: NeuralMapNodeView) => string | null;
 		onAddNode?: (c: NeuralCandidateView, pos: { posX: number; posY: number }) => Promise<void> | void;
 		onUpdateNode?: (id: string, patch: { posX?: number; posY?: number; note?: string | null }) => Promise<void> | void;
 		onRemoveNode?: (id: string) => Promise<void> | void;
-		onAddEdge?: (input: { fromNodeId: string; toNodeId: string; label?: string }) => Promise<void> | void;
+		onAddEdge?: (input: {
+			fromNodeId: string;
+			toNodeId: string;
+			label?: string;
+			kind?: string;
+			layer?: NeuralMapLayer;
+		}) => Promise<void> | void;
 		onUpdateEdge?: (id: string, patch: { label?: string | null; notes?: string | null }) => Promise<void> | void;
 		onRemoveEdge?: (id: string) => Promise<void> | void;
+		onRelayout?: () => Promise<void> | void;
 	} = $props();
+
+	/** Lore-only board — plot progression lives on the plot flowchart. */
+	const layer: NeuralMapLayer = 'LORE';
+	const TYPE_ORDER = LORE_TYPES;
+
+	const layerNodes = $derived(nodes.filter(n => (n.layer ?? 'LORE') === 'LORE' && n.entityType !== 'PLOT_NODE'));
+	const layerNodeIds = $derived(new Set(layerNodes.map(n => n.id)));
+	const layerEdges = $derived(edges.filter(e => layerNodeIds.has(e.fromNodeId) && layerNodeIds.has(e.toNodeId)));
+	const layerOverlay = $derived([] as NeuralMapEdgeView[]);
+	const layerCandidates = $derived(candidates.filter(c => (c.layer ?? 'LORE') === 'LORE' && c.entityType !== 'PLOT_NODE'));
 
 	let localNodes = $state<NeuralMapNodeView[]>([]);
 	$effect(() => {
-		localNodes = nodes.map(n => ({ ...n }));
+		localNodes = layerNodes.map(n => ({ ...n }));
 	});
+
+	function kindLabel(n: NeuralMapNodeView): string {
+		if (n.entityType === 'PLOT_NODE' && n.plotNodeKind) {
+			return KIND_LABELS[n.plotNodeKind] ?? n.plotNodeKind;
+		}
+		return TYPE_META[n.entityType].label;
+	}
 
 	let mode = $state<'select' | 'connect'>('select');
 	let connectFrom = $state<string | null>(null);
+	let connectKind = $state<'UNLOCKS' | 'BLOCKS' | 'REQUIRES'>('UNLOCKS');
 	let search = $state('');
 	let typeFilter = $state<NeuralEntityType | 'ALL'>('ALL');
 	let panX = $state(0);
@@ -75,10 +119,21 @@
 	let selectedNodeId = $state<string | null>(null);
 	const selectedNode = $derived(localNodes.find(n => n.id === selectedNodeId) ?? null);
 
+
+	let fittedKey = $state('');
+	$effect(() => {
+		// Frame the board once when the active layer first has nodes (not on every drag)
+		if (!layerInitialized || !boardEl || !localNodes.length) return;
+		const key = `${layer}:${localNodes.length}`;
+		if (fittedKey === key) return;
+		fittedKey = key;
+		queueMicrotask(() => fitView());
+	});
+
 	const nodeById = $derived(Object.fromEntries(localNodes.map(n => [n.id, n])));
 
 	const filteredCandidates = $derived(
-		candidates.filter(c => {
+		layerCandidates.filter(c => {
 			if (typeFilter !== 'ALL' && c.entityType !== typeFilter) return false;
 			if (!search.trim()) return true;
 			const q = search.trim().toLowerCase();
@@ -88,7 +143,12 @@
 		}),
 	);
 
-	const selectedEdge = $derived(edges.find(e => e.id === selectedEdgeId) ?? null);
+	const selectedEdge = $derived(
+		layerEdges.find(e => e.id === selectedEdgeId)
+			?? layerOverlay.find(e => e.id === selectedEdgeId)
+			?? null,
+	);
+	const selectedIsPlotEdge = $derived(!!selectedEdgeId?.startsWith('plot-edge:'));
 
 	$effect(() => {
 		if (selectedEdge) {
@@ -166,11 +226,14 @@
 
 	function onNodePointerDown(e: PointerEvent, node: NeuralMapNodeView) {
 		e.stopPropagation();
+		e.preventDefault(); // suppress native browser drag ghost
+		if (e.button !== 0) return;
 		if (!canEdit || mode === 'connect') return;
 		draggingNode = node.id;
 		const w = screenToWorld(e.clientX, e.clientY);
 		dragOffset = { x: w.x - node.posX, y: w.y - node.posY };
-		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		// Capture on board so board move/up handlers receive the drag
+		boardEl?.setPointerCapture(e.pointerId);
 	}
 
 	async function connectNode(node: NeuralMapNodeView) {
@@ -183,10 +246,22 @@
 			connectFrom = null;
 			return;
 		}
-		const fromNodeId = connectFrom;
+		const a = connectFrom;
+		const b = node.id;
 		connectFrom = null;
 		busy = true;
-		try { await onAddEdge?.({ fromNodeId, toNodeId: node.id, label: '' }); }
+		try {
+			await onAddEdge?.({ fromNodeId: a, toNodeId: b, label: '', layer: 'LORE' });
+			// Stay in Connect so DMs can draw several links in a row
+		} finally {
+			busy = false;
+		}
+	}
+
+	async function relayout() {
+		if (!canEdit || !onRelayout) return;
+		busy = true;
+		try { await onRelayout(); }
 		finally { busy = false; }
 	}
 
@@ -344,42 +419,45 @@
 	<aside class="neural__sidebar">
 		<div class="neural__sidebar-head">
 			<h3 class="neural__title">Add to board</h3>
-			<p class="neural__hint">Place elements, then connect them for plot/lore.</p>
+			<p class="neural__hint">
+				Place lore elements (regions, factions, NPCs, plot quest cards…), then author connections.
+				Plot scene flow lives on each plot’s Progression tab.
+			</p>
 		</div>
-		<input
-			class="input neural__search"
-			type="search"
-			placeholder="Search…"
-			bind:value={search}
-		/>
-		<div class="neural__filters">
-			<button type="button" class="neural__chip" class:neural__chip--on={typeFilter === 'ALL'} onclick={() => typeFilter = 'ALL'}>All</button>
-			{#each TYPE_ORDER as t}
-				<button type="button" class="neural__chip" class:neural__chip--on={typeFilter === t} onclick={() => typeFilter = t} title={TYPE_META[t].label}>
-					{TYPE_META[t].icon}
-				</button>
-			{/each}
-		</div>
-		<ul class="neural__list">
-			{#if !canEdit}
-				<li class="neural__empty">View only</li>
-			{:else if filteredCandidates.length === 0}
-				<li class="neural__empty">No matching elements to add.</li>
-			{:else}
-				{#each filteredCandidates as c (c.entityType + c.entityId)}
-					<li>
-						<button type="button" class="neural__cand" onclick={() => addCandidate(c)} disabled={busy}>
-							<span class="neural__cand-icon">{TYPE_META[c.entityType].icon}</span>
-							<span class="neural__cand-text">
-								<span class="neural__cand-name">{c.name}</span>
-								<span class="neural__cand-sub">{TYPE_META[c.entityType].label}{c.subtitle ? ` · ${c.subtitle}` : ''}</span>
-							</span>
-							<span class="neural__cand-add">+</span>
-						</button>
-					</li>
+			<input
+				class="input neural__search"
+				type="search"
+				placeholder="Search…"
+				bind:value={search}
+			/>
+			<div class="neural__filters">
+				<button type="button" class="neural__chip" class:neural__chip--on={typeFilter === 'ALL'} onclick={() => typeFilter = 'ALL'}>All</button>
+				{#each TYPE_ORDER as t}
+					<button type="button" class="neural__chip" class:neural__chip--on={typeFilter === t} onclick={() => typeFilter = t} title={TYPE_META[t].label}>
+						{TYPE_META[t].icon}
+					</button>
 				{/each}
-			{/if}
-		</ul>
+			</div>
+			<ul class="neural__list">
+				{#if !canEdit}
+					<li class="neural__empty">View only</li>
+				{:else if filteredCandidates.length === 0}
+					<li class="neural__empty">No matching elements to add.</li>
+				{:else}
+					{#each filteredCandidates as c (c.entityType + c.entityId)}
+						<li>
+							<button type="button" class="neural__cand" onclick={() => addCandidate(c)} disabled={busy}>
+								<span class="neural__cand-icon">{TYPE_META[c.entityType].icon}</span>
+								<span class="neural__cand-text">
+									<span class="neural__cand-name">{c.name}</span>
+									<span class="neural__cand-sub">{TYPE_META[c.entityType].label}{c.subtitle ? ` · ${c.subtitle}` : ''}</span>
+								</span>
+								<span class="neural__cand-add">+</span>
+							</button>
+						</li>
+					{/each}
+				{/if}
+			</ul>
 	</aside>
 
 	<div class="neural__main">
@@ -423,8 +501,14 @@
 		>
 			{#if localNodes.length === 0}
 				<div class="neural__empty-board">
-					<p>No elements on the board yet.</p>
-					<p>Add regions, NPCs, quests, journals… from the sidebar, then use <strong>Connect</strong> to draw plot links.</p>
+					<p>No elements on the {layer === 'LORE' ? 'Lore' : 'Progression'} board yet.</p>
+					<p>
+						{#if layer === 'LORE'}
+							Add regions, NPCs, quests, journals… from the sidebar, then use <strong>Connect</strong> to draw links.
+						{:else}
+							No plot pieces yet — open a plot quest’s Progression flowchart to add scenes; they sync here automatically.
+						{/if}
+					</p>
 				</div>
 			{/if}
 
@@ -434,8 +518,46 @@
 						<marker id="neural-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
 							<path d="M0,0 L6,3 L0,6 Z" fill="var(--text-muted)" />
 						</marker>
+						<marker id="neural-arrow-overlay" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+							<path d="M0,0 L6,3 L0,6 Z" fill="var(--color-accent, #6b8cae)" />
+						</marker>
 					</defs>
-					{#each edges as edge (edge.id)}
+					{#each layerOverlay as edge (edge.id)}
+						{@const from = nodeById[edge.fromNodeId]}
+						{@const to = nodeById[edge.toNodeId]}
+						{#if from && to}
+							{@const path = edgePath(from, to)}
+							<path
+								class="neural-edge neural-edge--overlay"
+								class:neural-edge--on={selectedEdgeId === edge.id}
+								d={path.d}
+								fill="none"
+								marker-end={edge.directed ? 'url(#neural-arrow-overlay)' : undefined}
+								pointer-events="stroke"
+							/>
+							<path
+								class="neural-edge-hit"
+								d={path.d}
+								fill="none"
+								stroke="transparent"
+								stroke-width="14"
+								role="button"
+								tabindex="0"
+								aria-label={edge.label ? `Plot link: ${edge.label}` : 'Plot link'}
+								onclick={(ev) => selectEdge(edge.id, ev)}
+								onkeydown={(ev) => onEdgeKeydown(ev, edge.id)}
+							/>
+							{#if edge.label}
+								<text
+									class="neural-edge-label neural-edge-label--overlay"
+									x={path.midX}
+									y={path.midY}
+									pointer-events="none"
+								>{edge.label}</text>
+							{/if}
+						{/if}
+					{/each}
+					{#each layerEdges as edge (edge.id)}
 						{@const from = nodeById[edge.fromNodeId]}
 						{@const to = nodeById[edge.toNodeId]}
 						{#if from && to}
@@ -483,16 +605,35 @@
 							class="neural-node neural-node--{node.entityType.toLowerCase()}"
 							class:neural-node--connect={connectFrom === node.id}
 							class:neural-node--missing={node.missing}
-							title="{node.note || node.name} — double-click to open"
+							class:neural-node--avail={node.progressionAvailable && !node.progressionImpossible && !node.progressionEntryBlocked}
+							class:neural-node--blocked={node.progressionImpossible}
+							class:neural-node--entry={node.progressionEntryBlocked && !node.progressionImpossible}
+							draggable="false"
+							title="{node.note || node.name}{node.progressionStatus ? ` · ${node.progressionStatus}` : ''}{node.progressionImpossible ? ' · impossible/blocked' : ''}{node.progressionEntryBlocked ? ' · entry blocked' : ''} — double-click to open"
 							aria-label="{TYPE_META[node.entityType].label}: {node.name}. Double-click to open."
 							onpointerdown={(ev) => onNodePointerDown(ev, node)}
+							ondragstart={(ev) => ev.preventDefault()}
 							onclick={(ev) => onNodeClick(ev, node)}
 							ondblclick={(ev) => onNodeDblClick(ev, node)}
 							onkeydown={(ev) => onNodeKeydown(ev, node)}
 						>
 							<span class="neural-node__icon" aria-hidden="true">{TYPE_META[node.entityType].icon}</span>
 							<span class="neural-node__name">{node.name}</span>
-							<span class="neural-node__type">{TYPE_META[node.entityType].label}</span>
+							<span class="neural-node__type">
+								{kindLabel(node)}
+								{#if node.plotTitle}
+									· {node.plotTitle}
+								{/if}
+								{#if node.progressionStatus}
+									· {node.progressionStatus}
+								{:else if node.progressionEntryBlocked}
+									· entry blocked
+								{:else if node.progressionImpossible}
+									· blocked
+								{:else if node.progressionAvailable}
+									· available
+								{/if}
+							</span>
 						</button>
 						{#if canEdit && mode === 'select'}
 							<button
@@ -525,7 +666,10 @@
 		{:else if selectedNode}
 			<div class="neural__edge-panel">
 				<h4>{selectedNode.name}</h4>
-				<p class="neural__hint">{TYPE_META[selectedNode.entityType].label}</p>
+				<p class="neural__hint">
+					{kindLabel(selectedNode)}
+					{#if selectedNode.plotTitle} · {selectedNode.plotTitle}{/if}
+				</p>
 				<div class="neural__edge-actions">
 					{#if canEdit}
 						<button type="button" class="btn btn-danger btn-sm" onclick={() => askRemoveNode(selectedNode)}>Remove from board</button>
@@ -540,8 +684,20 @@
 			</div>
 		{:else if selectedEdge}
 			<div class="neural__edge-panel">
-				<h4>Connection</h4>
-				{#if canEdit}
+				<h4>{selectedIsPlotEdge ? 'Plot link' : 'Connection'}</h4>
+				{#if selectedIsPlotEdge}
+					<p class="neural__hint">
+						{selectedEdge.label || 'PlotEdge'} — same link as on the plot flowchart.
+					</p>
+					{#if canEdit}
+						<div class="neural__edge-actions">
+							<button type="button" class="btn btn-danger btn-sm" onclick={deleteEdge} disabled={busy}>Delete</button>
+							<button type="button" class="btn btn-ghost btn-sm" onclick={() => selectedEdgeId = null}>Close</button>
+						</div>
+					{:else}
+						<button type="button" class="btn btn-ghost btn-sm" onclick={() => selectedEdgeId = null}>Close</button>
+					{/if}
+				{:else if canEdit}
 					<label class="label" for="edge-label">Label</label>
 					<input id="edge-label" class="input" bind:value={edgeLabelDraft} placeholder="e.g. suspects, allied with" />
 					<label class="label" for="edge-notes">Notes</label>
@@ -728,6 +884,12 @@
 		stroke-width: 2.5;
 		opacity: 1;
 	}
+	.neural__edges :global(.neural-edge--overlay) {
+		stroke: color-mix(in srgb, var(--accent) 70%, #6b8cae);
+		stroke-width: 1.75;
+		stroke-dasharray: 5 4;
+		opacity: 0.9;
+	}
 	.neural__edges :global(.neural-edge-label) {
 		fill: var(--text-secondary);
 		font-size: 11px;
@@ -737,6 +899,10 @@
 		stroke: var(--bg-base, var(--bg-surface));
 		stroke-width: 3px;
 		pointer-events: none;
+	}
+	.neural__edges :global(.neural-edge-label--overlay) {
+		fill: color-mix(in srgb, var(--accent) 80%, var(--text-secondary));
+		font-size: 10px;
 	}
 
 	.neural-node-wrap {
@@ -753,8 +919,11 @@
 		border: 1px solid var(--border-base);
 		background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
 		box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent), 0 4px 18px rgba(0,0,0,0.25);
-		cursor: pointer;
+		cursor: grab;
 		user-select: none;
+		-webkit-user-select: none;
+		-webkit-user-drag: none;
+		touch-action: none;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
@@ -809,6 +978,18 @@
 	.neural-node--character { border-top: 3px solid #7b1fa2; }
 	.neural-node--journal { border-top: 3px solid #1565c0; }
 	.neural-node--plot_quest { border-top: 3px solid #6a1b9a; }
+	.neural-node--plot_node { border-top: 3px solid #00897b; }
+	.neural-node--avail {
+		box-shadow: 0 0 0 2px color-mix(in srgb, #2e7d32 70%, transparent), 0 4px 18px rgba(0,0,0,0.25);
+	}
+	.neural-node--blocked {
+		opacity: 0.55;
+		border-style: dashed;
+		box-shadow: 0 0 0 2px color-mix(in srgb, #c62828 55%, transparent);
+	}
+	.neural-node--entry {
+		box-shadow: 0 0 0 2px color-mix(in srgb, #ef6c00 70%, transparent), 0 4px 18px rgba(0,0,0,0.25);
+	}
 
 	.neural__edge-panel,
 	.neural__confirm-panel {

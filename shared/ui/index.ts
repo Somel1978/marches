@@ -20,14 +20,18 @@ export { renderMarkdown, looksLikeMarkdown } from './src/markdown.ts';
 export { default as DescriptionText } from './components/ui/DescriptionText.svelte';
 export { default as NotificationBell } from './components/ui/NotificationBell.svelte';
 export { default as ConfirmModal } from './components/ui/ConfirmModal.svelte';
+export { confirmModal } from './components/ui/confirm-modal-singleton.ts';
 export { default as WorldProgressionLadderEditor } from './src/progression/WorldProgressionLadderEditor.svelte';
 export { default as WorldNeuralMap } from './src/world/WorldNeuralMap.svelte';
 export { default as WorldCalendarEditor } from './src/world/WorldCalendarEditor.svelte';
 export { default as WorldTimeline } from './src/world/WorldTimeline.svelte';
 export { default as FantasyDateField } from './src/world/FantasyDateField.svelte';
 export { default as RegionWeatherPanel } from './src/world/RegionWeatherPanel.svelte';
+export { default as PlotQuestProgressionEditor } from './src/world/PlotQuestProgressionEditor.svelte';
+export { default as PlotFlowchartEditor } from './src/world/PlotFlowchartEditor.svelte';
 export type {
 	NeuralEntityType,
+	NeuralMapLayer,
 	NeuralMapNodeView,
 	NeuralMapEdgeView,
 	NeuralCandidateView,

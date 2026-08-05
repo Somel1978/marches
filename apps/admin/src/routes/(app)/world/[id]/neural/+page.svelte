@@ -57,7 +57,8 @@
 	</div>
 
 	<p style="margin:0 0 0.75rem; color:var(--text-muted); font-size:0.875rem;">
-		Lore board — place elements and draw plot connections. Double-click a node to open its page.
+		Lore board — place world elements and author connections. Plot scene flow is on each plot’s Progression tab.
+		Double-click a node to open its page.
 	</p>
 
 	<WorldNeuralMap
@@ -71,6 +72,7 @@
 			entityId: c.entityId,
 			posX: pos.posX,
 			posY: pos.posY,
+			layer: 'LORE',
 		})}
 		onUpdateNode={(id, patch) => call('updateNode', {
 			nodeId: id,

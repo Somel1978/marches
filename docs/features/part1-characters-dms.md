@@ -555,22 +555,85 @@ with its own map and regions.
 Admin clicks "Place marker" on a region then clicks the map to set X/Y%
 position. Frontend renders glowing dots at those positions.
 
-**Neural map (lore board):** DM/Admin plot tool — **not** a visualization of
-database FKs. Managing DMs (`WorldDM.canManage`) and admins place world
-elements (Region, Location, Faction, NPC, Quest, PlotQuest, Character, Journal)
-on a canvas and author labeled connections for plot envisioning. Double-click
-a node to open its detail page. One board per world.
-API: `worlds.neural.*`. UI: `WorldNeuralMap` in `@core/ui`.
-Routes: `/dm/worlds/[worldId]/neural` (canManage), `/world/[id]/neural` (admin).
-Removing a node asks for confirmation; only the board placement (and its
-edges) are deleted — not the underlying entity.
+**Neural map:** Lore board only (regions, locations, factions, NPCs, quests,
+plot-quest cards, characters, journals + authored `NeuralMapEdge` links).
+Plot progression is authored on each plot’s **Progression** tab; Neural no
+longer exposes a Progression layer. `syncProgressionLayer` still runs for
+plot flowchart **positions** (invisible storage), not for the Neural UI.
+Double-click opens the entity. API: `worlds.neural.*`. UI: `WorldNeuralMap`
+in `@core/ui`. Routes: `/dm/worlds/[worldId]/neural` (canManage),
+`/world/[id]/neural` (admin). Lore node remove deletes board placement only
+— not the underlying entity.
 
 **Plot Quests (lore missions):** World-scoped plot entities distinct from
 system **Quests** (scheduled play sessions). Status + optional `deadlineDay`
-(absolute day on the world calendar). Factions/NPCs associate via
-`FactionQuest` / `NpcQuest` → `plotQuestId`. System Quests attach via
-`PlotQuestQuest` (M:N).
-DM/Admin routes: `/dm/worlds/[w]/plot-quests`, `/world/[id]/plot-quests`.
+(= **global fail timer**). Factions/NPCs associate via `FactionQuest` /
+`NpcQuest` → `plotQuestId`. System Quests attach via `PlotQuestQuest` (M:N);
+reverse tab on DM/Admin quest detail.
+**Authoring UI** (product tree, human labels — not enum dumps): Summary →
+Objectives → Failure → **Progression** (two-layer flowchart,
+`PlotFlowchartEditor`):
+**Layer 1 — Scene graph:** compact Scene / Ending cards + Connect between
+scenes/endings; exit destination labels on cards; **Edit flow** /
+double-click opens a scene.
+**Layer 2 — Scene flow:** three columns (palette | canvas | inspector).
+Canvas always includes a **Start Node** (scene entry root — entry
+requirements + scene-level Unlock/Block/Needs/Consequences) plus
+Discovery / **Encounter** / Decision / Option / Exit nodes; dashed parent
+links + solid `PlotEdge`s; ghost chips for out-of-scene link targets
+(Objectives/Endings linked via Unlocks/Blocks/Needs). Ghost inspector is
+read-only: remove the link only — delete/edit those entities on Objectives /
+Endings tabs (or Scene graph for endings), never from scene-flow Delete.
+**Encounter** subtypes: Combat, Puzzles, Traps, Social. Social can pick
+Faction and/or NPC from the plot’s linked lists (Links tab). Encounters
+use the same standard fields as other pieces (title, description, status,
+Needs, Unlocks, Blocks, Consequences). Palette adds pieces (Start is
+fixed). Inspector on every element: status, Unlock / Block, Needs,
+Consequences; **Finish objective** on all linkable pieces (Discovery /
+Encounter / Decision / Option / Exit / Scene / Ending); shown on the piece
+card as `Finishes: …` and in the inspector — not as a board path or objective
+ghost (path connectors are only for Current jumps). **Continue to (this scene)**
+on Discovery / Encounter / Decision / Option / Start creates an in-scene Unlocks
+follow-up (e.g. Option → Exit). Decision / Option / Exit also have go to
+ending/scene; ending finish-plot (`PlotEffect` CUSTOM `{ finishPlot: true }`).
+Relayout on graph; deletes use `confirmModal`.
+Plot page: Details | Links side-by-side, structure full-width) → Endings
+→ **Play** → Analysis.
+**Play tab:** Same Scene graph / Scene flow canvases (`playMode`). DM selects
+the path (**Which path did they take?**). Completing an option always records
+the step: option Taken, siblings Missed, decision Completed — even when the
+option has **no Unlocks** (Yes/No is still a jump). Current is **exactly one** piece (the step you are on). After an option,
+Current moves via that option’s Continue to / Unlocks (first in-scene jump).
+If the option has **no follow-up**, Current is cleared and Play warns the DM
+to fix the workflow on Progression — we do not invent a next step (no return
+to Start, no fan-out to every Exit). Out-of-scene Unlocks open as Available.
+**UNLOCKS → OBJECTIVE** always marks the objective **COMPLETED**. Taking an
+**Exit** also **completes the parent scene** (and fires that scene’s
+Unlocks/Blocks); Current then follows Exit/scene Unlocks (e.g. Scene 2).
+**BLOCKS → BLOCKED**. Prior ACTIVE demotes to AVAILABLE. Works in **Draft**.
+Play status Complete/Fail uses the same advance cascade as path buttons.
+Canvas: Taken (purple) / Current (bright green) / Open (soft green = next
+from Current only) / Locked (red) / Blocked (amber — also Available pieces
+unreachable from Current) / Closed (gray).
+**Revert step** (path row, inspector, or play log) asks for confirm, then
+clears that choice and every later play state (by `PlotNodeState.updatedAt`),
+wipes their notes, and restores Current on the decision/piece. Does **not**
+undo world side-effects (renown, NPC flags, locked follow-up plots); reopen
+plot if a cleared ending had `finishPlot`. **Set as Current** / **Set Start as Current** (Start Node in scene flow) / **Set scene as Current** (scene graph)
+or any open piece moves the sole Current marker without clearing Taken
+history — use after revert to put Current back on the Start node.
+**Finish objective** shortcuts work on Play as well as Progression (create
+Unlocks edge; chip badge **Finish**).
+**Player log:** `/world/[slug]/plots` lists ACTIVE/COMPLETED/FAILED plots;
+detail shows revealed beats (`playerNoteVisible`). Linked from the world hub.
+**Progression graph:** DAG (`PlotNode` / `PlotEdge`). **Unlocks / Blocks** =
+completion effects; **Requires** = prerequisites. Connectors are directed
+(arrow markers; Flip on selected edge). Analysis lists open scenes, entry-
+blocked, possible/blocked endings, impossible pieces, follow-up plots.
+Per-node `failureTimeoutDay` on scenes/objectives. Effects apply on
+COMPLETED/FAILED. Deadline → `applyFailureTimeout`; overdue →
+`applyNodeTimeouts`. UI: `PlotQuestProgressionEditor` + `PlotFlowchartEditor`.
+DM/Admin: `/dm/worlds/[w]/plot-quests`, `/world/[id]/plot-quests`.
 Renaming system Quests → “Sessions” is deferred pending feedback.
 
 **World calendar + timeline:** One `WorldCalendar` per world

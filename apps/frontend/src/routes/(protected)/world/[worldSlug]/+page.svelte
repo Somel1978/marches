@@ -39,7 +39,7 @@
 		</div>
 	{/if}
 
-	<!-- Journals / timeline -->
+	<!-- Journals / timeline / plots -->
 	{#if world.id}
 		<div style="margin-bottom:1.5rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
 			<a href="/world/{world.slug}/timeline" class="btn btn-ghost" style="display:inline-flex; align-items:center; gap:0.5rem;">
@@ -47,6 +47,9 @@
 			</a>
 			<a href="/world/{world.slug}/journal" class="btn btn-ghost" style="display:inline-flex; align-items:center; gap:0.5rem;">
 				📖 World Journals
+			</a>
+			<a href="/world/{world.slug}/plots" class="btn btn-ghost" style="display:inline-flex; align-items:center; gap:0.5rem;">
+				📜 Plot quests
 			</a>
 		</div>
 	{/if}

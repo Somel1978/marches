@@ -88,6 +88,7 @@ export async function updatePlotQuest(
 		description?: string | null;
 		status?: string;
 		deadlineDay?: number | null;
+		failureTimeoutDay?: number | null;
 		sortOrder?: number;
 	},
 	actorId: string,
@@ -106,6 +107,9 @@ export async function updatePlotQuest(
 	if (input.status !== undefined) data.status = parseStatus(input.status);
 	if (input.deadlineDay !== undefined) {
 		data.deadlineDay = parseDeadlineDay(input.deadlineDay);
+	}
+	if (input.failureTimeoutDay !== undefined) {
+		data.failureTimeoutDay = parseDeadlineDay(input.failureTimeoutDay);
 	}
 	if (input.sortOrder !== undefined) data.sortOrder = Number(input.sortOrder) || 0;
 

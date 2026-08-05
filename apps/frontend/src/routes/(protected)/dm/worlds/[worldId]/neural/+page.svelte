@@ -50,7 +50,8 @@
 
 <div style="margin-bottom:0.75rem;">
 	<p style="margin:0; color:var(--text-muted); font-size:0.875rem;">
-		Lore board for {data.world.name} — place elements and draw your own plot connections. Double-click a node to open its page.
+		Neural lore board for {data.world.name} — place factions, NPCs, plot quest cards, and author connections.
+		Plot scene flow is edited on each plot’s <strong>Progression</strong> tab. Double-click a node to open its page.
 	</p>
 </div>
 
@@ -65,6 +66,7 @@
 		entityId: c.entityId,
 		posX: pos.posX,
 		posY: pos.posY,
+		layer: 'LORE',
 	})}
 	onUpdateNode={(id, patch) => call('updateNode', {
 		nodeId: id,

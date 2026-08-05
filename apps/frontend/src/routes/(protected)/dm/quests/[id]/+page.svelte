@@ -8,7 +8,7 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const canApprove = $derived((data as any).canApprove === true);
-	let detailsTab = $state<'details' | 'planner'>('details');
+	let detailsTab = $state<'details' | 'planner' | 'plots'>('details');
 	let previewMissionXp = $state(0);
 	let plannerState = $state(planFromStored(null, { partySize: 4, level: 5 }));
 
@@ -180,6 +180,12 @@
 					Encounter Planner
 					{#if previewMissionXp > 0}<span style="margin-left:0.375rem; font-size:0.75rem; opacity:0.8;">{previewMissionXp.toLocaleString()} XP</span>{/if}
 				</button>
+				<button type="button" class="tab {detailsTab === 'plots' ? 'tab--active' : ''}" onclick={() => detailsTab = 'plots'}>
+					Plot quests
+					{#if data.linkedPlotQuests?.length}
+						<span style="margin-left:0.375rem; font-size:0.75rem; opacity:0.8;">{data.linkedPlotQuests.length}</span>
+					{/if}
+				</button>
 			</div>
 			{#if isReadOnly}<p class="field-hint" style="margin-bottom:0.75rem; color:var(--color-warning);">This quest is {data.quest.status.toLowerCase()} — read only.</p>{/if}
 			<form method="post" action="?/updateDetails" use:enhance={e_reload}>
@@ -281,12 +287,36 @@
 					<input type="hidden" name="missionXp" value={data.quest.missionXp} />
 				{/if}
 
-				{#if !isReadOnly}
+				{#if !isReadOnly && detailsTab !== 'plots'}
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">Save details</button>
 				</div>
 				{/if}
 			</form>
+
+			{#if detailsTab === 'plots'}
+				{#if data.linkedPlotQuests?.length}
+					{#each data.linkedPlotQuests as link (link.linkId)}
+						<div class="faction-subrow">
+							<span class="faction-subrow__grow" style="font-weight:600;">
+								{#if link.plotQuest}
+									<a href="/dm/worlds/{link.plotQuest.worldId}/plot-quests/{link.plotQuest.id}">{link.plotQuest.title}</a>
+								{:else}
+									(missing plot quest)
+								{/if}
+							</span>
+							{#if link.plotQuest}
+								<span class="badge badge-muted">{link.plotQuest.status}</span>
+							{/if}
+						</div>
+						{#if link.plotQuest?.summary}
+							<p class="table__muted" style="margin:0 0 0.75rem; font-size:0.875rem;">{link.plotQuest.summary}</p>
+						{/if}
+					{/each}
+				{:else}
+					<p class="table__empty">No plot quests linked to this session quest. Link from a plot quest’s detail page.</p>
+				{/if}
+			{/if}
 		</div>
 
 		<!-- Pending confirmation -->

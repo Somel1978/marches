@@ -15,12 +15,13 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const world = await worlds.getById(params.id);
 	if (!world) throw error(404, 'World not found');
 
-	const [plot, linkableQuests, worldFactions, worldNpcs, calendar] = await Promise.all([
+	const [plot, linkableQuests, worldFactions, worldNpcs, calendar, progression] = await Promise.all([
 		worlds.plotQuests.getById(params.plotId),
 		worlds.plotQuests.listLinkableQuests(params.id),
 		factions.getByWorld(params.id),
 		factions.npcs.getByWorld(params.id),
 		worlds.calendar.ensure(params.id),
+		worlds.plotQuests.getProgression(params.plotId),
 	]);
 	if (!plot || plot.worldId !== params.id) throw error(404, 'Plot quest not found');
 
@@ -32,6 +33,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		worldFactions,
 		worldNpcs,
 		calendar,
+		progression,
 	};
 };
 
@@ -139,6 +141,336 @@ export const actions: Actions = {
 		try {
 			await factions.npcs.questLinks.remove(linkId, locals.user!.id);
 			return { npcSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	createNode: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const failRaw = data.get('failureTimeoutDay')?.toString().trim();
+		try {
+			await worlds.plotQuests.createNode(params.plotId, {
+				kind: data.get('kind')?.toString() ?? '',
+				title: data.get('title')?.toString() ?? '',
+				description: data.has('description') ? data.get('description')?.toString() ?? null : undefined,
+				parentNodeId: data.get('parentNodeId')?.toString() || null,
+				objectiveTier: data.get('objectiveTier')?.toString() || null,
+				encounterKind: data.get('encounterKind')?.toString() || null,
+				socialFactionId: data.has('socialFactionId') ? data.get('socialFactionId')?.toString() ?? null : undefined,
+				socialNpcId: data.has('socialNpcId') ? data.get('socialNpcId')?.toString() ?? null : undefined,
+				failureTimeoutDay: failRaw === '' || failRaw == null ? null : Number(failRaw),
+			}, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	updateNode: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const nodeId = data.get('nodeId')?.toString() ?? '';
+		if (!nodeId) return fail(400, { message: 'nodeId required' });
+		const failRaw = data.has('failureTimeoutDay') ? data.get('failureTimeoutDay')?.toString().trim() : undefined;
+		try {
+			await worlds.plotQuests.updateNode(nodeId, {
+				title: data.get('title')?.toString(),
+				summary: data.has('summary') ? data.get('summary')?.toString() ?? null : undefined,
+				description: data.has('description') ? data.get('description')?.toString() ?? null : undefined,
+				objectiveTier: data.get('objectiveTier')?.toString(),
+				encounterKind: data.has('encounterKind') ? data.get('encounterKind')?.toString() ?? null : undefined,
+				socialFactionId: data.has('socialFactionId') ? data.get('socialFactionId')?.toString() ?? null : undefined,
+				socialNpcId: data.has('socialNpcId') ? data.get('socialNpcId')?.toString() ?? null : undefined,
+				failureTimeoutDay: failRaw === undefined ? undefined : (failRaw === '' || failRaw == null ? null : Number(failRaw)),
+			}, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	deleteNode: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const nodeId = (await request.formData()).get('nodeId')?.toString() ?? '';
+		if (!nodeId) return fail(400, { message: 'nodeId required' });
+		try {
+			await worlds.plotQuests.deleteNode(nodeId, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	setNodeState: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const nodeId = data.get('nodeId')?.toString() ?? '';
+		const status = data.get('status')?.toString() ?? '';
+		if (!nodeId || !status) return fail(400, { message: 'nodeId and status required' });
+		try {
+			const notes = data.has('note') || data.has('playerNote') || data.has('playerNoteVisible')
+				? {
+					note: data.has('note') ? data.get('note')?.toString() ?? null : undefined,
+					playerNote: data.has('playerNote') ? data.get('playerNote')?.toString() ?? null : undefined,
+					playerNoteVisible: data.has('playerNoteVisible')
+						? data.get('playerNoteVisible')?.toString() === 'true'
+						: undefined,
+				}
+				: undefined;
+			await worlds.plotQuests.setNodeState(nodeId, status, locals.user!.id, notes);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	advanceNode: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const nodeId = data.get('nodeId')?.toString() ?? '';
+		const status = data.get('status')?.toString() ?? '';
+		if (!nodeId || !status) return fail(400, { message: 'nodeId and status required' });
+		try {
+			const playerNote = data.get('playerNote')?.toString() ?? '';
+			const missRaw = data.get('missSiblingIds')?.toString() ?? '';
+			const missSiblingIds = missRaw
+				? missRaw.split(',').map(s => s.trim()).filter(Boolean)
+				: [];
+			const result = await worlds.plotQuests.advanceNode(nodeId, {
+				status,
+				note: data.get('note')?.toString() ?? null,
+				playerNote: playerNote || null,
+				playerNoteVisible: data.has('playerNoteVisible')
+					? data.get('playerNoteVisible')?.toString() === 'true'
+					: !!playerNote.trim(),
+				missSiblingIds,
+			}, locals.user!.id);
+			return {
+				ok: true,
+				workflowGap: (result as { workflowGap?: string | null }).workflowGap ?? null,
+			};
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	revertNode: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const nodeId = (await request.formData()).get('nodeId')?.toString() ?? '';
+		if (!nodeId) return fail(400, { message: 'nodeId required' });
+		try {
+			await worlds.plotQuests.revertNode(nodeId, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	setNodeCurrent: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const nodeId = (await request.formData()).get('nodeId')?.toString() ?? '';
+		if (!nodeId) return fail(400, { message: 'nodeId required' });
+		try {
+			await worlds.plotQuests.setNodeCurrent(nodeId, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	createEdge: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		try {
+			await worlds.plotQuests.createEdge(params.plotId, {
+				kind: data.get('kind')?.toString() ?? '',
+				fromNodeId: data.get('fromNodeId')?.toString() ?? '',
+				toNodeId: data.get('toNodeId')?.toString() || null,
+				toPlotQuestId: data.get('toPlotQuestId')?.toString() || null,
+			}, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	deleteEdge: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const edgeId = (await request.formData()).get('edgeId')?.toString() ?? '';
+		if (!edgeId) return fail(400, { message: 'edgeId required' });
+		try {
+			await worlds.plotQuests.deleteEdge(edgeId, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	createEntryReq: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		let payload: unknown = undefined;
+		const raw = data.get('payload')?.toString();
+		if (raw) {
+			try { payload = JSON.parse(raw); }
+			catch { return fail(400, { message: 'Invalid payload JSON' }); }
+		}
+		try {
+			await worlds.plotQuests.createEntryReq(params.plotId, {
+				sceneNodeId: data.get('sceneNodeId')?.toString() ?? '',
+				kind: data.get('kind')?.toString() ?? '',
+				label: data.get('label')?.toString() || null,
+				payload,
+			}, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	deleteEntryReq: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const entryReqId = (await request.formData()).get('entryReqId')?.toString() ?? '';
+		if (!entryReqId) return fail(400, { message: 'entryReqId required' });
+		try {
+			await worlds.plotQuests.deleteEntryReq(entryReqId, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	createEffect: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		let payload: unknown = undefined;
+		const raw = data.get('payload')?.toString();
+		if (raw) {
+			try { payload = JSON.parse(raw); }
+			catch { return fail(400, { message: 'Invalid payload JSON' }); }
+		}
+		try {
+			await worlds.plotQuests.createEffect(data.get('ownerNodeId')?.toString() ?? '', {
+				kind: data.get('kind')?.toString() ?? '',
+				label: data.get('label')?.toString() || null,
+				payload,
+			}, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	deleteEffect: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const effectId = (await request.formData()).get('effectId')?.toString() ?? '';
+		if (!effectId) return fail(400, { message: 'effectId required' });
+		try {
+			await worlds.plotQuests.deleteEffect(effectId, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	createReward: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		let payload: unknown = undefined;
+		const raw = data.get('payload')?.toString();
+		if (raw) {
+			try { payload = JSON.parse(raw); }
+			catch { return fail(400, { message: 'Invalid payload JSON' }); }
+		}
+		try {
+			await worlds.plotQuests.createReward(data.get('ownerNodeId')?.toString() ?? '', {
+				kind: data.get('kind')?.toString() ?? '',
+				label: data.get('label')?.toString() || null,
+				payload,
+			}, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	deleteReward: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const rewardId = (await request.formData()).get('rewardId')?.toString() ?? '';
+		if (!rewardId) return fail(400, { message: 'rewardId required' });
+		try {
+			await worlds.plotQuests.deleteReward(rewardId, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	applyFailureTimeout: async ({ params, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		try {
+			await worlds.plotQuests.applyFailureTimeout(params.plotId, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	applyNodeTimeouts: async ({ params, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		try {
+			await worlds.plotQuests.applyNodeTimeouts(params.plotId, locals.user!.id);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	moveFlowchartNode: async ({ params, request, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const nodeId = data.get('nodeId')?.toString() ?? '';
+		if (!nodeId) return fail(400, { message: 'nodeId required' });
+		try {
+			await worlds.neural.updateNodeByEntity(
+				params.id,
+				'PLOT_NODE',
+				nodeId,
+				{ posX: Number(data.get('posX')), posY: Number(data.get('posY')) },
+				locals.user!.id,
+			);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	relayoutProgression: async ({ params, locals }) => {
+		if (!canUpdate(locals)) return fail(403, { message: 'Forbidden' });
+		try {
+			await worlds.neural.relayoutProgression(params.id, { plotQuestId: params.plotId });
+			return { ok: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

@@ -178,7 +178,9 @@
 		flex-wrap: nowrap;
 		align-items: stretch;
 		gap: 0.15rem;
+		/* overflow-x:auto alone promotes overflow-y to auto — that shows a useless vertical scrollbar */
 		overflow-x: auto;
+		overflow-y: hidden;
 		-webkit-overflow-scrolling: touch;
 		scrollbar-width: thin;
 	}

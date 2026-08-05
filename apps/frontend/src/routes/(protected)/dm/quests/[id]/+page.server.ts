@@ -141,7 +141,24 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const canApprove = !!(await checkCanApprove(params.id, locals.user!.id));
 	const encounterConfig = await quests.loadEncounterConfig();
-	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds, questRatings, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES, destroyableInventory, itemUsages, availablePlayers, canApprove, encounterConfig };
+	const linkedPlotQuests = await worlds.plotQuests.listBySystemQuest(params.id);
+
+	return {
+		quest: access.quest,
+		profile: access.profile,
+		isMainDM: access.isMainDM,
+		allDMProfiles,
+		allWorlds,
+		questRatings,
+		itemRarities: ITEM_RARITIES,
+		itemCategories: ITEM_CATEGORIES,
+		destroyableInventory,
+		itemUsages,
+		availablePlayers,
+		canApprove,
+		encounterConfig,
+		linkedPlotQuests,
+	};
 };
 
 export const actions: Actions = {

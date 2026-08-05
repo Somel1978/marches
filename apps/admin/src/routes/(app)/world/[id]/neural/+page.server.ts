@@ -13,12 +13,19 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	if (!world) throw error(404, 'World not found');
 
 	const canEdit = checkPermission(locals.permissions, { resourceKey: 'World', action: 'update' }).allowed;
+
 	const [map, candidates] = await Promise.all([
 		worlds.neural.getMap(params.id),
 		worlds.neural.listCandidates(params.id),
 	]);
 
-	return { world, canEdit, nodes: map.nodes, edges: map.edges, candidates };
+	return {
+		world,
+		canEdit,
+		nodes: map.nodes,
+		edges: map.edges,
+		candidates,
+	};
 };
 
 export const actions: Actions = {
@@ -32,6 +39,7 @@ export const actions: Actions = {
 				entityId:   data.get('entityId')?.toString() ?? '',
 				posX:       Number(data.get('posX')),
 				posY:       Number(data.get('posY')),
+				layer:      'LORE',
 			}, locals.user!.id);
 			return { ok: true };
 		} catch (e) {
@@ -81,8 +89,8 @@ export const actions: Actions = {
 		try {
 			await worlds.neural.addEdge(params.id, {
 				fromNodeId: data.get('fromNodeId')?.toString() ?? '',
-				toNodeId:   data.get('toNodeId')?.toString() ?? '',
-				label:      data.get('label')?.toString() ?? '',
+				toNodeId: data.get('toNodeId')?.toString() ?? '',
+				label: data.get('label')?.toString() ?? '',
 			}, locals.user!.id);
 			return { ok: true };
 		} catch (e) {
@@ -123,4 +131,5 @@ export const actions: Actions = {
 			throw e;
 		}
 	},
+
 };

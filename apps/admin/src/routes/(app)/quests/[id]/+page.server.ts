@@ -24,7 +24,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const usageCharMap = Object.fromEntries(usageChars.map((c: any) => [c.id, c.name]));
 	const itemUsagesEnriched = itemUsages.map((u: any) => ({ ...u, characterName: usageCharMap[u.characterId] ?? u.characterId }));
 
-	return { quest, allWorlds, itemUsages: itemUsagesEnriched, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES };
+	const linkedPlotQuests = await worlds.plotQuests.listBySystemQuest(params.id);
+
+	return {
+		quest,
+		allWorlds,
+		itemUsages: itemUsagesEnriched,
+		itemRarities: ITEM_RARITIES,
+		itemCategories: ITEM_CATEGORIES,
+		linkedPlotQuests,
+	};
 };
 
 export const actions: Actions = {
