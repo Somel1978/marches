@@ -62,6 +62,8 @@ model Quest {
   scheduledAt    DateTime? @map("scheduled_at")    // when the quest runs
   signupDeadline DateTime? @map("signup_deadline")   // last moment to sign up
   rewardAdjusted Boolean  @default(false) @map("reward_adjusted")
+  /// Soft FK → news.WorldJournal. One journal per quest; DM + player notes are sections.
+  notesJournalId String? @map("notes_journal_id")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt      @map("updated_at")
 

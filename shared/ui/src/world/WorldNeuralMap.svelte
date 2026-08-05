@@ -106,7 +106,10 @@
 	let panY = $state(0);
 	let zoom = $state(1);
 	let draggingNode = $state<string | null>(null);
+	let dragMoved = $state(false);
+	let dragOrigin = $state({ x: 0, y: 0 });
 	let dragOffset = $state({ x: 0, y: 0 });
+	const DRAG_THRESHOLD_PX = 4;
 	let panning = $state(false);
 	let panStart = $state({ x: 0, y: 0, panX: 0, panY: 0 });
 	let selectedEdgeId = $state<string | null>(null);
@@ -122,8 +125,8 @@
 
 	let fittedKey = $state('');
 	$effect(() => {
-		// Frame the board once when the active layer first has nodes (not on every drag)
-		if (!layerInitialized || !boardEl || !localNodes.length) return;
+		// Frame the board once when Lore first has nodes (not on every drag)
+		if (!boardEl || !localNodes.length) return;
 		const key = `${layer}:${localNodes.length}`;
 		if (fittedKey === key) return;
 		fittedKey = key;
@@ -198,6 +201,12 @@
 			return;
 		}
 		if (draggingNode && canEdit) {
+			const dist = Math.hypot(e.clientX - dragOrigin.x, e.clientY - dragOrigin.y);
+			if (!dragMoved && dist < DRAG_THRESHOLD_PX) return;
+			if (!dragMoved) {
+				dragMoved = true;
+				e.preventDefault();
+			}
 			const w = screenToWorld(e.clientX, e.clientY);
 			const posX = w.x - dragOffset.x;
 			const posY = w.y - dragOffset.y;
@@ -215,8 +224,11 @@
 		if (draggingNode && canEdit) {
 			const id = draggingNode;
 			const n = localNodes.find(x => x.id === id);
+			const moved = dragMoved;
 			draggingNode = null;
-			if (n) {
+			dragMoved = false;
+			// Persist only when the node actually moved (click = select only)
+			if (moved && n) {
 				busy = true;
 				try { await onUpdateNode?.(id, { posX: n.posX, posY: n.posY }); }
 				finally { busy = false; }
@@ -226,10 +238,21 @@
 
 	function onNodePointerDown(e: PointerEvent, node: NeuralMapNodeView) {
 		e.stopPropagation();
-		e.preventDefault(); // suppress native browser drag ghost
+		// Do NOT preventDefault here — that swallows click/dblclick (Select / Connect / Open).
 		if (e.button !== 0) return;
-		if (!canEdit || mode === 'connect') return;
+
+		// Select / connect on press — pointer capture swallows click otherwise.
+		if (mode === 'connect') {
+			void connectNode(node);
+			return;
+		}
+		selectedNodeId = node.id;
+		selectedEdgeId = null;
+
+		if (!canEdit) return;
 		draggingNode = node.id;
+		dragMoved = false;
+		dragOrigin = { x: e.clientX, y: e.clientY };
 		const w = screenToWorld(e.clientX, e.clientY);
 		dragOffset = { x: w.x - node.posX, y: w.y - node.posY };
 		// Capture on board so board move/up handlers receive the drag

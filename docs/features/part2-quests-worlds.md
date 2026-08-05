@@ -274,6 +274,15 @@ TavernMessage: id, channelId, authorType, authorId, authorName, authorAvatar?,
 
 **Admin nav:** `resourceKey: 'Journal'`, `label: 'Wiki'`, `href: '/wiki'`
 
+**Quest notes (session quests, not plot quests):** When a quest has a world via
+`regionId`, DM/admin get **one** `WorldJournal` (`Quest.notesJournalId`) with two
+sections: **DM Notes** (`DM_ONLY`) and **Player Notes** (`WORLD`). Created lazily
+via `quests.notes.ensure`. Journal `isPublished` gates player visibility of the
+player section (DM section stays filtered by section visibility). Player quest
+detail shows published player-section content. Notes UI is hidden when the quest
+has no world. Changing/clearing the quest’s world clears the FK. Notes stay
+editable after COMPLETED/CANCELLED.
+
 ---
 
 ### 26. Discord Availability Commands ✅

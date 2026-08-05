@@ -202,6 +202,9 @@ import { submitQuestResult, approveQuestResult,
          rejectQuestResult                               } from './dbapi/write/quests/submit-result.ts';
 import { deleteQuest                                     } from './dbapi/write/quests/delete.ts';
 import { submitItemUsages, approveItemUsage, rejectItemUsage, getItemUsagesForQuest } from './dbapi/write/quests/item-usage.ts';
+import {
+	ensureQuestNotes, getQuestNotes, updateQuestNoteContent,
+} from './dbapi/write/quests/quest-notes.ts';
 
 // ── DMs ──────────────────────────────────────────────────────────────────────────
 import { getAllDMProfiles, getAllRoleRequests   } from './dbapi/read/dms/get-all.ts';
@@ -364,6 +367,11 @@ export const quests = {
     delete:                deleteQuest,
     resolveMissionXp:      resolveQuestMissionXp,
     loadEncounterConfig:   loadEncounterPlannerClientConfig,
+    notes: {
+        ensure: ensureQuestNotes,
+        get:    getQuestNotes,
+        update: updateQuestNoteContent,
+    },
 };
 
 export const marketplace = {

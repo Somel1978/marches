@@ -106,6 +106,8 @@
 		{:else if (form as any).action === 'rejected'}Quest rejected.
 		{:else if (form as any).action === 'result_approved'}Result approved — XP distributed.
 		{:else if (form as any).action === 'result_rejected'}Result rejected — DM must resubmit.
+		{:else if (form as any).action === 'dm_notes_saved'}DM notes saved.
+		{:else if (form as any).action === 'player_notes_saved'}Player notes saved.
 		{/if}
 	</div>{/if}
 
@@ -170,6 +172,41 @@
 				<p class="table__empty">No plot quests linked. Link from a plot quest’s detail page.</p>
 			{/if}
 		</div>
+
+		{#if (data.quest as any).worldId}
+			{@const notes = (data as any).questNotes}
+			<div class="card">
+				<h3 class="section-title">Quest notes</h3>
+				{#if !notes?.dm || !notes?.player}
+					<p class="table__empty">Could not load quest note journals.</p>
+				{:else}
+					<p class="field-hint" style="margin-bottom:1rem;">
+						One journal ({notes.worldName ?? 'this world'}): DM Notes (DM-only section) + Player Notes (world section).
+						{#if notes.journalId}
+							<a href="/world/{notes.worldId}/journal/{notes.journalId}">Open journal</a>
+						{/if}
+					</p>
+					<form method="post" action="?/saveDmNotes" use:enhance={e_reload} style="margin-bottom:1.25rem;">
+						<div class="field">
+							<label class="label" for="dm-notes">DM notes</label>
+							<textarea id="dm-notes" name="content" class="input" rows="6">{notes.dm.content}</textarea>
+						</div>
+						<button type="submit" class="btn btn-primary btn-sm">Save DM notes</button>
+					</form>
+					<form method="post" action="?/savePlayerNotes" use:enhance={e_reload}>
+						<div class="field">
+							<label class="label" for="player-notes">Player notes</label>
+							<textarea id="player-notes" name="content" class="input" rows="6">{notes.player.content}</textarea>
+							<label class="label" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; font-weight:500;">
+								<input type="checkbox" name="publishPlayerNotes" checked={notes.isPublished} />
+								Visible to players (publish journal)
+							</label>
+						</div>
+						<button type="submit" class="btn btn-primary btn-sm">Save player notes</button>
+					</form>
+				{/if}
+			</div>
+		{/if}
 
 		<div class="card">
 			<h3 class="section-title">Details</h3>

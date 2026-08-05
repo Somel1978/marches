@@ -26,6 +26,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const linkedPlotQuests = await worlds.plotQuests.listBySystemQuest(params.id);
 
+	let questNotes: Awaited<ReturnType<typeof quests.notes.get>> = null;
+	if ((quest as any).worldId) {
+		try {
+			questNotes = await quests.notes.ensure(params.id, locals.user!.id);
+		} catch {
+			questNotes = await quests.notes.get(params.id);
+		}
+	}
+
 	return {
 		quest,
 		allWorlds,
@@ -33,6 +42,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		itemRarities: ITEM_RARITIES,
 		itemCategories: ITEM_CATEGORIES,
 		linkedPlotQuests,
+		questNotes,
 	};
 };
 
@@ -156,6 +166,38 @@ export const actions: Actions = {
 			if (!quest?.result) return fail(400, { message: 'No result to reject.' });
 			await quests.rejectResult(quest.result.id, note, locals.user!.id);
 			return { success: true, action: 'result_rejected' };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveDmNotes: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'Quest', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const content = data.get('content')?.toString() ?? '';
+		try {
+			await quests.notes.update(params.id, 'dm', content, locals.user!.id);
+			return { success: true, action: 'dm_notes_saved' };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	savePlayerNotes: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'Quest', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const content = data.get('content')?.toString() ?? '';
+		const publishPlayerNotes = data.get('publishPlayerNotes') === 'on'
+			|| data.get('publishPlayerNotes') === 'true';
+		try {
+			await quests.notes.update(params.id, 'player', content, locals.user!.id, {
+				publishPlayerNotes,
+			});
+			return { success: true, action: 'player_notes_saved' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

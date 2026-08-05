@@ -143,6 +143,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const encounterConfig = await quests.loadEncounterConfig();
 	const linkedPlotQuests = await worlds.plotQuests.listBySystemQuest(params.id);
 
+	let questNotes: Awaited<ReturnType<typeof quests.notes.get>> = null;
+	const questWorldId = (access.quest as any).worldId as string | null;
+	if (questWorldId) {
+		try {
+			questNotes = await quests.notes.ensure(params.id, locals.user!.id);
+		} catch {
+			questNotes = await quests.notes.get(params.id);
+		}
+	}
+
 	return {
 		quest: access.quest,
 		profile: access.profile,
@@ -158,6 +168,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		canApprove,
 		encounterConfig,
 		linkedPlotQuests,
+		questNotes,
 	};
 };
 
@@ -368,6 +379,38 @@ export const actions: Actions = {
 		try {
 			await quests.addCoDM(params.id, dmProfileId, locals.user!.id);
 			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveDmNotes: async ({ params, request, locals }) => {
+		const access = await checkDMAccess(params.id, locals.user!.id);
+		if (!access) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const content = data.get('content')?.toString() ?? '';
+		try {
+			await quests.notes.update(params.id, 'dm', content, locals.user!.id);
+			return { success: true, action: 'dm_notes_saved' };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	savePlayerNotes: async ({ params, request, locals }) => {
+		const access = await checkDMAccess(params.id, locals.user!.id);
+		if (!access) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const content = data.get('content')?.toString() ?? '';
+		const publishPlayerNotes = data.get('publishPlayerNotes') === 'on'
+			|| data.get('publishPlayerNotes') === 'true';
+		try {
+			await quests.notes.update(params.id, 'player', content, locals.user!.id, {
+				publishPlayerNotes,
+			});
+			return { success: true, action: 'player_notes_saved' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

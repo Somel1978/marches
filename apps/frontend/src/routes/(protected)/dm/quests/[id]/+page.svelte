@@ -8,7 +8,7 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const canApprove = $derived((data as any).canApprove === true);
-	let detailsTab = $state<'details' | 'planner' | 'plots'>('details');
+	let detailsTab = $state<'details' | 'planner' | 'plots' | 'notes'>('details');
 	let previewMissionXp = $state(0);
 	let plannerState = $state(planFromStored(null, { partySize: 4, level: 5 }));
 
@@ -117,6 +117,8 @@
 			{:else if (form as any).action === 'started'}Quest started!
 			{:else if (form as any).action === 'ended'}Quest ended — please submit results.
 			{:else if (form as any).action === 'result_submitted'}Results submitted for admin approval.
+			{:else if (form as any).action === 'dm_notes_saved'}DM notes saved.
+			{:else if (form as any).action === 'player_notes_saved'}Player notes saved.
 			{:else}Done.
 			{/if}
 		</div>
@@ -186,8 +188,15 @@
 						<span style="margin-left:0.375rem; font-size:0.75rem; opacity:0.8;">{data.linkedPlotQuests.length}</span>
 					{/if}
 				</button>
+				<button type="button" class="tab {detailsTab === 'notes' ? 'tab--active' : ''}" onclick={() => detailsTab = 'notes'}>
+					Quest notes
+				</button>
 			</div>
-			{#if isReadOnly}<p class="field-hint" style="margin-bottom:0.75rem; color:var(--color-warning);">This quest is {data.quest.status.toLowerCase()} — read only.</p>{/if}
+			{#if isReadOnly && detailsTab !== 'notes'}
+				<p class="field-hint" style="margin-bottom:0.75rem; color:var(--color-warning);">
+					This quest is {data.quest.status.toLowerCase()} — details are read only. Quest notes can still be edited.
+				</p>
+			{/if}
 			<form method="post" action="?/updateDetails" use:enhance={e_reload}>
 				<div style:display={detailsTab === 'details' ? undefined : 'none'}>
 				<fieldset disabled={isReadOnly} style="border:none; padding:0; margin:0;">
@@ -287,7 +296,7 @@
 					<input type="hidden" name="missionXp" value={data.quest.missionXp} />
 				{/if}
 
-				{#if !isReadOnly && detailsTab !== 'plots'}
+				{#if !isReadOnly && detailsTab !== 'plots' && detailsTab !== 'notes'}
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">Save details</button>
 				</div>
@@ -317,9 +326,69 @@
 					<p class="table__empty">No plot quests linked to this session quest. Link from a plot quest’s detail page.</p>
 				{/if}
 			{/if}
+
+			{#if detailsTab === 'notes'}
+				{@const notes = (data as any).questNotes}
+				{#if !(data.quest as any).worldId}
+					<p class="table__empty">
+						Quest notes are world journals — set a <strong>World</strong> and <strong>Region</strong> on Details first, then save.
+					</p>
+				{:else if !notes?.dm || !notes?.player}
+					<p class="table__empty">Could not load quest note journals for this world.</p>
+				{:else}
+					<p class="field-hint" style="margin-bottom:1rem;">
+						One world journal for this quest ({notes.worldName ?? 'this world'}):
+						<strong>DM Notes</strong> section (DM-only) and <strong>Player Notes</strong> section (world).
+						{#if notes.journalId}
+							<a href="/dm/worlds/{notes.worldId}/journal/{notes.journalId}">Open journal editor</a>
+							{#if notes.worldSlug}
+								· <a href="/world/{notes.worldSlug}/journal/{notes.journalId}">Player view</a>
+							{/if}
+						{/if}
+					</p>
+					<div class="fields" style="gap:1.5rem;">
+						<form method="post" action="?/saveDmNotes" use:enhance={e_reload}>
+							<div class="field">
+								<label class="label" for="dm-notes">DM notes <span class="optional">(private section)</span></label>
+								<textarea
+									id="dm-notes"
+									name="content"
+									class="input"
+									rows="8"
+								>{notes.dm.content}</textarea>
+							</div>
+							<div class="form-actions">
+								<button type="submit" class="btn btn-primary btn-sm">Save DM notes</button>
+							</div>
+						</form>
+						<form method="post" action="?/savePlayerNotes" use:enhance={e_reload}>
+							<div class="field">
+								<label class="label" for="player-notes">Player notes <span class="optional">(world section)</span></label>
+								<textarea
+									id="player-notes"
+									name="content"
+									class="input"
+									rows="8"
+								>{notes.player.content}</textarea>
+								<label class="label" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; font-weight:500;">
+									<input
+										type="checkbox"
+										name="publishPlayerNotes"
+										checked={notes.isPublished}
+									/>
+									Visible to players (publish journal)
+								</label>
+							</div>
+							<div class="form-actions">
+								<button type="submit" class="btn btn-primary btn-sm">Save player notes</button>
+							</div>
+						</form>
+					</div>
+				{/if}
+			{/if}
 		</div>
 
-		<!-- Pending confirmation -->
+		<!-- Pending confirmation (always visible — needs action) -->
 		{#if pending.length}
 			<div class="card" style="border-color:var(--border-accent);">
 				<h3 class="section-title">Waitlist promotions pending confirmation ({pending.length})</h3>
@@ -336,6 +405,8 @@
 		{/if}
 	</div>
 
+	<!-- Details-only sections (rewards, players, co-DMs, …) — hidden on other tabs -->
+	{#if detailsTab === 'details'}
 	<!-- Rewards (editable for active statuses, read-only for COMPLETED/CANCELLED) -->
 	{#if ['DRAFT', 'PENDING_APPROVAL', 'IN_PROGRESS', 'PENDING_RESULT', 'PENDING_RESULT_APPROVAL', 'COMPLETED', 'CANCELLED'].includes(data.quest.status)}
 		<div class="card">
@@ -661,5 +732,6 @@
 				<p class="table__empty">No ratings yet.</p>
 			{/if}
 		</div>
+	{/if}
 	{/if}
 </div>

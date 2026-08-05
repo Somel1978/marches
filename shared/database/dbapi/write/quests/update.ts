@@ -4,6 +4,7 @@ import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
 import type { QuestEncounterPlan } from '../../read/quests/encounter-plan.ts';
+import { clearQuestNotesIfWorldChanged } from './quest-notes.ts';
 
 export async function updateQuest(
     id: string,
@@ -39,18 +40,24 @@ export async function updateQuest(
         if (min > max)       throw new ValidationError('Minimum capacity cannot exceed maximum capacity.');
     }
 
-    return db.$transaction(async (tx) => {
+    const updated = await db.$transaction(async (tx) => {
         const { encounterPlan, ...rest } = input;
-        const updated = await tx.quest.update({
+        const row = await tx.quest.update({
             where: { id },
             data: {
                 ...rest,
                 ...(encounterPlan !== undefined && { encounterPlan: encounterPlan ?? Prisma.JsonNull }),
             },
         });
-        await logAudit(tx, { actorId, action: 'UPDATE', resourceKey: 'Quest', resourceId: id, before: quest, after: updated });
-        return updated;
+        await logAudit(tx, { actorId, action: 'UPDATE', resourceKey: 'Quest', resourceId: id, before: quest, after: row });
+        return row;
     });
+
+    if (input.regionId !== undefined) {
+        await clearQuestNotesIfWorldChanged(id, quest.regionId, input.regionId, actorId);
+    }
+
+    return updated;
 }
 
 export async function updateQuestRewards(

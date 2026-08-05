@@ -1409,4 +1409,8 @@ World lore plot layer (separate from system play-session Quests; Session rename 
 - Play: path choice with no Continue-to clears Current and warns the DM to fix the graph (no scene/Exit fan-out hack)
 - Play path paint: pieces/edges not reachable from Current show as Blocked (amber), not open green
 - Play: Start Node inspector offers **Set Start as Current** (was labeled only as Set scene as Current)
+- Session quests (not plot quests): **Quest notes** tab — DM-only + player WorldJournal notes when quest has a world (region); publish toggle for players; links to full journal editor
+- DM quest page: tab panels isolate content (rewards/players only on Details); Quest notes editable after COMPLETED/CANCELLED
+- Neural Lore: fix Select/Connect/Open (pointer capture was swallowing clicks after drag fix); remove stale layerInitialized fit guard
+- Quest notes: one WorldJournal per quest with DM Notes (DM_ONLY) + Player Notes (WORLD) sections — not two journals
 - Play: taking a decision option keeps Current in-scene (Exit / next piece); out-of-scene Unlocks open as Available until an Exit is taken

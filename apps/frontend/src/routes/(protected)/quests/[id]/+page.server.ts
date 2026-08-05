@@ -39,7 +39,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		? await dms.ratings.getForQuest(params.id, locals.user!.id).catch(() => null)
 		: null;
 
-	return { quest, eligible, mySignups, existingRating, ratingsEnabled, resultCharacters };
+	const questNotes = (quest as any).worldId
+		? await quests.notes.get(params.id, { forPlayer: true })
+		: null;
+
+	return { quest, eligible, mySignups, existingRating, ratingsEnabled, resultCharacters, questNotes };
 };
 
 export const actions: Actions = {
