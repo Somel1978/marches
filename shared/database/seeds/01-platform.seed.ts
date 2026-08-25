@@ -66,6 +66,13 @@ const SETTINGS: {
     { key: 'smtp.user',    value: null,                    description: 'SMTP username',                   isSecret: false },
     { key: 'smtp.pass',    value: null,                    description: 'SMTP password',                   isSecret: true  },
     { key: 'smtp.secure',  value: 'false',                 description: 'Use TLS (true for port 465)',    isSecret: false },
+    // SMTP — OAuth2 (XOAUTH2), for providers that have disabled basic auth (Microsoft 365 / Outlook.com)
+    { key: 'smtp.authMode',              value: 'password', description: 'SMTP auth mode: "password" or "oauth2"',           isSecret: false },
+    { key: 'smtp.oauth2.provider',       value: 'microsoft', description: 'OAuth2 identity provider (currently: microsoft)', isSecret: false },
+    { key: 'smtp.oauth2.tenantId',       value: null,        description: 'Entra ID tenant ID (or "common")',                isSecret: false },
+    { key: 'smtp.oauth2.clientId',       value: null,        description: 'App registration client ID',                     isSecret: false },
+    { key: 'smtp.oauth2.clientSecret',   value: null,        description: 'App registration client secret',                 isSecret: true  },
+    { key: 'smtp.oauth2.refreshToken',   value: null,        description: 'OAuth2 refresh token (set via Connect flow)',    isSecret: true  },
     // Email
     { key: 'email.from',     value: 'noreply@marches.local', description: 'From address for system emails', isSecret: false },
     { key: 'email.fromName', value: 'Marches',               description: 'From name for system emails',   isSecret: false },

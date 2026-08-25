@@ -3,6 +3,7 @@ import { fail, error } from '@sveltejs/kit';
 import { platform } from '@core/database';
 import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
+import { sendTestEmail } from '@core/email';
 import type { Actions, PageServerLoad } from './$types';
 
 const CORE_PREFIXES = ['smtp.', 'email.', 'site.', 'discord.'];
@@ -71,5 +72,23 @@ export const actions: Actions = {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;
 		}
+	},
+
+	testSmtp: async ({ request, locals }) => {
+		const canUpdate = checkPermission(locals.permissions, { resourceKey: 'System', action: 'update' });
+		if (!canUpdate.allowed) return fail(403, { message: 'Forbidden' });
+
+		const data = await request.formData();
+		const to   = data.get('to')?.toString().trim() ?? '';
+		if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
+			return fail(400, { message: 'Enter a valid email address to send the test to.' });
+		}
+
+		const result = await sendTestEmail(to);
+		if (result.ok) return { success: true, testSent: true };
+		if (result.reason === 'not_configured') {
+			return fail(400, { message: 'SMTP is not fully configured — set host, user, and password first.' });
+		}
+		return fail(502, { message: `Send failed${result.code ? ` [${result.code}]` : ''}: ${result.message}` });
 	},
 };
