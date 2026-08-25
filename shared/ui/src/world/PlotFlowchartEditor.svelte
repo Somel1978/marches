@@ -939,12 +939,13 @@
 	async function flipSelectedEdge() {
 		if (!selectedEdge || !structureEdit || !selectedEdge.toNodeId) return;
 		const e = selectedEdge;
+		const newFromNodeId = e.toNodeId;
 		const ok = await confirmModal('Flip link direction?', `Reverse this ${edgeKindDisplay(e)} link?`);
 		if (!ok) return;
 		await onDeleteEdge?.(e.id);
 		await onCreateEdge?.({
 			kind: e.kind,
-			fromNodeId: e.toNodeId,
+			fromNodeId: newFromNodeId,
 			toNodeId: e.fromNodeId,
 			toPlotQuestId: e.toPlotQuestId ?? null,
 		});
@@ -1752,6 +1753,7 @@
 				{#each localCards as card (card.id + ':' + card.role)}
 					{@const paint = playMode ? nodePathPaint(card.id) : 'neutral'}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<div
 						class="pfc-card pfc-card--{card.role.toLowerCase()}"
 						class:pfc-card--on={
