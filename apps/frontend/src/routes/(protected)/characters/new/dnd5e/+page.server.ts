@@ -40,7 +40,8 @@ export const actions: Actions = {
 		const avatarUrl    = data.get('avatarUrl')?.toString().trim()   || undefined;
 		const portraitUrl  = data.get('portraitUrl')?.toString().trim() || undefined;
 		const worldId      = data.get('worldId')?.toString() || undefined;
-		const bgFeatPick   = data.get('bgFeatPick')?.toString() || undefined;
+		const bgFeatPick     = data.get('bgFeatPick')?.toString()      || undefined;
+		const bgGrantedFeatId = data.get('bgGrantedFeatId')?.toString() || undefined;
 
 		// Classes
 		const classIds    = data.getAll('classId').map(v => v.toString()).filter(Boolean);
@@ -75,13 +76,43 @@ export const actions: Actions = {
 				worldId,
 			}, locals.user!.id);
 
+			// Save chosen size to character sheet if applicable
+			const chosenSize = data.get('chosenSize')?.toString().trim() || null;
+			if (chosenSize) {
+				await dnd5e.updateFields(character.id, { size: chosenSize }, locals.user!.id);
+			}
+
 			// Save ability scores (scores already include bonus points from client)
 			await dnd5e.saveAbilityScores(character.id, scores as any);
+
+			// If background auto-grants a fixed feat, save it
+			if (bgGrantedFeatId) {
+				await dnd5e.addCharacterFeat(character.id, bgGrantedFeatId, {
+					sourceClassId: 'background',
+					sourceLevel:   1,
+				});
+			}
 
 			// If background grants a category feat and player picked one, save it
 			if (bgFeatPick) {
 				await dnd5e.addCharacterFeat(character.id, bgFeatPick, {
 					sourceClassId: 'background',
+					sourceLevel:   1,
+				});
+			}
+
+			// Save feat grants from class/subclass features and species traits
+			const featureGrantedFeatIds  = data.getAll('featureGrantedFeatId').map(v => v.toString()).filter(Boolean);
+			const featureGrantedFeatSrcs = data.getAll('featureGrantedFeatSrc').map(v => v.toString());
+			for (let i = 0; i < featureGrantedFeatIds.length; i++) {
+				const featId   = featureGrantedFeatIds[i];
+				const sourceKey = featureGrantedFeatSrcs[i] ?? 'feature';
+				// sourceKey format: 'cf-{featureId}' | 'sf-{featureId}' | 'st-{traitId}'
+				const sourceType = sourceKey.startsWith('cf-') ? 'ClassFeature'
+					: sourceKey.startsWith('sf-') ? 'SubclassFeature'
+					: 'SpeciesTrait';
+				await dnd5e.addCharacterFeat(character.id, featId, {
+					sourceClassId: sourceType,
 					sourceLevel:   1,
 				});
 			}
@@ -134,6 +165,99 @@ export const actions: Actions = {
 						sourceClassId, sourceLevel, stat1, amount1, stat2, amount2,
 					});
 				}
+			}
+
+			// Save skill proficiencies from the Skills step using grant log
+			const chosenClassSkills  = data.getAll('chosenClassSkill').map(v => v.toString()).filter(Boolean);
+			const autoSkillSources   = data.getAll('autoSkillSource').map(v => v.toString());
+			const autoSkillValues    = data.getAll('autoSkillValue').map(v => v.toString());
+			const autoSkills         = data.getAll('autoSkill').map(v => v.toString()).filter(Boolean);
+			const poolSkills            = data.getAll('poolSkill').map(v => v.toString()).filter(Boolean);
+			const poolSkillSources      = data.getAll('poolSkillSource').map(v => v.toString());
+			const poolSkillSourceIds    = data.getAll('poolSkillSourceId').map(v => v.toString());
+			const expertisePoolSkills   = data.getAll('expertisePoolSkill').map(v => v.toString()).filter(Boolean);
+			const expertisePoolTypes    = data.getAll('expertisePoolSourceType').map(v => v.toString());
+			const expertisePoolIds      = data.getAll('expertisePoolSourceId').map(v => v.toString());
+
+			const allSkillGrants: { skill: string; value: number; sourceType: string; sourceId?: string }[] = [];
+			for (const s of chosenClassSkills) allSkillGrants.push({ skill: s, value: 1.0, sourceType: 'PlayerChoice' });
+			for (let i = 0; i < autoSkills.length; i++) {
+				const val = autoSkillValues[i] ? parseFloat(autoSkillValues[i]) : 1.0;
+				allSkillGrants.push({ skill: autoSkills[i], value: isNaN(val) ? 1.0 : val, sourceType: autoSkillSources[i] ?? 'Background' });
+			}
+			for (let i = 0; i < poolSkills.length; i++) {
+				allSkillGrants.push({ skill: poolSkills[i], value: 1.0, sourceType: poolSkillSources[i] ?? 'PlayerChoice', sourceId: poolSkillSourceIds[i] || undefined });
+			}
+			for (let i = 0; i < expertisePoolSkills.length; i++) {
+				allSkillGrants.push({ skill: expertisePoolSkills[i], value: 2.0, sourceType: expertisePoolTypes[i] ?? 'PlayerChoice', sourceId: expertisePoolIds[i] || undefined });
+			}
+			if (allSkillGrants.length) await dnd5e.addSkillGrants(character.id, allSkillGrants);
+
+			// Save saving throw proficiencies — each has its own sourceType and sourceId
+			const classSaves       = data.getAll('classSave').map(v => v.toString()).filter(Boolean);
+			const classSaveTypes   = data.getAll('classSaveSourceType').map(v => v.toString());
+			const classSaveIds     = data.getAll('classSaveSourceId').map(v => v.toString());
+			if (classSaves.length) {
+				await dnd5e.addSavingThrowGrants(character.id, classSaves.map((stat, i) => ({
+					stat,
+					sourceType: classSaveTypes[i] || 'Class',
+					sourceId:   classSaveIds[i]   || null,
+				})));
+			}
+
+			// Save tool grants
+			const autoTools           = data.getAll('autoTool').map(v => v.toString()).filter(Boolean);
+			const autoToolSourceTypes = data.getAll('autoToolSourceType').map(v => v.toString());
+			const autoToolSourceIds   = data.getAll('autoToolSourceId').map(v => v.toString());
+			if (autoTools.length) {
+				await dnd5e.addToolGrants(character.id, autoTools.map((tool, i) => ({
+					tool,
+					sourceType: autoToolSourceTypes[i] || 'Background',
+					sourceId:   autoToolSourceIds[i]   || null,
+				})));
+			}
+
+			// Save language grants
+			const autoLangs           = data.getAll('autoLanguage').map(v => v.toString()).filter(Boolean);
+			const autoLangSourceTypes = data.getAll('autoLanguageSourceType').map(v => v.toString());
+			const autoLangSourceIds   = data.getAll('autoLanguageSourceId').map(v => v.toString());
+			if (autoLangs.length) {
+				await dnd5e.addLanguageGrants(character.id, autoLangs.map((language, i) => ({
+					language,
+					sourceType: autoLangSourceTypes[i] || 'Background',
+					sourceId:   autoLangSourceIds[i]   || null,
+				})));
+			}
+
+			// Save innate spell grants (background, species traits, feats — at creation)
+			// One hidden input group per source: innateSpellRaw + innateSpellSourceType + innateSpellSourceId
+			const innateRaws      = data.getAll('innateSpellRaw').map(v => v.toString()).filter(Boolean);
+			const innateSourceTs  = data.getAll('innateSpellSourceType').map(v => v.toString());
+			const innateSourceIds = data.getAll('innateSpellSourceId').map(v => v.toString());
+			if (innateRaws.length) {
+				const characterLevel = classes.reduce((s, c) => s + c.allocatedLevel, 0);
+				for (let i = 0; i < innateRaws.length; i++) {
+					const sourceId   = innateSourceIds[i] ?? '';
+					const sourceType = innateSourceTs[i]  ?? 'Background';
+					const grants = await dnd5e.parseAndFilterInnateSpells(
+						innateRaws[i], character.gameSystemId, characterLevel, sourceType, sourceId,
+					);
+					if (grants.length) await dnd5e.addInnateSpellGrants(character.id, grants);
+				}
+			}
+
+			// Save damage modifier grants
+			const dmgModTypes       = data.getAll('dmgModType').map(v => v.toString()).filter(Boolean);
+			const dmgModDamageTypes = data.getAll('dmgModDamageType').map(v => v.toString());
+			const dmgModSourceTypes = data.getAll('dmgModSourceType').map(v => v.toString());
+			const dmgModSourceIds   = data.getAll('dmgModSourceId').map(v => v.toString());
+			if (dmgModTypes.length) {
+				await dnd5e.addDamageModifierGrants(character.id, dmgModTypes.map((modifierType, i) => ({
+					modifierType: modifierType as 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY',
+					damageType:   dmgModDamageTypes[i] || '',
+					sourceType:   dmgModSourceTypes[i] || 'Background',
+					sourceId:     dmgModSourceIds[i]   || null,
+				})));
 			}
 
 			redirect(302, '/characters');

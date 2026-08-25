@@ -2,12 +2,25 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import EncounterPlannerPanel from '../_planner/EncounterPlannerPanel.svelte';
+	import { defaultPlannerState } from '../_planner/planner.ts';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let saving = $state(false);
+	let tab = $state<'details' | 'planner'>('details');
+	let previewMissionXp = $state(0);
 
 	type Reward = { type: string; amount: number; itemRarity?: string; itemCategory?: string; itemMaxValue?: number };
 	let rewards = $state<Reward[]>([{ type: 'XP', amount: 0 }, { type: 'GOLD', amount: 0 }]);
+	let plannerState = $state(defaultPlannerState());
+	let plannerSeeded = false;
+
+	$effect.pre(() => {
+		const cap = data.globalMaxCap;
+		if (plannerSeeded) return;
+		plannerSeeded = true;
+		plannerState = defaultPlannerState({ partySize: cap });
+	});
 
 	function addReward() { rewards = [...rewards, { type: 'GOLD', amount: 0 }]; }
 	function removeReward(i: number) { rewards = rewards.filter((_, idx) => idx !== i); }
@@ -33,13 +46,22 @@
 		</div>
 	</div>
 
-	<div class="card" style="max-width:600px;">
+	<div class="card" style="max-width:{tab === 'planner' ? 'none' : '600px'};">
 		{#if form?.message}<div class="form-error">{form.message}</div>{/if}
+
+		<div class="tabs" style="margin-bottom:1.25rem;">
+			<button type="button" class="tab {tab === 'details' ? 'tab--active' : ''}" onclick={() => tab = 'details'}>Details</button>
+			<button type="button" class="tab {tab === 'planner' ? 'tab--active' : ''}" onclick={() => tab = 'planner'}>
+				Encounter Planner
+				{#if previewMissionXp > 0}<span style="margin-left:0.375rem; font-size:0.75rem; opacity:0.8;">{previewMissionXp.toLocaleString()} XP</span>{/if}
+			</button>
+		</div>
 
 		<form method="post" use:enhance={() => {
 			saving = true;
 			return async ({ update }) => { saving = false; await update(); };
 		}}>
+			<div style:display={tab === 'details' ? undefined : 'none'}>
 			<div class="fields">
 				<div class="field">
 					<label class="label" for="title">Title</label>
@@ -50,9 +72,16 @@
 					<textarea id="description" name="description" class="input" rows="3" placeholder="What is this quest about?"></textarea>
 				</div>
 				<div class="field">
-					<label class="label" for="missionXp">Mission XP</label>
-					<input id="missionXp" name="missionXp" type="number" class="input" min="0" value="0" required />
-					<p class="field-hint">Total XP for the mission — split equally among confirmed players.</p>
+					<span class="label">Mission XP</span>
+					<p style="margin:0; font-size:1.125rem; font-weight:700; font-variant-numeric:tabular-nums;">
+						{previewMissionXp > 0 ? previewMissionXp.toLocaleString() : '—'}
+					</p>
+					<p class="field-hint">Set via the Encounter Planner tab — split equally among confirmed players.</p>
+				</div>
+				<div class="field">
+					<label class="label" for="milestoneAward">Milestone credits <span class="optional">(optional)</span></label>
+					<input id="milestoneAward" name="milestoneAward" type="number" class="input" min="0" value="0" />
+					<p class="field-hint">Each participant earns this many credits — not divided among the party. Only affects characters on milestone progression.</p>
 				</div>
 				<div class="field">
 					<label class="label" for="rules">Rules <span class="optional">(optional)</span></label>
@@ -201,6 +230,19 @@
 				</div>
 			{:else}
 				<input type="hidden" name="locationId" value="" />
+			{/if}
+			</div>
+
+			{#if data.encounterConfig}
+				<div style:display={tab === 'planner' ? undefined : 'none'}>
+					<EncounterPlannerPanel
+						config={data.encounterConfig}
+						bind:planner={plannerState}
+						onMissionXp={(xp) => previewMissionXp = xp}
+					/>
+				</div>
+			{:else}
+				<input type="hidden" name="missionXp" value="0" />
 			{/if}
 
 			<div class="form-actions">

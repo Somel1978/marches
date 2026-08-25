@@ -59,7 +59,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const pendingBuys   = pendingTx.items.filter((t: any) => t.type === 'BUY');
 	const pendingSells  = pendingTx.items.filter((t: any) => t.type === 'SELL');
 	const globalSellPct = Number(settings['marketplace.sellPricePercent'] ?? 50);
-	const progressionThresholds = (gameSystem as any)?.progressionThresholds ?? [];
+	// Home-world sparse overrides layered on the game-system ladder.
+	const progressionThresholds = await characters.getEffectiveThresholds(
+		character.gameSystemId,
+		(character as any).worldId ?? null,
+	);
 
 	let worldSellPct = globalSellPct;
 	let worldItemMap: Record<string, any> = {};
@@ -191,4 +195,12 @@ export const actions: Actions = {
 	addSpellbookEntry:    dnd5eActions.addSpellbookEntry,
 	removeSpellbookEntry: dnd5eActions.removeSpellbookEntry,
 	toggleSpellPrepared:  dnd5eActions.toggleSpellPrepared,
+	saveMood:             dnd5eActions.saveMood,
+	saveSkills:           dnd5eActions.saveSkills,
+	saveSavingThrow:      dnd5eActions.saveSavingThrow,
+	saveSize:             dnd5eActions.saveSize,
+	saveTool:             dnd5eActions.saveTool,
+	saveLanguage:         dnd5eActions.saveLanguage,
+	saveDamageModifier:   dnd5eActions.saveDamageModifier,
+	saveDetails:          dnd5eActions.saveDetails,
 };

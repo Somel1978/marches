@@ -1,0 +1,701 @@
+# Marches — Feature Specifications (Part 1)
+
+## Feature Specifications
+
+---
+
+
+### 0. Core Platform ✅
+
+**Schemas:** `platform`, `users`, `auth`, `audit`
+
+**Key models:** Module, Resource, Setting, NavVisibility, User, Role,
+UserRole, RolePermission, Session, Account, Verification, AuditLog
+
+**SUPERADMIN bypass:** SUPERADMIN role skips permission checks entirely
+via sentinel map `__SUPERADMIN__`. New features work automatically for
+SUPERADMIN with zero seed configuration.
+
+**Permission cache:** `getUserPermissions` caches per user. Invalidated
+explicitly via `invalidateUserPermissions(userId)` after role changes.
+
+---
+
+
+### Site Branding
+
+**Settings:** `site.name`, `site.logo`, `site.logoIcon`, `site.url`, `site.footer`
+
+`site.name` — application name shown in the sidebar, nav bar, browser tab, and footer.
+
+`site.logo` — full SVG markup (`<svg>...</svg>`) or an image URL. Renders in the sidebar
+(expanded) and frontend nav bar. When collapsed, the sidebar falls back to the hardcoded
+`⚔` icon. Use `currentColor` for fill/stroke so the logo inherits `--accent-light` (`#E6A87A`).
+Remove hardcoded `width`/`height` attributes — use only `viewBox`. The CSS constrains height
+to 28px and preserves aspect ratio.
+
+`site.footer` — raw HTML string for the frontend footer. Supports links and markup.
+When empty, falls back to `© {year} {site.name}`. Admin app has no page footer (sidebar only).
+
+**Current implementation:** Option B — two logo fields.
+- `site.logo` — full logo for expanded sidebar and frontend nav
+- `site.logoIcon` — compact icon for collapsed admin sidebar and frontend nav fallback. Accepts SVG markup, image URL, or emoji. Defaults to `⚔`.
+
+**Recommended viewBox sizes:**
+- Icon only: `viewBox="0 0 28 28"`
+- Logo + wordmark: `viewBox="0 0 120 28"` to `viewBox="0 0 160 28"`
+
+**Frontend layout server pattern:** all three site settings are loaded unconditionally
+(before auth check) so they are available on the login page and all public routes:
+```typescript
+const settings    = await platform.getSettingsMap();
+const siteName    = settings['site.name']   || '';
+const siteLogo    = settings['site.logo']   || '';
+const siteFooter  = settings['site.footer'] || '';
+if (!locals.user) return { user: null, siteName, siteLogo, siteFooter };
+```
+
+---
+
+
+### 1. GameSystem ✅ (refactored session 13)
+
+**Schemas:** `gamesystem`, `dnd5e`
+
+**gamesystem models:** GameSystem, ProgressionThreshold
+
+**dnd5e models:**
+```
+Dnd5eClass             — gameSystemId, name, hitDice, canCastSpells, primaryAbilities,
+                         equipmentDescription, subclassAvailableAtLevel (default 3),
+                         isAvailable, sortOrder, source, link,
+                         skillChoiceCount Int?
+                         → savingThrows Dnd5eClassSavingThrow[] (junction)
+                         → skillOptions  Dnd5eClassSkillOption[]  (junction)
+Dnd5eClassSavingThrow  — classId, stat Dnd5eAbilityStat (junction — delete-and-recreate on update)
+Dnd5eClassSkillOption  — classId, skill Dnd5eSkillName (junction — delete-and-recreate on update)
+Dnd5eClassFeature      — classId, name, requiredLevel, description, url
+                         grantsSkills, grantsExpertise, grantsHalfSkills,
+                         grantsSavingThrows, skillChoiceCount, skillChoicePool
+                         @@unique([classId, name, requiredLevel])
+Dnd5eSubclass          — classId, name, description, source, link, isAvailable, sortOrder,
+                         canCastSpells Boolean @default(false)
+                         @@unique([classId, name])
+Dnd5eSubclassFeature   — subclassId, name, requiredLevel, description, url
+                         grantsSkills, grantsExpertise, grantsHalfSkills,
+                         grantsSavingThrows, skillChoiceCount, skillChoicePool
+                         @@unique([subclassId, name, requiredLevel])
+Dnd5eSpecies           — gameSystemId, name, description, source, link,
+                         isSubrace, isLegacy, isAvailable, sortOrder
+Dnd5eSpeciesTrait      — speciesId, name, description, requiredLevel
+                         grantsSkills, grantsExpertise, grantsHalfSkills,
+                         skillChoiceCount, skillChoicePool
+Dnd5eBackground        — gameSystemId, name, shortDescription, featureName,
+                         grantsSkills String?,   ← fixed skills (comma-sep enum keys)
+                         skillChoiceCount Int?,  ← how many from pool player picks
+                         skillChoicePool  String?, ← comma-sep enum keys (null = no choice)
+                         skillProficiencies (deprecated), toolProficiencies, languages,
+                         grantsFeatCategory, grantsFeatId,
+                         url, isAvailable, sortOrder
+Dnd5eFeat              — gameSystemId, name, description, snippet, categories,
+                         prerequisites, repeatable, isEpicBoon, isAvailable, sortOrder,
+                         asiAmount, asiStatFixed, asiStatChoices,
+                         grantsSkills, grantsExpertise, grantsHalfSkills,
+                         grantsSavingThrows, skillChoiceCount, skillChoicePool
+Dnd5eCharacterSkillGrant — characterId, skill Dnd5eSkillName,
+                         value Float (0=none, 0.5=half, 1.0=proficient, 2.0=expertise),
+                         sourceType String ("Background"|"ClassFeature"|"SubclassFeature"|
+                           "SpeciesTrait"|"Feat"|"PlayerChoice"|"Override"),
+                         sourceId String? (UUID of granting entity; null for class/player/override rows),
+                         note String? (free-text reason for Override rows — who changed it and why)
+                         — Multiple rows per skill per character (one per grant source).
+                         — Exactly one "Override" row allowed per skill; written by DM/Admin inline editor.
+                         — Effective value = MAX(source rows); Override row wins outright.
+Dnd5eCharacterSavingThrowGrant — characterId, stat String,
+                         sourceType String ("Class"|"ClassFeature"|"SubclassFeature"|
+                           "Feat"|"Background"|"SpeciesTrait"|"PlayerChoice"|"Override"),
+                         sourceId String? (UUID of granting entity; "__SUPPRESS__" forces non-proficient),
+                         note String? (free-text reason for Override rows)
+                         — A row's presence = proficient; sourceId="__SUPPRESS__" = forced not proficient.
+                         — Override row written by DM/Admin inline editor wins outright.
+```
+
+**Grant entity choice pools (Session 77+):** Class features, subclass features, species traits, feats, and backgrounds also support `expertiseChoiceCount` / `expertiseChoicePool`, plus tool/language/resistance/immunity/vulnerability choice pools and size/speed/sense fields where applicable — see [import-guide.md](../dnd5e/import-guide.md) for import column names.
+
+- Each game system gets its own schema (`dnd5e`, `pathfinder`, etc.) — fully isolated
+- `ProgressionThreshold` stays in `gamesystem` — agnostic, works across all systems
+- `CharacterClass.classId/subclassId` = plain String, cross-schema FK resolved at app level
+- `subclassAvailableAtLevel` on `Dnd5eClass` (default 3) — controls when subclass selector appears
+- Other game systems show "Schema not yet implemented" until their schema is built
+- `isActive` toggle on game systems list page — controls availability to players
+- GameSystem is a data-only plugin — no code changes needed to add a new system
+- Progression label is per-system (`label` field, e.g. "Level 1" vs "Tier 2")
+
+**Admin routes:**
+```
+/game-systems                               — list + isActive toggle
+/game-systems/new                           — create (name, slug, description)
+/game-systems/[id]/classes                  — list + create
+/game-systems/[id]/classes/[classId]        — edit class + features + subclasses inline
+/game-systems/[id]/species                  — list + inline traits
+/game-systems/[id]/backgrounds              — list
+/game-systems/[id]/progression              — manage ProgressionThresholds (XP per level)
+/game-systems/[id]/import                   — 7-tab Excel import
+```
+
+**Import system (7 tabs, flat Excel templates):**
+```
+Classes           — name, hitDice, canCastSpells, subclassAvailableAtLevel,
+                    primaryAbilities, equipmentDescription, description,
+                    source, link, sortOrder,
+                    grantsSavingThrows (comma-sep), skillChoiceCount, skillPool (comma-sep)
+Class Features    — className, name, requiredLevel, description, url,
+                    grantsSkills, grantsExpertise, grantsHalfSkills,
+                    grantsSavingThrows, skillChoiceCount, skillChoicePool
+Subclasses        — className, name, description, source, link, sortOrder, canCastSpells
+Subclass Features — className, subclassName, name, requiredLevel, description, url,
+                    grantsSkills, grantsExpertise, grantsHalfSkills,
+                    grantsSavingThrows, skillChoiceCount, skillChoicePool
+Species           — name, description, source, link, isSubrace, isLegacy, sortOrder
+Species Traits    — speciesName, name, description, requiredLevel,
+                    grantsSkills, grantsExpertise, grantsHalfSkills,
+                    skillChoiceCount, skillChoicePool
+Backgrounds       — name, shortDescription, featureName, grantsSkills,
+                    skillChoiceCount, skillChoicePool,
+                    toolProficiencies, languages, url, sortOrder,
+                    grantsFeatCategory, grantsFeatId
+Feats             — name, description, snippet, categories, prerequisites,
+                    repeatable, isEpicBoon, isAvailable, sortOrder,
+                    asiAmount, asiStatFixed, asiStatChoices,
+                    grantsSkills, grantsExpertise, grantsHalfSkills,
+                    grantsSavingThrows, skillChoiceCount, skillChoicePool
+```
+- Parent lookup: exact name match with whitespace normalization
+- Feature uniqueness: `name + requiredLevel` (same-name features at different levels = distinct)
+- `allowUpdate` checkbox: explicit opt-in to overwrite existing records (unchecked = skip duplicates)
+- `toInt(v, fallback)` helper strips Excel apostrophe prefix (`'1'` → `1`)
+- `boolVal(v)` handles `TRUE/true/1/yes` → boolean
+- `normalize(s)` collapses multiple spaces, trims
+- Friendly unique constraint error messages
+
+**DB API:**
+```
+dnd5e.classes.{getAll, getActive, getById, create, update, delete,
+               updateSavingThrows(classId, stats[]), updateSkillPool(classId, skills[])}
+dnd5e.classFeatures.{create, update, delete}
+dnd5e.subclasses.{create, update, delete}
+dnd5e.subclassFeatures.{create, update, delete}
+dnd5e.species.{getAll, getActive, create, update, delete}
+dnd5e.speciesTraits.{create, update, delete}
+dnd5e.backgrounds.{getAll, getActive, create, update, delete}
+dnd5e.feats.{getAll, getAllForAdmin, getById, create, update, delete}
+dnd5e.getSystemData(gameSystemId) — cached 5 min; returns {classes, species, backgrounds, feats, spells, ...}
+dnd5e.invalidateSystemCache(gameSystemId?)
+gameSystems.{getAll, getActive, getById, create, update, delete}
+gameSystems.progression.{create, update, delete}
+```
+
+---
+
+
+### 2. Character Hub ✅ (expanded session 13)
+
+**World lock matrix:**
+| Character | World `acceptsGlobalCharacters` | Result |
+|---|---|---|
+| `isGlobal=true` | `true` | ✅ allowed |
+| `isGlobal=true` | `false` | ❌ blocked |
+| `isGlobal=false`, `worldId=X` | quest in world X | ✅ allowed |
+| `isGlobal=false`, `worldId=X` | quest in world Y | ❌ blocked |
+| `isGlobal=false`, `worldId=null` | any world | ✅ allowed |
+
+**Schema:** `characters`
+
+**Models:**
+```
+Character              — status, statusReason, speciesId, backgroundId,
+                         pendingChanges Json?, level, earnedLevel,
+                         progressionMode, xp, gold, tokens, totalMilestones,
+                         restUntil, description, worldId, isGlobal
+CharacterClass         — classId (String), subclassId (String?), allocatedLevel
+                         (plain strings — cross-schema FK resolved at app level)
+CharacterSlotGrant     — delta grants per user
+CharacterTransaction   — audit trail (XP|GOLD|TOKEN|MILESTONE|STATUS|ITEM|REWARD)
+CharacterInventory     — itemId, itemName, itemCategory, itemRarity,
+                         itemSource, purchasePrice, canSell, sourceType,
+                         sourceId, transactionId
+```
+
+**Two level fields — never conflated:**
+
+| Field | Meaning | Written by |
+|---|---|---|
+| `level` | Approved level, always equals `sum(allocatedLevel)` | create, approval, admin class edits |
+| `earnedLevel` | Level the progression totals entitle the character to | `applyProgressionChange` only |
+
+All gating (quest signup, quest eligibility lists, marketplace, region access) reads
+`level`. Only the "Level N available" prompts read `earnedLevel`. When the two
+diverge the character is parked in `LEVEL_UP_PENDING` or `LEVEL_DOWN_PENDING`
+until an allocation is submitted and approved.
+
+**Progression modes.** `Character.progressionMode` is snapshotted at creation from
+`World.progressionMode ?? GameSystem.defaultProgressionMode`, and an admin can
+change it later. Both modes resolve level identically — count the
+`ProgressionThreshold` rows cleared — they just read a different column:
+
+| Mode | Character total | Threshold column |
+|---|---|---|
+| `XP` | `totalXp` | `xpRequired` |
+| `MILESTONE` | `totalMilestones` | `milestoneRequired` |
+
+Milestone characters still receive and record XP; it just does not drive their
+levelling. If every `milestoneRequired` is still 0 the ladder counts as
+unconfigured and milestone levelling is inert rather than jumping everyone to
+max level.
+
+**Effective ladder (system + sparse world overrides).**
+`getEffectiveThresholds(gameSystemId, character.worldId)` loads the game-system
+`ProgressionThreshold` rows, then layers sparse `WorldProgressionOverride` diffs
+for the character’s **home world** (`Character.worldId`). Null override columns
+inherit the system value. Global characters (`worldId` null) always use the pure
+game-system ladder — the quest’s world never changes the ladder.
+
+- Admin and `canManage` DMs edit overrides (admin world page; DM hub
+  `/dm/worlds/[worldId]/progression`)
+- Saving overrides re-resolves `earnedLevel` for every character with that home
+  world via `reconcileProgression` (may open level-up/down pending)
+
+**CharacterStatusReason enum:**
+```
+NEW_CHARACTER      — new character awaiting first approval
+EDIT_PENDING       — player submitted structural changes, awaiting approval
+LEVEL_UP_PENDING   — earnedLevel above approved level, player must allocate
+LEVEL_DOWN_PENDING — earnedLevel below approved level, player must reduce classes
+QUEST_REST         — recovering after quest, clears after restDays
+ADMIN              — manually set by admin
+SYSTEM             — set by platform (e.g. quest death)
+```
+
+**Status flow:**
+```
+PENDING (NEW_CHARACTER)   → ACTIVE (approved) | REJECTED
+ACTIVE                    → PENDING (EDIT_PENDING)       → ACTIVE (approved) | ACTIVE (rejected, reverts)
+                          → PENDING (LEVEL_UP_PENDING)   → ACTIVE (approved) | ACTIVE (rejected, reverts)
+                          → PENDING (LEVEL_DOWN_PENDING) → ACTIVE (approved) | ACTIVE (rejected, reverts)
+                          → RESTING (QUEST_REST)         → ACTIVE (rest cleared)
+                          → SUSPENDED | RETIRED | DECEASED
+```
+
+Rejecting an allocation cannot corrupt the level: the progression path never
+writes `level`, so classes and `level` stay consistent with no revert logic.
+
+**Single progression path.** `applyProgressionChange`
+(`shared/database/dbapi/write/characters/progression.ts`) is the only place a
+level change is decided. Quest result approval, admin XP/credit adjustments,
+token store boosts and reverts, and quest deletion reversals all route through
+it. It applies the deltas, writes the `CharacterTransaction` rows, recomputes
+`earnedLevel`, and sets the pending state — guarded in both directions so a
+repeat award does not re-notify. Callers that have already mutated the totals
+themselves call `reconcileProgression` instead.
+
+**Edit workflow — two paths:**
+- **Free fields** (name, avatarUrl, portraitUrl, description) → `updateFreeFields` → saves immediately, no approval needed
+- **Structural fields** (species, background, classes/levels/subclasses) → `submitStructuralChanges` → saves snapshot to `pendingChanges Json` + sets status PENDING/EDIT_PENDING → admin approval required
+- **Approval** → `approveCharacter` reads `pendingChanges`, applies to actual fields, clears `pendingChanges`, sets ACTIVE
+- **Rejection** → clears `pendingChanges`, reverts to ACTIVE
+- **Level-up / level-down** → same path as structural edit via `submitChanges` with classes only, passing `'preserve'` so the existing `LEVEL_UP_PENDING` / `LEVEL_DOWN_PENDING` reason survives instead of being overwritten with `EDIT_PENDING`
+- **Delevel cleanup** → on approval, ASI/feat picks whose `sourceLevel` exceeds the new `allocatedLevel` (or whose class was dropped) are removed and their stat bumps reversed
+
+**Character sheet enrichment (`getCharacterById`):**
+- Loads `speciesRef` + all traits from `dnd5e.species`
+- Loads `backgroundRef` from `dnd5e.backgrounds`
+- Per class: loads `classRef` + features up to `allocatedLevel`, `subclassRef` + subclass features up to `allocatedLevel`
+
+**CharacterInventory snapshot:** stores name, category, rarity, source,
+and purchasePrice at acquisition time. Live price read from MarketplaceItem.
+
+**Admin routes:**
+```
+/characters            — list with status filter
+/characters/[id]       — approve/reject (with pendingChanges diff shown),
+                         edit all fields including backgroundId, species,
+                         currency, transactions, inventory (remove with refund), delete
+/characters/slots      — per-user slot management
+/characters/settings   — baseSlots, startingGold, restDays
+```
+
+**Frontend routes:**
+```
+/characters            — own characters grid
+/characters/new        — game system selector → routes to system-specific wizard
+/characters/new/dnd5e  — 6-step D&D 5e wizard (`_wizard/`): Identity, Species,
+                         Background, Scores, Classes (inline ASI + pools), Review
+/characters/[id]       — universal shell + system sheet section (see below)
+```
+
+**Frontend character page — layout (Session 51+ refactor, current):**
+```
+Universal +page.svelte:
+  - Status banners, portrait/stats (XP, Gold, Tokens, Level), mood (MoodEditor)
+  - XP progression bar
+  - Backstory, inventory, transactions, achievements
+  - Dnd5eSheetSection (when game system is dnd5e) — thin action bridge to @core/ui
+
+Dnd5eSheetSection → Dnd5eCharacterSheet (@core/ui):
+  - Ability scores + audit history
+  - Species / background / classes summary
+  - Pending proficiency choice pools (skill/save/expertise from unresolved features)
+  - ASI / feat slots, skills panel (inline override editor), spellbooks
+  - Character details (alignment, traits, appearance)
+```
+
+**Legacy card-order note:** Older docs listed species/background as separate collapsible blocks on the universal page. Those now live inside `Dnd5eCharacterSheet`.
+
+**Multiclassing:** multiple `CharacterClass` rows per character. Total level = sum of all
+`allocatedLevel` values. Used by quest signup check, marketplace level restrictions,
+and submit-result level-up detection. All use `db.characterClass.aggregate._sum.allocatedLevel`.
+
+**Settings:** `character.baseSlots`, `character.startingGold`, `character.restDays`
+
+**Key decisions:**
+- Characters are never deleted by workflow — REJECTED status is permanent for audit
+- Level-up rejection reverts to ACTIVE, discarding pending allocation
+- `CharacterClass.classId/subclassId` are plain String — no Prisma cross-schema FK
+- `pendingChanges` uses `Prisma.JsonNull` (not `null`) to clear the field
+
+---
+
+
+### 3. DM Hub ✅
+
+**Schema:** `dms`
+
+**Models:** DMProfile, DMGameSystem, RoleRequest, DMRating
+
+**Admin routes:**
+```
+/role-requests         — approve/reject/delete requests
+/dms                   — DM profile list
+/dms/[id]              — edit profile + revoke DM role
+/dms/settings          — dm.ratingsEnabled toggle
+```
+
+**Frontend routes:**
+```
+/dm                    — DM dashboard
+/dm/profile            — DM edits own profile
+/dm-request            — role request flow
+```
+
+**Settings:** `dm.ratingsEnabled`
+
+**Key decisions:**
+- DM role ≠ DM profile. Nav checks `hasDMProfile` (active profile in `dms.dm_profiles`)
+- Approving role request: assigns role, creates/reactivates DMProfile, calls `invalidateUserPermissions`
+- First-time DM approval (no prior `WorldDM` rows): creates a default world
+  (`"{name}'s World"`) with the user as `canManage` DM + tavern channel
+- Re-approval when the DM already has world assignments: skips world creation
+  and notifies admins (`DM_REAPPROVED_WITH_WORLDS`)
+- Revoking: DMProfile.isActive=false, removes UserRole, sets request to REJECTED
+  (WorldDM rows are kept, so a later re-approval does not spawn another default world)
+- `/dm-request` redirects to `/dm` only if active DM profile exists
+
+---
+
+
+### 4. Quest System ✅
+
+**Schema:** `quests`
+
+**Models:** Quest, QuestDM, QuestReward, QuestSignup, QuestResult, QuestResultCharacter, QuestItemUsage
+
+**Quest status flow:**
+```
+DRAFT → PENDING_APPROVAL → PUBLISHED → IN_PROGRESS
+     → PENDING_RESULT → COMPLETED | CANCELLED
+```
+
+**Signup status:** CONFIRMED | WAITLIST | PENDING_CONFIRMATION | CANCELLED
+
+**Admin routes:**
+```
+/quests                — list with status filter
+/quests/[id]           — approve/reject, rewards, signups, results, delete
+/quests/settings       — global min/max capacity
+```
+
+**DM routes:**
+```
+/dm                    — quest list
+/dm/quests/new         — create (rules pre-filled from DM profile)
+/dm/quests/[id]        — manage: edit, rewards, signups, results, co-DMs
+```
+
+**Player routes:**
+```
+/quests                — published quests list
+/quests/[id]           — detail, per-player reward table, signup/cancel
+```
+
+**Settings:** `quest.minCapacity`, `quest.maxCapacity`
+
+**Key decisions:**
+- `missionXp` divided equally among confirmed players, minimum 1
+- Extra rewards (GOLD/TOKEN) in QuestReward, divided equally
+- Waitlist auto-promotes to PENDING_CONFIRMATION on cancellation; DM confirms
+- Co-DMs have equal access to main DM
+- Rewards changed after PUBLISHED → `rewardAdjusted` flag, reverts to PENDING_APPROVAL
+- Quest regionId + locationId — fully wired: create, edit (DM + admin), display (World › Region · Location + DM name)
+
+---
+
+
+### 5. Marketplace ✅
+
+**Schema:** `marketplace`
+
+**Models:**
+```
+MarketplaceItem          — category, rarity, baseItem, isVariant,
+                           requiresAttunement, requirements, weight,
+                           source, imageUrl, link, description,
+                           buyPrice, isDestroyable, isAvailable, stock
+MarketplaceTransaction   — type (BUY|SELL|REWARD), status (PENDING|APPROVED|REJECTED),
+                           priceAtTransaction, totalPrice, requestedBy, reviewedBy,
+                           worldId String? (null = global)
+WorldMarketplaceItem     — worldId, itemId, stock Int?, isAvailable Boolean?, priceOverride Int?
+                           @@unique([worldId, itemId])
+WorldMarketplaceSetting  — worldId @@unique, sellPricePercent Int?, stockEnabled Boolean?,
+                           levelRestrictions Json?
+```
+
+**Buy flow:**
+```
+Player requests → gold deducted immediately (reserved)
+Admin approves  → item added to CharacterInventory
+Admin rejects   → gold refunded
+Player cancels  → gold refunded
+```
+
+**Sell flow:**
+```
+Player requests sell → transaction PENDING (no inventory change yet)
+Admin approves       → gold credited, item removed from inventory
+Admin rejects        → no change
+```
+
+**Reward flow:**
+```
+grantRewardItem() → creates APPROVED transaction at price 0
+                 → adds directly to CharacterInventory
+```
+
+**Level restrictions:** JSON tier table in `marketplace.levelRestrictions` setting.
+Admin UI is a proper table (not raw JSON). Each tier: minLevel, maxLevel,
+maxRarity, maxValue, allowedCategories.
+Level = sum of all `CharacterClass.allocatedLevel` — multiclassing supported automatically.
+
+**Import:** xlsx upsert by name. Column mapping:
+Category, Name, Price, Base Item, Var., Rarity, Att., Requirements,
+Weight, Source, Image, Link (+ description field optional)
+
+**Admin routes:**
+```
+/marketplace/items           — browse/filter/sort catalogue
+/marketplace/items/[id]      — edit price, stock, availability; delete
+/marketplace/transactions    — all transactions with approve/reject; world + status filters; World column
+/marketplace/import          — xlsx upload
+/marketplace/settings        — sellPricePercent, stockEnabled, levelRestrictions
+```
+
+**Frontend routes:**
+```
+/marketplace           — grid browse with filters + sort
+/marketplace/[id]      — item detail + buy request form
+```
+
+**Settings:** `marketplace.sellPricePercent`, `marketplace.stockEnabled`,
+`marketplace.levelRestrictions`
+
+**Key decisions:**
+- `CharacterInventory` stores full item snapshot (name, category, rarity, source, purchasePrice)
+- Live price always read from MarketplaceItem.buyPrice at runtime
+- Admin removing inventory item refunds purchasePrice × quantity to character
+- All transactions audited to AuditLog + CharacterTransaction activity feed
+- `TransactionType` in marketplace schema named `MarketTransactionType` to avoid conflict with
+  `TransactionType` enum in characters schema
+
+---
+
+
+### 6. World System ✅
+
+**Schema:** `world`
+
+**Models:**
+```
+World          — name, slug, description, mapImageUrl, isActive
+WorldDM        — worldId, dmProfileId (many-to-many assignment)
+Region         — worldId, name, slug, description, mapX, mapY,
+                 color, minLevel, maxLevel, dangerRating, isActive, imageUrl
+RegionDM       — regionId, dmProfileId (many-to-many)
+Location       — regionId, name, slug, description, type, minLevel,
+                 maxLevel, dangerRating, isActive, imageUrl
+WikiPage       — entityType (WORLD|REGION|LOCATION), entityId,
+                 title, content (markdown)
+WikiRevision   — pageId, content, editedBy (full history)
+NeuralMapNode  — worldId, entityType, entityId, posX/posY, note
+NeuralMapEdge  — worldId, fromNodeId, toNodeId, label, notes, directed
+```
+
+**Multiple worlds:** supported from the start. Each world is independent
+with its own map and regions.
+
+**Map markers:** regions placed as dot markers on the world map image.
+Admin clicks "Place marker" on a region then clicks the map to set X/Y%
+position. Frontend renders glowing dots at those positions.
+
+**Neural map:** Lore board only (regions, locations, factions, NPCs, quests,
+plot-quest cards, characters, journals + authored `NeuralMapEdge` links).
+Plot progression is authored on each plot’s **Progression** tab; Neural no
+longer exposes a Progression layer. `syncProgressionLayer` still runs for
+plot flowchart **positions** (invisible storage), not for the Neural UI.
+Double-click opens the entity. API: `worlds.neural.*`. UI: `WorldNeuralMap`
+in `@core/ui`. Routes: `/dm/worlds/[worldId]/neural` (canManage),
+`/world/[id]/neural` (admin). Lore node remove deletes board placement only
+— not the underlying entity.
+
+**Plot Quests (lore missions):** World-scoped plot entities distinct from
+system **Quests** (scheduled play sessions). Status + optional `deadlineDay`
+(= **global fail timer**). Factions/NPCs associate via `FactionQuest` /
+`NpcQuest` → `plotQuestId`. System Quests attach via `PlotQuestQuest` (M:N);
+reverse tab on DM/Admin quest detail.
+**Authoring UI** (product tree, human labels — not enum dumps): Summary →
+Objectives → Failure → **Progression** (two-layer flowchart,
+`PlotFlowchartEditor`):
+**Layer 1 — Scene graph:** compact Scene / Ending cards + Connect between
+scenes/endings; exit destination labels on cards; **Edit flow** /
+double-click opens a scene.
+**Layer 2 — Scene flow:** three columns (palette | canvas | inspector).
+Canvas always includes a **Start Node** (scene entry root — entry
+requirements + scene-level Unlock/Block/Needs/Consequences) plus
+Discovery / **Encounter** / Decision / Option / Exit nodes; dashed parent
+links + solid `PlotEdge`s; ghost chips for out-of-scene link targets
+(Objectives/Endings linked via Unlocks/Blocks/Needs). Ghost inspector is
+read-only: remove the link only — delete/edit those entities on Objectives /
+Endings tabs (or Scene graph for endings), never from scene-flow Delete.
+**Encounter** subtypes: Combat, Puzzles, Traps, Social. Social can pick
+Faction and/or NPC from the plot’s linked lists (Links tab). Encounters
+use the same standard fields as other pieces (title, description, status,
+Needs, Unlocks, Blocks, Consequences). Palette adds pieces (Start is
+fixed). Inspector on every element: status, Unlock / Block, Needs,
+Consequences; **Finish objective** on all linkable pieces (Discovery /
+Encounter / Decision / Option / Exit / Scene / Ending); shown on the piece
+card as `Finishes: …` and in the inspector — not as a board path or objective
+ghost (path connectors are only for Current jumps). **Continue to (this scene)**
+on Discovery / Encounter / Decision / Option / Start creates an in-scene Unlocks
+follow-up (e.g. Option → Exit). Decision / Option / Exit also have go to
+ending/scene; ending finish-plot (`PlotEffect` CUSTOM `{ finishPlot: true }`).
+Relayout on graph; deletes use `confirmModal`.
+Plot page: Details | Links side-by-side, structure full-width) → Endings
+→ **Play** → Analysis.
+**Play tab:** Same Scene graph / Scene flow canvases (`playMode`). DM selects
+the path (**Which path did they take?**). Completing an option always records
+the step: option Taken, siblings Missed, decision Completed — even when the
+option has **no Unlocks** (Yes/No is still a jump). Current is **exactly one** piece (the step you are on). After an option,
+Current moves via that option’s Continue to / Unlocks (first in-scene jump).
+If the option has **no follow-up**, Current is cleared and Play warns the DM
+to fix the workflow on Progression — we do not invent a next step (no return
+to Start, no fan-out to every Exit). Out-of-scene Unlocks open as Available.
+**UNLOCKS → OBJECTIVE** always marks the objective **COMPLETED**. Taking an
+**Exit** also **completes the parent scene** (and fires that scene’s
+Unlocks/Blocks); Current then follows Exit/scene Unlocks (e.g. Scene 2).
+**BLOCKS → BLOCKED**. Prior ACTIVE demotes to AVAILABLE. Works in **Draft**.
+Play status Complete/Fail uses the same advance cascade as path buttons.
+Canvas: Taken (purple) / Current (bright green) / Open (soft green = next
+from Current only) / Locked (red) / Blocked (amber — also Available pieces
+unreachable from Current) / Closed (gray).
+**Revert step** (path row, inspector, or play log) asks for confirm, then
+clears that choice and every later play state (by `PlotNodeState.updatedAt`),
+wipes their notes, and restores Current on the decision/piece. Does **not**
+undo world side-effects (renown, NPC flags, locked follow-up plots); reopen
+plot if a cleared ending had `finishPlot`. **Set as Current** / **Set Start as Current** (Start Node in scene flow) / **Set scene as Current** (scene graph)
+or any open piece moves the sole Current marker without clearing Taken
+history — use after revert to put Current back on the Start node.
+**Finish objective** shortcuts work on Play as well as Progression (create
+Unlocks edge; chip badge **Finish**).
+**Player log:** `/world/[slug]/plots` lists ACTIVE/COMPLETED/FAILED plots;
+detail shows revealed beats (`playerNoteVisible`). Linked from the world hub.
+**Progression graph:** DAG (`PlotNode` / `PlotEdge`). **Unlocks / Blocks** =
+completion effects; **Requires** = prerequisites. Connectors are directed
+(arrow markers; Flip on selected edge). Analysis lists open scenes, entry-
+blocked, possible/blocked endings, impossible pieces, follow-up plots.
+Per-node `failureTimeoutDay` on scenes/objectives. Effects apply on
+COMPLETED/FAILED. Deadline → `applyFailureTimeout`; overdue →
+`applyNodeTimeouts`. UI: `PlotQuestProgressionEditor` + `PlotFlowchartEditor`.
+DM/Admin: `/dm/worlds/[w]/plot-quests`, `/world/[id]/plot-quests`.
+Renaming system Quests → “Sessions” is deferred pending feedback.
+
+**World calendar + timeline:** One `WorldCalendar` per world
+(months, weekdays, day length, eras, moons, date format, `currentDay`
+as world “today”). Defaults to Gregorian on first access. Canonical
+dates use integer `absoluteDay`.
+Timeline List / Calendar / Gantt views aggregate:
+`TimelineEvent` (wars/etc), `RegionWeather`, `NpcSchedule`, and
+plot-quest deadlines. Visibility `PUBLIC` | `DM_ONLY`. All views surface
+`currentDay` (Today bar; List divider; Calendar highlight; Gantt axis).
+Entries spanning today get a Today badge on List/Gantt. Gantt range always
+includes `currentDay`. Calendar day cells show moon phases when moons are defined.
+Create/edit forms use `FantasyDateField` (Day → Month → Year, not raw
+absolute days); new entries default start to `currentDay`.
+**Weather** is managed on the region page (not as a timeline event); the
+timeline still shows weather periods and links to the region.
+- DM Play: `/dm/worlds/[w]/timeline` (all assigned DMs), `/calendar` (`canManage`)
+- DM/Admin region: weather periods under `/regions/[regionId]`
+- Players: `/world/[slug]/timeline` (public entries + ACTIVE/COMPLETED deadlines)
+- Admin: `/world/[id]/timeline`, `/calendar`
+
+**DM world hub nav:** Two-line sectioned nav in
+`/dm/worlds/[worldId]/+layout.svelte` — section row (Play / Economy /
+World Building / Configuration), then a second horizontal row of pages for
+the open section. Play includes Timeline + Calendar (`manageOnly`).
+`manageOnly` items hidden for Quest DMs. Rows scroll horizontally on narrow
+viewports.
+
+**Wiki:** markdown content, full revision history. Every edit saves
+current content as a WikiRevision before overwriting. Rendered via
+`renderMarkdown()` from `@core/ui`.
+
+**Admin routes:**
+```
+/world                               — world list + create
+/world/[id]                          — edit world, map, region list + add region, assign/remove world DMs
+/world/[id]/neural                   — lore neural map (place entities, author connections)
+/world/[id]/regions/[regionId]       — edit region, assign DMs, wiki, weather, locations
+/world/[id]/regions/[regionId]/locations/[locationId] — edit location, wiki
+/world/settings                      — showDangerRating, showLevelRange
+```
+
+**Frontend routes:**
+```
+/world                               — world list with map + region cards
+/world/[worldSlug]/[regionSlug]      — region detail + wiki + locations
+/world/[worldSlug]/[regionSlug]/[locationSlug] — location detail + wiki
+```
+
+**Settings:** `world.showDangerRating`, `world.showLevelRange`
+
+**Wiki access:**
+- Admin: full create/edit on all wiki pages
+- DM: can create/edit wiki on regions they are assigned to + child locations
+- Player: read-only
+
+**Key decisions:**
+- Single polymorphic `WikiPage` model (entityType + entityId) instead of
+  separate WorldWikiPage / RegionWikiPage / LocationWikiPage tables
+- `slug` field on World/Region/Location for clean frontend URLs
+- `dangerRating` is an enum: Safe | Low | Moderate | High | Extreme
+- `LocationType` enum: Town | City | Dungeon | Ruins | Landmark | Wilderness | Other
+- DM wiki edit right = being in RegionDM for that region (covers child locations too)
+
+---

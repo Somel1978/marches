@@ -20,6 +20,8 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
         case 'classes': {
             const all = await dnd5e.classes.getAll(systemId);
             rows = all.map(c => ({
+                id:                       c.id,
+                uploadId:                 (c as any).uploadId ?? '',
                 name:                     c.name,
                 hitDice:                  c.hitDice ?? '',
                 canCastSpells:            c.canCastSpells,
@@ -30,6 +32,9 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
                 source:                   c.source ?? '',
                 link:                     c.link ?? '',
                 sortOrder:                c.sortOrder,
+                skillChoiceCount:  (c as any).skillChoiceCount ?? '',
+                grantsSavingThrows: ((c as any).savingThrows ?? []).map((s: any) => s.stat).join(','),
+                skillPool:          ((c as any).skillOptions ?? []).map((o: any) => o.skill).join(','),
             }));
             break;
         }
@@ -38,7 +43,14 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             const all = await dnd5e.classes.getAll(systemId);
             for (const cls of all) {
                 for (const f of (cls.features ?? [])) {
-                    rows.push({ className: cls.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '' });
+                    rows.push({ id: f.id, classId: cls.id, uploadId: (f as any).uploadId ?? '', className: cls.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
+                        grantsSkills: (f as any).grantsSkills ?? '', grantsExpertise: (f as any).grantsExpertise ?? '', expertiseChoiceCount: (f as any).expertiseChoiceCount ?? '', expertiseChoicePool: (f as any).expertiseChoicePool ?? '',
+                        grantsHalfSkills: (f as any).grantsHalfSkills ?? '', grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
+                        skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '',
+                        savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (f as any).savingThrowChoicePool ?? '',
+                        grantsTools: (f as any).grantsTools ?? '', toolChoiceCount: (f as any).toolChoiceCount ?? '', toolChoicePool: (f as any).toolChoicePool ?? '',
+                        grantsLanguages: (f as any).grantsLanguages ?? '', languageChoiceCount: (f as any).languageChoiceCount ?? '', languageChoicePool: (f as any).languageChoicePool ?? '',
+                        grantsResistances: (f as any).grantsResistances ?? '', grantsImmunities: (f as any).grantsImmunities ?? '', grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '', resistanceChoiceCount: (f as any).resistanceChoiceCount ?? '', resistanceChoicePool: (f as any).resistanceChoicePool ?? '', immunityChoiceCount: (f as any).immunityChoiceCount ?? '', immunityChoicePool: (f as any).immunityChoicePool ?? '', vulnerabilityChoiceCount: (f as any).vulnerabilityChoiceCount ?? '', vulnerabilityChoicePool: (f as any).vulnerabilityChoicePool ?? '', grantsInnateSpells: (f as any).grantsInnateSpells ?? '', grantsSpeed: (f as any).grantsSpeed ?? '', grantsSenses: (f as any).grantsSenses ?? '', grantsFeatCategory: (f as any).grantsFeatCategory ?? '', grantsFeatId: (f as any).grantsFeatId ?? '' });
                 }
             }
             rows.sort((a, b) => a.className.localeCompare(b.className) || a.requiredLevel - b.requiredLevel);
@@ -49,7 +61,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             const all = await dnd5e.classes.getAll(systemId);
             for (const cls of all) {
                 for (const s of (cls.subclasses ?? [])) {
-                    rows.push({ className: cls.name, name: s.name, description: s.description ?? '', source: s.source ?? '', link: s.link ?? '', canCastSpells: (s as any).canCastSpells ?? false, sortOrder: s.sortOrder });
+                    rows.push({ id: s.id, classId: cls.id, uploadId: (s as any).uploadId ?? '', className: cls.name, name: s.name, description: s.description ?? '', source: s.source ?? '', link: s.link ?? '', canCastSpells: (s as any).canCastSpells ?? false, sortOrder: s.sortOrder });
                 }
             }
             rows.sort((a, b) => a.className.localeCompare(b.className) || a.name.localeCompare(b.name));
@@ -61,7 +73,14 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             for (const cls of all) {
                 for (const s of (cls.subclasses ?? [])) {
                     for (const f of (s.features ?? [])) {
-                        rows.push({ className: cls.name, subclassName: s.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '' });
+                        rows.push({ id: f.id, classId: cls.id, subclassId: s.id, uploadId: (f as any).uploadId ?? '', className: cls.name, subclassName: s.name, name: f.name, requiredLevel: f.requiredLevel, description: f.description ?? '', url: (f as any).url ?? '',
+                            grantsSkills: (f as any).grantsSkills ?? '', grantsExpertise: (f as any).grantsExpertise ?? '', expertiseChoiceCount: (f as any).expertiseChoiceCount ?? '', expertiseChoicePool: (f as any).expertiseChoicePool ?? '',
+                            grantsHalfSkills: (f as any).grantsHalfSkills ?? '', grantsSavingThrows: (f as any).grantsSavingThrows ?? '',
+                            skillChoiceCount: (f as any).skillChoiceCount ?? '', skillChoicePool: (f as any).skillChoicePool ?? '',
+                            savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (f as any).savingThrowChoicePool ?? '',
+                            grantsTools: (f as any).grantsTools ?? '', toolChoiceCount: (f as any).toolChoiceCount ?? '', toolChoicePool: (f as any).toolChoicePool ?? '',
+                            grantsLanguages: (f as any).grantsLanguages ?? '', languageChoiceCount: (f as any).languageChoiceCount ?? '', languageChoicePool: (f as any).languageChoicePool ?? '',
+                            grantsResistances: (f as any).grantsResistances ?? '', grantsImmunities: (f as any).grantsImmunities ?? '', grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '', resistanceChoiceCount: (f as any).resistanceChoiceCount ?? '', resistanceChoicePool: (f as any).resistanceChoicePool ?? '', immunityChoiceCount: (f as any).immunityChoiceCount ?? '', immunityChoicePool: (f as any).immunityChoicePool ?? '', vulnerabilityChoiceCount: (f as any).vulnerabilityChoiceCount ?? '', vulnerabilityChoicePool: (f as any).vulnerabilityChoicePool ?? '', grantsInnateSpells: (f as any).grantsInnateSpells ?? '', grantsSpeed: (f as any).grantsSpeed ?? '', grantsSenses: (f as any).grantsSenses ?? '', grantsFeatCategory: (f as any).grantsFeatCategory ?? '', grantsFeatId: (f as any).grantsFeatId ?? '' });
                     }
                 }
             }
@@ -71,7 +90,17 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
 
         case 'species': {
             const all = await dnd5e.species.getAll(systemId);
-            rows = all.map(s => ({ name: s.name, description: s.description ?? '', source: s.source ?? '', link: s.link ?? '', isSubrace: s.isSubrace, isLegacy: s.isLegacy, sortOrder: s.sortOrder }));
+            rows = all.map(s => ({
+                id:          s.id,
+                uploadId:    (s as any).uploadId ?? '',
+                name:        s.name,
+                description: s.description ?? '',
+                source:      s.source      ?? '',
+                link:        s.link        ?? '',
+                isSubrace:   s.isSubrace,
+                isLegacy:    s.isLegacy,
+                sortOrder:   s.sortOrder,
+            }));
             break;
         }
 
@@ -79,7 +108,19 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
             const all = await dnd5e.species.getAll(systemId);
             for (const sp of all) {
                 for (const t of ((sp as any).traits ?? [])) {
-                    rows.push({ speciesName: sp.name, name: t.name, description: t.description ?? '', requiredLevel: t.requiredLevel ?? '' });
+                    rows.push({ id: t.id, speciesId: sp.id, uploadId: (t as any).uploadId ?? '', speciesName: sp.name, name: t.name, description: t.description ?? '', requiredLevel: t.requiredLevel ?? '',
+                        size: (t as any).size ?? '', sizeChoices: (t as any).sizeChoices ?? '', senses: (t as any).senses ?? '',
+                        WALK:   ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'WALK')?.speed   ?? '',
+                        FLY:    ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'FLY')?.speed    ?? '',
+                        SWIM:   ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'SWIM')?.speed   ?? '',
+                        CLIMB:  ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'CLIMB')?.speed  ?? '',
+                        BURROW: ((t as any).speeds ?? []).find((sp: any) => sp.movementType === 'BURROW')?.speed ?? '',
+                        grantsSkills: (t as any).grantsSkills ?? '', grantsExpertise: (t as any).grantsExpertise ?? '', expertiseChoiceCount: (t as any).expertiseChoiceCount ?? '', expertiseChoicePool: (t as any).expertiseChoicePool ?? '', grantsHalfSkills: (t as any).grantsHalfSkills ?? '',
+                        skillChoiceCount: (t as any).skillChoiceCount ?? '', skillChoicePool: (t as any).skillChoicePool ?? '',
+                        savingThrowChoiceCount: (t as any).savingThrowChoiceCount ?? '', savingThrowChoicePool: (t as any).savingThrowChoicePool ?? '',
+                        grantsTools: (t as any).grantsTools ?? '', toolChoiceCount: (t as any).toolChoiceCount ?? '', toolChoicePool: (t as any).toolChoicePool ?? '',
+                        grantsLanguages: (t as any).grantsLanguages ?? '', languageChoiceCount: (t as any).languageChoiceCount ?? '', languageChoicePool: (t as any).languageChoicePool ?? '',
+                        grantsResistances: (t as any).grantsResistances ?? '', grantsImmunities: (t as any).grantsImmunities ?? '', grantsVulnerabilities: (t as any).grantsVulnerabilities ?? '', resistanceChoiceCount: (t as any).resistanceChoiceCount ?? '', resistanceChoicePool: (t as any).resistanceChoicePool ?? '', immunityChoiceCount: (t as any).immunityChoiceCount ?? '', immunityChoicePool: (t as any).immunityChoicePool ?? '', vulnerabilityChoiceCount: (t as any).vulnerabilityChoiceCount ?? '', vulnerabilityChoicePool: (t as any).vulnerabilityChoicePool ?? '', grantsInnateSpells: (t as any).grantsInnateSpells ?? '', grantsFeatCategory: (t as any).grantsFeatCategory ?? '', grantsFeatId: (t as any).grantsFeatId ?? '' });
                 }
             }
             rows.sort((a, b) => a.speciesName.localeCompare(b.speciesName) || a.name.localeCompare(b.name));
@@ -88,25 +129,89 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
 
         case 'backgrounds': {
             const all = await dnd5e.backgrounds.getAll(systemId);
-            rows = all.map(b => ({ name: b.name, shortDescription: b.shortDescription ?? '', featureName: b.featureName ?? '', grantsFeatCategory: (b as any).grantsFeatCategory ?? '', grantsFeatId: (b as any).grantsFeatId ?? '', skillProficiencies: b.skillProficiencies ?? '', toolProficiencies: b.toolProficiencies ?? '', languages: b.languages ?? '', url: b.url ?? '', sortOrder: b.sortOrder }));
+            rows = all.map(b => ({
+                id:                 b.id,
+                uploadId:           (b as any).uploadId ?? '',
+                name:               b.name,
+                shortDescription:   b.shortDescription ?? '',
+                featureName:        b.featureName ?? '',
+                grantsFeatCategory: (b as any).grantsFeatCategory ?? '',
+                grantsFeatId:       (b as any).grantsFeatId ?? '',
+                grantsSkills:       (b as any).grantsSkills ?? '',
+                skillChoiceCount:        (b as any).skillChoiceCount        ?? '',
+                skillChoicePool:         (b as any).skillChoicePool         ?? '',
+                savingThrowChoiceCount:  (b as any).savingThrowChoiceCount  ?? '',
+                savingThrowChoicePool:   (b as any).savingThrowChoicePool   ?? '',
+                toolProficiencies:  b.toolProficiencies ?? '',
+                languages:          b.languages ?? '',
+                url:                b.url ?? '',
+                sortOrder:          b.sortOrder,
+                grantsTools:           (b as any).grantsTools           ?? '',
+                toolChoiceCount:       (b as any).toolChoiceCount       ?? '',
+                toolChoicePool:        (b as any).toolChoicePool        ?? '',
+                grantsLanguages:       (b as any).grantsLanguages       ?? '',
+                languageChoiceCount:   (b as any).languageChoiceCount   ?? '',
+                languageChoicePool:    (b as any).languageChoicePool    ?? '',
+                grantsResistances:     (b as any).grantsResistances     ?? '',
+                grantsImmunities:      (b as any).grantsImmunities      ?? '',
+                grantsVulnerabilities: (b as any).grantsVulnerabilities ?? '',
+                resistanceChoiceCount:  (b as any).resistanceChoiceCount  ?? '',
+                resistanceChoicePool:   (b as any).resistanceChoicePool   ?? '',
+                immunityChoiceCount:    (b as any).immunityChoiceCount    ?? '',
+                immunityChoicePool:     (b as any).immunityChoicePool     ?? '',
+                vulnerabilityChoiceCount: (b as any).vulnerabilityChoiceCount ?? '',
+                vulnerabilityChoicePool:  (b as any).vulnerabilityChoicePool  ?? '',
+                grantsInnateSpells:     (b as any).grantsInnateSpells     ?? '',
+                grantsSpeed:            (b as any).grantsSpeed            ?? '',
+                grantsSenses:           (b as any).grantsSenses           ?? '',
+            }));
             break;
         }
 
         case 'feats': {
             const all = await dnd5e.feats.getAll(systemId);
             rows = all.map(f => ({
-                name:           f.name,
-                description:    f.description    ?? '',
-                snippet:        f.snippet         ?? '',
-                repeatable:     f.repeatable,
-                categories:     f.categories      ?? '',
-                prerequisites:  f.prerequisites   ?? '',
-                detailsUrl:     f.detailsUrl       ?? '',
-                isEpicBoon:     f.isEpicBoon,
-                asiAmount:      f.asiAmount        ?? '',
-                asiStatFixed:   f.asiStatFixed     ?? '',
-                asiStatChoices: f.asiStatChoices   ?? '',
-                sortOrder:      f.sortOrder,
+                id:              f.id,
+                uploadId:        (f as any).uploadId ?? '',
+                name:            f.name,
+                description:     f.description    ?? '',
+                snippet:         f.snippet         ?? '',
+                repeatable:      f.repeatable,
+                categories:      f.categories      ?? '',
+                prerequisites:   f.prerequisites   ?? '',
+                detailsUrl:      f.detailsUrl       ?? '',
+                source:          (f as any).source   ?? '',
+                isEpicBoon:      f.isEpicBoon,
+                asiAmount:       f.asiAmount        ?? '',
+                asiStatFixed:    f.asiStatFixed     ?? '',
+                asiStatChoices:  f.asiStatChoices   ?? '',
+                grantsSkills:           (f as any).grantsSkills           ?? '',
+                grantsExpertise:        (f as any).grantsExpertise        ?? '',
+                expertiseChoiceCount:    (f as any).expertiseChoiceCount    ?? '',
+                expertiseChoicePool:     (f as any).expertiseChoicePool     ?? '',
+                grantsHalfSkills:       (f as any).grantsHalfSkills       ?? '',
+                grantsSavingThrows:     (f as any).grantsSavingThrows     ?? '',
+                skillChoiceCount:       (f as any).skillChoiceCount       ?? '',
+                skillChoicePool:        (f as any).skillChoicePool        ?? '',
+                savingThrowChoiceCount: (f as any).savingThrowChoiceCount ?? '',
+                savingThrowChoicePool:  (f as any).savingThrowChoicePool  ?? '',
+                grantsTools:           (f as any).grantsTools           ?? '',
+                toolChoiceCount:       (f as any).toolChoiceCount       ?? '',
+                toolChoicePool:        (f as any).toolChoicePool        ?? '',
+                grantsLanguages:       (f as any).grantsLanguages       ?? '',
+                languageChoiceCount:   (f as any).languageChoiceCount   ?? '',
+                languageChoicePool:    (f as any).languageChoicePool    ?? '',
+                grantsResistances:     (f as any).grantsResistances     ?? '',
+                grantsImmunities:      (f as any).grantsImmunities      ?? '',
+                grantsVulnerabilities: (f as any).grantsVulnerabilities ?? '',
+                resistanceChoiceCount:  (f as any).resistanceChoiceCount  ?? '',
+                resistanceChoicePool:   (f as any).resistanceChoicePool   ?? '',
+                immunityChoiceCount:    (f as any).immunityChoiceCount    ?? '',
+                immunityChoicePool:     (f as any).immunityChoicePool     ?? '',
+                vulnerabilityChoiceCount: (f as any).vulnerabilityChoiceCount ?? '',
+                vulnerabilityChoicePool:  (f as any).vulnerabilityChoicePool  ?? '',
+                grantsInnateSpells:     (f as any).grantsInnateSpells     ?? '',
+                sortOrder:       f.sortOrder,
             }));
             break;
         }

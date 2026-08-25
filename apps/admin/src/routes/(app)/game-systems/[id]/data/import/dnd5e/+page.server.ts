@@ -18,7 +18,112 @@ export const load: PageServerLoad = async ({ params }) => {
 const normalize = (s: any) => (s ?? '').toString().replace(/\s+/g, ' ').trim();
 const boolVal   = (v: any) => ['true','yes','1',true,1].includes(typeof v === 'string' ? v.toLowerCase() : v);
 
+// Map display names → enum keys (handles "Sleight of Hand", "SLEIGHT_OF_HAND", "sleight_of_hand")
+const SKILL_ENUM: Record<string, string> = {
+    'acrobatics':'ACROBATICS','animal handling':'ANIMAL_HANDLING','arcana':'ARCANA',
+    'athletics':'ATHLETICS','deception':'DECEPTION','history':'HISTORY','insight':'INSIGHT',
+    'intimidation':'INTIMIDATION','investigation':'INVESTIGATION','medicine':'MEDICINE',
+    'nature':'NATURE','perception':'PERCEPTION','performance':'PERFORMANCE',
+    'persuasion':'PERSUASION','religion':'RELIGION',
+    'sleight of hand':'SLEIGHT_OF_HAND','sleight_of_hand':'SLEIGHT_OF_HAND',
+    'stealth':'STEALTH','survival':'SURVIVAL',
+};
+const STAT_ENUM: Record<string, string> = {
+    'strength':'STRENGTH','dexterity':'DEXTERITY','constitution':'CONSTITUTION',
+    'intelligence':'INTELLIGENCE','wisdom':'WISDOM','charisma':'CHARISMA',
+};
+
+// Normalise comma-sep skill display names → enum keys.
+// Unrecognised entries are pushed to `warnings` with context so the user can fix their data.
+function normalizeSkills(raw: string | null | undefined, warnings: string[], context: string): string | null {
+    if (!raw) return null;
+    const parts: string[] = [];
+    raw.split(',').forEach(s => {
+        const k = s.trim().toLowerCase().replace(/_/g, ' ');
+        const mapped = SKILL_ENUM[k] ?? null;
+        if (mapped) parts.push(mapped);
+        else if (s.trim()) warnings.push(`${context} — unrecognised skill: "${s.trim()}"`);
+    });
+    return parts.length ? parts.join(',') : null;
+}
+
+// Normalise comma-sep stat display names → enum keys.
+function normalizeStats(raw: string | null | undefined, warnings: string[], context: string): string | null {
+    if (!raw) return null;
+    const parts: string[] = [];
+    raw.split(',').forEach(s => {
+        const k = s.trim().toLowerCase();
+        const mapped = STAT_ENUM[k] ?? null;
+        if (mapped) parts.push(mapped);
+        else if (s.trim()) warnings.push(`${context} — unrecognised stat: "${s.trim()}"`);
+    });
+    return parts.length ? parts.join(',') : null;
+}
+
+// Normalise free-text comma-sep strings (tools, languages, damage types) — pass through as-is,
+// trimmed and rejoined. No enum mapping needed for these fields.
+function normalizeList(raw: string | null | undefined): string | null {
+    if (!raw) return null;
+    const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+    return parts.length ? parts.join(',') : null;
+}
+
+// Parse speeds from a row: expects columns WALK, FLY, SWIM, CLIMB, BURROW (or walk_speed etc.)
+// Returns array of { movementType, speed } for non-zero entries.
+function parseSpeeds(row: any): { movementType: string; speed: number }[] {
+    const MOVE_TYPES = ['WALK','FLY','SWIM','CLIMB','BURROW'];
+    const speeds: { movementType: string; speed: number }[] = [];
+    for (const mt of MOVE_TYPES) {
+        const raw = row[mt] ?? row[mt.toLowerCase()] ?? row[`${mt.toLowerCase()}_speed`] ?? row[`${mt} Speed`] ?? 0;
+        const val = parseInt(String(raw).replace(/[^0-9]/g, ''), 10);
+        if (val > 0) speeds.push({ movementType: mt, speed: val });
+    }
+    return speeds;
+}
+
+// Common grant fields shared by ClassFeature, SubclassFeature, SpeciesTrait, Background, Feat.
+// Returns undefined (not null) for missing values — compatible with both create (undefined) and
+// update (null) signatures. Callers spread these directly: ...grantFields(row, warnings, name)
+function grantFields(row: any, warnings: string[], context: string) {
+    const n = <T>(v: T | null): T | undefined => v ?? undefined;
+    return {
+        grantsSkills:           n(normalizeSkills(row.grantsSkills, warnings, context)),
+        grantsExpertise:        n(normalizeSkills(row.grantsExpertise, warnings, context)),
+        expertiseChoiceCount:   row.expertiseChoiceCount != null && row.expertiseChoiceCount !== '' ? Number(row.expertiseChoiceCount) : undefined,
+        expertiseChoicePool:    n(normalizeSkills(row.expertiseChoicePool, warnings, context)),
+        grantsHalfSkills:       n(normalizeSkills(row.grantsHalfSkills, warnings, context)),
+        grantsSavingThrows:     n(normalizeStats(row.grantsSavingThrows, warnings, context)),
+        skillChoiceCount:       row.skillChoiceCount != null && row.skillChoiceCount !== '' ? Number(row.skillChoiceCount) : undefined,
+        skillChoicePool:        n(normalizeSkills(row.skillChoicePool, warnings, context)),
+        savingThrowChoiceCount: row.savingThrowChoiceCount != null && row.savingThrowChoiceCount !== '' ? Number(row.savingThrowChoiceCount) : undefined,
+        savingThrowChoicePool:  n(normalizeStats(row.savingThrowChoicePool, warnings, context)),
+        grantsTools:            n(normalizeList(row.grantsTools)),
+        toolChoiceCount:        row.toolChoiceCount != null && row.toolChoiceCount !== '' ? Number(row.toolChoiceCount) : undefined,
+        toolChoicePool:         n(normalizeList(row.toolChoicePool)),
+        grantsLanguages:        n(normalizeList(row.grantsLanguages)),
+        languageChoiceCount:    row.languageChoiceCount != null && row.languageChoiceCount !== '' ? Number(row.languageChoiceCount) : undefined,
+        languageChoicePool:     n(normalizeList(row.languageChoicePool)),
+        grantsResistances:          n(normalizeList(row.grantsResistances)),
+        grantsImmunities:           n(normalizeList(row.grantsImmunities)),
+        grantsVulnerabilities:      n(normalizeList(row.grantsVulnerabilities)),
+        resistanceChoiceCount:      row.resistanceChoiceCount != null && row.resistanceChoiceCount !== '' ? Number(row.resistanceChoiceCount) : undefined,
+        resistanceChoicePool:       n(normalizeList(row.resistanceChoicePool)),
+        immunityChoiceCount:        row.immunityChoiceCount != null && row.immunityChoiceCount !== '' ? Number(row.immunityChoiceCount) : undefined,
+        immunityChoicePool:         n(normalizeList(row.immunityChoicePool)),
+        vulnerabilityChoiceCount:   row.vulnerabilityChoiceCount != null && row.vulnerabilityChoiceCount !== '' ? Number(row.vulnerabilityChoiceCount) : undefined,
+        vulnerabilityChoicePool:    n(normalizeList(row.vulnerabilityChoicePool)),
+        grantsInnateSpells:     normalizeList(row.grantsInnateSpells) ?? undefined,
+        grantsSpeed:           normalizeList(row.grantsSpeed)         ?? undefined,
+        grantsSenses:          row.grantsSenses ? String(row.grantsSenses).trim() : undefined,
+    };
+}
+
 export const actions: Actions = {
+
+	// ── Lookup helpers ────────────────────────────────────────────────────────
+	// When row.id is present (re-export → re-import flow), look up by UUID for
+	// exact match. Fall back to case-insensitive name match for first-time imports
+	// from the parser tool (which has no platform UUIDs yet).
 
 	// ── Classes ───────────────────────────────────────────────────────────────
 	importClasses: async ({ params, request, locals }) => {
@@ -29,15 +134,22 @@ export const actions: Actions = {
 		const allowUpdate = data.get('allowUpdate') === 'true';
 		if (!raw) return fail(400, { message: 'No data provided.' });
 		try {
+			const { db } = await import('@core/database');
 			const rows: any[] = JSON.parse(raw);
+			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
 			const all = await dnd5e.classes.getAll(params.id);
 			for (const row of rows) {
 				const sal = toInt(row.subclassAvailableAtLevel, 3);
-				const existing = all.find(c => normalize(c.name).toLowerCase() === normalize(row.name).toLowerCase());
+				const existing = row.id
+					? all.find(c => c.id === row.id)
+					: row.uploadId
+						? all.find(c => (c as any).uploadId === row.uploadId)
+						: all.find(c => normalize(c.name).toLowerCase() === normalize(row.name).toLowerCase());
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.classes.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						description:              row.description              || null,
 						source:                   row.source                   || null,
 						link:                     row.link                     || null,
@@ -47,12 +159,26 @@ export const actions: Actions = {
 						equipmentDescription:     row.equipmentDescription     || null,
 						subclassAvailableAtLevel: sal,
 						sortOrder:                toInt(row.sortOrder, 0),
+						skillChoiceCount:         row.skillChoiceCount != null && row.skillChoiceCount !== '' ? toInt(row.skillChoiceCount, 2) : null,
 					}, locals.user!.id);
+					// Upsert saving throws (grantsSavingThrows column — comma-sep e.g. "STRENGTH,CONSTITUTION")
+					const saves = (normalizeStats(row.grantsSavingThrows, warnings, row.name) ?? '').split(',').filter(Boolean);
+					if (saves.length && existing) {
+						await db.dnd5eClassSavingThrow.deleteMany({ where: { classId: existing.id } });
+						for (const stat of saves) await db.dnd5eClassSavingThrow.create({ data: { classId: existing.id, stat } });
+					}
+					// Upsert skill options (SkillPool column — comma-separated)
+					const pool = (row.skillPool || '').split(',').map((s: string) => SKILL_ENUM[s.trim().toLowerCase().replace(/_/g, ' ')] ?? s.trim().toUpperCase()).filter(Boolean);
+					if (pool.length && existing) {
+						await db.dnd5eClassSkillOption.deleteMany({ where: { classId: existing.id } });
+						for (const skill of pool) await db.dnd5eClassSkillOption.create({ data: { classId: existing.id, skill: skill as any } });
+					}
 					updated++;
 				} else {
-					await dnd5e.classes.create({
+					const newClass = await dnd5e.classes.create({
 						gameSystemId:             params.id,
 						name:                     row.name,
+						uploadId:                 row.uploadId || undefined,
 						description:              row.description              || undefined,
 						source:                   row.source                   || undefined,
 						link:                     row.link                     || undefined,
@@ -62,12 +188,19 @@ export const actions: Actions = {
 						equipmentDescription:     row.equipmentDescription     || undefined,
 						subclassAvailableAtLevel: sal,
 						sortOrder:                toInt(row.sortOrder, 0),
+						skillChoiceCount:         row.skillChoiceCount != null && row.skillChoiceCount !== '' ? toInt(row.skillChoiceCount, 2) : undefined,
 					}, locals.user!.id);
+					// Insert saving throws (grantsSavingThrows column — comma-sep)
+					const saves = (normalizeStats(row.grantsSavingThrows, warnings, row.name) ?? '').split(',').filter(Boolean);
+					for (const stat of saves) await db.dnd5eClassSavingThrow.create({ data: { classId: newClass.id, stat } });
+					// Insert skill options
+					const pool = (row.skillPool || '').split(',').map((s: string) => SKILL_ENUM[s.trim().toLowerCase().replace(/_/g, ' ')] ?? s.trim().toUpperCase()).filter(Boolean);
+					for (const skill of pool) await db.dnd5eClassSkillOption.create({ data: { classId: newClass.id, skill: skill as any } });
 					created++;
 				}
 			}
 			dnd5e.invalidateSystemCache(params.id);
-			return { success: true, created, updated, skipped, type: 'classes' };
+			return { success: true, created, updated, skipped, type: 'classes', warnings };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
 			return fail(400, { message: isUnique ? 'A record with that name already exists. Tick "Update existing records" to overwrite.' : `Import failed: ${e.message}` });
@@ -86,36 +219,57 @@ export const actions: Actions = {
 		if (!raw) return fail(400, { message: 'No data provided.' });
 		try {
 			const rows: any[] = JSON.parse(raw);
+			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
 			const allClasses = await dnd5e.classes.getAll(params.id);
+			const allFeatsForGrants     = await dnd5e.feats.getAll(params.id);
+			const featGrantByUploadId   = new Map(allFeatsForGrants.filter((f: any) => f.uploadId).map((f: any) => [(f as any).uploadId, f.id]));
+			const featGrantByName       = new Map(allFeatsForGrants.map((f: any) => [normalize(f.name).toLowerCase(), f.id]));
+			function resolveFeatId(raw: string | null | undefined): string | null {
+				if (!raw) return null;
+				if (raw.length === 36 && raw.includes('-')) return raw;
+				return featGrantByUploadId.get(raw) ?? featGrantByName.get(normalize(raw).toLowerCase()) ?? null;
+			}
 			for (const row of rows) {
-				const cls = allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
+				const cls = row.classId
+					? allClasses.find(c => c.id === row.classId)
+					: row.classUploadId
+						? allClasses.find(c => (c as any).uploadId === row.classUploadId)
+						: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) { skipped++; continue; }
 				// Match on name + level so same-name features at different levels are distinct
-				const existing = cls.features?.find((f: any) =>
-					f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
-				);
+				const existing = row.id
+					? cls.features?.find((f: any) => f.id === row.id)
+					: row.uploadId
+						? cls.features?.find((f: any) => (f as any).uploadId === row.uploadId)
+						: cls.features?.find((f: any) =>
+							f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
+						);
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.classFeatures.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						description:   row.description || null,
 						requiredLevel: toInt(row.requiredLevel),
-						url:           row.url || null,
+						url:           row.url         || null,
+						...grantFields(row, warnings, row.name),
 					});
 					updated++;
 				} else {
 					await dnd5e.classFeatures.create({
 						classId:       cls.id,
 						name:          row.name,
+						uploadId:      row.uploadId || undefined,
 						description:   row.description || undefined,
 						requiredLevel: toInt(row.requiredLevel),
-						url:           row.url || undefined,
+						url:           row.url         || undefined,
+						...grantFields(row, warnings, row.name),
 					}, locals.user!.id);
 					created++;
 				}
 			}
 			dnd5e.invalidateSystemCache(params.id);
-			return { success: true, created, updated, skipped, type: 'class features' };
+			return { success: true, created, updated, skipped, type: 'classFeatures', warnings };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
 			const msg = isUnique
@@ -136,17 +290,27 @@ export const actions: Actions = {
 		if (!raw) return fail(400, { message: 'No data provided.' });
 		try {
 			const rows: any[] = JSON.parse(raw);
+			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
 			const allClasses = await dnd5e.classes.getAll(params.id);
 			for (const row of rows) {
-				const cls = allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
+				const cls = row.classId
+					? allClasses.find(c => c.id === row.classId)
+					: row.classUploadId
+						? allClasses.find(c => (c as any).uploadId === row.classUploadId)
+						: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) { skipped++; continue; }
-				const existing = cls.subclasses?.find((s: any) =>
-					normalize(s.name).toLowerCase() === normalize(row.name).toLowerCase()
-				);
+				const existing = row.id
+					? cls.subclasses?.find((s: any) => s.id === row.id)
+					: row.uploadId
+						? cls.subclasses?.find((s: any) => (s as any).uploadId === row.uploadId)
+						: cls.subclasses?.find((s: any) =>
+							normalize(s.name).toLowerCase() === normalize(row.name).toLowerCase()
+						);
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.subclasses.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						description:  row.description || null,
 						source:       row.source      || null,
 						link:         row.link        || null,
@@ -161,6 +325,7 @@ export const actions: Actions = {
 					await dnd5e.subclasses.create({
 						classId:      cls.id,
 						name:         row.name,
+						uploadId:     row.uploadId || undefined,
 						description:  row.description || undefined,
 						source:       row.source      || undefined,
 						link:         row.link        || undefined,
@@ -198,39 +363,64 @@ export const actions: Actions = {
 		if (!raw) return fail(400, { message: 'No data provided.' });
 		try {
 			const rows: any[] = JSON.parse(raw);
+			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
 			const skipReasons: string[] = [];
 			// Fetch all classes once outside the loop (N+1 fix)
 			const allClasses = await dnd5e.classes.getAll(params.id);
+			const allFeatsForGrants2    = await dnd5e.feats.getAll(params.id);
+			const featGrantByUploadId2  = new Map(allFeatsForGrants2.filter((f: any) => f.uploadId).map((f: any) => [(f as any).uploadId, f.id]));
+			const featGrantByName2      = new Map(allFeatsForGrants2.map((f: any) => [normalize(f.name).toLowerCase(), f.id]));
+			function resolveFeatId2(raw: string | null | undefined): string | null {
+				if (!raw) return null;
+				if (raw.length === 36 && raw.includes('-')) return raw;
+				return featGrantByUploadId2.get(raw) ?? featGrantByName2.get(normalize(raw).toLowerCase()) ?? null;
+			}
 			for (const row of rows) {
-				const cls = allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
+				const cls = row.classId
+					? allClasses.find(c => c.id === row.classId)
+					: row.classUploadId
+						? allClasses.find(c => (c as any).uploadId === row.classUploadId)
+						: allClasses.find(c => normalize(c.name).toLowerCase() === normalize(row.className).toLowerCase());
 				if (!cls) {
-					skipReasons.push(`Class not found: '${row.className}'`);
+					skipReasons.push(`Class not found: '${row.classUploadId || row.className}'`);
 					skipped++; continue;
 				}
-				const sub = cls.subclasses?.find((s: any) => normalize(s.name).toLowerCase() === normalize(row.subclassName).toLowerCase());
+				const sub = row.subclassId
+					? cls.subclasses?.find((s: any) => s.id === row.subclassId)
+					: row.subclassUploadId
+						? cls.subclasses?.find((s: any) => (s as any).uploadId === row.subclassUploadId)
+						: cls.subclasses?.find((s: any) => normalize(s.name).toLowerCase() === normalize(row.subclassName).toLowerCase());
 				if (!sub) {
-					skipReasons.push(`Subclass not found: '${row.subclassName}' (class: '${row.className}')`);
+					skipReasons.push(`Subclass not found: '${row.subclassUploadId || row.subclassName}' (class: '${row.classUploadId || row.className}')`);
 					skipped++; continue;
 				}
-				const existing = sub.features?.find((f: any) =>
-					f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
-				);
+				const existing = row.id
+					? sub.features?.find((f: any) => f.id === row.id)
+					: row.uploadId
+						? sub.features?.find((f: any) => (f as any).uploadId === row.uploadId)
+						: sub.features?.find((f: any) =>
+							f.name === row.name && f.requiredLevel === toInt(row.requiredLevel)
+						);
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.subclassFeatures.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						description:   row.description || null,
 						requiredLevel: toInt(row.requiredLevel),
-						url:           row.url || null,
+						url:           row.url         || null,
+						...grantFields(row, warnings, row.name),
 					});
 					updated++;
 				} else {
 					await dnd5e.subclassFeatures.create({
 						subclassId:    sub.id,
 						name:          row.name,
+						uploadId:      row.uploadId || undefined,
 						description:   row.description || undefined,
 						requiredLevel: toInt(row.requiredLevel),
-						url:           row.url || undefined,
+						url:           row.url         || undefined,
+						...grantFields(row, warnings, row.name),
 					});
 					created++;
 				}
@@ -258,6 +448,7 @@ export const actions: Actions = {
 		try {
 			const { db } = await import('@core/database');
 			const rows: any[] = JSON.parse(raw);
+			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
 			const skipReasons: string[] = [];
 			for (const row of rows) {
@@ -265,6 +456,7 @@ export const actions: Actions = {
 				if (!name) { skipReasons.push('Empty name'); skipped++; continue; }
 				// Use upsert keyed on @@unique([gameSystemId, name]) to avoid race conditions
 				const updateData = {
+					...(row.uploadId && { uploadId: row.uploadId }),
 					description: row.description || null,
 					source:      row.source      || null,
 					link:        row.link        || null,
@@ -272,15 +464,19 @@ export const actions: Actions = {
 					isLegacy:    boolVal(row.isLegacy),
 					sortOrder:   Number(row.sortOrder) || 0,
 				};
-				const existing = await db.dnd5eSpecies.findFirst({
-					where: { gameSystemId: params.id, name: { equals: name, mode: 'insensitive' } },
-				});
+				const existing = row.id
+					? await db.dnd5eSpecies.findUnique({ where: { id: row.id } })
+					: row.uploadId
+						? await db.dnd5eSpecies.findFirst({ where: { gameSystemId: params.id, uploadId: row.uploadId } })
+						: await db.dnd5eSpecies.findFirst({
+							where: { gameSystemId: params.id, name: { equals: name, mode: 'insensitive' } },
+						});
 				if (existing) {
 					if (!allowUpdate) { skipReasons.push(`Already exists (tick Update to overwrite): '${name}'`); skipped++; continue; }
 					await db.dnd5eSpecies.update({ where: { id: existing.id }, data: updateData });
 					updated++;
 				} else {
-					await db.dnd5eSpecies.create({ data: { gameSystemId: params.id, name, ...updateData } });
+					await db.dnd5eSpecies.create({ data: { gameSystemId: params.id, name, uploadId: row.uploadId || null, ...updateData } });
 					created++;
 				}
 			}
@@ -307,38 +503,65 @@ export const actions: Actions = {
 		try {
 			const { db } = await import('@core/database');
 			const rows: any[] = JSON.parse(raw);
+			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
 			const skipReasons: string[] = [];
 			// Fetch all species once outside the loop (N+1 fix)
 			const allSpecies = await dnd5e.species.getAll(params.id);
+			const allFeatsForTraits    = await dnd5e.feats.getAll(params.id);
+			const featTraitByUploadId  = new Map(allFeatsForTraits.filter((f: any) => f.uploadId).map((f: any) => [(f as any).uploadId, f.id]));
+			const featTraitByName      = new Map(allFeatsForTraits.map((f: any) => [normalize(f.name).toLowerCase(), f.id]));
+			function resolveFeatIdTrait(raw: string | null | undefined): string | null {
+				if (!raw) return null;
+				if (raw.length === 36 && raw.includes('-')) return raw;
+				return featTraitByUploadId.get(raw) ?? featTraitByName.get(normalize(raw).toLowerCase()) ?? null;
+			}
 			for (const row of rows) {
 				const traitName = normalize(row.name);
 				if (!traitName) { skipped++; continue; }
-				const sp = allSpecies.find(s => normalize(s.name).toLowerCase() === normalize(row.speciesName).toLowerCase());
+				const sp = row.speciesId
+					? allSpecies.find(s => s.id === row.speciesId)
+					: row.speciesUploadId
+						? allSpecies.find(s => (s as any).uploadId === row.speciesUploadId)
+						: allSpecies.find(s => normalize(s.name).toLowerCase() === normalize(row.speciesName).toLowerCase());
 				if (!sp) {
-					skipReasons.push(`Species not found: '${row.speciesName}'`);
+					skipReasons.push(`Species not found: '${row.speciesUploadId || row.speciesName}'`);
 					skipped++; continue;
 				}
 				const traitData = {
-					description:   row.description   || null,
-					requiredLevel: toInt(row.requiredLevel, 0) || null,
+					...(row.uploadId && { uploadId: row.uploadId }),
+					description:   row.description || null,
+					requiredLevel: toInt(row.requiredLevel, 0) || undefined,
+					size:        normalize(row.size)        || null,
+					sizeChoices: normalize(row.sizeChoices) || null,
+					senses:      normalize(row.senses)      || null,
+					...grantFields(row, warnings, row.name),
+					grantsFeatCategory: row.grantsFeatCategory || null,
+					grantsFeatId:       resolveFeatIdTrait(row.grantsFeatId),
 				};
-				// Use DB upsert keyed on @@unique([speciesId, name]) — avoids stale in-memory cache issues
-				const existing = await db.dnd5eSpeciesTrait.findFirst({
-					where: { speciesId: sp.id, name: { equals: traitName, mode: 'insensitive' } },
-					select: { id: true },
-				});
+				const existing = row.id
+					? await db.dnd5eSpeciesTrait.findUnique({ where: { id: row.id }, select: { id: true } })
+					: row.uploadId
+						? await db.dnd5eSpeciesTrait.findFirst({ where: { speciesId: sp.id, uploadId: row.uploadId }, select: { id: true } })
+						: await db.dnd5eSpeciesTrait.findFirst({
+							where: { speciesId: sp.id, name: { equals: traitName, mode: 'insensitive' } },
+							select: { id: true },
+						});
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await db.dnd5eSpeciesTrait.update({ where: { id: existing.id }, data: traitData });
+					const speeds = parseSpeeds(row);
+					await dnd5e.speciesTraits.updateSpeeds(existing.id, speeds);
 					updated++;
 				} else {
-					await db.dnd5eSpeciesTrait.create({ data: { speciesId: sp.id, name: traitName, ...traitData } });
+					const newTrait = await dnd5e.speciesTraits.create({ speciesId: sp.id, name: traitName, uploadId: row.uploadId || undefined, ...traitData });
+					const speeds = parseSpeeds(row);
+					if (speeds.length) await dnd5e.speciesTraits.updateSpeeds(newTrait.id, speeds);
 					created++;
 				}
 			}
 			const uniqueReasons = [...new Set(skipReasons)].slice(0, 20);
-			return { success: true, created, updated, skipped, type: 'species traits', skipReasons: uniqueReasons };
+			return { success: true, created, updated, skipped, type: 'speciesTraits', skipReasons: uniqueReasons, warnings };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
 			const msg = isUnique
@@ -358,47 +581,58 @@ export const actions: Actions = {
 		if (!raw) return fail(400, { message: 'No data provided.' });
 		try {
 			const rows: any[] = JSON.parse(raw);
+			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
 			const all = await dnd5e.feats.getAllForAdmin(params.id);
 			for (const row of rows) {
-				const existing = all.find((f: any) => normalize(f.name).toLowerCase() === normalize(row.name).toLowerCase());
+				const existing = row.id
+					? all.find((f: any) => f.id === row.id)
+					: row.uploadId
+						? all.find((f: any) => (f as any).uploadId === row.uploadId)
+						: all.find((f: any) => normalize(f.name).toLowerCase() === normalize(row.name).toLowerCase());
 				if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.feats.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						description:    row.description   || null,
 						snippet:        row.snippet        || null,
 						repeatable:     String(row.repeatable).toLowerCase() === 'true',
 						categories:     row.categories     || null,
 						prerequisites:  row.prerequisites  || null,
 						detailsUrl:     row.detailsUrl      || null,
+						source:         row.source          || null,
 						isEpicBoon:     String(row.isEpicBoon).toLowerCase() === 'true',
 						asiAmount:      row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : null,
 						asiStatFixed:   row.asiStatFixed   || null,
 						asiStatChoices: row.asiStatChoices || null,
 						sortOrder:      Number(row.sortOrder) || 0,
+						...grantFields(row, warnings, row.name),
 					}, locals.user!.id);
 					updated++;
 				} else {
 					await dnd5e.feats.create({
 						gameSystemId:   params.id,
 						name:           row.name,
+						uploadId:       row.uploadId || undefined,
 						description:    row.description   || undefined,
 						snippet:        row.snippet        || undefined,
 						repeatable:     String(row.repeatable).toLowerCase() === 'true',
 						categories:     row.categories     || undefined,
 						prerequisites:  row.prerequisites  || undefined,
 						detailsUrl:     row.detailsUrl      || undefined,
+						source:         row.source          || undefined,
 						isEpicBoon:     String(row.isEpicBoon).toLowerCase() === 'true',
 						asiAmount:      row.asiAmount != null && row.asiAmount !== '' ? Number(row.asiAmount) : undefined,
 						asiStatFixed:   row.asiStatFixed   || undefined,
 						asiStatChoices: row.asiStatChoices || undefined,
 						sortOrder:      Number(row.sortOrder) || 0,
+						...grantFields(row, warnings, row.name),
 					}, locals.user!.id);
 					created++;
 				}
 			}
 			dnd5e.invalidateSystemCache(params.id);
-			return { success: true, created, updated, skipped, type: 'feats' };
+			return { success: true, created, updated, skipped, type: 'feats', warnings };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
 			return fail(400, { message: isUnique ? 'A record with that name already exists. Tick "Update existing records" to overwrite.' : `Import failed: ${e.message}` });
@@ -413,44 +647,64 @@ export const actions: Actions = {
 		const allowUpdate = data.get('allowUpdate') === 'true';
 		if (!raw) return fail(400, { message: 'No data provided.' });
 		try {
+			const { db } = await import('@core/database');
 			const rows: any[] = JSON.parse(raw);
+			const warnings: string[] = [];
 			let created = 0; let updated = 0; let skipped = 0;
-			const all = await dnd5e.backgrounds.getAll(params.id);
+			const all        = await dnd5e.backgrounds.getAll(params.id);
+			const allFeats       = await dnd5e.feats.getAll(params.id);
+			const featByUploadId = new Map(allFeats.filter((f: any) => f.uploadId).map((f: any) => [(f as any).uploadId, f.id]));
+			const featByName     = new Map(allFeats.map((f: any) => [normalize(f.name).toLowerCase(), f.id]));
 			for (const row of rows) {
-				const existing = all.find(b => normalize(b.name).toLowerCase() === normalize(row.name).toLowerCase());
-				if (existing) {
+				const existing = row.id
+					? all.find(b => b.id === row.id)
+					: row.uploadId
+						? all.find(b => (b as any).uploadId === row.uploadId)
+						: all.find(b => normalize(b.name).toLowerCase() === normalize(row.name).toLowerCase());
+
+			if (existing) {
 					if (!allowUpdate) { skipped++; continue; }
 					await dnd5e.backgrounds.update(existing.id, {
+						...(row.uploadId && { uploadId: row.uploadId }),
 						shortDescription:   row.shortDescription   || null,
 						featureName:        row.featureName        || null,
 						grantsFeatCategory: row.grantsFeatCategory || null,
-						grantsFeatId:       row.grantsFeatId       || null,
-						skillProficiencies: row.skillProficiencies || null,
-						toolProficiencies:  row.toolProficiencies  || null,
-						languages:          row.languages          || null,
+						grantsFeatId:       (row.grantsFeatId
+							? (row.grantsFeatId.length === 36 && row.grantsFeatId.includes('-')
+								? row.grantsFeatId
+								: (featByUploadId.get(row.grantsFeatId) ?? featByName.get(normalize(row.grantsFeatId).toLowerCase()) ?? null))
+							: null) || null,
 						url:                row.url                || null,
 						sortOrder:          Number(row.sortOrder)  || 0,
+						toolProficiencies:  normalizeList(row.grantsTools ?? row.toolProficiencies),
+						languages:          normalizeList(row.grantsLanguages ?? row.languages),
+						...grantFields(row, warnings, row.name),
 					}, locals.user!.id);
 					updated++;
 				} else {
 					await dnd5e.backgrounds.create({
 						gameSystemId:       params.id,
 						name:               row.name,
+						uploadId:           row.uploadId || undefined,
 						shortDescription:   row.shortDescription   || undefined,
 						featureName:        row.featureName        || undefined,
 						grantsFeatCategory: row.grantsFeatCategory || undefined,
-						grantsFeatId:       row.grantsFeatId       || undefined,
-						skillProficiencies: row.skillProficiencies || undefined,
-						toolProficiencies:  row.toolProficiencies  || undefined,
-						languages:          row.languages          || undefined,
+						grantsFeatId:       (row.grantsFeatId
+							? (row.grantsFeatId.length === 36 && row.grantsFeatId.includes('-')
+								? row.grantsFeatId
+								: (featByUploadId.get(row.grantsFeatId) ?? featByName.get(normalize(row.grantsFeatId).toLowerCase()) ?? undefined))
+							: undefined) || undefined,
 						url:                row.url                || undefined,
 						sortOrder:          Number(row.sortOrder)  || 0,
+						toolProficiencies:  normalizeList(row.grantsTools ?? row.toolProficiencies) ?? undefined,
+						languages:          normalizeList(row.grantsLanguages ?? row.languages) ?? undefined,
+						...grantFields(row, warnings, row.name),
 					}, locals.user!.id);
 					created++;
 				}
 			}
 			dnd5e.invalidateSystemCache(params.id);
-			return { success: true, created, updated, skipped, type: 'backgrounds' };
+			return { success: true, created, updated, skipped, type: 'backgrounds', warnings };
 		} catch (e: any) {
 			const isUnique = e.code === 'P2002' || e.message?.includes('Unique constraint');
 			const msg = isUnique
@@ -646,22 +900,29 @@ export const actions: Actions = {
 		try { rows = JSON.parse(raw); } catch { return fail(400, { message: 'Invalid JSON.' }); }
 		const { dnd5e } = await import('@core/database');
 
-		// Resolve class/subclass IDs by name — IDs are system-specific and not portable
+		// Resolve class/subclass IDs — prefer uploadId, fall back to name
 		const classes = await dnd5e.classes.getAll(params.id);
-		const classByName = new Map(classes.map((c: any) => [c.name.toLowerCase(), c]));
+		const classByUploadId = new Map(classes.filter((c: any) => c.uploadId).map((c: any) => [c.uploadId, c]));
+		const classByName     = new Map(classes.map((c: any) => [c.name.toLowerCase(), c]));
 
 		let imported = 0; const errors: string[] = [];
 		for (const r of rows) {
 			try {
-				const className    = normalize(r['Class Name']    ?? r['className']    ?? '');
-				const subclassName = normalize(r['Subclass Name'] ?? r['subclassName'] ?? '');
-				const cls          = classByName.get(className.toLowerCase());
-				if (!cls) { errors.push(`Class "${className}" not found in this game system.`); continue; }
+				const classUploadId = normalize(r['Class Upload ID'] ?? r['classUploadId'] ?? '');
+				const className     = normalize(r['Class Name']      ?? r['className']    ?? '');
+				const subclassName  = normalize(r['Subclass Name']   ?? r['subclassName'] ?? '');
+				const subUploadId   = normalize(r['Subclass Upload ID'] ?? r['subclassUploadId'] ?? '');
+				const cls = classUploadId
+					? (classByUploadId.get(classUploadId) ?? classByName.get(className.toLowerCase()))
+					: classByName.get(className.toLowerCase());
+				if (!cls) { errors.push(`Class "${classUploadId || className}" not found in this game system.`); continue; }
 
 				let subclassId = '';
-				if (subclassName) {
-					const sub = (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase());
-					if (!sub) { errors.push(`Subclass "${subclassName}" not found under "${className}".`); continue; }
+				if (subclassName || subUploadId) {
+					const sub = subUploadId
+						? ((cls.subclasses ?? []).find((s: any) => (s as any).uploadId === subUploadId) ?? (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase()))
+						: (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase());
+					if (!sub) { errors.push(`Subclass "${subUploadId || subclassName}" not found under "${cls.name}".`); continue; }
 					subclassId = sub.id;
 				}
 
@@ -686,7 +947,7 @@ export const actions: Actions = {
 				imported++;
 			} catch (e: any) { errors.push(`Row ${r['Class Name'] ?? '?'} Lv${r['Level'] ?? '?'}: ${e.message}`); }
 		}
-		return { success: true, imported, skipped: errors.length, errors, type: 'spell slots' };
+		return { success: true, imported, skipped: errors.length, skipReasons: errors.slice(0, 20), type: 'spell slots' };
 	},
 
 	deleteSpellSlots: async ({ params, locals }) => {
@@ -707,23 +968,30 @@ export const actions: Actions = {
 		try { rows = JSON.parse(raw); } catch { return fail(400, { message: 'Invalid JSON.' }); }
 		const { dnd5e } = await import('@core/database');
 
-		// Resolve class/subclass IDs by name — IDs are system-specific and not portable
+		// Resolve class/subclass IDs — prefer uploadId lookup, fall back to name
 		const classes = await dnd5e.classes.getAll(params.id);
-		const classByName = new Map(classes.map((c: any) => [c.name.toLowerCase(), c]));
+		const classByUploadId = new Map(classes.filter((c: any) => c.uploadId).map((c: any) => [c.uploadId, c]));
+		const classByName     = new Map(classes.map((c: any) => [c.name.toLowerCase(), c]));
 
 		const gn = (v: any) => (v !== '' && v != null) ? Number(v) : null;
 		let imported = 0; const errors: string[] = [];
 		for (const r of rows) {
 			try {
-				const className    = normalize(r['Class Name']    ?? r['className']    ?? '');
-				const subclassName = normalize(r['Subclass Name'] ?? r['subclassName'] ?? '');
-				const cls          = classByName.get(className.toLowerCase());
-				if (!cls) { errors.push(`Class "${className}" not found in this game system.`); continue; }
+				const classUploadId = normalize(r['Class Upload ID'] ?? r['classUploadId'] ?? '');
+				const className     = normalize(r['Class Name']      ?? r['className']    ?? '');
+				const subclassName  = normalize(r['Subclass Name']   ?? r['subclassName'] ?? '');
+				const subUploadId   = normalize(r['Subclass Upload ID'] ?? r['subclassUploadId'] ?? '');
+				const cls = classUploadId
+					? (classByUploadId.get(classUploadId) ?? classByName.get(className.toLowerCase()))
+					: classByName.get(className.toLowerCase());
+				if (!cls) { errors.push(`Class "${classUploadId || className}" not found in this game system.`); continue; }
 
 				let subclassId = '';
-				if (subclassName) {
-					const sub = (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase());
-					if (!sub) { errors.push(`Subclass "${subclassName}" not found under "${className}".`); continue; }
+				if (subclassName || subUploadId) {
+					const sub = subUploadId
+						? ((cls.subclasses ?? []).find((s: any) => (s as any).uploadId === subUploadId) ?? (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase()))
+						: (cls.subclasses ?? []).find((s: any) => s.name.toLowerCase() === subclassName.toLowerCase());
+					if (!sub) { errors.push(`Subclass "${subUploadId || subclassName}" not found under "${cls.name}".`); continue; }
 					subclassId = sub.id;
 				}
 
@@ -742,7 +1010,7 @@ export const actions: Actions = {
 				imported++;
 			} catch (e: any) { errors.push(`Row ${r['Class Name'] ?? '?'} Lv${r['Level'] ?? '?'}: ${e.message}`); }
 		}
-		return { success: true, imported, skipped: errors.length, errors, type: 'spells known' };
+		return { success: true, imported, skipped: errors.length, skipReasons: errors.slice(0, 20), type: 'spells known' };
 	},
 
 	deleteSpellsKnown: async ({ params, locals }) => {

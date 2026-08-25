@@ -224,19 +224,24 @@ export async function removeFactionRelation(id: string, actorId: string) {
     });
 }
 
-// ── Quest / bounty links ──────────────────────────────────────────────────────
+// ── Plot quest links ──────────────────────────────────────────────────────────
 
-export async function addFactionQuest(factionId: string, questId: string, actorId: string) {
-    const quest = await db.quest.findUnique({ where: { id: questId }, select: { id: true } });
-    if (!quest) throw new NotFoundError('Quest', questId);
+export async function addFactionQuest(factionId: string, plotQuestId: string, actorId: string) {
+    const faction = await db.faction.findUnique({ where: { id: factionId }, select: { id: true, worldId: true } });
+    if (!faction) throw new NotFoundError('Faction', factionId);
+    const plot = await db.plotQuest.findFirst({
+        where: { id: plotQuestId, worldId: faction.worldId },
+        select: { id: true },
+    });
+    if (!plot) throw new NotFoundError('PlotQuest', plotQuestId);
     try {
         return await db.$transaction(async (tx) => {
-            const link = await tx.factionQuest.create({ data: { factionId, questId } });
+            const link = await tx.factionQuest.create({ data: { factionId, plotQuestId } });
             await logAudit(tx, { actorId, action: 'CREATE', resourceKey: 'Faction', resourceId: factionId, after: link, metadata: { entity: 'FactionQuest' } });
             return link;
         });
     } catch (e) {
-        if (isUniqueViolation(e)) throw new ValidationError('This quest is already linked to the faction.');
+        if (isUniqueViolation(e)) throw new ValidationError('This plot quest is already linked to the faction.');
         throw e;
     }
 }

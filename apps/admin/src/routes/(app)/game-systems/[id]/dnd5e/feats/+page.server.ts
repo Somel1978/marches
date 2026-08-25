@@ -5,6 +5,33 @@ import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { PageServerLoad, Actions } from './$types';
 
+
+function featGrantFields(data: FormData) {
+	return {
+		grantsSkills:       data.get('grantsSkills')?.toString().trim()       || null,
+		grantsExpertise:        data.get('grantsExpertise')?.toString().trim()        || null,
+		expertiseChoiceCount:   data.get('expertiseChoiceCount') ? Number(data.get('expertiseChoiceCount')) : null,
+		expertiseChoicePool:    data.get('expertiseChoicePool')?.toString().trim()    || null,
+		grantsHalfSkills:   data.get('grantsHalfSkills')?.toString().trim()   || null,
+		grantsSavingThrows: data.get('grantsSavingThrows')?.toString().trim() || null,
+		skillChoiceCount:   data.get('skillChoiceCount') ? Number(data.get('skillChoiceCount')) : null,
+		skillChoicePool:    data.get('skillChoicePool')?.toString().trim()    || null,
+		savingThrowChoiceCount: data.get('savingThrowChoiceCount') ? Number(data.get('savingThrowChoiceCount')) : null,
+		savingThrowChoicePool:  data.get('savingThrowChoicePool')?.toString().trim()  || null,
+		grantsTools:          data.get('grantsTools')?.toString().trim()          || null,
+		toolChoiceCount:      data.get('toolChoiceCount') ? Number(data.get('toolChoiceCount')) : null,
+		toolChoicePool:       data.get('toolChoicePool')?.toString().trim()       || null,
+		grantsLanguages:      data.get('grantsLanguages')?.toString().trim()      || null,
+		languageChoiceCount:  data.get('languageChoiceCount') ? Number(data.get('languageChoiceCount')) : null,
+		languageChoicePool:   data.get('languageChoicePool')?.toString().trim()   || null,
+		grantsResistances:    data.get('grantsResistances')?.toString().trim()    || null,
+		grantsImmunities:     data.get('grantsImmunities')?.toString().trim()     || null,
+		grantsVulnerabilities: data.get('grantsVulnerabilities')?.toString().trim() || null,
+		grantsInnateSpells:    data.get('grantsInnateSpells')?.toString().trim()    || null,
+		grantsSpeed:           data.get('grantsSpeed')?.toString().trim()           || null,
+		grantsSenses:          data.get('grantsSenses')?.toString().trim()          || null,
+	};
+}
 export const load: PageServerLoad = async ({ params }) => {
 	const system = await gameSystems.getById(params.id);
 	if (!system) throw error(404, 'Game system not found');
@@ -29,12 +56,20 @@ export const actions: Actions = {
 				categories:    data.get('categories')?.toString().trim()     || undefined,
 				prerequisites: data.get('prerequisites')?.toString().trim()  || undefined,
 				detailsUrl:    data.get('detailsUrl')?.toString().trim()     || undefined,
+				source:              data.get('source')?.toString().trim()              || undefined,
+			resistanceChoiceCount:   data.get('resistanceChoiceCount') ? Number(data.get('resistanceChoiceCount')) : undefined,
+			resistanceChoicePool:    data.get('resistanceChoicePool')?.toString().trim()    || undefined,
+			immunityChoiceCount:     data.get('immunityChoiceCount') ? Number(data.get('immunityChoiceCount')) : undefined,
+			immunityChoicePool:      data.get('immunityChoicePool')?.toString().trim()      || undefined,
+			vulnerabilityChoiceCount: data.get('vulnerabilityChoiceCount') ? Number(data.get('vulnerabilityChoiceCount')) : undefined,
+			vulnerabilityChoicePool:  data.get('vulnerabilityChoicePool')?.toString().trim()  || undefined,
 				isEpicBoon:    data.get('isEpicBoon') === 'true',
 				isAvailable:   data.get('isAvailable') !== 'false',
 				sortOrder:     Number(data.get('sortOrder') ?? 0),
 				asiAmount:     data.get('asiAmount') ? Number(data.get('asiAmount')) : null,
 				asiStatFixed:  data.get('asiStatFixed')?.toString()  || null,
 				asiStatChoices: data.get('asiStatChoices')?.toString() || null,
+				...featGrantFields(data),
 			}, locals.user!.id);
 			return { success: true };
 		} catch (e) {
@@ -58,12 +93,20 @@ export const actions: Actions = {
 				categories:    data.get('categories')?.toString().trim()     || undefined,
 				prerequisites: data.get('prerequisites')?.toString().trim()  || undefined,
 				detailsUrl:    data.get('detailsUrl')?.toString().trim()     || undefined,
+				source:              data.get('source')?.toString().trim()              || undefined,
+			resistanceChoiceCount:   data.get('resistanceChoiceCount') ? Number(data.get('resistanceChoiceCount')) : undefined,
+			resistanceChoicePool:    data.get('resistanceChoicePool')?.toString().trim()    || undefined,
+			immunityChoiceCount:     data.get('immunityChoiceCount') ? Number(data.get('immunityChoiceCount')) : undefined,
+			immunityChoicePool:      data.get('immunityChoicePool')?.toString().trim()      || undefined,
+			vulnerabilityChoiceCount: data.get('vulnerabilityChoiceCount') ? Number(data.get('vulnerabilityChoiceCount')) : undefined,
+			vulnerabilityChoicePool:  data.get('vulnerabilityChoicePool')?.toString().trim()  || undefined,
 				isEpicBoon:    data.get('isEpicBoon') === 'true',
 				isAvailable:   data.get('isAvailable') !== 'false',
 				sortOrder:     Number(data.get('sortOrder') ?? 0),
 				asiAmount:     data.get('asiAmount') ? Number(data.get('asiAmount')) : null,
 				asiStatFixed:  data.get('asiStatFixed')?.toString()  || null,
 				asiStatChoices: data.get('asiStatChoices')?.toString() || null,
+				...featGrantFields(data),
 			}, locals.user!.id);
 			return { success: true };
 		} catch (e) {

@@ -4,7 +4,7 @@ import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ConflictError } from '@core/errors';
 
 export async function createProgressionThreshold(
-    input: { gameSystemId: string; label: string; xpRequired: number; description?: string; sortOrder?: number },
+    input: { gameSystemId: string; label: string; xpRequired: number; milestoneRequired?: number; description?: string; sortOrder?: number },
     actorId?: string,
 ) {
     const gs = await db.gameSystem.findUnique({ where: { id: input.gameSystemId } });
@@ -24,7 +24,7 @@ export async function createProgressionThreshold(
 
 export async function updateProgressionThreshold(
     id: string,
-    input: { label?: string; xpRequired?: number; description?: string; sortOrder?: number },
+    input: { label?: string; xpRequired?: number; milestoneRequired?: number; description?: string; sortOrder?: number },
     actorId?: string,
 ) {
     const pt = await db.progressionThreshold.findUnique({ where: { id } });

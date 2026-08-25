@@ -106,6 +106,8 @@
 		{:else if (form as any).action === 'rejected'}Quest rejected.
 		{:else if (form as any).action === 'result_approved'}Result approved — XP distributed.
 		{:else if (form as any).action === 'result_rejected'}Result rejected — DM must resubmit.
+		{:else if (form as any).action === 'dm_notes_saved'}DM notes saved.
+		{:else if (form as any).action === 'player_notes_saved'}Player notes saved.
 		{/if}
 	</div>{/if}
 
@@ -147,6 +149,66 @@
 
 	<div class="sections">
 		<div class="card">
+			<h3 class="section-title">Linked plot quests</h3>
+			{#if data.linkedPlotQuests?.length}
+				{#each data.linkedPlotQuests as link (link.linkId)}
+					<div class="faction-subrow">
+						<span class="faction-subrow__grow" style="font-weight:600;">
+							{#if link.plotQuest}
+								<a href="/world/{link.plotQuest.worldId}/plot-quests/{link.plotQuest.id}">{link.plotQuest.title}</a>
+							{:else}
+								(missing plot quest)
+							{/if}
+						</span>
+						{#if link.plotQuest}
+							<span class="badge badge-muted">{link.plotQuest.status}</span>
+						{/if}
+					</div>
+					{#if link.plotQuest?.summary}
+						<p class="table__muted" style="margin:0 0 0.75rem; font-size:0.875rem;">{link.plotQuest.summary}</p>
+					{/if}
+				{/each}
+			{:else}
+				<p class="table__empty">No plot quests linked. Link from a plot quest’s detail page.</p>
+			{/if}
+		</div>
+
+		{#if (data.quest as any).worldId}
+			{@const notes = (data as any).questNotes}
+			<div class="card">
+				<h3 class="section-title">Quest notes</h3>
+				{#if !notes?.dm || !notes?.player}
+					<p class="table__empty">Could not load quest note journals.</p>
+				{:else}
+					<p class="field-hint" style="margin-bottom:1rem;">
+						One journal ({notes.worldName ?? 'this world'}): DM Notes (DM-only section) + Player Notes (world section).
+						{#if notes.journalId}
+							<a href="/world/{notes.worldId}/journal/{notes.journalId}">Open journal</a>
+						{/if}
+					</p>
+					<form method="post" action="?/saveDmNotes" use:enhance={e_reload} style="margin-bottom:1.25rem;">
+						<div class="field">
+							<label class="label" for="dm-notes">DM notes</label>
+							<textarea id="dm-notes" name="content" class="input" rows="6">{notes.dm.content}</textarea>
+						</div>
+						<button type="submit" class="btn btn-primary btn-sm">Save DM notes</button>
+					</form>
+					<form method="post" action="?/savePlayerNotes" use:enhance={e_reload}>
+						<div class="field">
+							<label class="label" for="player-notes">Player notes</label>
+							<textarea id="player-notes" name="content" class="input" rows="6">{notes.player.content}</textarea>
+							<label class="label" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; font-weight:500;">
+								<input type="checkbox" name="publishPlayerNotes" checked={notes.isPublished} />
+								Visible to players (publish journal)
+							</label>
+						</div>
+						<button type="submit" class="btn btn-primary btn-sm">Save player notes</button>
+					</form>
+				{/if}
+			</div>
+		{/if}
+
+		<div class="card">
 			<h3 class="section-title">Details</h3>
 			{#if data.quest.description}
 				<p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 0.75rem; white-space:pre-wrap;">{data.quest.description}</p>
@@ -159,6 +221,11 @@
 					<div class="field">
 						<label class="label" for="missionXp">Mission XP</label>
 						<input id="missionXp" name="missionXp" type="number" class="input" min="0" value={data.quest.missionXp} required />
+					</div>
+					<div class="field">
+						<label class="label" for="milestoneAward">Milestone credits</label>
+						<input id="milestoneAward" name="milestoneAward" type="number" class="input" min="0" value={(data.quest as any).milestoneAward ?? 0} />
+						<p class="field-hint">Awarded to each participant in full — not divided among the party.</p>
 					</div>
 					<div style="display:flex; gap:1rem; flex-wrap:wrap;">
 						<div class="field" style="flex:1; min-width:100px;">

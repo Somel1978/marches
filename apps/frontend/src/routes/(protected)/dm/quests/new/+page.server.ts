@@ -15,14 +15,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const profile = await dms.profiles.getByUserId(locals.user!.id);
 	if (!profile) throw error(403, 'DM profile required to create quests.');
 
-	const [settings, allWorlds] = await Promise.all([
+	const [settings, allWorlds, encounterConfig] = await Promise.all([
 		platform.getSettingsMap(),
 		worlds.getAll(),
+		quests.loadEncounterConfig(),
 	]);
 
 	return {
 		profile,
 		allWorlds,
+		encounterConfig,
 		itemRarities: ITEM_RARITIES,
 		itemCategories: ITEM_CATEGORIES,
 		globalMinCap: Number(settings['quest.minCapacity'] ?? 2),
@@ -44,7 +46,10 @@ export const actions: Actions = {
 		const deadlineRaw    = data.get('signupDeadline')?.toString()  || null;
 		const scheduledAt    = scheduledRaw  ? new Date(scheduledRaw)  : null;
 		const signupDeadline = deadlineRaw   ? new Date(deadlineRaw)   : null;
-		const missionXp   = Number(data.get('missionXp')   ?? 0);
+		const missionXpRaw  = Number(data.get('missionXp') ?? 0);
+		const planJson      = data.get('encounterPlan')?.toString() ?? '';
+		const { missionXp, encounterPlan } = await quests.resolveMissionXp(planJson, missionXpRaw);
+		const milestoneAward = Math.max(0, Number(data.get('milestoneAward') ?? 0));
 		const minCapacity = Number(data.get('minCapacity') ?? 2);
 		const maxCapacity = Number(data.get('maxCapacity') ?? 6);
 		const minLevel    = Number(data.get('minLevel')    ?? 1);
@@ -71,7 +76,7 @@ export const actions: Actions = {
 				dmProfileId: profile.id,
 				title, description: description || undefined, rules: rules || undefined,
 				scheduledAt, signupDeadline,
-				missionXp, minCapacity, maxCapacity, minLevel, maxLevel, rewards,
+				missionXp, milestoneAward, encounterPlan, minCapacity, maxCapacity, minLevel, maxLevel, rewards,
 				regionId, locationId,
 			}, locals.user!.id);
 			redirect(302, `/dm/quests/${quest.id}`);

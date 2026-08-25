@@ -7,7 +7,8 @@
   "exports": {
     ".": "./index.ts",
     "./styles/*": "./styles/*",
-    "./gamesystems/*": "./src/gamesystems/*"
+    "./gamesystems/*": "./src/gamesystems/*",
+    "./progression/*": "./src/progression/*"
   },
   "dependencies": {
     "marked": "^18.0.4"

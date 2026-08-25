@@ -7,7 +7,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const system = $derived((data as any).system);
 
-	const COLUMNS = ['label', 'xpRequired', 'description', 'sortOrder'];
+	const COLUMNS = ['label', 'xpRequired', 'milestoneRequired', 'description', 'sortOrder'];
 
 	let parsedJson  = $state('');
 	let previewRows = $state<any[]>([]);
@@ -65,6 +65,7 @@
 			<p class="field-hint">
 				<code>label</code> is used to match existing thresholds for updates.
 				<code>xpRequired</code> must be a whole number.
+				<code>milestoneRequired</code> is optional and only used by milestone-progression characters.
 			</p>
 			<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
 				<button type="button" class="btn btn-ghost btn-sm" onclick={downloadTemplate}>

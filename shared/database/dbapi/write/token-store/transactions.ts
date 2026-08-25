@@ -5,7 +5,7 @@ import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import { createNotificationsForAdmins, createNotificationsForWorldDMs, createNotification } from '../notifications/notifications.ts';
 import { queueDiscordNotification } from '../discord/dispatcher.ts';
-import { checkLevelChange } from '../characters/level-check.ts';
+import { getEffectiveThresholds, reconcileProgression, resolveEarnedLevel } from '../characters/progression.ts';
 
 // ── Apply boost ───────────────────────────────────────────────────────────────
 
@@ -72,8 +72,10 @@ async function applyBoost(tx: any, characterId: string, stTxId: string, item: an
         },
     });
 
+    // The XP total was written above with its own bespoke transaction row, so we
+    // only need the level re-evaluated from the new total.
     if (bonus > 0 && type === 'XP') {
-        await checkLevelChange(tx, characterId, char.userId, char.gameSystemId, prev, prev + bonus, char.level, stTxId);
+        await reconcileProgression(tx, characterId, { actorId: stTxId });
     }
 
     return rewardTx.id;
@@ -231,7 +233,8 @@ export async function revokeTokenStorePurchase(id: string, actorId: string): Pro
     });
 
     const char = await db.character.findUnique({ where: { id: stTx.characterId },
-        select: { totalXp: true, totalGold: true, totalTokens: true, level: true, userId: true, gameSystemId: true, name: true } });
+        select: { totalXp: true, totalGold: true, totalTokens: true, totalMilestones: true,
+                  level: true, userId: true, gameSystemId: true, worldId: true, progressionMode: true, name: true } });
     if (!char) throw new NotFoundError('Character', stTx.characterId);
 
     // Check for warnings — sum all boost txs
@@ -240,10 +243,12 @@ export async function revokeTokenStorePurchase(id: string, actorId: string): Pro
     let warning: string | undefined;
     if (totalBoostXp > 0) {
         const newXp = char.totalXp - totalBoostXp;
-        const thresholds = await db.progressionThreshold.findMany({
-            where: { gameSystemId: char.gameSystemId }, orderBy: { xpRequired: 'asc' },
-        });
-        const newLevel = thresholds.filter((t: any) => newXp >= t.xpRequired).length;
+        const thresholds = await getEffectiveThresholds(db, char.gameSystemId, char.worldId);
+        const newLevel = resolveEarnedLevel(
+            char.progressionMode,
+            { totalXp: newXp, totalMilestones: char.totalMilestones },
+            thresholds,
+        );
         if (newLevel < char.level) warning = `This will cause a level-down from ${char.level} to ${newLevel}.`;
     }
     if (totalBoostGold > 0) {
@@ -263,8 +268,7 @@ export async function revokeTokenStorePurchase(id: string, actorId: string): Pro
             });
         }
         if (totalBoostXp > 0) {
-            await checkLevelChange(tx, stTx.characterId, char.userId, char.gameSystemId,
-                char.totalXp, char.totalXp - totalBoostXp, char.level, actorId);
+            await reconcileProgression(tx, stTx.characterId, { actorId });
         }
 
         // Refund tokens

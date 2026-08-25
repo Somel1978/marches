@@ -13,7 +13,7 @@
 	const tierLabel: Record<string, string> = { LOCAL: 'Local', REGIONAL: 'Regional', WORLD: 'World' };
 	const relLabel: Record<string, string>  = { RIVAL: 'Rival', ALLY: 'Ally' };
 
-	const linkedQuestIds = $derived(new Set(faction.quests.map((q: any) => q.questId)));
+	const linkedPlotQuestIds = $derived(new Set(faction.quests.map((q: any) => q.plotQuestId)));
 	const territoryKeys  = $derived(new Set(faction.territories.map((t: any) => `${t.entityType}:${t.entityId}`)));
 	const relatedIds     = $derived(new Set(faction.relations.map((r: any) => r.other?.id)));
 	const renownCharIds  = $derived(new Set(faction.renown.map((r: any) => r.characterId)));
@@ -312,20 +312,20 @@
 			{/if}
 		</div>
 
-		<!-- Quests / bounties -->
+		<!-- Plot quests / bounties -->
 		<div class="card">
-			<h3 class="section-title">Associated quests & bounties</h3>
-			{#if (form as any)?.questSuccess}<div class="form-success">Quest links updated.</div>{/if}
+			<h3 class="section-title">Associated plot quests & bounties</h3>
+			{#if (form as any)?.questSuccess}<div class="form-success">Plot quest links updated.</div>{/if}
 			{#each faction.quests as link (link.id)}
 				<div class="faction-subrow">
 					<span class="faction-subrow__grow" style="font-weight:600;">
-						{#if link.quest}
-							<a href="/dm/quests/{link.quest.id}">{link.quest.title}</a>
+						{#if link.plotQuest}
+							<a href="/dm/worlds/{world.id}/plot-quests/{link.plotQuest.id}">{link.plotQuest.title}</a>
 						{:else}
-							(deleted quest)
+							(deleted plot quest)
 						{/if}
 					</span>
-					{#if link.quest}<span class="badge badge-muted">{link.quest.status}</span>{/if}
+					{#if link.plotQuest}<span class="badge badge-muted">{link.plotQuest.status}</span>{/if}
 					{#if canManage}
 						<form method="post" action="?/removeQuest" use:enhance={reload}>
 							<input type="hidden" name="linkId" value={link.id} />
@@ -334,19 +334,19 @@
 					{/if}
 				</div>
 			{:else}
-				<p class="table__empty">No quests linked yet.</p>
+				<p class="table__empty">No plot quests linked yet.</p>
 			{/each}
-			{#if canManage && (data as any).worldQuests.length}
+			{#if canManage && (data as any).worldPlotQuests?.length}
 				<form method="post" action="?/addQuest" use:enhance={reload} class="faction-subrow" style="border-top:1px solid var(--border-muted); margin-top:0.5rem; padding-top:0.75rem;">
-					<select name="questId" class="input faction-subrow__grow" required>
-						<option value="">— Pick quest —</option>
-						{#each (data as any).worldQuests as q}
-							{#if !linkedQuestIds.has(q.id)}
+					<select name="plotQuestId" class="input faction-subrow__grow" required>
+						<option value="">— Pick plot quest —</option>
+						{#each (data as any).worldPlotQuests as q}
+							{#if !linkedPlotQuestIds.has(q.id)}
 								<option value={q.id}>{q.title} ({q.status})</option>
 							{/if}
 						{/each}
 					</select>
-					<button type="submit" class="btn btn-primary btn-sm">+ Link quest</button>
+					<button type="submit" class="btn btn-primary btn-sm">+ Link plot quest</button>
 				</form>
 			{/if}
 		</div>

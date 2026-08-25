@@ -154,17 +154,5 @@
 			</div>
 		{/if}
 
-		<!-- Linked quests -->
-		{#if faction.quests?.length}
-			<div class="card">
-				<h3 class="section-title">Associated quests</h3>
-				{#each faction.quests as link}
-					<div class="faction-subrow">
-						<a class="faction-subrow__grow" style="font-weight:600;" href="/quests/{link.quest.id}">{link.quest.title}</a>
-						<span class="badge badge-muted">{link.quest.status}</span>
-					</div>
-				{/each}
-			</div>
-		{/if}
 	</div>
 </div>

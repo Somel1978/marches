@@ -16,9 +16,10 @@ export async function getQuestById(id: string) {
 
     const enrichedSignups = await enrichDnd5eSignups(quest.signups);
 
-    // Enrich with region and location names
+    // Enrich with region, world, and location names
     let regionName:   string | null = null;
     let locationName: string | null = null;
+    let worldId:      string | null = null;
 
     // Enrich DM name
     let dmName: string | null = null;
@@ -37,10 +38,12 @@ export async function getQuestById(id: string) {
     if (quest.regionId) {
         const region = await db.region.findUnique({
             where:  { id: quest.regionId },
-            select: { name: true, world: { select: { name: true } } },
+            select: { name: true, worldId: true, world: { select: { name: true, slug: true } } },
         }).catch(() => null);
         regionName = region?.name ?? null;
+        worldId = region?.worldId ?? null;
         (quest as any).__worldName = (region as any)?.world?.name ?? null;
+        (quest as any).__worldSlug = (region as any)?.world?.slug ?? null;
     }
     if (quest.locationId) {
         const location = await db.location.findUnique({
@@ -50,7 +53,16 @@ export async function getQuestById(id: string) {
         locationName = location?.name ?? null;
     }
 
-    return { ...quest, signups: enrichedSignups, regionName, locationName, worldName: (quest as any).__worldName ?? null, dmName };
+    return {
+        ...quest,
+        signups: enrichedSignups,
+        regionName,
+        locationName,
+        worldId,
+        worldName: (quest as any).__worldName ?? null,
+        worldSlug: (quest as any).__worldSlug ?? null,
+        dmName,
+    };
 }
 
 export async function getQuestsByDM(dmProfileId: string) {

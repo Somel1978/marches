@@ -2,7 +2,12 @@
 <!-- Pure UI component — no SvelteKit imports. All actions via callbacks. -->
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import Dnd5eSpellbooks from './Dnd5eSpellbooks.svelte';
+	import DescriptionText      from '../../../components/ui/DescriptionText.svelte';
+	import Dnd5eSpellbooks      from './Dnd5eSpellbooks.svelte';
+	import Dnd5eSkillsPanel     from './Dnd5eSkillsPanel.svelte';
+	import Dnd5eCharacterDetails from './Dnd5eCharacterDetails.svelte';
+	import MoodEditor           from './MoodEditor.svelte';
+	import { SKILL_DISPLAY, SKILL_ABILITY, STAT_ABBR } from './skills';
 	let {
 		charSheet,
 		systemData,
@@ -27,6 +32,15 @@
 		onAddSpellbookEntry,
 		onRemoveSpellbookEntry,
 		onToggleSpellPrepared,
+		onSaveMood,
+		onSaveSize,
+		onToggleSkill,
+		onToggleSave,
+		onToggleTool,
+		onToggleLanguage,
+		onToggleDamageModifier,
+		onSaveDetails,
+		onSaveChoicePoolGrants,
 	}: {
 		charSheet?:                any;
 		systemData?:               any;
@@ -51,6 +65,15 @@
 		onAddSpellbookEntry?:      (spellbookId: string, spellId: number, classId: string, className: string) => Promise<void>;
 		onRemoveSpellbookEntry?:   (entryId: string) => Promise<void>;
 		onToggleSpellPrepared?:    (entryId: string, prepared: boolean) => Promise<void>;
+		onSaveMood?:               (emoji: string, text: string) => Promise<void>;
+		onSaveSize?:               (size: string) => Promise<void>;
+		onToggleSkill?:            (skill: string, next: 'NONE'|'HALF_PROFICIENT'|'PROFICIENT'|'EXPERT', note?: string) => Promise<void>;
+		onToggleSave?:             (stat: string, proficient: boolean, note?: string) => Promise<void>;
+		onToggleTool?:             (tool: string, active: boolean, note?: string) => Promise<void>;
+		onToggleLanguage?:         (language: string, active: boolean, note?: string) => Promise<void>;
+		onToggleDamageModifier?:   (modifierType: string, damageType: string, active: boolean, note?: string) => Promise<void>;
+		onSaveDetails?:            (details: Record<string, string | number | null>) => Promise<void>;
+		onSaveChoicePoolGrants?:   (opts: { skills: {skill:string;value:number;sourceType:string;sourceId:string}[]; saves: {stat:string;sourceType:string;sourceId:string}[]; dmgMods: {modifierType:string;damageType:string;sourceType:string;sourceId:string}[]; tools: {tool:string;sourceType:string;sourceId:string}[]; languages: {language:string;sourceType:string;sourceId:string}[] }) => Promise<void>;
 	} = $props();
 
 	// ── Constants ────────────────────────────────────────────────────────────
@@ -181,9 +204,92 @@
 	}
 
 	// ── ASI/Feat slots ───────────────────────────────────────────────────────
-	type SlotState = { open:boolean; mode:string; asiStat:string; asi2a:string; asi2b:string; featSearch:string; featPick:string; featGrantedStat:string; saving:boolean; };
+	type SlotState = { open:boolean; mode:string; asiStat:string; asi2a:string; asi2b:string; featSearch:string; featPick:string; featGrantedStat:string; saving:boolean; chosenSavePicks:string[]; };
 
 	let slots = $state<Record<string,SlotState>>({});
+
+	// ── Pending choice pool state ─────────────────────────────────────────
+	let pendingSkillPicks     = $state<Record<string, string[]>>({});
+	let pendingSavePicks      = $state<Record<string, string[]>>({});
+	let pendingExpertisePicks = $state<Record<string, string[]>>({});
+	let pendingToolPicks      = $state<Record<string, string[]>>({});
+	let pendingLanguagePicks  = $state<Record<string, string[]>>({});
+	let pendingDmgModPicks    = $state<Record<string, string[]>>({}); // keyed by sourceId-modType
+	let savingChoices         = $state(false);
+
+	const pendingChoices  = $derived((charSheet?.pendingChoices ?? []) as any[]);
+
+	// Skills already granted (value > 0) — used to disable already-taken skills in pickers
+	const grantedSkillSet = $derived(new Set(
+		(charSheet?.skills ?? []).filter((s: any) => s.value > 0).map((s: any) => s.skill as string)
+	));
+	const grantedSaveSet  = $derived(new Set(
+		(charSheet?.savingThrows ?? []).filter((s: any) => s.proficient).map((s: any) => s.stat as string)
+	));
+
+	async function saveChoicePoolGrants(sourceId: string, sourceType: string) {
+		savingChoices = true;
+		const skills = [
+			...(pendingSkillPicks[sourceId] ?? []).map(skill => ({ skill, value: 1.0, sourceType, sourceId })),
+			...(pendingExpertisePicks[sourceId] ?? []).map(skill => ({ skill, value: 2.0, sourceType, sourceId })),
+		];
+		const saves = (pendingSavePicks[sourceId] ?? []).map(stat => ({
+			stat, sourceType, sourceId,
+		}));
+		// Gather dmg mod picks for this sourceId
+		const dmgMods = (['RESISTANCE','IMMUNITY','VULNERABILITY'] as const).flatMap(mod => {
+			const key = `${sourceId}-${mod}`;
+			return (pendingDmgModPicks[key] ?? []).map(dmgType => ({ modifierType: mod, damageType: dmgType, sourceType, sourceId }));
+		});
+		const tools     = (pendingToolPicks[sourceId]     ?? []).map(tool => ({ tool,     sourceType, sourceId }));
+		const languages = (pendingLanguagePicks[sourceId] ?? []).map(lang => ({ language: lang, sourceType, sourceId }));
+		await onSaveChoicePoolGrants?.({ skills, saves, dmgMods, tools, languages });
+		pendingSkillPicks     = { ...pendingSkillPicks,     [sourceId]: [] };
+		pendingSavePicks      = { ...pendingSavePicks,      [sourceId]: [] };
+		pendingExpertisePicks = { ...pendingExpertisePicks, [sourceId]: [] };
+		// Clear dmg mod picks for this sourceId
+		pendingDmgModPicks    = Object.fromEntries(Object.entries(pendingDmgModPicks).filter(([k]) => !k.startsWith(sourceId + '-')));
+		pendingToolPicks      = { ...pendingToolPicks,     [sourceId]: [] };
+		pendingLanguagePicks  = { ...pendingLanguagePicks, [sourceId]: [] };
+		savingChoices = false;
+	}
+
+	function togglePendingSkill(sourceId: string, skill: string, max: number) {
+		const cur = pendingSkillPicks[sourceId] ?? [];
+		if (cur.includes(skill)) pendingSkillPicks = { ...pendingSkillPicks, [sourceId]: cur.filter(s => s !== skill) };
+		else if (cur.length < max) pendingSkillPicks = { ...pendingSkillPicks, [sourceId]: [...cur, skill] };
+	}
+
+	function togglePendingTool(sourceId: string, tool: string, max: number) {
+		const cur = pendingToolPicks[sourceId] ?? [];
+		if (cur.includes(tool)) pendingToolPicks = { ...pendingToolPicks, [sourceId]: cur.filter(t => t !== tool) };
+		else if (cur.length < max) pendingToolPicks = { ...pendingToolPicks, [sourceId]: [...cur, tool] };
+	}
+
+	function togglePendingLanguage(sourceId: string, lang: string, max: number) {
+		const cur = pendingLanguagePicks[sourceId] ?? [];
+		if (cur.includes(lang)) pendingLanguagePicks = { ...pendingLanguagePicks, [sourceId]: cur.filter(l => l !== lang) };
+		else if (cur.length < max) pendingLanguagePicks = { ...pendingLanguagePicks, [sourceId]: [...cur, lang] };
+	}
+
+	function togglePendingDmgMod(sourceId: string, mod: string, dmgType: string, max: number) {
+		const key = `${sourceId}-${mod}`;
+		const cur = pendingDmgModPicks[key] ?? [];
+		if (cur.includes(dmgType)) pendingDmgModPicks = { ...pendingDmgModPicks, [key]: cur.filter(d => d !== dmgType) };
+		else if (cur.length < max) pendingDmgModPicks = { ...pendingDmgModPicks, [key]: [...cur, dmgType] };
+	}
+
+	function togglePendingExpertise(sourceId: string, skill: string, max: number) {
+		const cur = pendingExpertisePicks[sourceId] ?? [];
+		if (cur.includes(skill)) pendingExpertisePicks = { ...pendingExpertisePicks, [sourceId]: cur.filter(s => s !== skill) };
+		else if (cur.length < max) pendingExpertisePicks = { ...pendingExpertisePicks, [sourceId]: [...cur, skill] };
+	}
+
+	function togglePendingSave(sourceId: string, stat: string, max: number) {
+		const cur = pendingSavePicks[sourceId] ?? [];
+		if (cur.includes(stat)) pendingSavePicks = { ...pendingSavePicks, [sourceId]: cur.filter(s => s !== stat) };
+		else if (cur.length < max) pendingSavePicks = { ...pendingSavePicks, [sourceId]: [...cur, stat] };
+	}
 
 	function sk(slot:any, i?:number) { return `${slot.sourceClassId}_${slot.sourceLevel}_${i ?? slot.slotIndex ?? 0}`; }
 
@@ -197,14 +303,14 @@
 		for (const [idx, slot] of newSlots.entries()) {
 			const k = sk(slot, asiSlots.indexOf(slot));
 			const defaultMode = (slot.type === 'background_feat' || slot.type === 'epic_boon') ? 'feat' : 'asi';
-			next[k] = {open:false,mode:defaultMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',featGrantedStat:'',saving:false};
+			next[k] = {open:false,mode:defaultMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',featGrantedStat:'',saving:false,chosenSavePicks:[]};
 		}
 		slots = next;
 	});
 
 	function ss(slot:any, i?:number): SlotState {
 			const fallbackMode = (slot.type === 'background_feat' || slot.type === 'epic_boon') ? 'feat' : 'asi';
-		return slots[sk(slot,i)] ?? {open:false,mode:fallbackMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',featGrantedStat:'',saving:false};
+		return slots[sk(slot,i)] ?? {open:false,mode:fallbackMode,asiStat:'',asi2a:'',asi2b:'',featSearch:'',featPick:'',featGrantedStat:'',saving:false,chosenSavePicks:[]};
 	}
 	function updateSlot(slot:any, patch: Partial<SlotState>, i?:number) {
 		const k = sk(slot, i);
@@ -221,7 +327,12 @@
 			if (slot.type === 'epic_boon') return true;
 			if (slot.type === 'background_feat') {
 				if (slot.grantsFeatId && !canManage) return f.id === slot.grantsFeatId;
-				if (slot.featCategory) return (f.categories ?? '').split(',').map((s:string) => s.trim()).includes(slot.featCategory);
+				if (slot.featCategory) {
+					const cat = slot.featCategory.toLowerCase();
+					if (cat === 'general') return !f.isEpicBoon;
+					if (cat === 'fighting style') return (f.categories ?? '').split(',').map((s:string) => s.trim().toLowerCase()).includes('fighting style');
+					return (f.categories ?? '').split(',').map((s:string) => s.trim().toLowerCase()).includes(cat);
+				}
 			}
 			return true;
 		}).filter((f:any) => !q ||
@@ -244,6 +355,10 @@
 			if (asiAmount && !chosenStat) return; // need stat choice first
 			opts.featId = s.featPick;
 			if (asiAmount && chosenStat) { opts.stat1 = chosenStat; opts.amount1 = asiAmount; }
+			// Pass saving throw choices if the feat has a savingThrowChoicePool
+			if (featDef?.savingThrowChoiceCount && s.chosenSavePicks?.length) {
+				opts.chosenSaves = s.chosenSavePicks;
+			}
 		} else if (s.mode === 'asi') {
 			if (!s.asiStat || !asiFeat) return;
 			opts = {...opts, featId: asiFeat.id, stat1: s.asiStat, amount1: 2};
@@ -254,7 +369,7 @@
 
 		updateSlot(slot, {saving:true}, i);
 		await onSaveSlot?.(opts);
-		updateSlot(slot, {saving:false, open:false, featPick:'', featGrantedStat:'', asiStat:'', asi2a:'', asi2b:'', featSearch:''}, i);
+		updateSlot(slot, {saving:false, open:false, featPick:'', featGrantedStat:'', asiStat:'', asi2a:'', asi2b:'', featSearch:'', chosenSavePicks:[]}, i);
 	}
 </script>
 
@@ -264,6 +379,164 @@
 	{#if !canEdit && editBlockedReason}
 		<div class="pending-banner" style="margin-bottom:0;">
 			⏳ {editBlockedReason}
+		</div>
+	{/if}
+
+	<!-- ── Pending Choice Pools ───────────────────────────────────────────── -->
+	{#if pendingChoices.length > 0 && canEdit}
+		<div class="card" style="border:2px solid var(--color-warning);padding:1rem;">
+			<h3 class="section-title" style="color:var(--color-warning);margin:0 0 0.25rem;">⚠ Pending Proficiency Choices</h3>
+			<p style="font-size:0.875rem;color:var(--text-muted);margin:0 0 1rem;">You have unresolved skill, saving throw, or expertise choices from class features. Make your selections below and save each one.</p>
+			<div style="display:flex;flex-direction:column;gap:1.25rem;">
+				{#each pendingChoices as pc}
+					{@const skillPool   = pc.skillChoicePool   ? pc.skillChoicePool.split(',').map((s:string) => s.trim()).filter(Boolean)   : []}
+					{@const savePool    = pc.savingThrowChoicePool ? pc.savingThrowChoicePool.split(',').map((s:string) => s.trim().toUpperCase()).filter(Boolean) : []}
+					{@const pickedSkills = pendingSkillPicks[pc.sourceId] ?? []}
+					{@const pickedSaves  = pendingSavePicks[pc.sourceId]  ?? []}
+					{@const expertisePool   = pc.expertiseChoicePool ? pc.expertiseChoicePool.split(',').map((s:string) => s.trim()).filter(Boolean) : []}
+					{@const pickedExpertise = pendingExpertisePicks[pc.sourceId] ?? []}
+					{@const skillDone       = !pc.skillChoiceCount       || pickedSkills.length     >= Math.min(pc.skillChoiceCount, skillPool.length)}
+					{@const saveDone        = !pc.savingThrowChoiceCount || pickedSaves.length      >= Math.min(pc.savingThrowChoiceCount, savePool.length)}
+					{@const expertiseDone   = !pc.expertiseChoiceCount   || pickedExpertise.length >= Math.min(pc.expertiseChoiceCount, expertisePool.length)}
+					<div style="padding:0.75rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
+						<p style="font-size:0.8125rem;font-weight:700;color:var(--brand-accent);margin:0 0 0.625rem;">{pc.label}</p>
+
+						{#if skillPool.length > 0}
+							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+								Choose {pc.skillChoiceCount} skill{pc.skillChoiceCount !== 1 ? 's' : ''}
+								<span style="font-weight:400;color:var(--text-secondary);">({pickedSkills.length}/{Math.min(pc.skillChoiceCount, skillPool.length)} chosen)</span>
+							</p>
+							<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+								{#each skillPool as skill}
+									{@const chosen = pickedSkills.includes(skill)}
+									{@const alreadyGranted = !chosen && grantedSkillSet.has(skill)}
+									{@const full   = !chosen && pickedSkills.length >= Math.min(pc.skillChoiceCount, skillPool.length)}
+									<button type="button"
+										class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}"
+										disabled={full || alreadyGranted}
+										title={alreadyGranted ? 'Already proficient' : ''}
+										onclick={() => togglePendingSkill(pc.sourceId, skill, pc.skillChoiceCount)}>
+										{SKILL_DISPLAY[skill] ?? skill}
+										<span style="opacity:0.65;font-size:0.6875rem;">({STAT_ABBR[SKILL_ABILITY[skill]] ?? ''})</span>
+									</button>
+								{/each}
+							</div>
+						{/if}
+
+						{#if savePool.length > 0}
+							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+								Choose {pc.savingThrowChoiceCount} saving throw{pc.savingThrowChoiceCount !== 1 ? 's' : ''}
+								<span style="font-weight:400;color:var(--text-secondary);">({pickedSaves.length}/{Math.min(pc.savingThrowChoiceCount, savePool.length)} chosen)</span>
+							</p>
+							<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+								{#each savePool as stat}
+									{@const chosen = pickedSaves.includes(stat)}
+									{@const alreadyGranted = !chosen && grantedSaveSet.has(stat)}
+									{@const full   = !chosen && pickedSaves.length >= Math.min(pc.savingThrowChoiceCount, savePool.length)}
+									<button type="button"
+										class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}"
+										disabled={full || alreadyGranted}
+										title={alreadyGranted ? 'Already proficient' : ''}
+										onclick={() => togglePendingSave(pc.sourceId, stat, pc.savingThrowChoiceCount)}>
+										{STAT_ABBR[stat] ?? stat}
+									</button>
+								{/each}
+							</div>
+						{/if}
+
+						{#if expertisePool.length > 0}
+							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+								Choose {pc.expertiseChoiceCount} expertise{pc.expertiseChoiceCount !== 1 ? 's' : ''}
+								<span style="font-weight:400;color:var(--text-secondary);">({pickedExpertise.length}/{Math.min(pc.expertiseChoiceCount, expertisePool.length)} chosen)</span>
+							</p>
+							<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+								{#each expertisePool as skill}
+									{@const chosen = pickedExpertise.includes(skill)}
+									{@const full   = !chosen && pickedExpertise.length >= Math.min(pc.expertiseChoiceCount, expertisePool.length)}
+									<button type="button"
+										class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}"
+										disabled={full}
+										onclick={() => togglePendingExpertise(pc.sourceId, skill, pc.expertiseChoiceCount)}>
+										{SKILL_DISPLAY[skill] ?? skill} ×2
+									</button>
+								{/each}
+							</div>
+						{/if}
+
+						<!-- Tool choice pool -->
+						{#if pc.toolChoicePool}
+							{@const toolPool = pc.toolChoicePool.split(',').map((s:string)=>s.trim()).filter(Boolean)}
+							{@const pickedTools = pendingToolPicks[pc.sourceId] ?? []}
+							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+								Choose {pc.toolChoiceCount} tool{pc.toolChoiceCount !== 1 ? 's' : ''}
+								<span style="font-weight:400;color:var(--text-secondary);">({pickedTools.length}/{Math.min(pc.toolChoiceCount, toolPool.length)} chosen)</span>
+							</p>
+							<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+								{#each toolPool as tool}
+									{@const chosen = pickedTools.includes(tool)}
+									{@const full = !chosen && pickedTools.length >= Math.min(pc.toolChoiceCount, toolPool.length)}
+									<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
+										onclick={() => togglePendingTool(pc.sourceId, tool, pc.toolChoiceCount)}>{tool}</button>
+								{/each}
+							</div>
+						{/if}
+
+						<!-- Language choice pool -->
+						{#if pc.languageChoicePool}
+							{@const langPool = pc.languageChoicePool.split(',').map((s:string)=>s.trim()).filter(Boolean)}
+							{@const pickedLangs = pendingLanguagePicks[pc.sourceId] ?? []}
+							<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+								Choose {pc.languageChoiceCount} language{pc.languageChoiceCount !== 1 ? 's' : ''}
+								<span style="font-weight:400;color:var(--text-secondary);">({pickedLangs.length}/{Math.min(pc.languageChoiceCount, langPool.length)} chosen)</span>
+							</p>
+							<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+								{#each langPool as lang}
+									{@const chosen = pickedLangs.includes(lang)}
+									{@const full = !chosen && pickedLangs.length >= Math.min(pc.languageChoiceCount, langPool.length)}
+									<button type="button" class="btn btn-sm {chosen ? 'btn-primary' : 'btn-ghost'}" disabled={full}
+										onclick={() => togglePendingLanguage(pc.sourceId, lang, pc.languageChoiceCount)}>{lang}</button>
+								{/each}
+							</div>
+						{/if}
+
+						<!-- Damage modifier choice pools -->
+						{#each [
+							{ key: 'resistanceChoicePool',     countKey: 'resistanceChoiceCount',     mod: 'Resistance' },
+							{ key: 'immunityChoicePool',       countKey: 'immunityChoiceCount',       mod: 'Immunity' },
+							{ key: 'vulnerabilityChoicePool',  countKey: 'vulnerabilityChoiceCount',  mod: 'Vulnerability' },
+						] as dmgDef}
+							{@const dmgPool = (pc as any)[dmgDef.key] ? (pc as any)[dmgDef.key].split(',').map((s:string)=>s.trim()).filter(Boolean) : []}
+							{@const dmgCount = (pc as any)[dmgDef.countKey] ?? 0}
+							{@const dmgPicked = pendingDmgModPicks[`${pc.sourceId}-${dmgDef.mod}`] ?? []}
+							{#if dmgPool.length && dmgCount}
+								<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+									Choose {dmgCount} {dmgDef.mod}{dmgCount !== 1 ? 's' : ''}
+									<span style="font-weight:400;color:var(--text-secondary);">({dmgPicked.length}/{Math.min(dmgCount, dmgPool.length)} chosen)</span>
+								</p>
+								<div style="display:flex;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+									{#each dmgPool as dmgType}
+										{@const dmgChosen = dmgPicked.includes(dmgType)}
+										{@const dmgFull = !dmgChosen && dmgPicked.length >= Math.min(dmgCount, dmgPool.length)}
+										<button type="button"
+											class="btn btn-sm {dmgChosen ? 'btn-primary' : 'btn-ghost'}"
+											disabled={dmgFull}
+											onclick={() => togglePendingDmgMod(pc.sourceId, dmgDef.mod, dmgType, dmgCount)}>
+											{dmgType}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						{/each}
+
+						<button
+							class="btn btn-primary btn-sm"
+							disabled={!skillDone || !saveDone || !expertiseDone || savingChoices}
+							onclick={() => saveChoicePoolGrants(pc.sourceId, pc.sourceType)}>
+							{savingChoices ? 'Saving…' : 'Save choices'}
+						</button>
+					</div>
+				{/each}
+			</div>
 		</div>
 	{/if}
 
@@ -447,6 +720,33 @@
 								{#each charSheet.speciesRef.traits as t}<span class="badge badge-muted" title={canViewDescriptions ? (t.description??'') : ''}>{t.name}</span>{/each}
 							</span>
 						{/if}
+						<!-- Size, Speed, Senses -->
+						{#if charSheet.sheet?.size || charSheet.traitSize || charSheet.traitSizeChoices || (charSheet.aggregatedSpeeds ?? []).length || charSheet.allSenses}
+							<div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.25rem;">
+								{#if charSheet.sheet?.size}
+									<span class="badge badge-muted">Size: {charSheet.sheet.size}</span>
+								{:else if charSheet.traitSize}
+									<span class="badge badge-muted">Size: {charSheet.traitSize}</span>
+								{:else if charSheet.traitSizeChoices}
+									<span class="badge badge-warning" style="cursor:default;">Size: not chosen</span>
+								{/if}
+								{#if canEdit && charSheet.traitSizeChoices && onSaveSize && !charSheet.sheet?.size && !charSheet.traitSize}
+									<div style="display:flex;gap:0.25rem;flex-wrap:wrap;margin-top:0.125rem;">
+										{#each charSheet.traitSizeChoices.split(',').map((s: string) => s.trim()).filter(Boolean) as opt}
+											<button type="button"
+												class="btn btn-sm btn-ghost"
+												onclick={() => onSaveSize!(opt)}>
+												{opt}
+											</button>
+										{/each}
+									</div>
+								{/if}
+								{#each (charSheet.aggregatedSpeeds ?? []) as sp}
+									<span class="badge badge-muted">{sp.movementType.charAt(0) + sp.movementType.slice(1).toLowerCase()}: {sp.speed} ft</span>
+								{/each}
+								{#if charSheet.allSenses}<span class="badge badge-muted">👁 {charSheet.allSenses}</span>{/if}
+							</div>
+						{/if}
 					</div>
 				{/if}
 				{#if charSheet.backgroundRef}
@@ -610,10 +910,8 @@
 					{#if featRef}
 						<div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border-muted);">
 							{#if canViewDescriptions}
-								{#if canViewDescriptions}
-									{#if featRef.description}<p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.25rem;">{featRef.description}</p>{/if}
-								{:else}
-									<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
+								{#if featRef.description}
+									<DescriptionText text={featRef.description} class="sheet-desc" />
 								{/if}
 							{:else}
 								<p style="font-size:0.8125rem;color:var(--text-muted);font-style:italic;">📖 Description not available — contact your DM.</p>
@@ -725,8 +1023,36 @@
 							{#if true}
 								{@const selFeat2 = s.featPick ? (systemData?.feats ?? []).find((f:any) => f.id === s.featPick) : null}
 								{@const needsStat = selFeat2?.asiAmount && !selFeat2?.asiStatFixed && !s.featGrantedStat}
+								{@const savePool2 = selFeat2?.savingThrowChoicePool ? selFeat2.savingThrowChoicePool.split(',').map((st:string) => st.trim().toUpperCase()).filter(Boolean) : []}
+								{@const saveCount2 = selFeat2?.savingThrowChoiceCount ?? 0}
+								{@const needsSave = saveCount2 > 0 && (s.chosenSavePicks?.length ?? 0) < Math.min(saveCount2, savePool2.length)}
+								{#if savePool2.length > 0}
+									<div style="margin-top:0.5rem;">
+										<p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.375rem;">
+											Choose {saveCount2} saving throw{saveCount2 !== 1 ? 's' : ''}
+											<span style="font-weight:400;">({(s.chosenSavePicks?.length ?? 0)}/{Math.min(saveCount2, savePool2.length)})</span>
+										</p>
+										<div style="display:flex;gap:0.375rem;flex-wrap:wrap;">
+											{#each savePool2 as stat}
+												{@const chosen2 = (s.chosenSavePicks ?? []).includes(stat)}
+												{@const full2   = !chosen2 && (s.chosenSavePicks?.length ?? 0) >= Math.min(saveCount2, savePool2.length)}
+												{@const taken2  = !chosen2 && grantedSaveSet.has(stat)}
+												<button type="button"
+													class="btn btn-xs {chosen2 ? 'btn-primary' : 'btn-ghost'}"
+													disabled={full2 || taken2}
+													onclick={() => {
+														const cur = s.chosenSavePicks ?? [];
+														const next = chosen2 ? cur.filter((x:string) => x !== stat) : [...cur, stat];
+														updateSlot(slot, { chosenSavePicks: next }, slotIdx);
+													}}>
+													{STAT_ABBR[stat] ?? stat}
+												</button>
+											{/each}
+										</div>
+									</div>
+								{/if}
 								<div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-									<button class="btn btn-primary btn-sm" disabled={!s.featPick||!!needsStat||s.saving} onclick={() => saveSlot(slot, slotIdx)}>
+									<button class="btn btn-primary btn-sm" disabled={!s.featPick||!!needsStat||!!needsSave||s.saving} onclick={() => saveSlot(slot, slotIdx)}>
 										{s.saving ? 'Saving…' : 'Choose Feat'}
 									</button>
 									{#if r}<button class="btn btn-ghost btn-sm" onclick={() => updateSlot(slot, {open:false}, slotIdx)}>Cancel</button>{/if}
@@ -759,6 +1085,135 @@
 			/>
 		</div>
 	{/if}
+
+	<!-- ── Innate Spellcasting ───────────────────────────────────────── -->
+	{#if charSheet?.innateSpellbook?.entries?.length}
+		<div style="margin-top:1.5rem;">
+			<h3 class="section-title">Innate Spellcasting</h3>
+			<div class="card" style="margin-top:0.75rem;padding:0.875rem;">
+				<div style="display:flex;flex-direction:column;gap:0.375rem;">
+					{#each charSheet.innateSpellbook.entries as entry}
+						{@const sp = (systemData?.spells ?? []).find((s: any) => s.spellId === entry.spellId)}
+						{#if sp}
+							<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;padding:0.5rem 0.625rem;background:var(--bg-overlay);border-radius:var(--radius-md);">
+								<span style="font-weight:600;flex:1;min-width:140px;">{sp.name}</span>
+								<span class="badge badge-muted">{sp.level === 0 ? 'Cantrip' : `${sp.level}. level`}</span>
+								{#if entry.minCharLevel > 1}<span class="badge badge-muted">From Lv {entry.minCharLevel}</span>{/if}
+								{#if entry.usesPerDay === null}
+									<span class="badge badge-accent">At will</span>
+								{:else}
+									<span class="badge badge-accent">{entry.usesPerDay}/day</span>
+								{/if}
+								{#if entry.canUseSpellSlots}<span class="badge badge-muted">Can use slots</span>{/if}
+								{#if entry.sourceType}<span class="table__muted" style="font-size:0.75rem;">{entry.sourceType}</span>{/if}
+							</div>
+						{/if}
+					{/each}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- ── Skills & Saving Throws ──────────────────────────────────── -->
+	{#if (charSheet?.skills ?? []).length || (charSheet?.savingThrows ?? []).length}
+		<div style="margin-top:1.5rem;">
+			<h3 class="section-title">Skills & Saving Throws</h3>
+			<div class="card" style="margin-top:0.75rem;">
+				<Dnd5eSkillsPanel
+					{charSheet}
+					canEdit={canEdit}
+					onToggleSkill={onToggleSkill}
+					onToggleSave={onToggleSave}
+				/>
+			</div>
+		</div>
+	{/if}
+
+	<!-- ── Tools & Languages ────────────────────────────────────────── -->
+	{#if (charSheet?.tools ?? []).length || (charSheet?.languages ?? []).length}
+		<div style="margin-top:1.5rem;">
+			<h3 class="section-title">Tools & Languages</h3>
+			<div class="card" style="margin-top:0.75rem;padding:0.875rem;">
+				{#if (charSheet?.tools ?? []).length}
+					<div style="margin-bottom:0.625rem;">
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin:0 0 0.375rem;">Tool Proficiencies</p>
+						<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+							{#each charSheet.tools as t}
+								<span class="badge badge-accent" title={t.grantSources?.map((g: any) => g.label).join(', ') || t.tool}>
+									{t.tool}
+									{#if canEdit && t.hasOverride}<span style="font-size:0.5rem;vertical-align:super;color:var(--color-warning);">●</span>{/if}
+								</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+				{#if (charSheet?.languages ?? []).length}
+					<div>
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin:0 0 0.375rem;">Languages</p>
+						<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+							{#each charSheet.languages as l}
+								<span class="badge badge-muted" title={l.grantSources?.map((g: any) => g.label).join(', ') || l.language}>
+									{l.language}
+									{#if canEdit && l.hasOverride}<span style="font-size:0.5rem;vertical-align:super;color:var(--color-warning);">●</span>{/if}
+								</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
+	<!-- ── Resistances, Immunities & Vulnerabilities ─────────────────── -->
+	{#if (charSheet?.resistances ?? []).length || (charSheet?.immunities ?? []).length || (charSheet?.vulnerabilities ?? []).length}
+		<div style="margin-top:1.5rem;">
+			<h3 class="section-title">Damage Modifiers</h3>
+			<div class="card" style="margin-top:0.75rem;padding:0.875rem;display:flex;flex-direction:column;gap:0.625rem;">
+				{#if (charSheet?.resistances ?? []).length}
+					<div>
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--color-success);margin:0 0 0.375rem;">Resistances</p>
+						<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+							{#each charSheet.resistances as r}
+								<span class="badge" style="background:rgba(39,174,96,0.15);color:var(--color-success);" title={r.grantSources?.map((g: any) => g.label).join(', ') || r.damageType}>{r.damageType}</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+				{#if (charSheet?.immunities ?? []).length}
+					<div>
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--accent-light);margin:0 0 0.375rem;">Immunities</p>
+						<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+							{#each charSheet.immunities as im}
+								<span class="badge badge-accent" title={im.grantSources?.map((g: any) => g.label).join(', ') || im.damageType}>{im.damageType}</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+				{#if (charSheet?.vulnerabilities ?? []).length}
+					<div>
+						<p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--color-danger);margin:0 0 0.375rem;">Vulnerabilities</p>
+						<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+							{#each charSheet.vulnerabilities as v}
+								<span class="badge" style="background:rgba(231,76,60,0.15);color:var(--color-danger);" title={v.grantSources?.map((g: any) => g.label).join(', ') || v.damageType}>{v.damageType}</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
+	<!-- ── Character Details ───────────────────────────────────────── -->
+	<div style="margin-top:1.5rem;">
+		<h3 class="section-title">Character Details</h3>
+		<div class="card" style="margin-top:0.75rem;">
+			<Dnd5eCharacterDetails
+				{charSheet}
+				canEdit={canEdit}
+				onSave={onSaveDetails}
+			/>
+		</div>
+	</div>
 
 </div>
 {/if}

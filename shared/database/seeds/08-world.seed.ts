@@ -7,10 +7,11 @@ export async function seedWorld(db: PrismaClient) {
     const module = await db.module.findFirst({ where: { name: 'User Management' } });
     if (module) {
         const resources = [
-            { key: 'World',    displayName: 'Worlds',    navVisibility: 'ANY'  as any, sortOrder: 10 },
-            { key: 'Region',   displayName: 'Regions',   navVisibility: 'ANY'  as any, sortOrder: 11 },
-            { key: 'Location', displayName: 'Locations', navVisibility: 'ANY'  as any, sortOrder: 12 },
-            { key: 'WikiPage', displayName: 'Wiki',      navVisibility: 'ANY'  as any, sortOrder: 13 },
+            { key: 'World',     displayName: 'Worlds',      navVisibility: 'ANY'  as any, sortOrder: 10 },
+            { key: 'Region',    displayName: 'Regions',     navVisibility: 'ANY'  as any, sortOrder: 11 },
+            { key: 'Location',  displayName: 'Locations',   navVisibility: 'ANY'  as any, sortOrder: 12 },
+            { key: 'WikiPage',  displayName: 'Wiki',        navVisibility: 'ANY'  as any, sortOrder: 13 },
+            { key: 'PlotQuest', displayName: 'Plot Quests', navVisibility: 'ANY'  as any, sortOrder: 14 },
         ];
         for (const r of resources) {
             await db.resource.upsert({
@@ -31,6 +32,12 @@ export async function seedWorld(db: PrismaClient) {
                 create: { roleId: playerRole.id, resourceKey, canCreate: 'NONE', canRead: 'ALL', canUpdate: 'NONE', canDelete: 'NONE' },
             });
         }
+        // Plot quests are DM/Admin lore tools — players have no access yet
+        await db.rolePermission.upsert({
+            where:  { roleId_resourceKey: { roleId: playerRole.id, resourceKey: 'PlotQuest' } },
+            update: {},
+            create: { roleId: playerRole.id, resourceKey: 'PlotQuest', canCreate: 'NONE', canRead: 'NONE', canUpdate: 'NONE', canDelete: 'NONE' },
+        });
     }
 
     // DM gets World/Region/Location/Wiki read + WikiPage write (OWN)
@@ -48,6 +55,11 @@ export async function seedWorld(db: PrismaClient) {
                 create: { roleId: dmRole.id, resourceKey, canCreate: 'NONE', canRead: 'ALL', canUpdate: 'NONE', canDelete: 'NONE' },
             });
         }
+        await db.rolePermission.upsert({
+            where:  { roleId_resourceKey: { roleId: dmRole.id, resourceKey: 'PlotQuest' } },
+            update: {},
+            create: { roleId: dmRole.id, resourceKey: 'PlotQuest', canCreate: 'ALL', canRead: 'ALL', canUpdate: 'ALL', canDelete: 'ALL' },
+        });
     }
 
     // World settings

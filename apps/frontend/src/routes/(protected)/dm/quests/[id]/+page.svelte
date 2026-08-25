@@ -3,9 +3,22 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
+	import EncounterPlannerPanel from '../_planner/EncounterPlannerPanel.svelte';
+	import { planFromStored, parseStoredPlan } from '../_planner/planner.ts';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const canApprove = $derived((data as any).canApprove === true);
+	let detailsTab = $state<'details' | 'planner' | 'plots' | 'notes'>('details');
+	let previewMissionXp = $state(0);
+	let plannerState = $state(planFromStored(null, { partySize: 4, level: 5 }));
+
+	$effect.pre(() => {
+		previewMissionXp = data.quest.missionXp;
+		plannerState = planFromStored(
+			parseStoredPlan((data.quest as any).encounterPlan),
+			{ partySize: data.quest.maxCapacity, level: data.quest.minLevel },
+		);
+	});
 
 	const statusColors: Record<string, string> = {
 		DRAFT:            'badge-muted',
@@ -104,6 +117,8 @@
 			{:else if (form as any).action === 'started'}Quest started!
 			{:else if (form as any).action === 'ended'}Quest ended — please submit results.
 			{:else if (form as any).action === 'result_submitted'}Results submitted for admin approval.
+			{:else if (form as any).action === 'dm_notes_saved'}DM notes saved.
+			{:else if (form as any).action === 'player_notes_saved'}Player notes saved.
 			{:else}Done.
 			{/if}
 		</div>
@@ -161,9 +176,29 @@
 
 	<div class="sections">
 		<div class="card">
-			<h3 class="section-title">Details</h3>
-			{#if isReadOnly}<p class="field-hint" style="margin-bottom:0.75rem; color:var(--color-warning);">This quest is {data.quest.status.toLowerCase()} — read only.</p>{/if}
+			<div class="tabs" style="margin-bottom:1rem;">
+				<button type="button" class="tab {detailsTab === 'details' ? 'tab--active' : ''}" onclick={() => detailsTab = 'details'}>Details</button>
+				<button type="button" class="tab {detailsTab === 'planner' ? 'tab--active' : ''}" onclick={() => detailsTab = 'planner'}>
+					Encounter Planner
+					{#if previewMissionXp > 0}<span style="margin-left:0.375rem; font-size:0.75rem; opacity:0.8;">{previewMissionXp.toLocaleString()} XP</span>{/if}
+				</button>
+				<button type="button" class="tab {detailsTab === 'plots' ? 'tab--active' : ''}" onclick={() => detailsTab = 'plots'}>
+					Plot quests
+					{#if data.linkedPlotQuests?.length}
+						<span style="margin-left:0.375rem; font-size:0.75rem; opacity:0.8;">{data.linkedPlotQuests.length}</span>
+					{/if}
+				</button>
+				<button type="button" class="tab {detailsTab === 'notes' ? 'tab--active' : ''}" onclick={() => detailsTab = 'notes'}>
+					Quest notes
+				</button>
+			</div>
+			{#if isReadOnly && detailsTab !== 'notes'}
+				<p class="field-hint" style="margin-bottom:0.75rem; color:var(--color-warning);">
+					This quest is {data.quest.status.toLowerCase()} — details are read only. Quest notes can still be edited.
+				</p>
+			{/if}
 			<form method="post" action="?/updateDetails" use:enhance={e_reload}>
+				<div style:display={detailsTab === 'details' ? undefined : 'none'}>
 				<fieldset disabled={isReadOnly} style="border:none; padding:0; margin:0;">
 				<div class="fields">
 					<div class="field">
@@ -171,9 +206,16 @@
 						<textarea id="qdesc" name="description" class="input" rows="3">{data.quest.description ?? ''}</textarea>
 					</div>
 					<div class="field">
-						<label class="label" for="missionXp">Mission XP</label>
-						<input id="missionXp" name="missionXp" type="number" class="input" min="0" value={data.quest.missionXp} required />
-						<p class="field-hint">Divided equally among confirmed players.</p>
+						<span class="label">Mission XP</span>
+						<p style="margin:0; font-size:1.125rem; font-weight:700; font-variant-numeric:tabular-nums;">
+							{previewMissionXp.toLocaleString()}
+						</p>
+						<p class="field-hint">From Encounter Planner — divided equally among confirmed players.</p>
+					</div>
+					<div class="field">
+						<label class="label" for="milestoneAward">Milestone credits <span class="optional">(optional)</span></label>
+						<input id="milestoneAward" name="milestoneAward" type="number" class="input" min="0" value={(data.quest as any).milestoneAward ?? 0} />
+						<p class="field-hint">Each participant earns this many credits — not divided among the party. Only affects characters on milestone progression.</p>
 					</div>
 					<div style="display:flex; gap:1rem; flex-wrap:wrap;">
 						<div class="field" style="flex:1; min-width:100px;">
@@ -239,15 +281,114 @@
 						<input type="hidden" name="locationId" value={selectedLocationId} />
 					{/if}
 				</fieldset>
-				{#if !isReadOnly}
+				</div>
+
+				{#if data.encounterConfig}
+					<div style:display={detailsTab === 'planner' ? undefined : 'none'}>
+						<EncounterPlannerPanel
+							config={data.encounterConfig}
+							bind:planner={plannerState}
+							disabled={isReadOnly}
+							onMissionXp={(xp) => previewMissionXp = xp}
+						/>
+					</div>
+				{:else}
+					<input type="hidden" name="missionXp" value={data.quest.missionXp} />
+				{/if}
+
+				{#if !isReadOnly && detailsTab !== 'plots' && detailsTab !== 'notes'}
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">Save details</button>
 				</div>
 				{/if}
 			</form>
+
+			{#if detailsTab === 'plots'}
+				{#if data.linkedPlotQuests?.length}
+					{#each data.linkedPlotQuests as link (link.linkId)}
+						<div class="faction-subrow">
+							<span class="faction-subrow__grow" style="font-weight:600;">
+								{#if link.plotQuest}
+									<a href="/dm/worlds/{link.plotQuest.worldId}/plot-quests/{link.plotQuest.id}">{link.plotQuest.title}</a>
+								{:else}
+									(missing plot quest)
+								{/if}
+							</span>
+							{#if link.plotQuest}
+								<span class="badge badge-muted">{link.plotQuest.status}</span>
+							{/if}
+						</div>
+						{#if link.plotQuest?.summary}
+							<p class="table__muted" style="margin:0 0 0.75rem; font-size:0.875rem;">{link.plotQuest.summary}</p>
+						{/if}
+					{/each}
+				{:else}
+					<p class="table__empty">No plot quests linked to this session quest. Link from a plot quest’s detail page.</p>
+				{/if}
+			{/if}
+
+			{#if detailsTab === 'notes'}
+				{@const notes = (data as any).questNotes}
+				{#if !(data.quest as any).worldId}
+					<p class="table__empty">
+						Quest notes are world journals — set a <strong>World</strong> and <strong>Region</strong> on Details first, then save.
+					</p>
+				{:else if !notes?.dm || !notes?.player}
+					<p class="table__empty">Could not load quest note journals for this world.</p>
+				{:else}
+					<p class="field-hint" style="margin-bottom:1rem;">
+						One world journal for this quest ({notes.worldName ?? 'this world'}):
+						<strong>DM Notes</strong> section (DM-only) and <strong>Player Notes</strong> section (world).
+						{#if notes.journalId}
+							<a href="/dm/worlds/{notes.worldId}/journal/{notes.journalId}">Open journal editor</a>
+							{#if notes.worldSlug}
+								· <a href="/world/{notes.worldSlug}/journal/{notes.journalId}">Player view</a>
+							{/if}
+						{/if}
+					</p>
+					<div class="fields" style="gap:1.5rem;">
+						<form method="post" action="?/saveDmNotes" use:enhance={e_reload}>
+							<div class="field">
+								<label class="label" for="dm-notes">DM notes <span class="optional">(private section)</span></label>
+								<textarea
+									id="dm-notes"
+									name="content"
+									class="input"
+									rows="8"
+								>{notes.dm.content}</textarea>
+							</div>
+							<div class="form-actions">
+								<button type="submit" class="btn btn-primary btn-sm">Save DM notes</button>
+							</div>
+						</form>
+						<form method="post" action="?/savePlayerNotes" use:enhance={e_reload}>
+							<div class="field">
+								<label class="label" for="player-notes">Player notes <span class="optional">(world section)</span></label>
+								<textarea
+									id="player-notes"
+									name="content"
+									class="input"
+									rows="8"
+								>{notes.player.content}</textarea>
+								<label class="label" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; font-weight:500;">
+									<input
+										type="checkbox"
+										name="publishPlayerNotes"
+										checked={notes.isPublished}
+									/>
+									Visible to players (publish journal)
+								</label>
+							</div>
+							<div class="form-actions">
+								<button type="submit" class="btn btn-primary btn-sm">Save player notes</button>
+							</div>
+						</form>
+					</div>
+				{/if}
+			{/if}
 		</div>
 
-		<!-- Pending confirmation -->
+		<!-- Pending confirmation (always visible — needs action) -->
 		{#if pending.length}
 			<div class="card" style="border-color:var(--border-accent);">
 				<h3 class="section-title">Waitlist promotions pending confirmation ({pending.length})</h3>
@@ -264,6 +405,8 @@
 		{/if}
 	</div>
 
+	<!-- Details-only sections (rewards, players, co-DMs, …) — hidden on other tabs -->
+	{#if detailsTab === 'details'}
 	<!-- Rewards (editable for active statuses, read-only for COMPLETED/CANCELLED) -->
 	{#if ['DRAFT', 'PENDING_APPROVAL', 'IN_PROGRESS', 'PENDING_RESULT', 'PENDING_RESULT_APPROVAL', 'COMPLETED', 'CANCELLED'].includes(data.quest.status)}
 		<div class="card">
@@ -364,22 +507,37 @@
 	{#if data.quest.status === 'PUBLISHED' && (data as any).availablePlayers?.length}
 		<div class="card">
 			<h3 class="section-title">Available players ({(data as any).availablePlayers.length})</h3>
-			<p class="field-hint" style="margin-bottom:0.75rem;">These players are available at the quest time and not yet signed up.</p>
+			<p class="field-hint" style="margin-bottom:0.75rem;">
+				These players are available at
+				{#if data.quest.scheduledAt}
+					<strong>{new Date(data.quest.scheduledAt).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</strong>
+				{:else}
+					the quest time
+				{/if}
+				and are not yet signed up.
+			</p>
 			{#if (form as any)?.inviteSuccess}<div class="form-success" style="margin-bottom:0.75rem;">Invite sent!</div>{/if}
-			<div style="display:flex; flex-direction:column; gap:0.5rem;">
-				{#each (data as any).availablePlayers as char}
-					<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:0.625rem; background:var(--bg-overlay); border-radius:var(--radius-md);">
-						<div>
-							<p style="font-weight:600; font-size:0.9rem; margin:0;">{char.name}</p>
-							<p style="font-size:0.8125rem; color:var(--text-muted); margin:0;">Level {char.totalLevel ?? '?'} · {char.status}</p>
+			<div class="avail-dash__mobile-players">
+				{#each (data as any).availablePlayers as char (char.id)}
+					<article class="avail-dash__mobile-card">
+						<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+							<div class="avail-dash__player" style="flex:1; min-width:0;">
+								<div class="signup-card__level">{char.totalLevel ?? '?'}</div>
+								<div class="avail-dash__player-meta">
+									<span class="avail-dash__player-name">{char.name}</span>
+									{#if char.playerName}
+										<span class="table__muted" style="font-size:0.8125rem;">{char.playerName}</span>
+									{/if}
+								</div>
+							</div>
+							<form method="post" action="?/invite" use:enhance={() => {
+								return async ({ update }) => { await update(); await invalidateAll(); };
+							}}>
+								<input type="hidden" name="characterId" value={char.id} />
+								<button type="submit" class="btn btn-primary btn-sm">Send invite</button>
+							</form>
 						</div>
-						<form method="post" action="?/invite" use:enhance={() => {
-							return async ({ update }) => { await update(); await invalidateAll(); };
-						}}>
-							<input type="hidden" name="characterId" value={char.id} />
-							<button type="submit" class="btn btn-primary btn-sm">Send invite</button>
-						</form>
-					</div>
+					</article>
 				{/each}
 			</div>
 		</div>
@@ -574,5 +732,6 @@
 				<p class="table__empty">No ratings yet.</p>
 			{/if}
 		</div>
+	{/if}
 	{/if}
 </div>

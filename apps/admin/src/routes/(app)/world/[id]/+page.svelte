@@ -2,11 +2,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { WorldProgressionLadderEditor } from '@core/ui';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let addingRegion  = $state(false);
 	let placingMarker = $state<string | null>(null);
+
+	const e_reload = () => async ({ update }: any) => { await update(); await invalidateAll(); };
 
 	const dangerColors: Record<string, string> = {
 		Safe: 'badge-success', Low: 'badge-accent',
@@ -36,6 +39,10 @@
 		</div>
 		<a href="/world/{data.world.id}/marketplace" class="btn btn-ghost btn-sm">🛒 Marketplace</a>
 		<a href="/world/{data.world.id}/journal" class="btn btn-ghost btn-sm">📖 Journal</a>
+		<a href="/world/{data.world.id}/neural" class="btn btn-ghost btn-sm">🕸 Neural</a>
+		<a href="/world/{data.world.id}/timeline" class="btn btn-ghost btn-sm">📅 Timeline</a>
+		<a href="/world/{data.world.id}/calendar" class="btn btn-ghost btn-sm">🗓 Calendar</a>
+		<a href="/world/{data.world.id}/plot-quests" class="btn btn-ghost btn-sm">📜 Plot Quests</a>
 		<a href="/world/{data.world.id}/factions" class="btn btn-ghost btn-sm">🛡 Factions</a>
 		<a href="/world/{data.world.id}/npcs" class="btn btn-ghost btn-sm">👤 NPCs</a>
 	</div>
@@ -80,10 +87,46 @@
 					</select>
 					<p class="field-hint">When set to world-specific only, global characters cannot sign up for quests in this world.</p>
 				</div>
+				<div class="field">
+					<label class="label" for="w-progression">Progression mode</label>
+					<select id="w-progression" name="progressionMode" class="input input--select">
+						<option value=""          selected={!(data.world as any).progressionMode}>Inherit game system default</option>
+						<option value="XP"        selected={(data.world as any).progressionMode === 'XP'}>XP</option>
+						<option value="MILESTONE" selected={(data.world as any).progressionMode === 'MILESTONE'}>Milestone</option>
+					</select>
+					<p class="field-hint">Applied to characters created in this world. Existing characters keep the mode they were created with.</p>
+				</div>
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">Save</button>
 				</div>
 			</form>
+		</div>
+
+		<!-- Sparse ladder overrides -->
+		<div class="card">
+			<h3 class="section-title">Progression ladder overrides</h3>
+			{#if (form as any)?.progressionSuccess}
+				<div class="form-success" style="margin-bottom:0.75rem;">
+					Ladder overrides saved.
+					{#if (form as any).charactersReconciled != null}
+						Re-resolved {(form as any).charactersReconciled} character(s)
+						{#if (form as any).pendingChanges}
+							— {(form as any).pendingChanges} entered level-up/down pending
+						{/if}.
+					{/if}
+				</div>
+			{/if}
+			{#if (data as any).gameSystem}
+				<p class="field-hint" style="margin-bottom:0.75rem;">
+					Base ladder: <strong>{(data as any).gameSystem.name}</strong>
+				</p>
+			{/if}
+			<WorldProgressionLadderEditor
+				thresholds={(data as any).systemThresholds ?? []}
+				overrides={(data as any).overrides ?? []}
+				homeCharacterCount={(data as any).homeCharacterCount ?? 0}
+				enhance={e_reload}
+			/>
 		</div>
 
 		<!-- Map with region markers -->

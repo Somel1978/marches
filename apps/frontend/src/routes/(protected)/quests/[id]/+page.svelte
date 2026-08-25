@@ -1,7 +1,7 @@
 <!-- apps/frontend/src/routes/(protected)/quests/[id]/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ConfirmModal } from '@core/ui';
+	import { ConfirmModal, DescriptionText } from '@core/ui';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
@@ -77,6 +77,19 @@
 				<hr class="divider" />
 				<h4 style="font-size:0.875rem; font-weight:600; margin:0 0 0.5rem;">DM Rules</h4>
 				<p style="font-size:0.875rem; color:var(--text-secondary); white-space:pre-wrap;">{data.quest.rules}</p>
+			{/if}
+
+			{#if (data as any).questNotes?.player?.content}
+				<hr class="divider" />
+				<h4 style="font-size:0.875rem; font-weight:600; margin:0 0 0.5rem;">Quest notes</h4>
+				<DescriptionText value={(data as any).questNotes.player.content} />
+				{#if (data as any).questNotes.worldSlug && (data as any).questNotes.journalId}
+					<p class="field-hint" style="margin-top:0.5rem;">
+						<a href="/world/{(data as any).questNotes.worldSlug}/journal/{(data as any).questNotes.journalId}">
+							Open in world journal
+						</a>
+					</p>
+				{/if}
 			{/if}
 		</div>
 

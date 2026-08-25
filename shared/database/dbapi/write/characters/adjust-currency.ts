@@ -2,9 +2,9 @@
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
-import { checkLevelChange } from './level-check.ts';
+import { applyProgressionChange } from './progression.ts';
 
-export type CurrencyType = 'XP' | 'GOLD' | 'TOKEN';
+export type CurrencyType = 'XP' | 'GOLD' | 'TOKEN' | 'MILESTONE';
 
 export async function adjustCurrency(
     characterId: string,
@@ -19,10 +19,11 @@ export async function adjustCurrency(
     if (!character) throw new NotFoundError('Character', characterId);
     if (!note?.trim()) throw new ValidationError('Note is required for currency adjustments.');
 
-    const fieldMap: Record<CurrencyType, 'totalXp' | 'totalGold' | 'totalTokens'> = {
-        XP:    'totalXp',
-        GOLD:  'totalGold',
-        TOKEN: 'totalTokens',
+    const fieldMap: Record<CurrencyType, 'totalXp' | 'totalGold' | 'totalTokens' | 'totalMilestones'> = {
+        XP:        'totalXp',
+        GOLD:      'totalGold',
+        TOKEN:     'totalTokens',
+        MILESTONE: 'totalMilestones',
     };
 
     const field    = fieldMap[type];
@@ -32,28 +33,33 @@ export async function adjustCurrency(
     if (newValue < 0) throw new ValidationError(`${type} cannot go below 0. Current: ${current}, delta: ${delta}.`);
 
     return db.$transaction(async (tx) => {
-        const updated = await tx.character.update({
-            where: { id: characterId },
-            data:  { [field]: newValue },
-        });
-
-        await tx.characterTransaction.create({
-            data: {
+        // XP and milestone credits both feed levelling, so they go through the
+        // single progression path which writes the total, the transaction and
+        // any resulting level-up/down state.
+        if (type === 'XP' || type === 'MILESTONE') {
+            await applyProgressionChange(tx, {
                 characterId,
-                type:       type === 'TOKEN' ? 'TOKEN' : type as any,
-                delta,
-                fromValue:  String(current),
-                toValue:    String(newValue),
-                sourceType: 'ADMIN',
-                note,
-                createdBy:  actorId,
-            },
-        });
-
-        // ── Level-up / level-down detection ──
-        if (type === 'XP') {
-            await checkLevelChange(tx, characterId, character.userId, character.gameSystemId,
-                current, newValue, character.level, actorId);
+                actorId,
+                ...(type === 'XP' ? { xpDelta: delta } : { milestoneDelta: delta }),
+                source: { type: 'ADMIN', note },
+            });
+        } else {
+            await tx.character.update({
+                where: { id: characterId },
+                data:  { [field]: newValue },
+            });
+            await tx.characterTransaction.create({
+                data: {
+                    characterId,
+                    type:       type === 'TOKEN' ? 'TOKEN' : type as any,
+                    delta,
+                    fromValue:  String(current),
+                    toValue:    String(newValue),
+                    sourceType: 'ADMIN',
+                    note,
+                    createdBy:  actorId,
+                },
+            });
         }
 
         await logAudit(tx, {
@@ -65,6 +71,6 @@ export async function adjustCurrency(
             after:       { [field]: newValue, note },
         });
 
-        return updated;
+        return tx.character.findUnique({ where: { id: characterId } });
     });
 }

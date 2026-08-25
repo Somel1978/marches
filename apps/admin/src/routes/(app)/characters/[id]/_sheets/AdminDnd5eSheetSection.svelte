@@ -68,6 +68,81 @@
 	async function handleManualScoreAdjust(stat: string, delta: number, note: string) {
 		await post('manualScoreAdjust', [['stat', stat], ['delta', String(delta)], ['note', note]]);
 	}
+
+	async function handleSaveMood(emoji: string, text: string) {
+		await post('saveMood', [['emoji', emoji], ['text', text]]);
+	}
+
+	async function handleToggleSkill(skill: string, next: 'NONE' | 'HALF_PROFICIENT' | 'PROFICIENT' | 'EXPERT', note?: string) {
+		const entries: [string,string][] = [['skill', skill], ['proficiency', next]];
+		if (note) entries.push(['note', note]);
+		await post('saveSkills', entries);
+	}
+
+	async function handleToggleSave(stat: string, proficient: boolean, note?: string) {
+		const entries: [string,string][] = [['stat', stat], ['proficient', String(proficient)]];
+		if (note) entries.push(['note', note]);
+		await post('saveSavingThrow', entries);
+	}
+
+	async function handleSaveChoicePoolGrants(opts: { skills: {skill:string;value:number;sourceType:string;sourceId:string}[]; saves: {stat:string;sourceType:string;sourceId:string}[]; dmgMods: {modifierType:string;damageType:string;sourceType:string;sourceId:string}[]; tools: {tool:string;sourceType:string;sourceId:string}[]; languages: {language:string;sourceType:string;sourceId:string}[] }) {
+		const entries: [string,string][] = [
+			...opts.skills.flatMap(g => [
+				['poolSkill',         g.skill],
+				['poolSkillSource',   g.sourceType],
+				['poolSkillSourceId', g.sourceId],
+				['poolSkillValue',    String(g.value)],
+			] as [string,string][]),
+			...opts.tools.flatMap(g => [
+				['poolTool',         g.tool],
+				['poolToolSource',   g.sourceType],
+				['poolToolSourceId', g.sourceId],
+			] as [string,string][]),
+			...opts.languages.flatMap(g => [
+				['poolLanguage',         g.language],
+				['poolLanguageSource',   g.sourceType],
+				['poolLanguageSourceId', g.sourceId],
+			] as [string,string][]),
+			...opts.dmgMods.flatMap((g: any) => [
+				['poolDmgModType',     g.modifierType],
+				['poolDmgModDamage',   g.damageType],
+				['poolDmgModSource',   g.sourceType],
+				['poolDmgModSourceId', g.sourceId],
+			] as [string,string][]),
+			...opts.saves.flatMap(g => [
+				['poolSave',         g.stat],
+				['poolSaveSource',   g.sourceType],
+				['poolSaveSourceId', g.sourceId],
+			] as [string,string][]),
+		];
+		await post('saveChoicePoolGrants', entries);
+	}
+
+
+	async function handleToggleTool(tool: string, active: boolean, note?: string) {
+		const entries: [string,string][] = [['tool', tool], ['action', active ? 'set' : 'clear']];
+		if (note) entries.push(['note', note]);
+		await post('saveTool', entries);
+	}
+
+	async function handleToggleLanguage(language: string, active: boolean, note?: string) {
+		const entries: [string,string][] = [['language', language], ['action', active ? 'set' : 'clear']];
+		if (note) entries.push(['note', note]);
+		await post('saveLanguage', entries);
+	}
+
+	async function handleToggleDamageModifier(modifierType: string, damageType: string, active: boolean, note?: string) {
+		const entries: [string,string][] = [['modifierType', modifierType], ['damageType', damageType], ['action', active ? 'set' : 'clear']];
+		if (note) entries.push(['note', note]);
+		await post('saveDamageModifier', entries);
+	}
+
+	async function handleSaveSize(size: string) {
+		await post('saveSize', [['size', size]]);
+	}
+	async function handleSaveDetails(details: Record<string, string | number | null>) {
+		await post('saveDetails', Object.entries(details).filter(([,v]) => v !== null).map(([k,v]) => [k, String(v)]));
+	}
 </script>
 
 <Dnd5eCharacterSheet
@@ -82,4 +157,12 @@
 	onSaveSlot={handleSaveSlot}
 	onRemoveFeat={handleRemoveFeat}
 	onManualScoreAdjust={handleManualScoreAdjust}
+	onSaveMood={handleSaveMood}
+	onToggleSkill={handleToggleSkill}
+	onToggleSave={handleToggleSave}
+	onToggleTool={handleToggleTool}
+	onToggleLanguage={handleToggleLanguage}
+	onToggleDamageModifier={handleToggleDamageModifier}
+	onSaveDetails={handleSaveDetails}
+	onSaveChoicePoolGrants={handleSaveChoicePoolGrants}
 />

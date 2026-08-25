@@ -38,6 +38,12 @@
   --sidebar-width:           240px;
   --sidebar-width-collapsed: 64px;
   --header-height:           56px;
+
+  /* Accent text — foreground colour when placed on a solid --accent fill.
+     Most themes: white. Override per-theme when the accent is light.
+     Use: color: var(--accent-text) on any element with background: var(--accent). */
+  --accent-text:       #FFFFFF;
+  --accent-text-hover: #FFFFFF;
 }
 
 /* ── Frontend theme — Warm, immersive, inviting ───────────── */
@@ -62,6 +68,8 @@
   --accent-dim:   var(--brand-accent-dim);
 
   --parchment: rgba(243, 233, 220, 0.03);
+  --accent-text:       #FFFFFF;
+  --accent-text-hover: #F3E9DC;
 }
 
 /* ── Admin theme — Professional, focused, efficient ──────── */
@@ -83,6 +91,8 @@
   --accent:       var(--brand-accent);
   --accent-light: var(--brand-accent-light);
   --accent-dim:   var(--brand-accent-dim);
+  --accent-text:       #FFFFFF;
+  --accent-text-hover: #AEB4BD;
 }
 
 /* ── Custom user themes ───────────────────────────────────── */
@@ -113,6 +123,8 @@
   --color-danger:       #EF4444;
   --color-info:         #3B82F6;
   --parchment:          rgba(16, 185, 129, 0.03);
+  --accent-text:       #FFFFFF;
+  --accent-text-hover: #ECFDF5;
 }
 
 /* theme-name: Crimson & Gold */
@@ -139,6 +151,8 @@
   --color-danger:       #EF4444;
   --color-info:         #3B82F6;
   --parchment:          rgba(255, 245, 215, 0.03);
+  --accent-text:       #FFFFFF;
+  --accent-text-hover: #FFEBB8;
 }
 
 /* theme-name: Burgundy */
@@ -165,6 +179,8 @@
   --color-danger:       #EF4444;
   --color-info:         #3B82F6;
   --parchment:          rgba(160, 48, 80, 0.05);
+  --accent-text:       #FFFFFF;
+  --accent-text-hover: #F7EBE6;
 }
 
 /* theme-name: Parchment */
@@ -191,6 +207,8 @@
   --color-danger:       #B91C1C;  /* Darkened danger */
   --color-info:         #1D4ED8;  /* Darkened info */
   --parchment:          rgba(140, 83, 51, 0.06);
+  --accent-text:       #FFFFFF;
+  --accent-text-hover: #FAF7EE;
 }
 
 /* theme-name: Midnight Neon */
@@ -245,6 +263,8 @@
   --color-danger:       #EF4444;
   --color-info:         #3B82F6;
   --parchment:          rgba(157, 78, 221, 0.04);
+  --accent-text:       #FFFFFF;
+  --accent-text-hover: #E5E2FF;
 }
 
 /* theme-name: Sunlight & Sapphire */
@@ -299,4 +319,40 @@
   --color-danger:       #E63946;  /* Flag red */
   --color-info:         #0055A5;  /* Shield blue */
   --parchment:          rgba(255, 221, 85, 0.03); /* Subtle gold parchment glow */
+  --accent-text:       #FFFFFF;
+  --accent-text-hover: #F4FAF6;
+}
+/* theme-name: Obsidian & Copper */
+[data-theme="frontend-obsidiancopper"] {
+  --bg-base:            #0E0E11;  /* True near-black obsidian */
+  --bg-surface:         #16161A;  /* Lifted obsidian surface */
+  --bg-overlay:         #1E1E24;  /* Card / panel layer */
+  --bg-muted:           #26262E;  /* Separator / input bg */
+
+  --text-primary:       #F0EAE0;  /* Warm off-white — readable on near-black */
+  --text-secondary:     #B8AFA6;  /* Warm mid-grey */
+  --text-muted:         #6E6860;  /* Muted warm tone */
+  --text-disabled:      #3A3630;
+
+  --border-base:        rgba(184, 115, 74, 0.14);  /* Copper tint base border */
+  --border-muted:       rgba(240, 234, 224, 0.07);  /* Near-white muted border */
+  --border-accent:      rgba(184, 115, 74, 0.50);  /* Strong copper accent border */
+
+  --accent:             #C47A3A;  /* Polished copper — slightly brighter for contrast on near-black */
+  --accent-light:       #E09A5A;  /* Highlight copper */
+  --accent-dim:         rgba(196, 122, 58, 0.18);  /* Dim tint for selected states */
+
+  --brand-accent:       #C47A3A;
+  --brand-accent-light: #E09A5A;
+  --brand-accent-dim:   rgba(196, 122, 58, 0.18);
+
+  --accent-text:       #0E0E11;  /* Dark text on copper fill — copper is mid-tone, needs dark fg */
+  --accent-text-hover: #16161A;
+
+  --color-success:      #4A8C5C;
+  --color-warning:      #C49A3A;
+  --color-danger:       #C44A4A;
+  --color-info:         #3A6A8C;
+
+  --parchment:          rgba(196, 122, 58, 0.04);
 }

@@ -6,6 +6,7 @@ import { getSettingsMap } from '../../read/platform/get-settings.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
 import { queueDiscordNotification } from '../discord/dispatcher';
 import { applyFutureBoostForQuest } from '../token-store/apply-boosts.ts';
+import { applyProgressionChange } from '../characters/progression.ts';
 
 export async function submitQuestResult(
     questId: string,
@@ -38,6 +39,8 @@ export async function submitQuestResult(
     const goldPerPlayer     = goldReward  ? Math.max(0, Math.floor(goldReward.amount  / count)) : 0;
     const tokensPerPlayer   = tokenReward ? Math.max(0, Math.floor(tokenReward.amount / count)) : 0;
     const xpPerPlayer = missionXpPerPlayer + extraXpPerPlayer;
+    // Milestone credits are per participant — never divided by party size.
+    const milestonePerPlayer = Math.max(0, quest.milestoneAward);
 
     await createNotificationsForAdmins(
         'QUEST_RESULT_PENDING', 'Quest result awaiting approval',
@@ -53,7 +56,8 @@ export async function submitQuestResult(
             result = await tx.questResult.update({
                 where: { id: quest.result.id },
                 data: {
-                    missionXp:   quest.missionXp,
+                    missionXp:      quest.missionXp,
+                    milestoneAward: quest.milestoneAward,
                     submittedBy,
                     status:      'PENDING_APPROVAL',
                     reviewNote:  null,
@@ -63,7 +67,8 @@ export async function submitQuestResult(
             result = await tx.questResult.create({
                 data: {
                     questId,
-                    missionXp:   quest.missionXp,
+                    missionXp:      quest.missionXp,
+                    milestoneAward: quest.milestoneAward,
                     submittedBy,
                     status:      'PENDING_APPROVAL',
                 },
@@ -72,11 +77,12 @@ export async function submitQuestResult(
 
         await tx.questResultCharacter.createMany({
             data: confirmed.map(s => ({
-                resultId:      result.id,
-                characterId:   s.characterId,
-                xpAwarded:     xpPerPlayer,
-                goldAwarded:   goldPerPlayer,
-                tokensAwarded: tokensPerPlayer,
+                resultId:          result.id,
+                characterId:       s.characterId,
+                xpAwarded:         xpPerPlayer,
+                goldAwarded:       goldPerPlayer,
+                tokensAwarded:     tokensPerPlayer,
+                milestonesAwarded: milestonePerPlayer,
             })),
         });
 
@@ -125,21 +131,18 @@ export async function approveQuestResult(resultId: string, actorId: string) {
     const currentExtraXpReward      = currentRewards.find(r => r.type === 'XP');
     const currentExtraXpPerPlayer   = currentExtraXpReward ? Math.max(0, Math.floor(currentExtraXpReward.amount / playerCount)) : 0;
     const currentXpPerPlayer        = currentMissionXpPerPlayer + currentExtraXpPerPlayer;
+    // Milestone credits are per participant — never divided by party size.
+    const currentMilestonePerPlayer = Math.max(0, result.milestoneAward);
 
     const settings = await getSettingsMap();
     const restDays  = Number(settings['character.restDays'] ?? 7);
     const restUntil = new Date(Date.now() + restDays * 24 * 60 * 60 * 1000);
 
-    // Load characters + progression thresholds for level-up detection
+    // Level detection is owned by applyProgressionChange — we only need identity here.
     const charIds    = result.characters.map(rc => rc.characterId);
     const characters = await db.character.findMany({
         where:  { id: { in: charIds } },
-        select: { id: true, name: true, userId: true, totalXp: true, gameSystemId: true },
-    });
-    const gameSystemIds = [...new Set(characters.map(c => c.gameSystemId))];
-    const thresholds    = await db.progressionThreshold.findMany({
-        where:   { gameSystemId: { in: gameSystemIds } },
-        orderBy: { xpRequired: 'asc' },
+        select: { id: true, name: true, userId: true, gameSystemId: true },
     });
     const charMap = Object.fromEntries(characters.map(c => [c.id, c]));
 
@@ -172,55 +175,59 @@ export async function approveQuestResult(resultId: string, actorId: string) {
             const xpToGrant     = currentXpPerPlayer; // mission + extra
             const goldToGrant = currentGoldPerPlayer;
             const tokensToGrant = currentTokensPerPlayer;
-            const newXp      = (char?.totalXp ?? 0) + xpToGrant;
-            const charThresholds = thresholds.filter(t => t.gameSystemId === char?.gameSystemId);
-            const prevThreshold  = charThresholds.filter(t => t.xpRequired <= (char?.totalXp ?? 0)).at(-1);
-            const nextThreshold  = charThresholds.filter(t => t.xpRequired <= newXp).at(-1);
-            const leveledUp      = nextThreshold && nextThreshold.id !== prevThreshold?.id;
-            const newStatus       = leveledUp ? 'PENDING'          : 'RESTING';
-            const newStatusReason = leveledUp ? 'LEVEL_UP_PENDING' : 'QUEST_REST';
+            const questTitle    = result.quest?.title ?? 'Quest';
 
             await tx.character.update({
                 where: { id: rc.characterId },
                 data: {
-                    totalXp:      { increment: xpToGrant },
                     totalGold:    { increment: goldToGrant },
                     totalTokens:  { increment: tokensToGrant },
-                    restUntil,
-                    status:       newStatus as any,
-                    statusReason: newStatusReason as any,
                 },
             });
 
-            // Mission XP transaction
-            await tx.characterTransaction.create({ data: {
-                characterId: rc.characterId, type: 'XP', delta: currentMissionXpPerPlayer,
-                sourceType: 'QUEST', sourceId: result.questId,
-                note: `Mission XP: ${result.quest?.title ?? 'Quest'}`, createdBy: actorId,
-            }});
-            // Extra XP transaction (if any)
-            if (currentExtraXpPerPlayer > 0) await tx.characterTransaction.create({ data: {
-                characterId: rc.characterId, type: 'XP', delta: currentExtraXpPerPlayer,
-                sourceType: 'QUEST', sourceId: result.questId,
-                note: `Bonus XP: ${result.quest?.title ?? 'Quest'}`, createdBy: actorId,
-            }});
+            // Apply FUTURE/BOTH token store boosts per quest (sourceType=QUEST so
+            // deletions auto-revert). This writes XP directly, so it must land
+            // before the level is resolved below.
+            await applyFutureBoostForQuest(tx, rc.characterId, result.questId, xpToGrant, goldToGrant, questWorldId);
+
+            // Mission XP + milestone credits. applyProgressionChange owns the
+            // level decision, the rest state and the player notification.
+            const progression = await applyProgressionChange(tx, {
+                characterId:    rc.characterId,
+                actorId,
+                xpDelta:        currentMissionXpPerPlayer,
+                milestoneDelta: currentMilestonePerPlayer,
+                source:         { type: 'QUEST', id: result.questId, note: `Mission XP: ${questTitle}` },
+                milestoneNote:  `Milestone: ${questTitle}`,
+                restUntil,
+            });
+            // Bonus XP is logged separately so players can see the split.
+            const bonus = currentExtraXpPerPlayer > 0
+                ? await applyProgressionChange(tx, {
+                    characterId: rc.characterId,
+                    actorId,
+                    xpDelta:     currentExtraXpPerPlayer,
+                    source:      { type: 'QUEST', id: result.questId, note: `Bonus XP: ${questTitle}` },
+                    restUntil,
+                })
+                : null;
+            const leveledUp = (bonus ?? progression).changed === 'UP';
 
             // Gold transaction
             if (goldToGrant > 0) await tx.characterTransaction.create({ data: {
                 characterId: rc.characterId, type: 'GOLD', delta: goldToGrant,
                 sourceType: 'QUEST', sourceId: result.questId,
-                note: `Quest reward: ${result.quest?.title ?? 'Quest'}`, createdBy: actorId,
+                note: `Quest reward: ${questTitle}`, createdBy: actorId,
             }});
 
-            // Apply FUTURE/BOTH token store boosts per quest (sourceType=QUEST so deletions auto-revert)
-            await applyFutureBoostForQuest(tx, rc.characterId, result.questId, xpToGrant, goldToGrant, questWorldId);
             // Update QuestResultCharacter with final awarded amounts
             await tx.questResultCharacter.update({
                 where: { id: rc.id },
                 data:  {
-                    xpAwarded:     xpToGrant,
-                    goldAwarded:   goldToGrant,
-                    tokensAwarded: tokensToGrant,
+                    xpAwarded:         xpToGrant,
+                    goldAwarded:       goldToGrant,
+                    tokensAwarded:     tokensToGrant,
+                    milestonesAwarded: currentMilestonePerPlayer,
                 },
             });
 
@@ -290,15 +297,10 @@ export async function approveQuestResult(resultId: string, actorId: string) {
                 createdBy: actorId,
             }});
 
-            // Notify player
-            if (char?.userId) {
-                if (leveledUp) {
-                    await createNotification(char.userId, 'LEVEL_UP', '🎉 Level up available!',
-                        `You have enough XP to level up! Update your character sheet.`, `/characters/${rc.characterId}`);
-                } else {
-                    await createNotification(char.userId, 'QUEST_COMPLETE', 'Quest completed',
-                        `"${result.quest?.title}" completed. Your character is resting until ${restUntil.toLocaleDateString()}.`, `/characters/${rc.characterId}`);
-                }
+            // Level-up notification is sent by applyProgressionChange.
+            if (char?.userId && !leveledUp) {
+                await createNotification(char.userId, 'QUEST_COMPLETE', 'Quest completed',
+                    `"${questTitle}" completed. Your character is resting until ${restUntil.toLocaleDateString()}.`, `/characters/${rc.characterId}`);
             }
         }
 

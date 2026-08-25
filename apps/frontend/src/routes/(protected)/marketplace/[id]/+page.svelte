@@ -17,7 +17,7 @@
 	const ctx    = $derived((data as any).contexts?.[ctxKey] ?? (data as any).contexts?.['__global__']);
 
 	// Default context shown before a character is selected (use URL worldId hint or global)
-	const defaultCtxKey = $derived((data as any).urlWorldId ?? '__global__');
+	const defaultCtxKey = $derived((data as any).filters?.worldId || '__global__');
 	const displayCtx    = $derived(ctx ?? (data as any).contexts?.[defaultCtxKey] ?? (data as any).contexts?.['__global__']);
 
 	const effectiveSell = $derived(displayCtx ? Math.floor(displayCtx.price * displayCtx.sellPricePercent / 100) : 0);
@@ -28,7 +28,7 @@
 <div class="page">
 	<div class="page__header">
 		<div>
-			<a href="/marketplace{(data as any).urlWorldId ? `?worldId=${(data as any).urlWorldId}` : ''}" class="back-link">← Marketplace</a>
+			<a href={(data as any).listUrl ?? '/marketplace'} class="back-link">← Marketplace</a>
 			<h2 class="page__title">{data.item.name}</h2>
 			<div class="page__title-row">
 				<span class="badge {rarityBadge(data.item.rarity)}">{rarityLabel(data.item.rarity)}</span>

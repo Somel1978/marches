@@ -40,7 +40,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		territories:    faction.territories,
 		relations:      (faction.relations as any[]).filter((r: any) => r.other?.isVisible),
 		npcs:           faction.npcs, // getBySlug already filters isVisible NPCs
-		quests:         (faction.quests as any[]).filter((q: any) => q.quest),
+		// Plot quests are DM/Admin-only for now — not exposed on player faction pages
 	};
 
 	return { world, faction: safeFaction, myRenown };

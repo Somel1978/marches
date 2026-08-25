@@ -1,8 +1,9 @@
 // shared/database/dbapi/write/quests/create.ts
-import { db } from '../../../index.ts';
+import { db, Prisma } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { ValidationError } from '@core/errors';
 import { getSettingsMap } from '../../read/platform/get-settings.ts';
+import type { QuestEncounterPlan } from '../../read/quests/encounter-plan.ts';
 
 export type CreateQuestInput = {
     dmProfileId:     string;
@@ -10,6 +11,8 @@ export type CreateQuestInput = {
     description?:    string;
     rules?:          string;
     missionXp:       number;
+    milestoneAward?: number;
+    encounterPlan?:  QuestEncounterPlan | null;
     minCapacity:     number;
     maxCapacity:     number;
     minLevel:        number;
@@ -43,6 +46,8 @@ export async function createQuest(input: CreateQuestInput, actorId: string) {
                 description:  input.description,
                 rules:        input.rules,
                 missionXp:    input.missionXp,
+                milestoneAward: Math.max(0, input.milestoneAward ?? 0),
+                encounterPlan: input.encounterPlan ?? Prisma.JsonNull,
                 minCapacity:  input.minCapacity,
                 maxCapacity:  input.maxCapacity,
                 minLevel:     input.minLevel,

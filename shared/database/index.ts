@@ -71,14 +71,21 @@ import { addScoreAuditEntry, addScoreAuditEntries, applyManualScoreAdjustment } 
 import { getScoreAuditForCharacter, getScoreAuditForStat } from './dbapi/read/dnd5e/get-score-audit.ts';
 import { enrichDnd5eSignups } from './dbapi/read/dnd5e/enrich-signups.ts';
 import { getDnd5eClasses, getAllDnd5eClasses, getDnd5eClassById, getDnd5eSpecies, getAllDnd5eSpecies, getDnd5eBackgrounds, getAllDnd5eBackgrounds, getDnd5eSystemData, invalidateDnd5eSystemDataCache } from './dbapi/read/dnd5e/get-classes.ts';
-import { createDnd5eClass, updateDnd5eClass, deleteDnd5eClass, createClassFeature, updateClassFeature, deleteClassFeature, createDnd5eSubclass, updateDnd5eSubclass, updateSubclass, deleteDnd5eSubclass, createSubclassFeature, updateSubclassFeature, deleteSubclassFeature } from './dbapi/write/dnd5e/classes.ts';
-import { createDnd5eSpecies, updateDnd5eSpecies, deleteDnd5eSpecies, createSpeciesTrait, updateSpeciesTrait, deleteSpeciesTrait, createDnd5eBackground, updateDnd5eBackground, deleteDnd5eBackground } from './dbapi/write/dnd5e/species.ts';
+import { getDnd5eCodexData } from './dbapi/read/dnd5e/get-codex.ts';
+import { createDnd5eClass, updateDnd5eClass, deleteDnd5eClass, createClassFeature, updateClassFeature, deleteClassFeature, createDnd5eSubclass, updateDnd5eSubclass, updateSubclass, deleteDnd5eSubclass, createSubclassFeature, updateSubclassFeature, deleteSubclassFeature, updateClassSavingThrows, updateClassSkillPool } from './dbapi/write/dnd5e/classes.ts';
+import { createDnd5eSpecies, updateDnd5eSpecies, deleteDnd5eSpecies, createSpeciesTrait, updateSpeciesTrait, deleteSpeciesTrait, updateSpeciesTraitSpeeds, createDnd5eBackground, updateDnd5eBackground, deleteDnd5eBackground } from './dbapi/write/dnd5e/species.ts';
 import { createDnd5eCharacter } from './dbapi/write/dnd5e/create-character.ts';
 import { approveDnd5eCharacter, rejectDnd5eCharacter } from './dbapi/write/dnd5e/approve-character.ts';
 import { submitDnd5eStructuralChanges, updateDnd5eCharacterFields } from './dbapi/write/dnd5e/update-character.ts';
+import { addCharacterSkillGrants, removeCharacterSkillGrantsBySource, replaceCharacterSkillGrants, upsertDmSkillGrant, upsertOverrideSkillGrant, removeOverrideSkillGrant, addCharacterSavingThrowGrants, removeCharacterSavingThrowGrantsBySource, upsertOverrideSavingThrowGrant, removeOverrideSavingThrowGrant } from './dbapi/write/dnd5e/skills.ts';
+import { addInnateSpellGrants, removeInnateSpellGrantsBySource, parseAndFilterInnateSpells } from './dbapi/write/dnd5e/innate-spells.ts';
+import { addCharacterToolGrants, removeCharacterToolGrantsBySource, upsertOverrideToolGrant, removeOverrideToolGrant, addCharacterLanguageGrants, removeCharacterLanguageGrantsBySource, upsertOverrideLanguageGrant, removeOverrideLanguageGrant, addCharacterDamageModifierGrants, removeCharacterDamageModifierGrantsBySource, upsertOverrideDamageModifierGrant, removeOverrideDamageModifierGrant } from './dbapi/write/dnd5e/tools-languages.ts';
+import { saveCharacterMood, saveDnd5eCharacterDetails } from './dbapi/write/dnd5e/character-details.ts';
 import { updateDnd5eCharacterClasses } from './dbapi/write/dnd5e/update-classes.ts';
 import { getAllDnd5eSpells, getDnd5eSpellById, getDnd5eSpellsForCharacter, getDnd5eSpellSlotProgressions, getDnd5eSpellSlotProgressionByClass, getDnd5eSpellsKnownProgressions, getDnd5eSpellsKnownProgressionByClass, getDnd5eSpellbooks } from './dbapi/read/dnd5e/get-spells.ts';
 import { upsertDnd5eSpell, updateDnd5eSpell, deleteDnd5eSpell, upsertSpellSlotProgression, deleteSpellSlotProgressionClass, upsertSpellsKnownProgression, deleteSpellsKnownProgressionClass, createSpellbook, updateSpellbook, deleteSpellbook, addSpellbookEntry, removeSpellbookEntry, toggleSpellbookEntryPrepared } from './dbapi/write/dnd5e/spells.ts';
+import { getEncounterConfig } from './dbapi/read/dnd5e/encounter-planner.ts';
+import { upsertEncounterXp, deleteEncounterXp, upsertEncounterLevelThreshold, deleteEncounterLevelThreshold, upsertEncounterMultiplier, deleteEncounterMultiplier, updateEncounterConfig, resetEncounterPlanner } from './dbapi/write/dnd5e/encounter-planner.ts';
 
 // ── Achievements ─────────────────────────────────────────────────────────────────
 import { createAchievement, updateAchievement, grantAchievement, revokeAchievement } from './dbapi/write/rewards/achievements.ts';
@@ -116,6 +123,54 @@ import { createWorld, updateWorld, createRegion,
          updateWorldDMPermission, removeDMFromWorld, createLocation,
          updateLocation                              } from './dbapi/write/world/worlds.ts';
 import { upsertWikiPage                              } from './dbapi/write/world/wiki.ts';
+import {
+    upsertWorldProgressionOverrides, getWorldProgressionOverrides, countWorldHomeCharacters,
+} from './dbapi/write/world/progression-overrides.ts';
+import { getNeuralMap, listNeuralCandidates } from './dbapi/read/world/get-neural-map.ts';
+import {
+	addNeuralNode, updateNeuralNode, updateNeuralNodeByEntity, removeNeuralNode,
+	addNeuralEdge, updateNeuralEdge, removeNeuralEdge,
+	syncProgressionLayer, relayoutProgressionLayer,
+} from './dbapi/write/world/neural-map.ts';
+import {
+	listPlotQuestsByWorld, getPlotQuestById, listLinkableSystemQuests,
+} from './dbapi/read/world/get-plot-quests.ts';
+import {
+	createPlotQuest, updatePlotQuest, deletePlotQuest,
+	linkSystemQuestToPlot, unlinkSystemQuestFromPlot,
+} from './dbapi/write/world/plot-quests.ts';
+import {
+	getPlotProgression, listPlotQuestsBySystemQuest,
+	listPlayerPlotQuests, getPlotPlayLog,
+} from './dbapi/read/world/get-plot-progression.ts';
+import {
+	createPlotNode, updatePlotNode, deletePlotNode,
+	createPlotEdge, deletePlotEdge, createPlotEdgeFromNeuralNodes, deletePlotEdgeFromNeuralOverlay,
+	setPlotNodeState, advancePlotNode, revertPlotNode, setPlotNodeCurrent,
+	createPlotEntryRequirement, deletePlotEntryRequirement,
+	createPlotEffect, deletePlotEffect,
+	createPlotReward, deletePlotReward,
+	updatePlotFailureTimeout, applyPlotFailureTimeout, applyOverdueNodeTimeouts,
+} from './dbapi/write/world/plot-progression.ts';
+import {
+	assertAcyclic as assertPlotGraphAcyclic,
+	computeProgressionAnalysis,
+} from './lib/plot-graph/index.ts';
+import { getWorldCalendar, getWorldCalendarOverview } from './dbapi/read/world/get-calendar.ts';
+import { ensureWorldCalendar, saveWorldCalendar } from './dbapi/write/world/calendar.ts';
+import { listTimelineEntries, getTimelineEventById, listRegionWeather, monthDayRange } from './dbapi/read/world/get-timeline.ts';
+import {
+	createTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
+} from './dbapi/write/world/timeline.ts';
+import {
+	createRegionWeather, updateRegionWeather, deleteRegionWeather,
+	createNpcSchedule, updateNpcSchedule, deleteNpcSchedule,
+} from './dbapi/write/world/timeline-weather-npc.ts';
+import {
+	daysInYear, formatDate, fromAbsoluteDay, toAbsoluteDay, overviewStats,
+	gregorianCalendarTemplate, validateCalendarShape, sortedMonths, sortedWeekdays, sortedEras,
+	moonPhase, moonsOnDay,
+} from './lib/calendar/index.ts';
 
 // ── Marketplace ──────────────────────────────────────────────────────────────────
 import { getMarketplaceItems, getMarketplaceItemById, getAllMarketplaceItemsForExport,
@@ -136,6 +191,7 @@ import { upsertWorldMarketplaceItem, deleteWorldMarketplaceItem,
 // ── Quests ───────────────────────────────────────────────────────────────────────
 import { getAllQuests                                     } from './dbapi/read/quests/get-all.ts';
 import { getQuestById, getQuestsByDM, getQuestResultWithCharacters } from './dbapi/read/quests/get-by-id.ts';
+import { resolveQuestMissionXp, loadEncounterPlannerClientConfig } from './dbapi/read/quests/encounter-plan.ts';
 import { createQuest                                     } from './dbapi/write/quests/create.ts';
 import { updateQuest, updateQuestRewards, addCoDM,
          removeCoDM                                      } from './dbapi/write/quests/update.ts';
@@ -146,6 +202,9 @@ import { submitQuestResult, approveQuestResult,
          rejectQuestResult                               } from './dbapi/write/quests/submit-result.ts';
 import { deleteQuest                                     } from './dbapi/write/quests/delete.ts';
 import { submitItemUsages, approveItemUsage, rejectItemUsage, getItemUsagesForQuest } from './dbapi/write/quests/item-usage.ts';
+import {
+	ensureQuestNotes, getQuestNotes, updateQuestNoteContent,
+} from './dbapi/write/quests/quest-notes.ts';
 
 // ── DMs ──────────────────────────────────────────────────────────────────────────
 import { getAllDMProfiles, getAllRoleRequests   } from './dbapi/read/dms/get-all.ts';
@@ -172,6 +231,10 @@ import { updateCharacterStatus                   } from './dbapi/write/character
 import { approveCharacter, rejectCharacter, dispatchApproveCharacter, dispatchRejectCharacter } from './dbapi/write/characters/approve.ts';
 import { deleteCharacter                             } from './dbapi/write/characters/delete.ts';
 import { adjustCurrency                              } from './dbapi/write/characters/adjust-currency.ts';
+import {
+    setCharacterProgressionMode, resolveEarnedLevel, resolveProgressionMode,
+    getEffectiveThresholds,
+} from './dbapi/write/characters/progression.ts';
 import { grantCharacterSlot                      } from './dbapi/write/characters/slot-grant.ts';
 import { checkAndClearRest, clearAllExpiredRest   } from './dbapi/write/characters/check-rest.ts';
 
@@ -265,6 +328,13 @@ export const characters = {
     dispatchReject:   dispatchRejectCharacter,
     delete:           deleteCharacter,
     adjustCurrency,
+    setProgressionMode: (characterId: string, mode: 'XP' | 'MILESTONE', actorId: string, seedTotal?: boolean) =>
+        setCharacterProgressionMode(db, characterId, mode, actorId, seedTotal),
+    resolveEarnedLevel,
+    getEffectiveThresholds: (gameSystemId: string, worldId?: string | null) =>
+        getEffectiveThresholds(db, gameSystemId, worldId),
+    resolveProgressionMode: (gameSystemId: string, worldId?: string | null) =>
+        resolveProgressionMode(db, gameSystemId, worldId),
     grantSlot:        grantCharacterSlot,
     checkRest:        checkAndClearRest,
     clearExpiredRest: clearAllExpiredRest,
@@ -295,6 +365,13 @@ export const quests = {
     approveResult:         approveQuestResult,
     rejectResult:          rejectQuestResult,
     delete:                deleteQuest,
+    resolveMissionXp:      resolveQuestMissionXp,
+    loadEncounterConfig:   loadEncounterPlannerClientConfig,
+    notes: {
+        ensure: ensureQuestNotes,
+        get:    getQuestNotes,
+        update: updateQuestNoteContent,
+    },
 };
 
 export const marketplace = {
@@ -356,6 +433,94 @@ export const worlds = {
     wiki: {
         get:          getWikiPage,
         upsert:       upsertWikiPage,
+    },
+    progression: {
+        getOverrides:      getWorldProgressionOverrides,
+        upsertOverrides:   upsertWorldProgressionOverrides,
+        countHomeCharacters: countWorldHomeCharacters,
+    },
+    neural: {
+        getMap:          getNeuralMap,
+        listCandidates:  listNeuralCandidates,
+        addNode:         addNeuralNode,
+        updateNode:      updateNeuralNode,
+        updateNodeByEntity: updateNeuralNodeByEntity,
+        removeNode:      removeNeuralNode,
+        addEdge:         addNeuralEdge,
+        updateEdge:      updateNeuralEdge,
+        removeEdge:      removeNeuralEdge,
+        syncProgression: syncProgressionLayer,
+        relayoutProgression: relayoutProgressionLayer,
+    },
+    plotQuests: {
+        listByWorld:     listPlotQuestsByWorld,
+        getById:         getPlotQuestById,
+        listLinkableQuests: listLinkableSystemQuests,
+        listBySystemQuest: listPlotQuestsBySystemQuest,
+        create:          createPlotQuest,
+        update:          updatePlotQuest,
+        delete:          deletePlotQuest,
+        linkQuest:       linkSystemQuestToPlot,
+        unlinkQuest:     unlinkSystemQuestFromPlot,
+        getProgression:  getPlotProgression,
+        listPlayerPlots: listPlayerPlotQuests,
+        getPlayLog:      getPlotPlayLog,
+        createNode:      createPlotNode,
+        updateNode:      updatePlotNode,
+        deleteNode:      deletePlotNode,
+        createEdge:      createPlotEdge,
+        deleteEdge:      deletePlotEdge,
+        createEdgeFromNeural: createPlotEdgeFromNeuralNodes,
+        deleteEdgeFromNeuralOverlay: deletePlotEdgeFromNeuralOverlay,
+        setNodeState:    setPlotNodeState,
+        advanceNode:     advancePlotNode,
+        revertNode:      revertPlotNode,
+        setNodeCurrent:  setPlotNodeCurrent,
+        createEntryReq:  createPlotEntryRequirement,
+        deleteEntryReq:  deletePlotEntryRequirement,
+        createEffect:    createPlotEffect,
+        deleteEffect:    deletePlotEffect,
+        createReward:    createPlotReward,
+        deleteReward:    deletePlotReward,
+        setFailureTimeout: updatePlotFailureTimeout,
+        applyFailureTimeout: applyPlotFailureTimeout,
+        applyNodeTimeouts: applyOverdueNodeTimeouts,
+        assertAcyclic:   assertPlotGraphAcyclic,
+        analyze:         computeProgressionAnalysis,
+    },
+    calendar: {
+        get:        getWorldCalendar,
+        overview:   getWorldCalendarOverview,
+        ensure:     ensureWorldCalendar,
+        save:       saveWorldCalendar,
+        // pure helpers re-exported for consumers
+        formatDate,
+        fromAbsoluteDay,
+        toAbsoluteDay,
+        overviewStats,
+        daysInYear,
+        sortedMonths,
+        sortedWeekdays,
+        sortedEras,
+        validate:   validateCalendarShape,
+        gregorianTemplate: gregorianCalendarTemplate,
+        moonPhase,
+        moonsOnDay,
+    },
+    timeline: {
+        listEntries: listTimelineEntries,
+        getEvent:    getTimelineEventById,
+        monthRange:  monthDayRange,
+        listWeather: listRegionWeather,
+        createEvent: createTimelineEvent,
+        updateEvent: updateTimelineEvent,
+        deleteEvent: deleteTimelineEvent,
+        createWeather: createRegionWeather,
+        updateWeather: updateRegionWeather,
+        deleteWeather: deleteRegionWeather,
+        createNpcSchedule,
+        updateNpcSchedule,
+        deleteNpcSchedule,
     },
 };
 
@@ -559,12 +724,14 @@ export const discord = {
 
 export const dnd5e = {
     classes: {
-        getAll:    getAllDnd5eClasses,
-        getActive: getDnd5eClasses,
-        getById:   getDnd5eClassById,
-        create:    createDnd5eClass,
-        update:    updateDnd5eClass,
-        delete:    deleteDnd5eClass,
+        getAll:              getAllDnd5eClasses,
+        getActive:           getDnd5eClasses,
+        getById:             getDnd5eClassById,
+        create:              createDnd5eClass,
+        update:              updateDnd5eClass,
+        delete:              deleteDnd5eClass,
+        updateSavingThrows:  updateClassSavingThrows,
+        updateSkillPool:     updateClassSkillPool,
     },
     classFeatures: {
         create: createClassFeature,
@@ -590,9 +757,10 @@ export const dnd5e = {
         delete:    deleteDnd5eSpecies,
     },
     speciesTraits: {
-        create: createSpeciesTrait,
-        update: updateSpeciesTrait,
-        delete: deleteSpeciesTrait,
+        create:       createSpeciesTrait,
+        update:       updateSpeciesTrait,
+        delete:       deleteSpeciesTrait,
+        updateSpeeds: updateSpeciesTraitSpeeds,
     },
     backgrounds: {
         getAll:    getAllDnd5eBackgrounds,
@@ -601,7 +769,19 @@ export const dnd5e = {
         update:    updateDnd5eBackground,
         delete:    deleteDnd5eBackground,
     },
+    encounterPlanner: {
+        getConfig:              getEncounterConfig,
+        upsertXp:               upsertEncounterXp,
+        deleteXp:               deleteEncounterXp,
+        upsertLevelThreshold:   upsertEncounterLevelThreshold,
+        deleteLevelThreshold:   deleteEncounterLevelThreshold,
+        upsertMultiplier:       upsertEncounterMultiplier,
+        deleteMultiplier:       deleteEncounterMultiplier,
+        updateConfig:           updateEncounterConfig,
+        reset:                  resetEncounterPlanner,
+    },
     getSystemData:       getDnd5eSystemData,
+    getCodexData:        getDnd5eCodexData,
     invalidateSystemCache: invalidateDnd5eSystemDataCache,
     getCharacterSheet:   getDnd5eCharacterSheet,
     enrichSignups:       enrichDnd5eSignups,
@@ -622,6 +802,37 @@ export const dnd5e = {
     manualScoreAdjustment:    applyManualScoreAdjustment,
     getScoreAudit:            getScoreAuditForCharacter,
     getScoreAuditForStat:     getScoreAuditForStat,
+    addSkillGrants:              addCharacterSkillGrants,
+    removeSkillGrantsBySource:   removeCharacterSkillGrantsBySource,
+    replaceSkillGrants:          replaceCharacterSkillGrants,
+    upsertDmSkillGrant:          upsertDmSkillGrant,
+    upsertOverrideSkillGrant:    upsertOverrideSkillGrant,
+    removeOverrideSkillGrant:    removeOverrideSkillGrant,
+    upsertOverrideSavingThrowGrant: upsertOverrideSavingThrowGrant,
+    removeOverrideSavingThrowGrant: removeOverrideSavingThrowGrant,
+    addSavingThrowGrants:        addCharacterSavingThrowGrants,
+    removeSavingThrowsBySource:  removeCharacterSavingThrowGrantsBySource,
+    // Tool grants
+    addToolGrants:               addCharacterToolGrants,
+    removeToolGrantsBySource:    removeCharacterToolGrantsBySource,
+    upsertOverrideToolGrant:     upsertOverrideToolGrant,
+    removeOverrideToolGrant:     removeOverrideToolGrant,
+    // Language grants
+    addLanguageGrants:           addCharacterLanguageGrants,
+    removeLanguageGrantsBySource: removeCharacterLanguageGrantsBySource,
+    upsertOverrideLanguageGrant: upsertOverrideLanguageGrant,
+    removeOverrideLanguageGrant: removeOverrideLanguageGrant,
+    // Damage modifier grants (resistance/immunity/vulnerability)
+    addDamageModifierGrants:         addCharacterDamageModifierGrants,
+    removeDamageModifiersBySource:   removeCharacterDamageModifierGrantsBySource,
+    upsertOverrideDamageModifier:    upsertOverrideDamageModifierGrant,
+    removeOverrideDamageModifier:    removeOverrideDamageModifierGrant,
+    // Innate spell grants
+    addInnateSpellGrants:            addInnateSpellGrants,
+    removeInnateSpellGrantsBySource: removeInnateSpellGrantsBySource,
+    parseAndFilterInnateSpells:      parseAndFilterInnateSpells,
+    saveMood:                    saveCharacterMood,
+    saveDetails:                 saveDnd5eCharacterDetails,
     createCharacter:     createDnd5eCharacter,
     approveCharacter:    approveDnd5eCharacter,
     rejectCharacter:     rejectDnd5eCharacter,

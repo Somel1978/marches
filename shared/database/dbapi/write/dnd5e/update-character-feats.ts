@@ -46,6 +46,8 @@ export async function addDnd5eCharacterFeat(
         amount2?:       number;
         stat3?:         string;
         amount3?:       number;
+        chosenSkills?:  string[];   // player's chosen skills from skillChoicePool
+        chosenSaves?:   string[];   // player's chosen saving throws from savingThrowChoicePool
         actorId?:       string;
     }
 ) {
@@ -117,7 +119,64 @@ export async function addDnd5eCharacterFeat(
         );
     }
 
+    // Apply skill grants from feat (fixed + player choices)
+    const skillGrants: { skill: string; value: number }[] = [];
+    const f = feat as any;
+    if (f.grantsSkills)    for (const s of f.grantsSkills.split(',').filter(Boolean))    skillGrants.push({ skill: s.trim(), value: 1.0 });
+    if (f.grantsExpertise) for (const s of f.grantsExpertise.split(',').filter(Boolean)) skillGrants.push({ skill: s.trim(), value: 2.0 });
+    if (f.grantsHalfSkills) for (const s of f.grantsHalfSkills.split(',').filter(Boolean)) skillGrants.push({ skill: s.trim(), value: 0.5 });
+    if (options?.chosenSkills?.length) for (const s of options.chosenSkills) skillGrants.push({ skill: s, value: 1.0 });
+    if (skillGrants.length) {
+        await db.dnd5eCharacterSkillGrant.createMany({
+            data: skillGrants.map(g => ({ characterId, skill: g.skill as any, value: g.value, sourceType: 'Feat', sourceId: record.id })),
+        });
+    }
+    if (f.grantsSavingThrows) {
+        const stats = f.grantsSavingThrows.split(',').map((s: string) => s.trim()).filter(Boolean);
+        if (stats.length) await db.dnd5eCharacterSavingThrowGrant.createMany({
+            data: stats.map((stat: string) => ({ characterId, stat, sourceType: 'Feat', sourceId: record.id })),
+        });
+    }
+    if (options?.chosenSaves?.length) {
+        await db.dnd5eCharacterSavingThrowGrant.createMany({
+            data: options.chosenSaves.map((stat: string) => ({ characterId, stat, sourceType: 'Feat', sourceId: record.id })),
+        });
+    }
+
     return record;
+}
+
+/**
+ * Drop ASI/feat picks that no longer have a slot after a level-down or a
+ * multiclass reshuffle: either the granting class level is gone, or the class
+ * itself was removed. Stat bumps and grants are reversed, not orphaned.
+ *
+ * Call after the character's class rows have been rewritten.
+ */
+export async function pruneDnd5eFeatsAboveAllocation(characterId: string, actorId?: string) {
+    const classes = await db.dnd5eCharacterClass.findMany({
+        where:  { characterId },
+        select: { classId: true, allocatedLevel: true },
+    });
+    const allocationByClass = new Map(classes.map(c => [c.classId, c.allocatedLevel]));
+
+    // Slot-bound feats only — picks with no sourceClassId are not level-gated.
+    const slotFeats = await db.dnd5eCharacterFeat.findMany({
+        where:  { characterId, sourceClassId: { not: null } },
+        select: { id: true, sourceClassId: true, sourceLevel: true },
+    });
+
+    const orphaned = slotFeats.filter((f) => {
+        const allocated = allocationByClass.get(f.sourceClassId!);
+        if (allocated === undefined) return true;             // class removed entirely
+        return (f.sourceLevel ?? 0) > allocated;              // level no longer reached
+    });
+
+    for (const f of orphaned) {
+        await removeDnd5eCharacterFeat(f.id, actorId);
+    }
+
+    return orphaned.length;
 }
 
 export async function removeDnd5eCharacterFeat(id: string, actorId?: string) {
@@ -135,6 +194,10 @@ export async function removeDnd5eCharacterFeat(id: string, actorId?: string) {
         actorId,
         isAsiSource,
     );
+
+    // Remove skill and saving throw grants from this feat
+    await db.dnd5eCharacterSkillGrant.deleteMany({ where: { characterId: r.characterId, sourceId: id } });
+    await db.dnd5eCharacterSavingThrowGrant.deleteMany({ where: { characterId: r.characterId, sourceId: id } });
 
     return db.dnd5eCharacterFeat.delete({ where: { id } });
 }

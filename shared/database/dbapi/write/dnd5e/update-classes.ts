@@ -2,6 +2,7 @@
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
+import { reconcileProgression } from '../characters/progression.ts';
 
 export type ClassAllocation = {
     classId:       string;
@@ -33,11 +34,14 @@ export async function updateDnd5eCharacterClasses(
             })),
         });
 
-        // Update character level to match new allocation
+        // Approved level always mirrors the allocation.
         await tx.character.update({
             where: { id: characterId },
             data:  { level: totalAllocated },
         });
+        // Re-evaluate against the progression totals so the character is not left
+        // silently over- or under-allocated after a direct admin edit.
+        await reconcileProgression(tx, characterId, { actorId: actorId ?? 'system' });
 
         await logAudit(tx, {
             actorId,

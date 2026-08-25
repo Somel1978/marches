@@ -201,9 +201,44 @@
 				<span class="stat-label">Tokens</span>
 			</div>
 			<div class="stat-card">
+				<span class="stat-value">{character.totalMilestones?.toLocaleString()??0}</span>
+				<span class="stat-label">Milestones</span>
+			</div>
+			<div class="stat-card">
 				<span class="stat-value">{totalLevel}</span>
 				<span class="stat-label">Level</span>
 			</div>
+			<div class="stat-card">
+				<span class="stat-value">{character.earnedLevel ?? 0}</span>
+				<span class="stat-label">Earned level</span>
+			</div>
+		</div>
+
+		<!-- Progression mode -->
+		<div class="card" style="margin-bottom:1rem;">
+			<h3 class="section-title">Progression mode</h3>
+			<form method="post" action="?/setProgressionMode" use:enhance={()=>{return async({update})=>{await update();await invalidateAll();};}}>
+				<div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:flex-end;">
+					<div class="field" style="margin:0; flex:1 1 160px;">
+						<label class="label" for="prog-mode">Mode</label>
+						<select id="prog-mode" name="progressionMode" class="input input--select">
+							<option value="XP"        selected={character.progressionMode !== 'MILESTONE'}>XP</option>
+							<option value="MILESTONE" selected={character.progressionMode === 'MILESTONE'}>Milestone</option>
+						</select>
+					</div>
+					<div class="field" style="margin:0;">
+						<label class="label" for="prog-seed">
+							<input id="prog-seed" name="seedCredits" type="checkbox" value="true" checked />
+							Seed the new total to keep the current level
+						</label>
+					</div>
+					<button type="submit" class="btn btn-primary btn-sm">Change mode</button>
+				</div>
+				<p class="field-hint" style="margin-top:0.5rem;">
+					Switching mode re-derives the earned level from the other total, which is usually zero.
+					Leave seeding on unless you intend to reset this character's progression.
+				</p>
+			</form>
 		</div>
 
 		<!-- Adjust currency -->
@@ -217,6 +252,7 @@
 							<option value="XP">XP</option>
 							<option value="GOLD">Gold</option>
 							<option value="TOKEN">Tokens</option>
+							<option value="MILESTONE">Milestone credits</option>
 						</select>
 					</div>
 					<div class="field" style="margin:0; flex:1 1 100px;">

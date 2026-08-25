@@ -180,6 +180,17 @@ export const NAV_ITEMS: NavItemDef[] = [
         icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
     },
 
+    // ── Tools ────────────────────────────────────────────────────────────────
+    { type: 'section', label: 'Tools' },
+
+    {
+        resourceKey: 'GameSystem',
+        label:       'Encounter Planner',
+        href:        '/tools/eplanner',
+        activeMatch: (pathname) => pathname.startsWith('/tools/eplanner'),
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>`,
+    },
+
     // ── Administration ───────────────────────────────────────────────────────
     { type: 'section', label: 'Administration' },
 

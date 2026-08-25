@@ -19,8 +19,7 @@
 	const isLevelDown   = $derived(char.statusReason === 'LEVEL_DOWN_PENDING');
 	const needsReview   = $derived(isPending || isEditPending);
 	const totalLevel    = $derived((char as any).level ?? 0);
-	const thresholds    = $derived((data as any).progressionThresholds ?? []);
-	const earnedLevel   = $derived(thresholds.filter((t: any) => char.totalXp >= t.xpRequired).length);
+	const earnedLevel   = $derived((char as any).earnedLevel ?? 0);
 
 	function e_reload() {
 		return async ({ update }: any) => { await update(); await invalidateAll(); };

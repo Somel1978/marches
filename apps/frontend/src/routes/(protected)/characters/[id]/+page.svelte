@@ -3,6 +3,7 @@
 	import { rarityBadge, rarityLabel } from '$lib/rarity';
 	import { enhance } from '$app/forms';
 	import { ConfirmModal } from '@core/ui';
+	import MoodEditor from '@core/ui/gamesystems/dnd5e/MoodEditor.svelte';
 	import Dnd5eSheetSection from './_sheets/Dnd5eSheetSection.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
@@ -14,7 +15,14 @@
 	const isDnd5e     = $derived(slug === 'dnd5e');
 	const totalLevel  = $derived((data.character as any).level ?? 0);
 	const thresholds  = $derived((data as any).progressionThresholds ?? []);
-	const earnedLevel = $derived(thresholds.filter((t: any) => data.character.totalXp >= t.xpRequired).length);
+	// Maintained server-side by the progression path — never recomputed here.
+	const earnedLevel = $derived((data.character as any).earnedLevel ?? 0);
+	const isMilestone = $derived((data.character as any).progressionMode === 'MILESTONE');
+	const progressUnit  = $derived(isMilestone ? 'credits' : 'XP');
+	const progressTotal = $derived(
+		isMilestone ? ((data.character as any).totalMilestones ?? 0) : data.character.totalXp,
+	);
+	const required = (t: any) => (isMilestone ? t.milestoneRequired : t.xpRequired);
 	// Sum XP/Gold that came from token store boosts
 	const boostTxs  = $derived((data as any).boostTxs ?? []);
 	const boostXp   = $derived((boostTxs as any[]).filter((t: any) => t.type === 'XP'   && (t.delta ?? 0) > 0).reduce((s: number, t: any) => s + t.delta, 0));
@@ -82,7 +90,7 @@
 		<div class="pending-banner" style="border-color:var(--color-danger);">❌ Your character was rejected. Update the details below and resubmit for approval.</div>
 	{/if}
 	{#if isLevelUp}
-		<div class="pending-banner">⬆ Level up! XP earned you <strong>Level {earnedLevel}</strong>. Allocate your classes below to total exactly {earnedLevel} and submit for approval.</div>
+		<div class="pending-banner">⬆ Level up! You have earned <strong>Level {earnedLevel}</strong>. Allocate your classes below to total exactly {earnedLevel} and submit for approval.</div>
 	{/if}
 	{#if isLevelDown}
 		<div class="pending-banner" style="border-color:var(--color-danger);">⬇ Level adjustment required — reduce class levels to {earnedLevel}.</div>
@@ -116,6 +124,9 @@
 				{#if boostGold > 0}<span style="font-size:0.625rem;color:var(--color-accent);display:block;">+{boostGold.toLocaleString()} from boosts</span>{/if}
 			</div>
 			<div class="stat-card"><span class="stat-value">{data.character.totalTokens.toLocaleString()}</span><span class="stat-label">Tokens</span></div>
+			{#if isMilestone}
+				<div class="stat-card"><span class="stat-value">{progressTotal.toLocaleString()}</span><span class="stat-label">Milestones</span></div>
+			{/if}
 			<div class="stat-card"><span class="stat-value">{totalLevel}</span><span class="stat-label">Level</span></div>
 		</div>
 	</div>
@@ -172,6 +183,24 @@
 		{/if}
 	</div>
 
+	<!-- ── Character Mood — universal, not dnd5e specific ──────────── -->
+	{#if canEdit || (data.character as any).moodEmoji || (data.character as any).moodText}
+		<div class="card">
+			<h3 class="section-title" style="margin-bottom:0.75rem;">Character Mood</h3>
+			<MoodEditor
+				emoji={(data.character as any).moodEmoji ?? ''}
+				text={(data.character as any).moodText ?? ''}
+				readonly={!canEdit}
+				onSave={async (emoji, text) => {
+					const fd = new FormData();
+					fd.set('emoji', emoji);
+					fd.set('text', text);
+					await fetch('?/saveMood', { method: 'POST', body: fd, headers: { 'x-sveltekit-action': 'true' } });
+				}}
+			/>
+		</div>
+	{/if}
+
 	<!-- Progression bar -->
 	{#if thresholds.length}
 		{@const nextThreshold    = thresholds[totalLevel] ?? null}
@@ -183,12 +212,13 @@
 					{#if earnedLevel > totalLevel}<span class="badge badge-warning" style="margin-left:0.5rem;">Level {earnedLevel} available!</span>{/if}
 				</span>
 				<span style="font-size:0.8125rem; color:var(--text-muted);">
-					{data.character.totalXp.toLocaleString()} XP{#if nextThreshold} · Next at {nextThreshold.xpRequired.toLocaleString()} XP{/if}
+					{progressTotal.toLocaleString()} {progressUnit}{#if nextThreshold} · Next at {required(nextThreshold).toLocaleString()} {progressUnit}{/if}
 				</span>
 			</div>
 			{#if nextThreshold}
-				{@const prev     = currentThreshold?.xpRequired ?? 0}
-				{@const progress = Math.min(100, Math.round(((data.character.totalXp - prev) / (nextThreshold.xpRequired - prev)) * 100))}
+				{@const prev     = currentThreshold ? required(currentThreshold) : 0}
+				{@const span     = Math.max(1, required(nextThreshold) - prev)}
+				{@const progress = Math.min(100, Math.max(0, Math.round(((progressTotal - prev) / span) * 100)))}
 				<div style="height:6px; background:var(--bg-overlay); border-radius:99px; overflow:hidden;">
 					<div style="height:100%; width:{progress}%; background:var(--accent-light); border-radius:99px; transition:width 0.3s ease;"></div>
 				</div>

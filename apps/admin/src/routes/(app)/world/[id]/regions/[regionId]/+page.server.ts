@@ -5,16 +5,25 @@ import { checkPermission } from '@core/rbac';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
+function dayOrNull(raw: FormDataEntryValue | null) {
+	const s = raw?.toString().trim();
+	if (!s) return null;
+	return Number(s);
+}
+
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const can = checkPermission(locals.permissions, { resourceKey: 'Region', action: 'read' });
 	if (!can.allowed) throw error(403, 'Forbidden');
-	const [region, allDMs, wiki] = await Promise.all([
+	const canEdit = checkPermission(locals.permissions, { resourceKey: 'Region', action: 'update' }).allowed;
+	const [region, allDMs, wiki, calendar, weather] = await Promise.all([
 		worlds.regions.getById(params.regionId),
 		dms.profiles.getAll(),
 		worlds.wiki.get('REGION', params.regionId),
+		worlds.calendar.ensure(params.id),
+		worlds.timeline.listWeather(params.id, params.regionId, { includeDmOnly: true }),
 	]);
 	if (!region) throw error(404, 'Region not found');
-	return { region, allDMs, wiki };
+	return { region, allDMs, wiki, calendar, weather, canEdit };
 };
 
 export const actions: Actions = {
@@ -100,6 +109,65 @@ export const actions: Actions = {
 				maxLevel:     data.get('maxLevel') ? Number(data.get('maxLevel')) : undefined,
 			}, locals.user!.id);
 			return { locationSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	createWeather: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'Region', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		try {
+			await worlds.timeline.createWeather(params.id, {
+				regionId: params.regionId,
+				condition: data.get('condition')?.toString() ?? 'CLEAR',
+				title: data.get('title')?.toString() ?? null,
+				summary: data.get('summary')?.toString() ?? null,
+				startDay: Number(data.get('startDay')),
+				endDay: dayOrNull(data.get('endDay')),
+				visibility: data.get('visibility')?.toString() ?? 'PUBLIC',
+			}, locals.user!.id);
+			return { weatherSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	updateWeather: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'Region', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const weatherId = data.get('weatherId')?.toString() ?? '';
+		if (!weatherId) return fail(400, { message: 'weatherId required' });
+		try {
+			await worlds.timeline.updateWeather(weatherId, {
+				regionId: params.regionId,
+				condition: data.get('condition')?.toString(),
+				title: data.get('title')?.toString() ?? null,
+				summary: data.get('summary')?.toString() ?? null,
+				startDay: Number(data.get('startDay')),
+				endDay: dayOrNull(data.get('endDay')),
+				visibility: data.get('visibility')?.toString(),
+			}, locals.user!.id, params.id);
+			return { weatherSuccess: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	deleteWeather: async ({ params, request, locals }) => {
+		const can = checkPermission(locals.permissions, { resourceKey: 'Region', action: 'update' });
+		if (!can.allowed) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const weatherId = data.get('weatherId')?.toString() ?? '';
+		if (!weatherId) return fail(400, { message: 'weatherId required' });
+		try {
+			await worlds.timeline.deleteWeather(weatherId, locals.user!.id, params.id);
+			return { weatherSuccess: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

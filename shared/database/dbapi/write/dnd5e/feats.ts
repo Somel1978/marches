@@ -6,18 +6,37 @@ import { NotFoundError } from '@core/errors';
 export async function createDnd5eFeat(input: {
     gameSystemId:   string;
     name:           string;
+    uploadId?:      string;
     description?:   string;
     snippet?:       string;
     repeatable?:    boolean;
     categories?:    string;
     prerequisites?: string;
     detailsUrl?:    string;
+    source?:        string;
     isAvailable?:   boolean;
     isEpicBoon?:    boolean;
     sortOrder?:     number;
     asiAmount?:     number | null;
     asiStatFixed?:  string | null;
-    asiStatChoices?: string | null;
+    asiStatChoices?:    string | null;
+    grantsSkills?:       string | null;
+    grantsExpertise?:    string | null;
+    grantsHalfSkills?:   string | null;
+    grantsSavingThrows?: string | null;
+    skillChoiceCount?:         number | null;
+    skillChoicePool?:          string | null;
+    savingThrowChoiceCount?:   number | null;
+    savingThrowChoicePool?:    string | null;
+    grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
+    grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
+    grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    resistanceChoiceCount?: number | null; resistanceChoicePool?: string | null;
+    immunityChoiceCount?: number | null; immunityChoicePool?: string | null;
+    vulnerabilityChoiceCount?: number | null; vulnerabilityChoicePool?: string | null;
+    grantsInnateSpells?: string | null;
+    grantsSpeed?: string | null;
+    grantsSenses?: string | null;
 }, actorId?: string) {
     return db.$transaction(async (tx) => {
         const feat = await tx.dnd5eFeat.create({ data: { ...input } });
@@ -27,6 +46,7 @@ export async function createDnd5eFeat(input: {
 }
 
 export async function updateDnd5eFeat(id: string, input: {
+    uploadId?:       string | null;
     name?:           string;
     description?:    string;
     snippet?:        string;
@@ -34,12 +54,30 @@ export async function updateDnd5eFeat(id: string, input: {
     categories?:     string;
     prerequisites?:  string;
     detailsUrl?:     string;
+    source?:         string | null;
     isAvailable?:    boolean;
     isEpicBoon?:     boolean;
     sortOrder?:      number;
     asiAmount?:      number | null;
     asiStatFixed?:   string | null;
-    asiStatChoices?: string | null;
+    asiStatChoices?:    string | null;
+    grantsSkills?:       string | null;
+    grantsExpertise?:    string | null;
+    grantsHalfSkills?:   string | null;
+    grantsSavingThrows?: string | null;
+    skillChoiceCount?:         number | null;
+    skillChoicePool?:          string | null;
+    savingThrowChoiceCount?:   number | null;
+    savingThrowChoicePool?:    string | null;
+    grantsTools?: string | null; toolChoiceCount?: number | null; toolChoicePool?: string | null;
+    grantsLanguages?: string | null; languageChoiceCount?: number | null; languageChoicePool?: string | null;
+    grantsResistances?: string | null; grantsImmunities?: string | null; grantsVulnerabilities?: string | null;
+    resistanceChoiceCount?: number | null; resistanceChoicePool?: string | null;
+    immunityChoiceCount?: number | null; immunityChoicePool?: string | null;
+    vulnerabilityChoiceCount?: number | null; vulnerabilityChoicePool?: string | null;
+    grantsInnateSpells?: string | null;
+    grantsSpeed?: string | null;
+    grantsSenses?: string | null;
 }, actorId?: string) {
     const feat = await db.dnd5eFeat.findUnique({ where: { id } });
     if (!feat) throw new NotFoundError('Dnd5eFeat', id);

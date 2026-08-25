@@ -1,12 +1,17 @@
 // apps/frontend/src/routes/(protected)/marketplace/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
 import { marketplace, characters } from '@core/database';
-import { checkPermission } from '@core/rbac';
+import {
+	marketplaceListUrl,
+	parseMarketplaceFilters,
+} from '$lib/marketplace/filters';
 import { isMarchesError } from '@core/errors';
+import { checkPermission } from '@core/rbac';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
-	const urlWorldId = url.searchParams.get('worldId') || null;
+	const filters = parseMarketplaceFilters(url);
+	const listUrl = marketplaceListUrl(filters);
 
 	const item = await marketplace.items.getById(params.id);
 	if (!item || !item.isAvailable) throw error(404, 'Item not found');
@@ -29,7 +34,14 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	);
 	const contexts = Object.fromEntries(contextEntries);
 
-	return { item, activeChars, contexts, urlWorldId , canViewDescriptions: checkPermission(locals.permissions, { resourceKey: 'dnd5eDescriptions', action: 'read' }).allowed };
+	return {
+		item,
+		activeChars,
+		contexts,
+		filters,
+		listUrl,
+		canViewDescriptions: checkPermission(locals.permissions, { resourceKey: 'dnd5eDescriptions', action: 'read' }).allowed,
+	};
 };
 
 export const actions: Actions = {

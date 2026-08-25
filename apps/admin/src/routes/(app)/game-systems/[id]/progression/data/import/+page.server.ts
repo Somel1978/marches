@@ -35,12 +35,14 @@ export const actions: Actions = {
                 const label      = normalize(row.label);
                 const xpRequired = parseInt(String(row.xpRequired ?? '').replace(/[^0-9]/g, ''), 10);
                 if (!label || isNaN(xpRequired)) { skipped++; continue; }
+                const msParsed = parseInt(String(row.milestoneRequired ?? '').replace(/[^0-9]/g, ''), 10);
+                const milestoneRequired = isNaN(msParsed) ? 0 : msParsed;
 
                 const match = existing.find((t: any) => normalize(t.label).toLowerCase() === label.toLowerCase());
                 if (match) {
                     if (!allowUpdate) { skipped++; continue; }
                     await gameSystems.progression.update(match.id, {
-                        label, xpRequired,
+                        label, xpRequired, milestoneRequired,
                         description: row.description || undefined,
                         sortOrder:   Number(row.sortOrder) || 0,
                     }, locals.user!.id);
@@ -48,7 +50,7 @@ export const actions: Actions = {
                 } else {
                     await gameSystems.progression.create({
                         gameSystemId: params.id,
-                        label, xpRequired,
+                        label, xpRequired, milestoneRequired,
                         description: row.description || undefined,
                         sortOrder:   Number(row.sortOrder) || 0,
                     }, locals.user!.id);

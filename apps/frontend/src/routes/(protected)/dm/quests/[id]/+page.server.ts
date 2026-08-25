@@ -1,6 +1,6 @@
 // apps/frontend/src/routes/(protected)/dm/quests/[id]/+page.server.ts
 import { fail, error } from '@sveltejs/kit';
-import { availability, characters, dms, quests, worlds, notifications, db, platform } from '@core/database';
+import { availability, characters, dms, quests, worlds, notifications, db, platform, users } from '@core/database';
 import { isMarchesError } from '@core/errors';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -123,12 +123,53 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		if (userIds.length) {
 			const signedUpCharIds = new Set(access.quest.signups.map((s: any) => s.characterId));
 			const allChars = (await Promise.all(userIds.map((uid: unknown) => characters.getByUserId(uid as string)))).flat();
-			availablePlayers = allChars.filter((c: any) => !signedUpCharIds.has(c.id) && c.status === 'ACTIVE');
+			const userRecords = await Promise.all(userIds.map((uid) => users.getById(uid as string)));
+			const userNames = Object.fromEntries(
+				userRecords.filter(Boolean).map((u: any) => [u.id, u.name]),
+			);
+			availablePlayers = allChars
+				.filter((c: any) => !signedUpCharIds.has(c.id) && c.status === 'ACTIVE')
+				.map((c: any) => ({
+					...c,
+					playerName: userNames[(c as any).userId] ?? null,
+					totalLevel:
+						(c as any).totalLevel ??
+						((c as any).classes ?? []).reduce((s: number, cl: any) => s + (cl.allocatedLevel ?? 0), 0),
+				}));
 		}
 	}
 
 	const canApprove = !!(await checkCanApprove(params.id, locals.user!.id));
-	return { quest: access.quest, profile: access.profile, isMainDM: access.isMainDM, allDMProfiles, allWorlds, questRatings, itemRarities: ITEM_RARITIES, itemCategories: ITEM_CATEGORIES, destroyableInventory, itemUsages, availablePlayers, canApprove };
+	const encounterConfig = await quests.loadEncounterConfig();
+	const linkedPlotQuests = await worlds.plotQuests.listBySystemQuest(params.id);
+
+	let questNotes: Awaited<ReturnType<typeof quests.notes.get>> = null;
+	const questWorldId = (access.quest as any).worldId as string | null;
+	if (questWorldId) {
+		try {
+			questNotes = await quests.notes.ensure(params.id, locals.user!.id);
+		} catch {
+			questNotes = await quests.notes.get(params.id);
+		}
+	}
+
+	return {
+		quest: access.quest,
+		profile: access.profile,
+		isMainDM: access.isMainDM,
+		allDMProfiles,
+		allWorlds,
+		questRatings,
+		itemRarities: ITEM_RARITIES,
+		itemCategories: ITEM_CATEGORIES,
+		destroyableInventory,
+		itemUsages,
+		availablePlayers,
+		canApprove,
+		encounterConfig,
+		linkedPlotQuests,
+		questNotes,
+	};
 };
 
 export const actions: Actions = {
@@ -221,7 +262,10 @@ export const actions: Actions = {
 
 		const data        = await request.formData();
 		const description = data.get('description')?.toString().trim() || undefined;
-		const missionXp   = Number(data.get('missionXp')   ?? 0);
+		const missionXpRaw  = Number(data.get('missionXp') ?? 0);
+		const planJson      = data.get('encounterPlan')?.toString() ?? '';
+		const { missionXp, encounterPlan } = await quests.resolveMissionXp(planJson, missionXpRaw);
+		const milestoneAward = Math.max(0, Number(data.get('milestoneAward') ?? 0));
 		const minCapacity = Number(data.get('minCapacity') ?? 2);
 		const maxCapacity = Number(data.get('maxCapacity') ?? 6);
 		const minLevel    = Number(data.get('minLevel')    ?? 1);
@@ -230,7 +274,7 @@ export const actions: Actions = {
 		try {
 			const regionId   = data.get('regionId')?.toString()   || undefined;
 			const locationId = data.get('locationId')?.toString() || undefined;
-			await quests.update(params.id, { missionXp, minCapacity, maxCapacity, minLevel, maxLevel, regionId, locationId, description }, locals.user!.id);
+			await quests.update(params.id, { missionXp, milestoneAward, encounterPlan, minCapacity, maxCapacity, minLevel, maxLevel, regionId, locationId, description }, locals.user!.id);
 			return { success: true, action: 'details_updated' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
@@ -335,6 +379,38 @@ export const actions: Actions = {
 		try {
 			await quests.addCoDM(params.id, dmProfileId, locals.user!.id);
 			return { success: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveDmNotes: async ({ params, request, locals }) => {
+		const access = await checkDMAccess(params.id, locals.user!.id);
+		if (!access) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const content = data.get('content')?.toString() ?? '';
+		try {
+			await quests.notes.update(params.id, 'dm', content, locals.user!.id);
+			return { success: true, action: 'dm_notes_saved' };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	savePlayerNotes: async ({ params, request, locals }) => {
+		const access = await checkDMAccess(params.id, locals.user!.id);
+		if (!access) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const content = data.get('content')?.toString() ?? '';
+		const publishPlayerNotes = data.get('publishPlayerNotes') === 'on'
+			|| data.get('publishPlayerNotes') === 'true';
+		try {
+			await quests.notes.update(params.id, 'player', content, locals.user!.id, {
+				publishPlayerNotes,
+			});
+			return { success: true, action: 'player_notes_saved' };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
 			throw e;

@@ -3,6 +3,7 @@ import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError } from '@core/errors';
 import { syncBackgroundFeatGrant } from './background-feat-grant.ts';
+import { syncSpeciesTraitGrants } from './species-trait-grants.ts';
 import { createNotificationsForAdmins } from '../notifications/notifications.ts';
 import type { ClassAllocationInput } from './create-character.ts';
 
@@ -18,6 +19,12 @@ export async function submitDnd5eStructuralChanges(
         isGlobal?:     boolean;
     },
     actorId?: string,
+    /**
+     * Pass `preserve` when the submission is resolving a level change, so the
+     * character keeps LEVEL_UP_PENDING / LEVEL_DOWN_PENDING and the approval
+     * messaging stays accurate. Defaults to a plain structural edit.
+     */
+    reasonMode: 'edit' | 'preserve' = 'edit',
 ) {
     const character = await db.character.findUnique({ where: { id }, include: { classes: true, dnd5eSheet: true } });
     if (!character) throw new NotFoundError('Character', id);
@@ -39,9 +46,16 @@ export async function submitDnd5eStructuralChanges(
             update: { pendingChanges: pendingChanges as any },
         });
 
+        const keepReason = reasonMode === 'preserve'
+            && (character.statusReason === 'LEVEL_UP_PENDING' || character.statusReason === 'LEVEL_DOWN_PENDING');
+
         const updated = await tx.character.update({
             where: { id },
-            data:  { status: 'PENDING', statusReason: 'EDIT_PENDING', statusChangedAt: new Date() },
+            data:  {
+                status:          'PENDING',
+                statusReason:    keepReason ? character.statusReason : 'EDIT_PENDING',
+                statusChangedAt: new Date(),
+            },
         });
         await logAudit(tx, { actorId, action: 'UPDATE', resourceKey: 'Character', resourceId: id, before: character, after: updated });
         return updated;
@@ -54,21 +68,23 @@ export async function updateDnd5eCharacterFields(
     input: {
         speciesId?:    string | null;
         backgroundId?: string | null;
+        size?:         string | null;
     },
     actorId?: string,
 ) {
     const character = await db.character.findUnique({ where: { id } });
     if (!character) throw new NotFoundError('Character', id);
 
-    const sheet = await db.dnd5eCharacterSheet.findUnique({ where: { characterId: id }, select: { backgroundId: true } });
+    const sheet = await db.dnd5eCharacterSheet.findUnique({ where: { characterId: id }, select: { speciesId: true, backgroundId: true } });
 
-    return db.$transaction(async (tx) => {
+    await db.$transaction(async (tx) => {
         await tx.dnd5eCharacterSheet.upsert({
             where:  { characterId: id },
-            create: { characterId: id, speciesId: input.speciesId ?? null, backgroundId: input.backgroundId ?? null },
+            create: { characterId: id, speciesId: input.speciesId ?? null, backgroundId: input.backgroundId ?? null, size: input.size ?? null },
             update: {
                 ...(input.speciesId    !== undefined && { speciesId:    input.speciesId    }),
                 ...(input.backgroundId !== undefined && { backgroundId: input.backgroundId }),
+                ...(input.size         !== undefined && { size:         input.size         }),
             },
         });
         // Sync auto-granted background feat when background changes
@@ -77,4 +93,10 @@ export async function updateDnd5eCharacterFields(
         }
         await logAudit(tx, { actorId, action: 'UPDATE', resourceKey: 'Character', resourceId: id, before: character, after: input });
     });
+
+    // Keep species-trait-sourced fixed grants in sync when species changes.
+    // Runs outside the transaction (uses its own internal batched deletes/creates).
+    if (input.speciesId !== undefined) {
+        await syncSpeciesTraitGrants(id, character.gameSystemId, character.level, input.speciesId, sheet?.speciesId ?? null);
+    }
 }

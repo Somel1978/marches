@@ -135,13 +135,14 @@ model FactionRenown {
 }
 
 model FactionQuest {
-  id        String   @id @default(uuid())
-  factionId String   @map("faction_id")
-  faction   Faction  @relation(fields: [factionId], references: [id], onDelete: Cascade)
-  questId   String   @map("quest_id") // quests.Quest — app-level
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String   @id @default(uuid())
+  factionId   String   @map("faction_id")
+  faction     Faction  @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  // world.PlotQuest — app-level (soft ID)
+  plotQuestId String   @map("plot_quest_id")
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  @@unique([factionId, questId])
+  @@unique([factionId, plotQuestId])
   @@map("faction_quests")
   @@schema("factions")
 }
@@ -183,13 +184,14 @@ model Npc {
 }
 
 model NpcQuest {
-  id        String   @id @default(uuid())
-  npcId     String   @map("npc_id")
-  npc       Npc      @relation(fields: [npcId], references: [id], onDelete: Cascade)
-  questId   String   @map("quest_id") // quests.Quest — app-level
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String   @id @default(uuid())
+  npcId       String   @map("npc_id")
+  npc         Npc      @relation(fields: [npcId], references: [id], onDelete: Cascade)
+  // world.PlotQuest — app-level (soft ID)
+  plotQuestId String   @map("plot_quest_id")
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  @@unique([npcId, questId])
+  @@unique([npcId, plotQuestId])
   @@map("npc_quests")
   @@schema("factions")
 }

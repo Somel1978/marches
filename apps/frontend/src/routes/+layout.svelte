@@ -7,6 +7,8 @@
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
 	let menuOpen = $state(false);
+	/** Mobile accordion: which section labels are expanded (all start collapsed). */
+	let mobileOpen = $state<Record<string, boolean>>({});
 
 	// Lightweight sanitizer for admin-set branding {@html} fields.
 	// Strips <script> blocks, event handler attributes, and javascript: URIs.
@@ -28,8 +30,12 @@
 
 	function closeMenu() { menuOpen = false; }
 
-	// Group definitions
-	const groups = [
+	function toggleMobileSection(label: string) {
+		mobileOpen = { ...mobileOpen, [label]: !mobileOpen[label] };
+	}
+
+	// Group definitions (Codex only when user has dnd5eDescriptions read)
+	const groups = $derived([
 		{
 			label: 'Adventure',
 			items: [
@@ -56,16 +62,29 @@
 				{ href: '/tavern',                 label: 'Tavern'         },
 				{ href: '/characters/public',      label: 'Characters'     },
 				{ href: '/tools/dndpointbuy',      label: 'Point Buy'      },
+				{ href: '/tools/eplanner',         label: 'Encounter Planner' },
+				...(data.canViewDescriptions ? [{ href: '/tools/codex', label: 'Codex' }] : []),
 			],
 		},
-	];
+	]);
 
-	// Is any item in this group the current page?
 	function groupActive(items: {href:string}[]) {
 		return items.some(i => $page.url.pathname.startsWith(i.href));
 	}
 	function itemActive(href: string) {
 		return $page.url.pathname.startsWith(href);
+	}
+
+	function openMobileMenu() {
+		// Expand every section that matches the current route; others stay collapsed.
+		const next: Record<string, boolean> = {};
+		for (const g of groups) {
+			next[g.label] = groupActive(g.items);
+		}
+		next['DM'] = itemActive('/dm') || itemActive('/dm-request');
+		next['Account'] = itemActive('/profile');
+		mobileOpen = next;
+		menuOpen = true;
 	}
 </script>
 
@@ -97,7 +116,8 @@
 
 			<!-- Hamburger (mobile) -->
 			<button class="nav-bar__hamburger" aria-label="Toggle menu"
-				aria-expanded={menuOpen} onclick={() => menuOpen = !menuOpen}>
+				aria-expanded={menuOpen}
+				onclick={() => { if (menuOpen) closeMenu(); else openMobileMenu(); }}>
 				{#if menuOpen}
 					<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -155,31 +175,87 @@
 			</div>
 		</nav>
 
-		<!-- Mobile menu -->
+		<!-- Mobile menu — each section independently collapses -->
 		{#if menuOpen}
 			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
 			<div class="nav-mobile-backdrop" onclick={closeMenu} aria-hidden="true"></div>
 			<div class="nav-mobile" role="menu">
 				{#if data.user}
 					{#each groups as group}
-						<p class="nav-mobile__group-title">{group.label}</p>
-						{#each group.items as item}
-							<a href={item.href}
-								class="nav-mobile__link {itemActive(item.href) ? 'nav-link--active' : ''}"
-								onclick={closeMenu}>{item.label}</a>
-						{/each}
+						<div class="nav-mobile__section">
+							<button
+								type="button"
+								class="nav-mobile__group-toggle"
+								class:nav-mobile__group-toggle--active={groupActive(group.items)}
+								class:nav-mobile__group-toggle--open={!!mobileOpen[group.label]}
+								aria-expanded={!!mobileOpen[group.label]}
+								onclick={() => toggleMobileSection(group.label)}
+							>
+								{group.label}
+								<svg class="nav-mobile__chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+									<polyline points="2,4 6,8 10,4"/>
+								</svg>
+							</button>
+							{#if mobileOpen[group.label]}
+								<div class="nav-mobile__section-body">
+									{#each group.items as item}
+										<a href={item.href}
+											class="nav-mobile__link {itemActive(item.href) ? 'nav-link--active' : ''}"
+											onclick={closeMenu}>{item.label}</a>
+									{/each}
+								</div>
+							{/if}
+						</div>
 					{/each}
-					<p class="nav-mobile__group-title">DM</p>
-					{#if (data.user as any).hasDMProfile}
-						<a href="/dm" class="nav-mobile__link" onclick={closeMenu}>DM Hub</a>
-					{:else}
-						<a href="/dm-request" class="nav-mobile__link" onclick={closeMenu}>Become a DM</a>
-					{/if}
-					<hr style="border-color:var(--border-muted); margin:0.5rem 0;" />
-					<a href="/profile" class="nav-mobile__link" onclick={closeMenu}>Profile</a>
-					<form method="post" action="/signout">
-						<button type="submit" class="nav-mobile__link" style="width:100%; text-align:left; background:none; border:none; cursor:pointer;">Sign out</button>
-					</form>
+
+					<div class="nav-mobile__section">
+						<button
+							type="button"
+							class="nav-mobile__group-toggle"
+							class:nav-mobile__group-toggle--active={itemActive('/dm') || itemActive('/dm-request')}
+							class:nav-mobile__group-toggle--open={!!mobileOpen['DM']}
+							aria-expanded={!!mobileOpen['DM']}
+							onclick={() => toggleMobileSection('DM')}
+						>
+							DM
+							<svg class="nav-mobile__chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+								<polyline points="2,4 6,8 10,4"/>
+							</svg>
+						</button>
+						{#if mobileOpen['DM']}
+							<div class="nav-mobile__section-body">
+								{#if (data.user as any).hasDMProfile}
+									<a href="/dm" class="nav-mobile__link {itemActive('/dm') ? 'nav-link--active' : ''}" onclick={closeMenu}>DM Hub</a>
+								{:else}
+									<a href="/dm-request" class="nav-mobile__link {itemActive('/dm-request') ? 'nav-link--active' : ''}" onclick={closeMenu}>Become a DM</a>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					<div class="nav-mobile__section">
+						<button
+							type="button"
+							class="nav-mobile__group-toggle"
+							class:nav-mobile__group-toggle--active={itemActive('/profile')}
+							class:nav-mobile__group-toggle--open={!!mobileOpen['Account']}
+							aria-expanded={!!mobileOpen['Account']}
+							onclick={() => toggleMobileSection('Account')}
+						>
+							Account
+							<svg class="nav-mobile__chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+								<polyline points="2,4 6,8 10,4"/>
+							</svg>
+						</button>
+						{#if mobileOpen['Account']}
+							<div class="nav-mobile__section-body">
+								<a href="/profile" class="nav-mobile__link {itemActive('/profile') ? 'nav-link--active' : ''}" onclick={closeMenu}>Profile</a>
+								<form method="post" action="/signout">
+									<button type="submit" class="nav-mobile__link nav-mobile__link--button">Sign out</button>
+								</form>
+							</div>
+						{/if}
+					</div>
 				{:else}
 					<a href="/login"  class="nav-mobile__link" onclick={closeMenu}>Sign in</a>
 					<a href="/signup" class="nav-mobile__link" onclick={closeMenu}>Sign up</a>

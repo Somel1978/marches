@@ -126,20 +126,25 @@ export async function deleteNpc(id: string, actorId: string) {
     });
 }
 
-// ── Quest / bounty links ──────────────────────────────────────────────────────
+// ── Plot quest links ──────────────────────────────────────────────────────────
 
-export async function addNpcQuest(npcId: string, questId: string, actorId: string) {
-    const quest = await db.quest.findUnique({ where: { id: questId }, select: { id: true } });
-    if (!quest) throw new NotFoundError('Quest', questId);
+export async function addNpcQuest(npcId: string, plotQuestId: string, actorId: string) {
+    const npc = await db.npc.findUnique({ where: { id: npcId }, select: { id: true, worldId: true } });
+    if (!npc) throw new NotFoundError('Npc', npcId);
+    const plot = await db.plotQuest.findFirst({
+        where: { id: plotQuestId, worldId: npc.worldId },
+        select: { id: true },
+    });
+    if (!plot) throw new NotFoundError('PlotQuest', plotQuestId);
     try {
         return await db.$transaction(async (tx) => {
-            const link = await tx.npcQuest.create({ data: { npcId, questId } });
+            const link = await tx.npcQuest.create({ data: { npcId, plotQuestId } });
             await logAudit(tx, { actorId, action: 'CREATE', resourceKey: 'Npc', resourceId: npcId, after: link, metadata: { entity: 'NpcQuest' } });
             return link;
         });
     } catch (e) {
         if (typeof e === 'object' && e !== null && (e as any).code === 'P2002') {
-            throw new ValidationError('This quest is already linked to the NPC.');
+            throw new ValidationError('This plot quest is already linked to the NPC.');
         }
         throw e;
     }

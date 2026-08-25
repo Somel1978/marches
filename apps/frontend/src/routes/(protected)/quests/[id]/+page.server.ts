@@ -15,7 +15,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const myChars  = await characters.getByUserId(locals.user!.id);
 	const eligible = myChars.filter(c => {
 		if (c.status !== 'ACTIVE') return false;
-		const level = (c as any).classes?.reduce((s: number, cc: any) => s + cc.allocatedLevel, 0) ?? 0;
+		// Approved level, matching the server-side gate in quests/signup.ts.
+		const level = c.level ?? 0;
 		return level >= quest.minLevel && level <= quest.maxLevel;
 	});
 
@@ -38,7 +39,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		? await dms.ratings.getForQuest(params.id, locals.user!.id).catch(() => null)
 		: null;
 
-	return { quest, eligible, mySignups, existingRating, ratingsEnabled, resultCharacters };
+	const questNotes = (quest as any).worldId
+		? await quests.notes.get(params.id, { forPlayer: true })
+		: null;
+
+	return { quest, eligible, mySignups, existingRating, ratingsEnabled, resultCharacters, questNotes };
 };
 
 export const actions: Actions = {
