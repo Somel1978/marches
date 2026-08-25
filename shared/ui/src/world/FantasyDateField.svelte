@@ -1,5 +1,6 @@
 <!-- shared/ui/src/world/FantasyDateField.svelte -->
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type { CalendarDef } from './calendar-types.ts';
 	import { formatDate, fromAbsoluteDay, sortedMonths, toAbsoluteDay } from './calendar-engine.ts';
 
@@ -30,8 +31,8 @@
 	const months = $derived(sortedMonths(calendar));
 	const firstYear = $derived(calendar.erasStartOnZero ? 0 : 1);
 
-	let enabled = $state(required || value != null);
-	let year = $state(firstYear);
+	let enabled = $state(untrack(() => required || value != null));
+	let year = $state(untrack(() => firstYear));
 	let monthIndex = $state(0);
 	let day = $state(1);
 	/** Absolute day we last wrote or hydrated — skips echo re-hydration. */

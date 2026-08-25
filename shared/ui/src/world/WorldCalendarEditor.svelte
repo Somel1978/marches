@@ -1,5 +1,6 @@
 <!-- shared/ui/src/world/WorldCalendarEditor.svelte -->
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type { CalendarDef } from './calendar-types.ts';
 	import { formatDate, overviewStats } from './calendar-engine.ts';
 	import FantasyDateField from './FantasyDateField.svelte';
@@ -26,7 +27,7 @@
 	} = $props();
 
 	let section = $state<Section>('overview');
-	let draft = $state<CalendarDef>(cloneCalendar(calendar));
+	let draft = $state<CalendarDef>(untrack(() => cloneCalendar(calendar)));
 	let busy = $state(false);
 	let error = $state('');
 	let previewDay = $state(0);

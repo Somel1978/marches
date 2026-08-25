@@ -195,8 +195,6 @@
 	]);
 	const TERMINAL = new Set(['COMPLETED', 'FAILED', 'MISSED', 'BLOCKED']);
 
-	const availableNodeSet = $derived(new Set(analysis.availableNodeIds ?? []));
-
 	/** Beats open for play (Play tab) */
 	const openBeats = $derived(
 		nodes.filter(n => {
@@ -204,7 +202,6 @@
 			const s = n.state?.status as string | undefined;
 			if (s && TERMINAL.has(s)) return false;
 			if (analysis.availableSceneIds.includes(n.id)) return true;
-			if (availableNodeSet.has(n.id)) return true;
 			return s === 'AVAILABLE' || s === 'ACTIVE';
 		}),
 	);
@@ -1481,9 +1478,6 @@
 		padding: 0.75rem;
 		background: var(--bg-surface);
 	}
-	.pqe__card--scene { background: var(--bg-muted); }
-	.pqe__card--warn { border-color: #ef6c00; }
-	.pqe__card--danger { border-color: #c62828; }
 	.pqe__card-head {
 		display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
 		margin-bottom: 0.35rem;
@@ -1497,20 +1491,6 @@
 		background: var(--bg-surface);
 	}
 
-	.pqe__panel-tabs {
-		display: flex; flex-wrap: wrap; gap: 0.3rem;
-		margin: 0.55rem 0 0.35rem;
-		padding-top: 0.45rem;
-		border-top: 1px solid var(--border-base);
-	}
-	.pqe__count {
-		display: inline-block;
-		margin-left: 0.25rem;
-		padding: 0 0.35rem;
-		border-radius: 0.35rem;
-		background: var(--bg-overlay);
-		font-size: 0.7rem;
-	}
 	.pqe__panel-label {
 		font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
 		letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.35rem;
@@ -1521,12 +1501,9 @@
 		padding: 0.35rem 0.5rem; margin-bottom: 0.25rem; border-radius: 0.4rem;
 		background: var(--bg-muted); border: 1px solid var(--border-base); font-size: 0.85rem;
 	}
-	.pqe__chip--unmet { border-color: #ef6c00; }
 	.pqe__muted { margin: 0.2rem 0 0.4rem; font-size: 0.8rem; color: var(--text-muted); }
 
 	.pqe__inline-add { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; align-items: center; }
-	.pqe__inline-add .input { flex: 1; min-width: 10rem; }
-	.pqe__fail-day { margin: 0.35rem 0; max-width: 28rem; }
 	.pqe__desc { margin: 0.35rem 0 0.55rem; max-width: 36rem; }
 	.pqe__desc .label { margin-bottom: 0.25rem; }
 	.pqe__desc-text {
