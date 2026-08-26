@@ -108,21 +108,21 @@
     grid-template-columns: 72px repeat(7, minmax(72px, 1fr));
     gap: 2px;
     min-width: 640px;
-    background: rgba(255,255,255,0.04);
+    background: var(--viz-track-bg, rgba(255,255,255,0.04));
     border-radius: var(--radius-md);
     padding: 2px;
   }
   .avail-dash__overview-corner { grid-column: 1; height: 36px; }
   .avail-dash__overview-day {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    height: 36px; background: #100800;
+    height: 36px; background: var(--viz-cell-empty, #100800);
   }
-  .avail-dash__overview-day--active { background: rgba(245,175,70,0.12); }
-  .avail-dash__overview-day-name { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(245,175,70,0.9); }
-  .avail-dash__overview-day-date { font-size: 0.5625rem; color: rgba(255,255,255,0.35); }
+  .avail-dash__overview-day--active { background: var(--bg-highlight, rgba(245,175,70,0.12)); }
+  .avail-dash__overview-day-name { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--viz-label, rgba(245,175,70,0.9)); }
+  .avail-dash__overview-day-date { font-size: 0.5625rem; color: var(--text-muted); opacity: 0.7; }
   .avail-dash__overview-label {
     display: flex; align-items: center; padding: 0 0.5rem;
-    font-size: 0.625rem; color: var(--text-muted); background: #100800; min-height: 28px;
+    font-size: 0.625rem; color: var(--text-muted); background: var(--viz-cell-empty, #100800); min-height: 28px;
   }
   .avail-dash__overview-strip {
     display: flex; gap: 1px; height: 28px; border-radius: 2px; overflow: hidden;

@@ -58,7 +58,7 @@ function resolveNavItems(
         });
 }
 
-export const load: LayoutServerLoad = async ({ locals, url }) => {
+export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	if (!locals.user) {
 		const redirectTo = url.pathname !== '/' ? `?redirectTo=${encodeURIComponent(url.pathname)}` : '';
 		redirect(302, `/login${redirectTo}`);
@@ -79,6 +79,10 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		siteName:      settingsMap['site.name']    ?? 'Admin',
 		siteLogo:      settingsMap['site.logo']    ?? '',
 		siteLogoIcon:  settingsMap['site.logoIcon'] ?? '⚔',
+		// Cookie mirrors the value applied by app.html's inline script before
+		// paint — avoids a DB round trip on every layout load just to know
+		// which option to highlight in the theme toggle.
+		theme: cookies.get('adminTheme') ?? 'admin',
 		user: {
 			id:    locals.user.id,
 			name:  locals.user.name,

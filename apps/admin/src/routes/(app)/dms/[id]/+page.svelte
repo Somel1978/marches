@@ -137,7 +137,7 @@
 				<tbody>
 					{#each (data as any).ratings as r}
 						<tr>
-							<td style="color:#f59e0b;">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</td>
+							<td class="star-rating">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</td>
 							<td><a href="/quests/{r.questId}" class="table__name">{r.questTitle ?? r.questId}</a></td>
 							<td class="table__muted">{r.comment ?? '—'}</td>
 							<td class="table__muted">{new Date(r.createdAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}</td>

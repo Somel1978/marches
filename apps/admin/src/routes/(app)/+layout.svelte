@@ -1,6 +1,7 @@
 <!-- apps/admin/src/routes/(app)/+layout.svelte -->
 <script lang="ts">
 	import { AppShell, NavItem, ConfirmModal } from '@core/ui';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import type { LayoutData } from './$types';
 	import type { ResolvedNavItem } from '$lib/nav';
 
@@ -63,6 +64,10 @@
 	notifCount={(data as any).notifCount ?? 0}
 	notifications={(data as any).notifications ?? []}
 >
+	{#snippet actions()}
+		<ThemeToggle currentTheme={(data as any).theme ?? 'admin'} />
+	{/snippet}
+
 	{#snippet nav({ collapsed }: { collapsed: boolean })}
 		{#each navGroups() as group}
 			{#if group.sectionKey === null}

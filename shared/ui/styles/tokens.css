@@ -23,6 +23,35 @@
   --color-danger:       #E05555;
   --color-info:         #3A6B8B;
 
+  /* Tinted-background variants — for inline alert/notice boxes (e.g. a
+     warning banner) that need a soft background wash + the solid colour
+     for text/border, instead of a page hand-rolling its own rgba() of
+     the warning colour (which silently drifts from the theme colour and
+     was happening in several places before this token existed). Derived
+     automatically via colour-mix so every theme gets a consistent wash
+     without four more hex values to maintain per theme. */
+  --color-success-dim: color-mix(in srgb, var(--color-success) 12%, transparent);
+  --color-warning-dim: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  --color-danger-dim:  color-mix(in srgb, var(--color-danger)  12%, transparent);
+  --color-info-dim:    color-mix(in srgb, var(--color-info)    12%, transparent);
+
+  /* Star-rating colour — a fixed warm gold used consistently for rating
+     stars everywhere in the app (character sheets, DM/quest reviews),
+     independent of the active theme's accent — same rationale as the
+     wizard's origin/epic/fighting category tags: the meaning ("this is
+     a star rating") should look the same regardless of theme. Previously
+     hardcoded as a literal #f59e0b in four separate files; centralising
+     it here means every one of those reads the same value from one
+     place instead of four copies that could silently drift apart. */
+  --color-rating: #F59E0B;
+
+  /* ASI/feat "bonus" indicator colour — a fixed purple used wherever the
+     wizard/point-buy tools show an ability-score bonus granted by a feat
+     or racial trait, independent of theme (same rationale as
+     --color-rating above). Previously eleven separate literal copies of
+     #8E44AD / rgba(142,68,173,*) across three files. */
+  --color-bonus: #8E44AD;
+
   /* Radii */
   --radius-sm:  4px;
   --radius-md:  8px;
@@ -44,22 +73,120 @@
      Use: color: var(--accent-text) on any element with background: var(--accent). */
   --accent-text:       #FFFFFF;
   --accent-text-hover: #FFFFFF;
+
+  /* Secondary solid accent — optional second brand colour for a two-tone
+     button pair (e.g. crimson primary + gold secondary). Falls back to
+     the main accent so .btn-secondary never renders unstyled on themes
+     that don't define a second colour. */
+  --accent-secondary:       var(--brand-accent);
+  --accent-secondary-light: var(--brand-accent-light);
+  --accent-secondary-text:  #FFFFFF;
+
+  /* Card shadow — most themes want a soft lift on .card-elevated; flatter
+     themes can set this to "none". */
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+
+  /* Page body background — accepts the full CSS `background` shorthand
+     (layered gradients, repeating patterns, etc.), not just a flat
+     colour. Falls back to --bg-base via base.css's `background:
+     var(--body-background, var(--bg-base))`, so themes that don't set
+     this render exactly as before. Themes that want an atmospheric,
+     textured page background (see admin-crimsonportal /
+     frontend-crimsonportal) override this with a full multi-layer value.
+     --body-background-blend pairs with it when the layers are meant to
+     blend into each other (e.g. "overlay, screen, normal") rather than
+     simply stack — defaults to "normal" (plain stacking) so themes that
+     only set --body-background don't need to think about blend modes.
+
+     --bg-shell-fill exists because the app's top-level layout wrapper
+     (.shell in AppShell.svelte) previously painted an opaque
+     background-color across the full viewport height on every page,
+     completely occluding <body>'s background regardless of what it was
+     set to. Falls back to --bg-base (today's behaviour, unchanged) —
+     any theme that sets --body-background must also set this to
+     "transparent" or the atmospheric background will never be visible
+     behind the app shell. */
+  --bg-shell-fill: var(--bg-base);
+
+  /* ── Surface elevation ladder ───────────────────────────────
+     bg-base → bg-surface → bg-overlay → bg-muted only gave 4 flat
+     steps, and on dark themes with subtle contrast between them
+     (surface vs overlay especially) UI elements built on those two
+     steps — active nav state, hover state, popovers — read as
+     nearly invisible. These two new steps give components an
+     explicit "raised" tier above overlay for anything that needs to
+     visually separate from a card it sits inside (e.g. a nested
+     table row, an inset panel), and a dedicated "highlight" wash for
+     hover/active backgrounds so that state doesn't have to borrow
+     bg-overlay and fight for contrast with popovers that also use it.
+     Falls back to bg-overlay so themes that don't override these
+     render exactly as before — no regression — but any theme that
+     wants stronger active/hover contrast (see admin-crimsonportal,
+     frontend-crimsonportal) should set both explicitly. */
+  --bg-raised:    var(--bg-overlay);
+  --bg-highlight: var(--bg-overlay);
+
+  /* ── Interactive state tokens ────────────────────────────────
+     Dedicated colours for hover/active backgrounds and text, so
+     these states don't have to be inferred from bg-overlay +
+     accent-light on every theme. Falls back to the existing
+     accent-based behaviour when unset. */
+  --state-hover-bg:      var(--bg-highlight);
+  --state-active-bg:     var(--bg-highlight);
+  --state-active-border: var(--accent);
+  --state-active-text:   var(--accent-light);
+
+  /* ── Data visualisation palette ──────────────────────────────
+     Reserved, theme-driven colours for charts, heatmaps, and
+     activity grids — anything that needs a colour ramp rather than
+     a single accent. Components must read these instead of
+     hardcoding hex values, or they silently ignore the active theme
+     (see shared/ui/styles/components/availability.css pre-fix).
+     Every theme should override at least --viz-scale-1..5; the rest
+     have sane fallbacks derived from the main accent. */
+  --viz-track-bg:   rgba(255, 255, 255, 0.04);
+  --viz-cell-empty: var(--bg-muted);
+  --viz-scale-1:    color-mix(in srgb, var(--accent) 12%, transparent);
+  --viz-scale-2:    color-mix(in srgb, var(--accent) 32%, transparent);
+  --viz-scale-3:    color-mix(in srgb, var(--accent) 55%, transparent);
+  --viz-scale-4:    color-mix(in srgb, var(--accent) 78%, transparent);
+  --viz-scale-5:    var(--accent);
+  --viz-label:      var(--text-muted);
+  --viz-label-active: var(--accent-light);
+
+  /* ── Data series palette — multi-series charts (AreaChart, future
+     bar/line charts) ───────────────────────────────────────────────
+     A 6-colour cycle so any chart with up to 6 series gets a distinct,
+     theme-appropriate colour per series without the chart component
+     ever hardcoding a hex value (see shared/ui/src/charts/AreaChart.svelte).
+     Defaults derive from the existing semantic/brand tokens so every
+     theme gets a reasonable palette automatically; themes with a
+     distinct multi-hue identity (e.g. Crimson Portal's crimson/gold/
+     cream) should override all 6 explicitly for a curated look. */
+  --chart-series-1: var(--accent);
+  --chart-series-2: var(--brand-accent);
+  --chart-series-3: var(--color-info);
+  --chart-series-4: var(--color-success);
+  --chart-series-5: var(--color-warning);
+  --chart-series-6: var(--color-bonus, #8E44AD);
+  --chart-area-opacity: 0.22;
+  --chart-line-width: 2.5;
 }
 
 /* ── Frontend theme — Warm, immersive, inviting ───────────── */
 /* Default theme — hardcoded as "Default" in themes.ts, no theme-name comment needed */
 [data-theme="frontend"] {
   --bg-base:     #14171C;
-  --bg-surface:  #1E2228;
-  --bg-overlay:  #252B33;
-  --bg-muted:    #2A3040;
+  --bg-surface:  #22262E;
+  --bg-overlay:  #2B303A;
+  --bg-muted:    #333A48;
 
   --text-primary:   #F3E9DC;
   --text-secondary: #C4B5A5;
   --text-muted:     #8A7D72;
   --text-disabled:  #5A504A;
 
-  --border-base:   rgba(184, 115, 74, 0.15);
+  --border-base:   rgba(184, 115, 74, 0.22);
   --border-muted:  rgba(243, 233, 220, 0.08);
   --border-accent: rgba(184, 115, 74, 0.40);
 
@@ -70,22 +197,26 @@
   --parchment: rgba(243, 233, 220, 0.03);
   --accent-text:       #FFFFFF;
   --accent-text-hover: #F3E9DC;
+
+  /* Elevation: overlay → raised → highlight, each a visible step up */
+  --bg-raised:    #363D49;
+  --bg-highlight: rgba(184, 115, 74, 0.14);
 }
 
 /* ── Admin theme — Professional, focused, efficient ──────── */
 [data-theme="admin"] {
-  --bg-base:     #0F1216;
-  --bg-surface:  #1B1F25;
-  --bg-overlay:  #2A2F37;
-  --bg-muted:    #333A44;
+  --bg-base:     #0B0D10;
+  --bg-surface:  #1C2027;
+  --bg-overlay:  #2B313A;
+  --bg-muted:    #363E4A;
 
   --text-primary:   #AEB4BD;
   --text-secondary: #7E8694;
   --text-muted:     #555D6B;
   --text-disabled:  #3A4050;
 
-  --border-base:   rgba(174, 180, 189, 0.10);
-  --border-muted:  rgba(174, 180, 189, 0.06);
+  --border-base:   rgba(174, 180, 189, 0.16);
+  --border-muted:  rgba(174, 180, 189, 0.08);
   --border-accent: rgba(184, 115, 74, 0.35);
 
   --accent:       var(--brand-accent);
@@ -93,11 +224,107 @@
   --accent-dim:   var(--brand-accent-dim);
   --accent-text:       #FFFFFF;
   --accent-text-hover: #AEB4BD;
+
+  /* Elevation: overlay → raised → highlight, each a visible step up */
+  --bg-raised:    #3E4652;
+  --bg-highlight: rgba(184, 115, 74, 0.14);
 }
 
-/* ── Custom user themes ───────────────────────────────────── */
-/* Convention: theme-name comment must appear on the line
-   immediately before the data-theme selector — no CSS between them. */
+/* ── Custom admin themes ──────────────────────────────────── */
+/* Same convention as frontend: a "theme-name:" comment line immediately
+   before [data-theme="admin-*"] makes it selectable in the admin theme toggle. */
+
+/* theme-name: Crimson Portal */
+[data-theme="admin-crimsonportal"] {
+  --bg-base:            #080808;  /* Near-black portal void */
+  --bg-surface:         #161616;  /* Panel / card surface */
+  --bg-overlay:         #232323;  /* Popover / dropdown layer — clearly lighter than surface */
+  --bg-muted:           #2C2C2C;  /* Muted separator / input bg */
+  --bg-raised:          #333333;  /* One step above overlay — nested rows, inset panels */
+  --bg-highlight:       rgba(209, 177, 91, 0.10);  /* Gold-tinted hover/active wash */
+
+  --text-primary:       #F4F0E8;  /* Warm off-white */
+  --text-secondary:     #A7A29A;  /* Muted warm grey */
+  --text-muted:         #726F68;  /* Dim warm grey */
+  --text-disabled:      #454340;
+
+  --border-base:        rgba(244, 240, 232, 0.12);  /* Tinted with text-primary (not pure white) — matches the reference ring-foreground/10 technique */
+  --border-muted:       rgba(244, 240, 232, 0.06);
+  --border-accent:      rgba(166, 25, 53, 0.45);  /* Crimson accent border */
+
+  --accent:             #A61935;  /* Deep crimson — primary */
+  --accent-light:       #C94A4A;  /* Brighter red hover */
+  --accent-dim:         rgba(166, 25, 53, 0.18);
+
+  /* Secondary solid accent (gold) — this theme pairs a crimson primary
+     action with a gold secondary action (e.g. "New Listing" / "Generate
+     Report"). Only themes that define these get a .btn-secondary fill;
+     other themes fall back to .btn-ghost styling (see ui.css). */
+  --accent-secondary:       #D1B15B;
+  --accent-secondary-light: #E7C67A;
+  --accent-secondary-text:  #231A0D;
+
+  --brand-accent:       #D1B15B;  /* Warm gold — secondary/brand */
+  --brand-accent-light: #E7C67A;
+  --brand-accent-dim:   rgba(209, 177, 91, 0.20);
+
+  --accent-text:        #FFF6E3;  /* Light warm text on crimson fill */
+  --accent-text-hover:  #FFF6E3;
+
+  /* Nav / interactive state — active nav item in the reference uses a
+     gold-tinted fill with a crimson accent border, not a barely-visible
+     shade of the surface colour. */
+  --state-hover-bg:      var(--bg-raised);
+  --state-active-bg:     rgba(209, 177, 91, 0.12);
+  --state-active-border: var(--accent);
+  --state-active-text:   var(--accent-secondary-light);
+
+  --color-success:      #4A8C5C;
+  --color-warning:      #D1B15B;  /* Gold, matches theme accent */
+  --color-danger:       #C94A4A;
+  --color-info:         #3A6B8B;
+
+  --parchment:          rgba(209, 177, 91, 0.03);
+
+  /* Data viz — amber/gold ramp matching the reference heatmap, not the
+     crimson primary accent (crimson is reserved for primary actions). */
+  --viz-track-bg:     rgba(255, 255, 255, 0.05);
+  --viz-cell-empty:   #1A1108;
+  --viz-scale-1:      rgba(209, 177, 91, 0.14);
+  --viz-scale-2:      rgba(209, 177, 91, 0.35);
+  --viz-scale-3:      rgba(209, 177, 91, 0.58);
+  --viz-scale-4:      rgba(209, 177, 91, 0.80);
+  --viz-scale-5:      #D1B15B;
+  --viz-label:        rgba(209, 177, 91, 0.65);
+  --viz-label-active: #D1B15B;
+
+  /* Data series palette — gold/crimson/cream, matching the reference
+     "Revenue by Tier" chart exactly (Premium=gold, Standard=crimson,
+     Basic=cream), with 3 more hues for charts needing more series. */
+  --chart-series-1: #D1B15B;  /* gold — primary series */
+  --chart-series-2: #A61935;  /* crimson — secondary series */
+  --chart-series-3: #F4F0E8;  /* warm cream — tertiary series */
+  --chart-series-4: #4A8C5C;  /* muted green */
+  --chart-series-5: #3A6B8B;  /* muted blue */
+  --chart-series-6: #8E44AD;  /* bonus purple, matches --color-bonus */
+  --chart-area-opacity: 0.25;
+  --chart-line-width: 3;
+
+  /* Tighter, flatter geometry — the reference UI uses small radii and no
+     card drop-shadow, which reads noticeably flatter than the default
+     rounder/softer admin look. Scoped to this theme only. */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 7px;
+  --radius-xl: 10px;
+  --card-shadow: none;
+
+  /* Deliberately no --body-background here — the atmospheric gradient
+     is a frontend-only effect (see frontend-crimsonportal). The admin
+     app keeps a flat --bg-base body fill via the default fallback in
+     base.css / AppShell.svelte, even though this theme shares the same
+     crimson/gold accent palette. */
+}
 
 /* theme-name: Emerald & Gold */
 [data-theme="frontend-emerald"] {
@@ -355,4 +582,98 @@
   --color-info:         #3A6A8C;
 
   --parchment:          rgba(196, 122, 58, 0.04);
+}
+
+/* theme-name: Crimson Portal */
+[data-theme="frontend-crimsonportal"] {
+  --bg-base:            #080808;  /* Near-black portal void */
+  --bg-surface:         #161616;  /* Panel / card surface */
+  --bg-overlay:         #232323;  /* Popover / dropdown layer — clearly lighter than surface */
+  --bg-muted:           #2C2C2C;  /* Muted separator / input bg */
+  --bg-raised:          #333333;  /* One step above overlay — nested rows, inset panels */
+  --bg-highlight:       rgba(209, 177, 91, 0.10);  /* Gold-tinted hover/active wash */
+
+  --text-primary:       #F4F0E8;  /* Warm off-white */
+  --text-secondary:     #A7A29A;  /* Muted warm grey */
+  --text-muted:         #726F68;  /* Dim warm grey */
+  --text-disabled:      #454340;
+
+  --border-base:        rgba(244, 240, 232, 0.12);  /* Tinted with text-primary (not pure white) — matches the reference ring-foreground/10 technique */
+  --border-muted:       rgba(244, 240, 232, 0.06);
+  --border-accent:      rgba(166, 25, 53, 0.45);  /* Crimson accent border */
+
+  --accent:             #A61935;  /* Deep crimson — primary */
+  --accent-light:       #C94A4A;  /* Brighter red hover */
+  --accent-dim:         rgba(166, 25, 53, 0.18);
+
+  --accent-secondary:       #D1B15B;
+  --accent-secondary-light: #E7C67A;
+  --accent-secondary-text:  #231A0D;
+
+  --brand-accent:       #D1B15B;  /* Warm gold — secondary/brand */
+  --brand-accent-light: #E7C67A;
+  --brand-accent-dim:   rgba(209, 177, 91, 0.20);
+
+  --accent-text:        #FFF6E3;  /* Light warm text on crimson fill */
+  --accent-text-hover:  #FFF6E3;
+
+  --state-hover-bg:      var(--bg-raised);
+  --state-active-bg:     rgba(209, 177, 91, 0.12);
+  --state-active-border: var(--accent);
+  --state-active-text:   var(--accent-secondary-light);
+
+  --color-success:      #4A8C5C;
+  --color-warning:      #D1B15B;  /* Gold, matches theme accent */
+  --color-danger:       #C94A4A;
+  --color-info:         #3A6B8B;
+
+  --parchment:          rgba(209, 177, 91, 0.03);
+
+  --viz-track-bg:     rgba(255, 255, 255, 0.05);
+  --viz-cell-empty:   #1A1108;
+  --viz-scale-1:      rgba(209, 177, 91, 0.14);
+  --viz-scale-2:      rgba(209, 177, 91, 0.35);
+  --viz-scale-3:      rgba(209, 177, 91, 0.58);
+  --viz-scale-4:      rgba(209, 177, 91, 0.80);
+  --viz-scale-5:      #D1B15B;
+  --viz-label:        rgba(209, 177, 91, 0.65);
+  --viz-label-active: #D1B15B;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 7px;
+  --radius-xl: 10px;
+  --card-shadow: none;
+
+  /* Atmospheric page background — subtle diagonal hairline texture, a
+     faint crimson-to-black wash, and a soft crimson radial glow behind
+     the content. The radial's alpha values (rather than solid hex) are
+     what keep the peak from reading as a fully-saturated solid-red
+     blob — the geometric colour-stop falloff alone wasn't enough
+     tapering, since 0–35% of the radius was previously fully opaque. */
+  --body-background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.035) 0px,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 5px
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 50, 70, 0.08) 0%,
+      transparent 40%,
+      rgba(0, 0, 0, 0.6) 100%
+    ),
+    radial-gradient(
+      ellipse 90% 70% at 50% 65%,
+      rgba(140, 15, 40, 0.55) 0%,
+      rgba(90, 6, 24, 0.45) 35%,
+      rgba(43, 2, 11, 0.30) 60%,
+      rgba(8, 1, 3, 0.15) 85%,
+      transparent 100%
+    )
+    #050102;
+  --body-background-blend: overlay, screen, normal;
+  --bg-shell-fill: transparent;  /* let <body>'s atmospheric background show through the app shell */
 }

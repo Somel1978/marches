@@ -686,7 +686,7 @@
 .wiz-tag--general  { background: var(--bg-muted); color: var(--text-muted); border-color: var(--border-muted); }
 .wiz-tag--origin   { background: rgba(58,107,139,0.18); color: #6BAAC5; border-color: rgba(58,107,139,0.30); }
 .wiz-tag--fighting { background: var(--accent-dim, rgba(184,115,74,0.15)); color: var(--accent-light); border-color: var(--border-accent); }
-.wiz-tag--epic     { background: rgba(142,68,173,0.15); color: #BF7EE0; border-color: rgba(142,68,173,0.30); }
+.wiz-tag--epic     { background: color-mix(in srgb, var(--color-bonus) 15%, transparent); color: color-mix(in srgb, var(--color-bonus) 70%, white); border-color: color-mix(in srgb, var(--color-bonus) 30%, transparent); }
 
 /* ── Mobile ─────────────────────────────────────────────────────*/
 @media (max-width: 768px) {

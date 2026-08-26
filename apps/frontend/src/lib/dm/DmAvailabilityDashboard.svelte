@@ -39,6 +39,75 @@
 		embedded = false,
 	}: Props = $props();
 
+	// Heatmap gradient stops — read from the active theme's --viz-scale-1..5
+	// tokens (plus --viz-cell-empty for zero-count cells) instead of a
+	// hardcoded palette, so the heatmap follows whichever theme is active
+	// rather than always rendering the same fixed amber ramp.
+	const FALLBACK_STOPS: [number, number, number][] = [
+		[24, 12, 4],
+		[70, 35, 10],
+		[120, 58, 16],
+		[175, 95, 24],
+		[220, 140, 36],
+		[248, 185, 65],
+	];
+	const FALLBACK_EMPTY = '#180a02';
+
+	function parseRgb(css: string): [number, number, number] | null {
+		// Resolves any valid CSS color (hex, rgb(), rgba(), color-mix() with
+		// transparency, etc.) to opaque RGB by compositing over the current
+		// --bg-surface — most --viz-scale-* tokens are translucent (mixed
+		// with `transparent`), and reading only the r/g/b channels without
+		// compositing alpha would make low-density stops render far too
+		// saturated compared to what's actually visible on screen.
+		const probe = document.createElement('span');
+		probe.style.color = css;
+		document.body.appendChild(probe);
+		const resolved = getComputedStyle(probe).color;
+		document.body.removeChild(probe);
+		const m = resolved.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/);
+		if (!m) return null;
+		const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
+		const a = m[4] !== undefined ? Number(m[4]) : 1;
+		if (a >= 1) return [r, g, b];
+
+		const bgVal = getComputedStyle(document.documentElement).getPropertyValue('--bg-surface').trim();
+		const bg = bgVal ? parseOpaqueRgb(bgVal) : [23, 23, 23];
+		return [0, 1, 2].map(i => Math.round(([r, g, b][i]) * a + bg[i] * (1 - a))) as [number, number, number];
+	}
+
+	function parseOpaqueRgb(css: string): [number, number, number] {
+		const probe = document.createElement('span');
+		probe.style.color = css;
+		document.body.appendChild(probe);
+		const resolved = getComputedStyle(probe).color;
+		document.body.removeChild(probe);
+		const m = resolved.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)/);
+		return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [23, 23, 23];
+	}
+
+	let C = $state<[number, number, number][]>(FALLBACK_STOPS);
+	let emptyColor = $state(FALLBACK_EMPTY);
+
+	$effect(() => {
+		// Runs client-side only (getComputedStyle needs a live DOM node) —
+		// resolves the theme's viz tokens once per mount/theme-change.
+		const root = getComputedStyle(document.documentElement);
+		const readVar = (name: string) => root.getPropertyValue(name).trim();
+
+		const scaleVars = ['--viz-scale-1', '--viz-scale-2', '--viz-scale-3', '--viz-scale-4', '--viz-scale-5']
+			.map(readVar)
+			.filter(Boolean);
+
+		if (scaleVars.length === 5) {
+			const parsed = scaleVars.map(parseRgb).filter((v): v is [number, number, number] => v !== null);
+			if (parsed.length === 5) C = [FALLBACK_STOPS[0], ...parsed];
+		}
+
+		const emptyVar = readVar('--viz-cell-empty');
+		if (emptyVar) emptyColor = emptyVar;
+	});
+
 	const weekStart = $derived(new Date(weekStartIso));
 	const maxCount = $derived(Math.max(1, ...Object.values(heatmapData ?? {}).map(Number)));
 	const HOUR_MARKS = [0, 6, 12, 18, 24];
@@ -95,15 +164,6 @@
 		goto(basePath);
 	}
 
-	const C: [number, number, number][] = [
-		[24, 12, 4],
-		[70, 35, 10],
-		[120, 58, 16],
-		[175, 95, 24],
-		[220, 140, 36],
-		[248, 185, 65],
-	];
-
 	function lerpColor(t: number) {
 		const s = Math.max(0, Math.min(1, t)) * 5;
 		const lo = Math.floor(s);
@@ -115,7 +175,7 @@
 
 	function densityColor(di: number, si: number) {
 		const count = heatmapData?.[`${di}:${si}`] ?? 0;
-		if (count === 0) return '#180a02';
+		if (count === 0) return emptyColor;
 		return lerpColor(count / maxCount);
 	}
 

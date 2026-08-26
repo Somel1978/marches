@@ -268,7 +268,7 @@
 								{#each [1,2,3,4,5] as n}
 									<button
 										type="button"
-										style="background:none; border:none; cursor:pointer; font-size:1.75rem; padding:0 0.125rem; line-height:1; color:{n <= selectedRating ? '#f59e0b' : 'var(--text-muted)'};"
+										style="background:none; border:none; cursor:pointer; font-size:1.75rem; padding:0 0.125rem; line-height:1; color:{n <= selectedRating ? 'var(--color-rating)' : 'var(--text-muted)'};"
 										aria-label="{n} star{n > 1 ? 's' : ''}"
 										onclick={() => selectedRating = n}>
 										{n <= selectedRating ? '★' : '☆'}

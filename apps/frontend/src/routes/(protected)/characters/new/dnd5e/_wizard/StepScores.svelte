@@ -89,10 +89,10 @@
 						</div>
 						{#if ws.bonusGranted > 0}
 							<div style="display:flex;gap:4px;justify-content:center;margin-top:2px;">
-								<button type="button" class="wizard-ctrl-btn" style="border-color:rgba(142,68,173,0.4);" disabled={!ws.canBonusDec(st)} onclick={() => ws.bonusDec(st)}>−</button>
-								<button type="button" class="wizard-ctrl-btn" style="border-color:rgba(142,68,173,0.4);" disabled={!ws.canBonusInc(st)} onclick={() => ws.bonusInc(st)}>+</button>
+								<button type="button" class="wizard-ctrl-btn" style="border-color:color-mix(in srgb, var(--color-bonus) 40%, transparent);" disabled={!ws.canBonusDec(st)} onclick={() => ws.bonusDec(st)}>−</button>
+								<button type="button" class="wizard-ctrl-btn" style="border-color:color-mix(in srgb, var(--color-bonus) 40%, transparent);" disabled={!ws.canBonusInc(st)} onclick={() => ws.bonusInc(st)}>+</button>
 							</div>
-							{#if ws.bonus[st]}<p style="font-size:0.625rem;color:#BF7EE0;margin:2px 0 0;text-align:center;">+{ws.bonus[st]} bonus</p>{/if}
+							{#if ws.bonus[st]}<p style="font-size:0.625rem;color:var(--color-bonus);margin:2px 0 0;text-align:center;">+{ws.bonus[st]} bonus</p>{/if}
 						{/if}
 					</div>
 				{/each}

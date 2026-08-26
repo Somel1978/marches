@@ -39,10 +39,10 @@
 
 	<!-- Warning if no thresholds configured -->
 	{#if !thresholds.length}
-		<div style="padding:0.75rem 1rem;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.4);border-radius:var(--radius-md);margin-bottom:1rem;display:flex;gap:0.75rem;align-items:flex-start;">
+		<div style="padding:0.75rem 1rem;background:var(--color-warning-dim);border:1px solid color-mix(in srgb, var(--color-warning) 40%, transparent);border-radius:var(--radius-md);margin-bottom:1rem;display:flex;gap:0.75rem;align-items:flex-start;">
 			<span style="font-size:1.25rem;flex-shrink:0;">⚠️</span>
 			<div>
-				<p style="font-weight:700;margin:0 0 0.25rem;color:#ca8a04;">No progression thresholds configured</p>
+				<p style="font-weight:700;margin:0 0 0.25rem;color:var(--color-warning);">No progression thresholds configured</p>
 				<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0;">Characters cannot gain XP, level up, or be created above level 1 until at least one threshold is added. Add thresholds below before activating this game system.</p>
 			</div>
 		</div>
@@ -68,7 +68,7 @@
 			</p>
 		</form>
 		{#if thresholds.length && !milestoneLadderSet}
-			<div style="margin-top:0.75rem;padding:0.75rem 1rem;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.4);border-radius:var(--radius-md);">
+			<div style="margin-top:0.75rem;padding:0.75rem 1rem;background:var(--color-warning-dim);border:1px solid color-mix(in srgb, var(--color-warning) 40%, transparent);border-radius:var(--radius-md);">
 				<p style="font-size:0.8125rem;color:var(--text-secondary);margin:0;">
 					No milestone requirements are set below, so milestone levelling is inert —
 					characters on milestone progression will not gain levels until you fill in the Milestones column.

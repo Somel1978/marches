@@ -54,8 +54,8 @@
 		</div>
 
 		{#if (form as any)?.success}
-			<div class="card" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);margin-bottom:1rem;padding:0.75rem;">
-				<p style="color:#16a34a;font-weight:600;margin:0;">✅ Purchase submitted — awaiting approval.</p>
+			<div class="card" style="background:var(--color-success-dim);border-color:color-mix(in srgb, var(--color-success) 30%, transparent);margin-bottom:1rem;padding:0.75rem;">
+				<p style="color:var(--color-success);font-weight:600;margin:0;">✅ Purchase submitted — awaiting approval.</p>
 			</div>
 		{/if}
 		{#if (form as any)?.message}

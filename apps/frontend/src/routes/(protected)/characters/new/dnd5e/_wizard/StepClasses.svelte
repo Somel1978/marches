@@ -383,7 +383,7 @@
 										<span class="feat-row__level" style="color:{past ? 'var(--accent-light)' : 'var(--text-muted)'};">{feat.level}</span>
 										<span class="feat-row__name" style="color:{past ? 'var(--text-primary)' : 'var(--text-muted)'};">{feat.name}</span>
 										<span class="feat-row__source">
-											<span class="badge" style="font-size:0.5625rem;background:{feat.sourceType === 'subclass' ? 'rgba(142,68,173,0.15)' : 'rgba(184,115,74,0.12)'};color:{feat.sourceType === 'subclass' ? '#BF7EE0' : 'var(--accent-light)'};">{feat.source}</span>
+											<span class="badge" style="font-size:0.5625rem;background:{feat.sourceType === 'subclass' ? 'color-mix(in srgb, var(--color-bonus) 15%, transparent)' : 'var(--accent-dim)'};color:{feat.sourceType === 'subclass' ? 'var(--color-bonus)' : 'var(--accent-light)'};">{feat.source}</span>
 										</span>
 										<span class="feat-row__chevron" class:feat-row__chevron--open={open}>▶</span>
 									</button>
