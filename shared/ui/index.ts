@@ -71,3 +71,11 @@ export {
 } from './src/gamesystems/dnd5e/spell-display.ts';
 export { generateFantasyName }               from './src/gamesystems/dnd5e/name-generator.ts';
 export { isAsiFeatureName, isEpicBoonFeatureName, normalizeFeatureName } from './src/gamesystems/dnd5e/feature-names.ts';
+
+// Charts
+export { default as AreaChart }  from './src/charts/AreaChart.svelte';
+export type { ChartPoint, ChartSeries } from './src/charts/AreaChart.svelte';
+export { default as LineChart }  from './src/charts/LineChart.svelte';
+export { default as BarChart }   from './src/charts/BarChart.svelte';
+export { default as DonutChart } from './src/charts/DonutChart.svelte';
+export type { DonutSlice } from './src/charts/DonutChart.svelte';

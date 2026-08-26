@@ -2,12 +2,18 @@
 import { Prisma } from '@prisma/client';
 import { db } from '../../../index.ts';
 
+// Matches the ItemRarity enum order in shared/database/prisma/marketplace.prisma.
+// "Unknown" is deliberately excluded — it's a data-quality fallback, not a
+// real rarity tier, and has no place on a chart meant to show the rarity ladder.
+const RARITY_ORDER = ['Mundane', 'Common', 'Uncommon', 'Rare', 'Very_Rare', 'Legendary', 'Artifact'] as const;
+
 // ── Platform-wide stats ───────────────────────────────────────────────────────
 export async function getPlatformStats() {
     const [
         totalUsers, totalCharacters, totalWorlds,
         questsByStatus, recentCompletions,
         salesStats, purchaseStats,
+        itemsByRarity,
     ] = await Promise.all([
         db.user.count(),
         db.character.count(),
@@ -29,6 +35,17 @@ export async function getPlatformStats() {
             where: { type: 'BUY', status: 'APPROVED' },
             _sum: { totalPrice: true }, _avg: { totalPrice: true }, _count: { id: true },
         }),
+        // Item count and price stats per rarity — the marketplace catalog
+        // itself (MarketplaceItem.buyPrice), not transaction history: how
+        // many items exist at each rarity, and what they actually cost.
+        db.marketplaceItem.groupBy({
+            by: ['rarity'],
+            where: { isAvailable: true },
+            _count: { id: true },
+            _avg: { buyPrice: true },
+            _min: { buyPrice: true },
+            _max: { buyPrice: true },
+        }),
     ]);
 
     const statusMap = Object.fromEntries(questsByStatus.map(q => [q.status, q._count.id]));
@@ -49,6 +66,20 @@ export async function getPlatformStats() {
             average: purchaseStats._avg.totalPrice ?? 0,
             count:   purchaseStats._count.id,
         },
+        // Item count vs. price per rarity — ordered along the game's rarity
+        // ladder (not alphabetically) so the chart reads left-to-right as
+        // "common and cheap" through "rare and expensive". Rarities with
+        // zero available items are omitted rather than plotted as zero.
+        itemsByRarity: RARITY_ORDER
+            .map(rarity => itemsByRarity.find(r => r.rarity === rarity))
+            .filter((r): r is (typeof itemsByRarity)[number] => r !== undefined)
+            .map(r => ({
+                rarity:   r.rarity,
+                count:    r._count.id,
+                avgPrice: r._avg.buyPrice ?? 0,
+                minPrice: r._min.buyPrice ?? 0,
+                maxPrice: r._max.buyPrice ?? 0,
+            })),
     };
 }
 

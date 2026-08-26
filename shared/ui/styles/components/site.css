@@ -4,7 +4,19 @@
 @layer components {
 
   /* ── Frontend site layout ───────────────────────────────── */
-  .site { display: flex; flex-direction: column; min-height: 100dvh; background-color: var(--bg-base); color: var(--text-primary); }
+  .site {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    /* See --bg-shell-fill in tokens.css — falls back to --bg-base so every
+       theme without an atmospheric --body-background renders unchanged;
+       themes that do set one (e.g. frontend-crimsonportal) set this to
+       "transparent" so <body>'s background is actually visible instead of
+       being fully occluded by this top-level wrapper, on every page,
+       exactly as .shell in AppShell.svelte did for the admin app. */
+    background-color: var(--bg-shell-fill, var(--bg-base));
+    color: var(--text-primary);
+  }
 
   .site__nav {
     position: sticky;

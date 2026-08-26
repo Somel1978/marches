@@ -16,7 +16,7 @@
     border: 1px solid var(--border-base);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--card-shadow, 0 4px 24px rgba(0, 0, 0, 0.3));
   }
 
   .card-parchment {
@@ -48,6 +48,12 @@
   .btn-primary { background-color: var(--accent); color: var(--accent-text, #fff); }
   .btn-primary:hover:not(:disabled) { background-color: var(--accent-light); color: var(--accent-text-hover, var(--bg-base)); }
 
+  /* Second solid accent for a two-tone button pair — see --accent-secondary
+     in tokens.css. Falls back to the main brand colour on themes that
+     don't define a distinct secondary. */
+  .btn-secondary { background-color: var(--accent-secondary); color: var(--accent-secondary-text, #fff); }
+  .btn-secondary:hover:not(:disabled) { background-color: var(--accent-secondary-light); }
+
   .btn-ghost {
     background-color: transparent;
     color: var(--text-secondary);
@@ -57,6 +63,21 @@
     background-color: var(--bg-overlay);
     color: var(--text-primary);
     border-color: var(--border-accent);
+  }
+
+  /* Borderless, minimal-weight action — for a page that already has a
+     primary + secondary pair and needs a third, quieter action (e.g. a
+     row-level "Cancel" next to a card's "Save"). .btn-ghost still has a
+     visible border and reads as a real button; .btn-quiet has none and
+     only shows on hover, sitting one step below it. */
+  .btn-quiet {
+    background-color: transparent;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+  }
+  .btn-quiet:hover:not(:disabled) {
+    background-color: var(--state-hover-bg, var(--bg-overlay));
+    color: var(--text-primary);
   }
 
   .btn-danger { background-color: var(--color-danger); color: #fff; }
@@ -88,6 +109,22 @@
   .badge-muted    { background-color: var(--bg-overlay);    color: var(--text-muted); }
   .badge-info     { background-color: var(--color-info);    color: #fff; }
 
+  /* Tinted (not solid) variants — for a status pill that should read as
+     "on" without shouting as loud as a fully solid badge (e.g. an
+     "Active" flag sitting in a table next to a muted "Inactive" one). */
+  .badge-success-dim { background-color: var(--color-success-dim); color: var(--color-success); }
+  .badge-warning-dim  { background-color: var(--color-warning-dim); color: var(--color-warning); }
+  .badge-danger-dim   { background-color: var(--color-danger-dim);  color: var(--color-danger); }
+
+  /* Bordered, unfilled badge — for a tag/attribute that shouldn't compete
+     with the solid status badges above (e.g. a rate or category label
+     sitting next to a "VERIFIED" status badge). */
+  .badge-outline {
+    background-color: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-base);
+  }
+
   /* ── D&D 5e item rarity badges — fixed colours, theme-independent ── */
   .badge-rarity-common    { background-color: rgba(140,140,140,0.20); color: #B0B0B0; }
   .badge-rarity-uncommon  { background-color: rgba(50,160,80,0.20);   color: #50C878; }
@@ -95,6 +132,12 @@
   .badge-rarity-very-rare { background-color: rgba(160,60,200,0.20);  color: #C060E8; }
   .badge-rarity-legendary { background-color: rgba(220,140,30,0.20);  color: #E0962A; }
   .badge-rarity-artifact  { background-color: rgba(220,50,50,0.20);   color: #E05555; }
+
+  /* Star rating — fixed warm gold, theme-independent (see --color-rating
+     in tokens.css). Use on the star characters themselves; wrap in a
+     span/div as needed for layout. */
+  .star-rating         { color: var(--color-rating); }
+  .star-rating--muted  { color: var(--text-muted); }
 
   /* ── Auth card (login, forgot-password, reset) ─────────── */
   .auth-card {

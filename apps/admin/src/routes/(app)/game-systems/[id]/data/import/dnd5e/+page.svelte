@@ -155,7 +155,7 @@
 			</div>
 		{/if}
 		{#if (form as any)?.warnings?.length}
-			<div class="form-warning" style="margin-bottom:1rem;background:var(--color-warning-dim,rgba(234,179,8,0.12));border:1px solid var(--color-warning,#eab308);border-radius:var(--radius-md);padding:0.75rem 1rem;">
+			<div class="form-warning" style="margin-bottom:1rem;background:var(--color-warning-dim);border:1px solid var(--color-warning);border-radius:var(--radius-md);padding:0.75rem 1rem;">
 				<strong>⚠ {(form as any).warnings.length} skill/stat value{(form as any).warnings.length !== 1 ? 's' : ''} could not be parsed and were skipped.</strong>
 				<p style="font-size:0.8125rem;margin:0.25rem 0 0.5rem;color:var(--text-secondary);">Fix your spreadsheet and re-import these rows.</p>
 				<ul style="margin:0;padding-left:1.25rem;font-size:0.8125rem;">

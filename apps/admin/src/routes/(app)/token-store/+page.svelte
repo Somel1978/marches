@@ -39,7 +39,7 @@
 							<td>{item.stock ?? '∞'}</td>
 							<td>
 								{#if item.isActive}
-									<span class="badge" style="background:rgba(34,197,94,0.15);color:#16a34a;">Active</span>
+									<span class="badge badge-success-dim">Active</span>
 								{:else}
 									<span class="badge badge-muted">Inactive</span>
 								{/if}

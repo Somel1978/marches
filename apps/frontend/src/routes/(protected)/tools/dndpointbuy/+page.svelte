@@ -86,7 +86,7 @@
 	);
 	const bonusColor = $derived(
 		bonusRemaining === 0 ? 'var(--color-success)' :
-		bonusRemaining < 2   ? 'var(--color-warning)' : '#8E44AD'
+		bonusRemaining < 2   ? 'var(--color-warning)' : 'var(--color-bonus)'
 	);
 </script>
 
@@ -125,7 +125,7 @@
 							onclick={() => { if (bonusGranted > 0) { bonusGranted--; for (const a of ABILITIES) bonus[a] = Math.min(bonus[a], bonusGranted - (ABILITIES.filter(x => x !== a).reduce((s,x) => s + bonus[x], 0))); } }}
 							style="width:22px; height:22px; border:1px solid var(--border-base); border-radius:var(--radius-sm); background:var(--bg-overlay); color:var(--text-primary); font-size:0.875rem; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;"
 						>−</button>
-						<span style="font-size:0.875rem; font-weight:700; color:#8E44AD; min-width:20px; text-align:center; font-variant-numeric:tabular-nums;">{bonusGranted}</span>
+						<span style="font-size:0.875rem; font-weight:700; color:var(--color-bonus); min-width:20px; text-align:center; font-variant-numeric:tabular-nums;">{bonusGranted}</span>
 						<button
 							onclick={() => bonusGranted++}
 							style="width:22px; height:22px; border:1px solid var(--border-base); border-radius:var(--radius-sm); background:var(--bg-overlay); color:var(--text-primary); font-size:0.875rem; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;"
@@ -171,7 +171,7 @@
 					<span style="font-size:2.5rem; font-weight:800; color:var(--text-primary); font-variant-numeric:tabular-nums; line-height:1;">{tot}</span>
 					<span style="font-size:1.125rem; font-weight:600; color:{color}; font-variant-numeric:tabular-nums;">{mod(tot)}</span>
 					{#if bon > 0}
-						<span style="font-size:0.75rem; padding:0.125rem 0.4rem; background:#8E44AD22; color:#8E44AD; border-radius:99px; font-weight:600;">+{bon} bonus</span>
+						<span style="font-size:0.75rem; padding:0.125rem 0.4rem; background:color-mix(in srgb, var(--color-bonus) 13%, transparent); color:var(--color-bonus); border-radius:99px; font-weight:600;">+{bon} bonus</span>
 					{/if}
 				</div>
 
@@ -206,14 +206,14 @@
 							onclick={() => bonusDecrease(ability)}
 							disabled={!canBonusDecrease(ability)}
 							class="ctrl-btn"
-							style="opacity:{canBonusDecrease(ability) ? 1 : 0.3}; flex:1; border-color:#8E44AD44;"
+							style="opacity:{canBonusDecrease(ability) ? 1 : 0.3}; flex:1; border-color:color-mix(in srgb, var(--color-bonus) 27%, transparent);"
 						>−</button>
-						<span style="flex:1; text-align:center; font-size:0.75rem; color:#8E44AD; display:flex; align-items:center; justify-content:center; font-weight:700;">{bon > 0 ? `+${bon}` : '·'}</span>
+						<span style="flex:1; text-align:center; font-size:0.75rem; color:var(--color-bonus); display:flex; align-items:center; justify-content:center; font-weight:700;">{bon > 0 ? `+${bon}` : '·'}</span>
 						<button
 							onclick={() => bonusIncrease(ability)}
 							disabled={!canBonusIncrease(ability)}
 							class="ctrl-btn"
-							style="opacity:{canBonusIncrease(ability) ? 1 : 0.3}; flex:1; border-color:#8E44AD44; background:{canBonusIncrease(ability) ? '#8E44AD22' : 'var(--bg-overlay)'};"
+							style="opacity:{canBonusIncrease(ability) ? 1 : 0.3}; flex:1; border-color:color-mix(in srgb, var(--color-bonus) 27%, transparent); background:{canBonusIncrease(ability) ? 'color-mix(in srgb, var(--color-bonus) 13%, transparent)' : 'var(--bg-overlay)'};"
 						>+</button>
 					</div>
 					<p style="margin:0.25rem 0 0; font-size:0.6875rem; color:var(--text-muted); text-align:center;">bonus (1:1)</p>
@@ -226,7 +226,7 @@
 					{/each}
 					{#if bon > 0}
 						{#each Array(bon) as _}
-							<div style="flex:1; height:3px; border-radius:99px; background:#8E44AD;"></div>
+							<div style="flex:1; height:3px; border-radius:99px; background:var(--color-bonus);"></div>
 						{/each}
 					{/if}
 				</div>
@@ -243,7 +243,7 @@
 					<tr>
 						<th>Ability</th>
 						<th style="text-align:center;">Base</th>
-						{#if bonusGranted > 0}<th style="text-align:center; color:#8E44AD;">Bonus</th>{/if}
+						{#if bonusGranted > 0}<th style="text-align:center; color:var(--color-bonus);">Bonus</th>{/if}
 						<th style="text-align:center;">Total</th>
 						<th style="text-align:center;">Modifier</th>
 						<th style="text-align:center;">Cost</th>
@@ -263,7 +263,7 @@
 							</td>
 							<td style="text-align:center; font-variant-numeric:tabular-nums;">{score}</td>
 							{#if bonusGranted > 0}
-								<td style="text-align:center; color:{bon > 0 ? '#8E44AD' : 'var(--text-muted)'}; font-weight:{bon > 0 ? 700 : 400};">{bon > 0 ? `+${bon}` : '—'}</td>
+								<td style="text-align:center; color:{bon > 0 ? 'var(--color-bonus)' : 'var(--text-muted)'}; font-weight:{bon > 0 ? 700 : 400};">{bon > 0 ? `+${bon}` : '—'}</td>
 							{/if}
 							<td style="text-align:center; font-weight:700; font-variant-numeric:tabular-nums;">{tot}</td>
 							<td style="text-align:center; font-variant-numeric:tabular-nums; color:{MODIFIERS[tot] !== undefined ? (MODIFIERS[tot] >= 0 ? 'var(--color-success)' : 'var(--color-danger)') : 'var(--color-success)'};">{mod(tot)}</td>

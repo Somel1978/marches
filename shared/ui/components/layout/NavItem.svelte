@@ -67,14 +67,14 @@
 	}
 
 	.nav-item:hover {
-		background-color: var(--bg-overlay);
+		background-color: var(--state-hover-bg, var(--bg-overlay));
 		color: var(--text-primary);
 	}
 
 	.nav-item--active {
-		background-color: var(--bg-overlay);
-		color: var(--accent-light);
-		border-left: 2px solid var(--accent);
+		background-color: var(--state-active-bg, var(--bg-overlay));
+		color: var(--state-active-text, var(--accent-light));
+		border-left: 2px solid var(--state-active-border, var(--accent));
 		padding-left: calc(0.75rem - 2px);
 	}
 

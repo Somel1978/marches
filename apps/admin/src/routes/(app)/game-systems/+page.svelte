@@ -59,7 +59,7 @@
 								<td>
 									<a href="/game-systems/{s.id}/progression" class="btn btn-ghost btn-sm">Progression</a>
 									{#if !(s as any).hasProgression}
-										<span class="badge" style="background:rgba(234,179,8,0.15);color:#ca8a04;font-size:0.6875rem;margin-left:0.375rem;" title="No progression thresholds configured — characters cannot gain XP or levels until this is set up.">⚠ Not configured</span>
+										<span class="badge badge-warning-dim" style="font-size:0.6875rem;margin-left:0.375rem;" title="No progression thresholds configured — characters cannot gain XP or levels until this is set up.">⚠ Not configured</span>
 									{/if}
 								</td>
 							</tr>

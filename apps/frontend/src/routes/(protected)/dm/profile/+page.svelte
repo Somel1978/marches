@@ -88,7 +88,7 @@
 				{#each (data as any).ratings as r}
 					<div style="padding:0.75rem; background:var(--bg-overlay); border-radius:var(--radius-sm);">
 						<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem; flex-wrap:wrap">
-							<span style="color:#f59e0b; font-size:1rem;">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+							<span class="star-rating" style="font-size:1rem;">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
 							<span style="font-size:0.75rem; color:var(--text-muted);">{new Date(r.createdAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}</span>
 						</div>
 						{#if r.comment}

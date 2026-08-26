@@ -85,7 +85,7 @@
 			Set your bot token and client ID in <a href="/settings">Platform Settings</a> first.
 			Then invite the bot to your Discord servers and click <strong>Fetch servers</strong>.
 		</p>
-		<div style="margin-top:0.875rem;padding:0.625rem 0.875rem;background:rgba(220,150,50,0.1);border-left:3px solid var(--color-warning);border-radius:var(--radius-sm);">
+		<div style="margin-top:0.875rem;padding:0.625rem 0.875rem;background:var(--color-warning-dim);border-left:3px solid var(--color-warning);border-radius:var(--radius-sm);">
 			<p style="margin:0;font-size:0.875rem;font-weight:600;color:var(--color-warning);">⚠ Multi-server notice</p>
 			<p style="margin:0.25rem 0 0;font-size:0.8125rem;color:var(--text-secondary);">
 				Each server should have its own dedicated channels. Do not add multiple bots to the same channels.

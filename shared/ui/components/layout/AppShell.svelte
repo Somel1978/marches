@@ -80,7 +80,13 @@
 	.shell {
 		display: flex;
 		min-height: 100dvh;
-		background-color: var(--bg-base);
+		/* Falls back to --bg-base for themes with a flat body colour.
+		   Themes with an atmospheric --body-background (see tokens.css)
+		   leave this as --bg-shell-fill: transparent, so <body>'s own
+		   gradient/texture shows through instead of being fully occluded
+		   by this wrapper, which previously painted an opaque flat colour
+		   over the entire viewport on every page regardless of theme. */
+		background-color: var(--bg-shell-fill, var(--bg-base));
 	}
 
 	.shell__body {
