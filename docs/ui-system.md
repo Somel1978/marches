@@ -40,11 +40,13 @@ The base `a { color: ... }` rule is inside `@layer base` so `@layer components` 
 
 ## Themes
 
-Two built-in themes + unlimited user-selectable themes. Applied via `data-theme` on `<html>`:
-- Default: `data-theme="frontend"` (warm amber/parchment)
-- Admin: `data-theme="admin"` (cool professional grey) — not user-selectable
+Two built-in default themes + unlimited user-selectable themes for **both** apps. Applied via `data-theme` on `<html>`:
+- Frontend default: `data-theme="frontend"` (warm amber/parchment)
+- Admin default: `data-theme="admin"` (cool professional grey)
 
-### User theme system
+Admin themes are user-selectable too (added when Crimson Portal shipped) — see Admin theme system below.
+
+### User theme system (frontend)
 
 User themes are defined in `tokens.css` using the naming convention:
 ```css
@@ -56,11 +58,24 @@ User themes are defined in `tokens.css` using the naming convention:
 
 The comment must appear on the line **immediately before** the selector — no CSS between them.
 
-The `themes.ts` utility in the frontend parses `tokens.css` at build time (via Vite `?raw` import), finds all `frontend-*` blocks, resolves `var(--)` references, and returns `ThemeOption[]` for the profile page picker.
+`apps/frontend/src/lib/themes.ts` parses `tokens.css` at build time (via Vite `?raw` import), finds all `frontend-*` blocks, resolves `var(--)` references, and returns `ThemeOption[]` for the profile page picker.
 
-**Adding a new theme:** add the comment + block to `tokens.css` — it appears in the picker automatically. No code changes needed.
+**Adding a new frontend theme:** add the comment + block to `tokens.css` — it appears in the picker automatically. No code changes needed.
+
+### Admin theme system
+
+Separate, parallel system — same `/* theme-name: X */` convention but scoped to `admin-*` blocks. **Deliberately a different file and a different prefix from frontend** — the two pickers must never cross-list each other's themes.
+
+- `apps/admin/src/lib/themes.ts` — own copy of the parser, scoped to `admin-*`. Not shared with frontend's `themes.ts` (they read the same `tokens.css` but filter for different prefixes).
+- `apps/admin/src/lib/components/ThemeToggle.svelte` — compact header dropdown (rendered via `AppShell`'s `actions` snippet), optimistic client-side apply + background persist.
+- `apps/admin/src/routes/api/theme/+server.ts` — `POST` endpoint, persists to `User.theme` + sets `adminTheme` cookie. A plain endpoint, not a form action, since the toggle needs to work from any admin page and SvelteKit form actions only live on `+page.server.ts`.
+- `apps/admin/src/app.html` — inline pre-paint script reads the `adminTheme` cookie, same flash-prevention technique as frontend.
+
+**Adding a new admin theme:** add `/* theme-name: X */` + `[data-theme="admin-yourkey"]` block to `tokens.css`. No code changes needed — same auto-discovery as frontend.
 
 ### Current themes
+
+**Frontend:**
 
 | Key | Name |
 |---|---|
@@ -73,14 +88,41 @@ The `themes.ts` utility in the frontend parses `tokens.css` at build time (via V
 | `frontend-arcanesanctuary` | Arcane Sanctuary |
 | `frontend-sunlightsapphire` | Sunlight & Sapphire |
 | `frontend-portugal` | Portugal |
+| `frontend-obsidiancopper` | Obsidian & Copper |
+| `frontend-crimsonportal` | Crimson Portal — the only theme with an atmospheric `--body-background` (see Atmospheric body background below) |
+
+**Admin:**
+
+| Key | Name |
+|---|---|
+| `admin` | Default (cool grey — hardcoded in admin's themes.ts) |
+| `admin-crimsonportal` | Crimson Portal — same accent palette as the frontend version, but **deliberately no atmospheric body background** (see below) |
 
 ### Theme persistence
 
+**Frontend:**
 - Stored in `User.theme` DB field (default `"frontend"`)
 - Persisted in `userTheme` cookie (httpOnly: false, 1 year) for fast SSR application
 - `hooks.server.ts` seeds cookie from DB on first login
 - `updateTheme` action in profile saves to DB + sets cookie
 - `app.html` inline script reads cookie before paint — **no flash of wrong theme**
+
+**Admin:**
+- Same `User.theme` DB field, shared with frontend (a user's theme choice is per-account, not per-app — though the stored value is only meaningful to whichever app's prefix it matches; a `frontend-*` value is simply unrecognized by admin's parser and vice versa)
+- Persisted in a separate `adminTheme` cookie (httpOnly: false, 1 year) — separate cookie name so the two apps' theme choices don't collide when both are open in the same browser
+- `ThemeToggle.svelte` applies the theme optimistically (`document.documentElement.setAttribute('data-theme', key)`) then fires `POST /api/theme` in the background
+- `+layout.server.ts` reads the `adminTheme` cookie (not a DB round-trip) to know which option to highlight as active in the toggle — same rationale as frontend: the cookie is already the source of truth for what's rendered
+
+### Atmospheric body background
+
+Most themes use a flat `--bg-base` fill for the page body. Crimson Portal (frontend only) instead sets `--body-background` to a full multi-layer gradient — a diagonal hairline texture, a crimson diagonal wash, and a soft radial crimson glow — via `background-blend-mode: overlay, screen, normal`.
+
+**This required two separate fixes to actually become visible**, both worth knowing if a future theme wants the same effect:
+
+1. `base.css`'s `body` rule must read `background: var(--body-background, var(--bg-base))`, not a hardcoded `background-color`.
+2. **Every top-level layout wrapper that paints its own opaque `background-color` across the full viewport height will silently occlude `<body>`'s background entirely**, regardless of what `<body>` is set to. Both `AppShell.svelte`'s `.shell` (used by admin) and `site.css`'s `.site` (used by frontend's own hand-built layout — frontend does **not** use `AppShell`) had exactly this bug. Both now read `background-color: var(--bg-shell-fill, var(--bg-base))` — a theme that wants its body background to actually show through must set `--bg-shell-fill: transparent` alongside `--body-background`.
+
+`admin-crimsonportal` deliberately does **not** set `--body-background` or `--bg-shell-fill` — the atmospheric effect is a frontend-only design choice; admin keeps the same crimson/gold accent palette everywhere else but a flat body fill.
 
 ### Token structure
 
@@ -88,8 +130,11 @@ The `themes.ts` utility in the frontend parses `tokens.css` at build time (via V
 |---|---|
 | `--bg-base` | Page background |
 | `--bg-surface` | Card/panel backgrounds |
-| `--bg-overlay` | Hover states, overlays |
+| `--bg-overlay` | Hover states, overlays, popovers |
 | `--bg-muted` | Inactive/muted sections |
+| `--bg-raised` | One elevation step above `--bg-overlay` — nested rows, inset panels that need to visually separate from a card they sit inside. Falls back to `--bg-overlay` |
+| `--bg-highlight` | Dedicated hover/active background wash, distinct from `--bg-overlay` so that state doesn't fight for contrast with popovers that also use overlay. Falls back to `--bg-overlay` |
+| `--bg-shell-fill` | Background of the top-level layout wrapper (`AppShell`'s `.shell`, frontend's `.site`). Falls back to `--bg-base`. Set to `transparent` only by themes with an atmospheric `--body-background` |
 | `--text-primary` | Main text |
 | `--text-secondary` | Secondary text |
 | `--text-muted` | Muted/placeholder text |
@@ -100,12 +145,23 @@ The `themes.ts` utility in the frontend parses `tokens.css` at build time (via V
 | `--accent` | Buttons, active states |
 | `--accent-light` | Hover states, links |
 | `--accent-dim` | Badge backgrounds |
+| `--accent-secondary` | Second solid accent for a two-tone button pair (e.g. crimson primary + gold secondary via `.btn-secondary`). Falls back to `--brand-accent` |
+| `--accent-secondary-light` / `--accent-secondary-text` | Hover/foreground for `.btn-secondary` |
 | `--brand-accent` | Brand logo/icon colour |
 | `--brand-accent-light` | Brand secondary |
 | `--color-success/warning/danger/info` | Semantic feedback |
+| `--color-success-dim/warning-dim/danger-dim` | Tinted (not solid) backgrounds for the same semantics — alert boxes, `.badge-*-dim`. Auto-derived via `color-mix()`, no per-theme upkeep needed |
+| `--color-rating` | Fixed warm gold for star ratings — theme-independent by design, same rationale as rarity badges (a rating should read the same regardless of theme) |
+| `--color-bonus` | Fixed purple for ASI/feat bonus indicators in the wizard and point-buy tool — theme-independent, same rationale as `--color-rating` |
 | `--parchment` | Decorative tint for special cards |
 | `--accent-text` | Text colour on `btn-primary` background (default `#fff`, override for light accents like Midnight Neon cyan) |
 | `--accent-text-hover` | Text colour on `btn-primary:hover` background |
+| `--card-shadow` | Shadow on `.card-elevated`. Falls back to a soft default; flatter themes (Crimson Portal) set `none` |
+| `--radius-sm/md/lg/xl` | Corner radii — themeable per-theme (Crimson Portal uses noticeably tighter radii than the shared default) |
+| `--viz-track-bg` / `--viz-cell-empty` / `--viz-scale-1..5` / `--viz-label` / `--viz-label-active` | Heatmap/activity-grid colour ramp (availability dashboard). `--viz-scale-1..5` default to a `color-mix()` ramp off `--accent`; themes with a distinct data-viz hue (Crimson Portal uses gold, not the crimson primary) override explicitly |
+| `--chart-series-1..6` | 6-colour cycle for multi-series charts (`AreaChart`, `LineChart`, `BarChart`, `DonutChart` — see Charts section below). Default cycle derives from existing semantic tokens; Crimson Portal overrides all 6 for a curated gold/crimson/cream palette matching its card aesthetic |
+| `--chart-area-opacity` / `--chart-line-width` | Fill opacity for `AreaChart`, stroke width shared across all chart types |
+| `--body-background` / `--body-background-blend` | Full CSS `background` shorthand + blend-mode override for an atmospheric page background (see Atmospheric body background above). Falls back to a flat `--bg-base` fill |
 
 ---
 
@@ -122,7 +178,16 @@ The `themes.ts` utility in the frontend parses `tokens.css` at build time (via V
 ```
 .btn               base — inline-flex, radius-md, 0.875rem, 500 weight
 .btn-primary       accent background, white text
-.btn-ghost         transparent, border-base, text-secondary
+.btn-secondary     accent-secondary background — a SECOND solid colour for a
+                    two-tone button pair (e.g. crimson primary + gold
+                    secondary). Falls back to --brand-accent on themes that
+                    don't define a distinct secondary accent
+.btn-ghost         transparent, border-base, text-secondary — has a visible
+                    border, reads as a real (if quiet) button
+.btn-quiet         borderless, text-muted, only shows a background on hover —
+                    one step quieter than .btn-ghost, for a third action next
+                    to an existing primary+secondary pair (e.g. a row-level
+                    Cancel)
 .btn-danger        danger background, white text
 .btn-sm            smaller padding (0.375rem 0.75rem) + 0.8125rem font
 .btn-xs            compact (0.1875rem 0.5rem) + 0.75rem font — for inline/tight contexts
@@ -136,6 +201,7 @@ The `themes.ts` utility in the frontend parses `tokens.css` at build time (via V
 - `btn-sm` for table row actions and secondary page actions
 - Full size `btn-primary`/`btn-ghost` for page-level CTAs and form submits
 - `btn-xs` for compact inline contexts (sidebar actions, tight UI)
+- **One `.btn-primary` per screen, not one per action** — a page with multiple actions should have exactly one primary (the actual call-to-action) and everything else `.btn-ghost`/`.btn-quiet`/`.btn-secondary` as appropriate. As of this writing most admin pages still default every action to `.btn-primary`; this is known debt, not the intended pattern — new pages should follow the one-primary rule from the start
 
 ### Badges
 ```
@@ -146,7 +212,25 @@ The `themes.ts` utility in the frontend parses `tokens.css` at build time (via V
 .badge-danger      danger bg (red), white text
 .badge-muted       bg-overlay, text-muted
 .badge-info        info bg (blue), white text
+.badge-outline     transparent, border-base, text-primary — for a tag/label
+                    that shouldn't compete with a solid status badge sitting
+                    next to it (e.g. a category label beside a "Verified" pill)
+.badge-success-dim / .badge-warning-dim / .badge-danger-dim
+                    tinted (not solid) background + solid-coloured text — a
+                    status pill that should read as "on" without shouting as
+                    loud as the fully solid badge (e.g. an "Active" flag next
+                    to a muted "Inactive" one)
 ```
+
+### Star ratings
+```
+.star-rating         colour: var(--color-rating) — fixed warm gold,
+                      theme-independent (same rationale as rarity badges)
+.star-rating--muted   colour: var(--text-muted) — the unfilled/empty star state
+```
+Use on the star glyphs themselves (`★`/`☆`), not as a wrapper. **Never** hardcode
+a star-rating colour inline — five separate call sites did this before
+`--color-rating` existed and had to be found and fixed individually.
 
 ### D&D 5e Rarity Badges — ALWAYS use these for item rarity
 Fixed hardcoded colours — independent of the active user theme.
@@ -256,6 +340,44 @@ Root application shell. Composes Sidebar + Header + main content.
 
 ---
 
+## Charts (`shared/ui/src/charts/`)
+
+Four hand-rolled SVG chart components, no charting library dependency — deliberately built as three genuinely different rendering techniques (smoothed path, discrete rects, arcs), not three cosmetic variants of the same trick, so the token system is actually exercised across different geometries.
+
+**All colours come from `--chart-series-1..6`** (see Token structure above) — never hardcode a series colour. Adding a 7th simultaneous series isn't supported by the palette; wrap around is silent (`i % 6`), so keep real usage to 6 series or fewer.
+
+### `AreaChart`
+Smoothed curve (Catmull-Rom → cubic Bezier) with a low-opacity filled area under each series plus a crisp stroke on top. Use for a quantity that reads naturally as "volume under the curve" (e.g. average price by rarity tier).
+
+```svelte
+<AreaChart series={[{ name: 'Avg buy price', points: [{ label: 'Common', value: 12 }, ...] }]}
+  yFormat={(v) => `${Math.round(v)} GP`} />
+```
+
+### `LineChart`
+Same smoothing/axis logic as `AreaChart`, stroke only, no fill. Use instead of `AreaChart` when several series would visually overlap as filled areas, or when a fill would misleadingly imply "volume" for data that isn't a quantity (a ratio, an index, a monthly count).
+
+### `BarChart`
+Discrete `<rect>` grid, grouped by category, always zero-based (a bar's length is read as proportional to its value — an area/line chart can show a non-zero baseline, a bar chart cannot without misrepresenting the data). Use for counts or discrete comparisons.
+
+### `DonutChart`
+Arc/wedge geometry. **Different data shape from the other three** — takes one flat `DonutSlice[]` list (parts-of-a-whole), not parallel series over a shared category axis. Supports an optional centre label/value.
+
+```svelte
+<DonutChart slices={[{ label: 'Purchases', value: 12 }, { label: 'Sales', value: 4 }]}
+  centerValue="16" centerLabel="Transactions" />
+```
+
+### Shared conventions across all four
+- Props: `series: { name, points: { label, value }[] }[]` (Area/Line/Bar) or `slices: { label, value }[]` (Donut)
+- `yFormat?: (v: number) => string` — controls axis/tooltip number formatting
+- `showLegend?: boolean` — defaults `true`; set `false` for a single-series chart where the card title already says what it is
+- `height?: number` — defaults `220`
+- Every data point renders an SVG `<title>` for a native hover tooltip — no JS tooltip library
+- `viewBox="0 0 500 …"` with `preserveAspectRatio="none"` — the chart scales to its container's actual width, so wrap it in a sized parent
+
+---
+
 ## UI Primitives
 
 ### `ConfirmModal`
@@ -282,8 +404,8 @@ Bell + dropdown. Notifications POST to `/notifications?/read`. Internal to AppSh
 
 ## Frontend Utilities (`apps/frontend/src/lib/`)
 
-### `$lib/themes.ts`
-Parses `tokens.css` at build time via Vite `?raw` import.
+### `$lib/themes.ts` (frontend)
+Parses `tokens.css` at build time via Vite `?raw` import. Scoped to `frontend-*` blocks.
 
 | Export | Purpose |
 |---|---|
@@ -292,6 +414,16 @@ Parses `tokens.css` at build time via Vite `?raw` import.
 | `ThemeOption` | `{ key, name, bgBase, bgSurface, accent, accentLight }` |
 
 **Called by:** `apps/frontend/src/hooks.server.ts`, `apps/frontend/src/routes/(protected)/profile/+page.server.ts`
+
+### `$lib/themes.ts` (admin)
+**Separate file, not shared with frontend's version** — same parsing approach against the same `tokens.css`, but scoped to `admin-*` blocks. Two independent copies is intentional: the prefixes must never cross-list, and the two apps' theme systems evolve independently.
+
+| Export | Purpose |
+|---|---|
+| `getAvailableThemes()` | Returns `ThemeOption[]` — all `admin-*` themes, plus the hardcoded `admin` default first |
+| `validateTheme(key)` | Returns `key` if valid, otherwise `'admin'` |
+
+**Called by:** `apps/admin/src/routes/(app)/+layout.server.ts`, `apps/admin/src/lib/components/ThemeToggle.svelte`, `apps/admin/src/routes/api/theme/+server.ts`
 
 ### `$lib/rarity.ts`
 Single source of truth for D&D 5e item rarity display.
@@ -389,9 +521,9 @@ Standalone ASI/feat panel. **Not yet wired into any page.**
 
 | Component / Utility | Called from |
 |---|---|
-| `AppShell` | `apps/frontend/src/routes/+layout.svelte`, `apps/admin/src/routes/+layout.svelte` |
+| `AppShell` | `apps/admin/src/routes/(app)/+layout.svelte` only — frontend has its own hand-built layout (`.site` in `site.css`, root `apps/frontend/src/routes/+layout.svelte`), not `AppShell` |
 | `afterNavigate` (SvelteKit) | `AppShell.svelte` — closes mobile drawer on route change. Pragmatic exception to no-SvelteKit-imports rule. |
-| `ConfirmModal` (mounted) | Both `+layout.svelte` files |
+| `ConfirmModal` (mounted) | `apps/admin/src/routes/(app)/+layout.svelte` — **not currently mounted in frontend's root layout**. `confirmModal()` calls exist on several frontend pages (see list above) but have nothing to render into until this is fixed; flagged here rather than silently left inaccurate |
 | `confirmModal` (singleton) | Any page with destructive actions |
 | `PermissionCell` | `apps/admin/src/routes/(app)/roles/[id]/+page.svelte` |
 | `NotificationBell` | Internal to `Header.svelte` → `AppShell` |
@@ -399,9 +531,13 @@ Standalone ASI/feat panel. **Not yet wired into any page.**
 | `Dnd5eCharacterSheet` | `characters/[id]/_sheets/Dnd5eSheetSection.svelte` (player), `dm/worlds/[w]/characters/[c]/_sheets/DmDnd5eSheetSection.svelte` (DM), admin character sheet |
 | `Dnd5eSpellbooks` | Internal to `Dnd5eCharacterSheet` only |
 | `Dnd5eAsiFeatsPanel` | Not yet wired — ready to use |
+| `AreaChart` / `LineChart` / `BarChart` / `DonutChart` | `apps/admin/src/routes/(app)/+page.svelte` (dashboard) |
+| `ThemeToggle` | `apps/admin/src/routes/(app)/+layout.svelte` (via `AppShell`'s `actions` snippet) |
 | `generateFantasyName` | `characters/new/dnd5e/+page.svelte` |
-| `getAvailableThemes` | `profile/+page.server.ts`, `hooks.server.ts` |
-| `validateTheme` | `hooks.server.ts` |
+| `getAvailableThemes` (frontend) | `profile/+page.server.ts`, `hooks.server.ts` |
+| `getAvailableThemes` (admin) | `apps/admin/src/routes/(app)/+layout.server.ts` |
+| `validateTheme` (frontend) | `hooks.server.ts` |
+| `validateTheme` (admin) | `apps/admin/src/routes/api/theme/+server.ts` |
 | `rarityBadge` / `rarityLabel` | `marketplace/+page.svelte`, `marketplace/[id]/+page.svelte`, `characters/[id]/+page.svelte`, `dm/worlds/[w]/marketplace/+page.svelte` |
 
 ---
@@ -429,10 +565,23 @@ Standalone ASI/feat panel. **Not yet wired into any page.**
 - [ ] Tokens only — no hardcoded values
 - [ ] Document in CSS Class Reference above
 
-**New user theme:**
+**New user theme (frontend):**
 - [ ] Add `/* theme-name: Display Name */` immediately before `[data-theme="frontend-*"]` in `tokens.css`
 - [ ] Define all required tokens (see Token structure table above)
+- [ ] If it needs an atmospheric body background, also set `--bg-shell-fill: transparent` — otherwise `.site`'s opaque fill will hide it completely (see Atmospheric body background above)
 - [ ] No code changes needed — picker auto-discovers it
+
+**New user theme (admin):**
+- [ ] Add `/* theme-name: Display Name */` immediately before `[data-theme="admin-*"]` in `tokens.css`
+- [ ] Define all required tokens
+- [ ] Atmospheric body backgrounds are a frontend-only pattern by convention — don't set `--body-background` on an admin theme unless there's a specific reason to break that convention
+- [ ] No code changes needed — `ThemeToggle` auto-discovers it
+
+**New chart on a page:**
+- [ ] Pick the right type: `AreaChart` (quantity under a curve) / `LineChart` (comparison, no fill) / `BarChart` (discrete counts, zero-based) / `DonutChart` (parts of a whole)
+- [ ] Real data only — reshape an existing DB read, don't invent numbers even for a "just testing the theme" chart
+- [ ] Never hardcode a series colour — the component already reads `--chart-series-1..6`
+- [ ] Import from `@core/ui`, not a relative path
 
 **Item rarity display:**
 - [ ] Import `rarityBadge`, `rarityLabel` from `$lib/rarity`
