@@ -2,7 +2,7 @@
 import { db } from '../../../index.ts';
 import { logAudit } from '../audit/log.ts';
 import { NotFoundError, ValidationError } from '@core/errors';
-import type { NeuralEntityType, NeuralMapLayer } from '@prisma/client';
+import type { NeuralEntityType, NeuralMapLayer, NeuralEdgeStatus } from '@prisma/client';
 import { layoutPlotFlowchart } from '../../../lib/plot-graph/layout.ts';
 
 const ENTITY_TYPES: NeuralEntityType[] = [
@@ -24,6 +24,16 @@ function parseEntityType(raw: string): NeuralEntityType {
 	const t = raw.toUpperCase() as NeuralEntityType;
 	if (!ENTITY_TYPES.includes(t)) throw new ValidationError(`Invalid entity type: ${raw}`);
 	return t;
+}
+
+const EDGE_STATUSES: NeuralEdgeStatus[] = ['BLOCKED', 'LOCKED', 'UNAVAILABLE', 'WAITING'];
+
+/** null/undefined/'' all mean "no status icon" — anything else must be a valid enum value. */
+function parseEdgeStatus(raw: string | null | undefined): NeuralEdgeStatus | null {
+	if (!raw) return null;
+	const s = raw.toUpperCase() as NeuralEdgeStatus;
+	if (!EDGE_STATUSES.includes(s)) throw new ValidationError(`Invalid edge status: ${raw}`);
+	return s;
 }
 
 async function assertWorld(worldId: string) {
@@ -248,6 +258,8 @@ export async function addNeuralEdge(
 		label?: string | null;
 		notes?: string | null;
 		directed?: boolean;
+		color?: string | null;
+		status?: string | null;
 	},
 	actorId: string,
 ) {
@@ -270,6 +282,8 @@ export async function addNeuralEdge(
 			label: input.label?.trim() || null,
 			notes: input.notes?.trim() || null,
 			directed: input.directed !== false,
+			color: input.color?.trim() || null,
+			status: parseEdgeStatus(input.status),
 		},
 	});
 	await logAudit(db, {
@@ -285,7 +299,7 @@ export async function addNeuralEdge(
 
 export async function updateNeuralEdge(
 	edgeId: string,
-	input: { label?: string | null; notes?: string | null; directed?: boolean },
+	input: { label?: string | null; notes?: string | null; directed?: boolean; color?: string | null; status?: string | null },
 	actorId: string,
 	worldId?: string,
 ) {
@@ -293,10 +307,12 @@ export async function updateNeuralEdge(
 	if (!existing) throw new NotFoundError('NeuralMapEdge', edgeId);
 	if (worldId && existing.worldId !== worldId) throw new ValidationError('Edge is not on this world map.');
 
-	const data: { label?: string | null; notes?: string | null; directed?: boolean } = {};
+	const data: { label?: string | null; notes?: string | null; directed?: boolean; color?: string | null; status?: NeuralEdgeStatus | null } = {};
 	if (input.label !== undefined) data.label = input.label?.trim() || null;
 	if (input.notes !== undefined) data.notes = input.notes?.trim() || null;
 	if (input.directed !== undefined) data.directed = !!input.directed;
+	if (input.color !== undefined) data.color = input.color?.trim() || null;
+	if (input.status !== undefined) data.status = parseEdgeStatus(input.status);
 
 	const edge = await db.neuralMapEdge.update({ where: { id: edgeId }, data });
 	await logAudit(db, {
@@ -307,6 +323,28 @@ export async function updateNeuralEdge(
 		before: { neuralEdge: existing },
 		after: { neuralEdge: edge },
 		metadata: { kind: 'neural_edge' },
+	});
+	return edge;
+}
+
+/** Swaps fromNode/toNode — flips which way the arrow points. Direction only; label/notes/color/status untouched. */
+export async function reverseNeuralEdge(edgeId: string, actorId: string, worldId?: string) {
+	const existing = await db.neuralMapEdge.findUnique({ where: { id: edgeId } });
+	if (!existing) throw new NotFoundError('NeuralMapEdge', edgeId);
+	if (worldId && existing.worldId !== worldId) throw new ValidationError('Edge is not on this world map.');
+
+	const edge = await db.neuralMapEdge.update({
+		where: { id: edgeId },
+		data: { fromNodeId: existing.toNodeId, toNodeId: existing.fromNodeId },
+	});
+	await logAudit(db, {
+		actorId,
+		action: 'UPDATE',
+		resourceKey: 'World',
+		resourceId: existing.worldId,
+		before: { neuralEdge: existing },
+		after: { neuralEdge: edge },
+		metadata: { kind: 'neural_edge', reversed: true },
 	});
 	return edge;
 }

@@ -84,6 +84,10 @@
 		edgeId: id,
 		label: patch.label,
 		notes: patch.notes,
+		directed: patch.directed === undefined ? undefined : String(patch.directed),
+		color: patch.color,
+		status: patch.status,
 	})}
+	onReverseEdge={(id) => call('reverseEdge', { edgeId: id })}
 	onRemoveEdge={(id) => call('removeEdge', { edgeId: id })}
 />

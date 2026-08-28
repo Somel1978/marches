@@ -25,6 +25,8 @@ export type NeuralMapNodeView = {
 	progressionEntryBlocked?: boolean;
 };
 
+export type NeuralEdgeStatus = 'BLOCKED' | 'LOCKED' | 'UNAVAILABLE' | 'WAITING';
+
 export type NeuralMapEdgeView = {
 	id: string;
 	fromNodeId: string;
@@ -32,6 +34,8 @@ export type NeuralMapEdgeView = {
 	label: string | null;
 	notes: string | null;
 	directed: boolean;
+	color: string | null;
+	status: NeuralEdgeStatus | null;
 };
 
 export type NeuralCandidateView = {

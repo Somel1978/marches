@@ -3,6 +3,7 @@
 <script lang="ts">
 	import type {
 		NeuralCandidateView,
+		NeuralEdgeStatus,
 		NeuralEntityType,
 		NeuralMapEdgeView,
 		NeuralMapLayer,
@@ -38,6 +39,29 @@
 		ENDING: 'Ending',
 	};
 
+	const EDGE_STATUS_META: Record<NeuralEdgeStatus, { label: string; icon: string }> = {
+		BLOCKED:     { label: 'Blocked',     icon: '⛔' },
+		LOCKED:      { label: 'Locked',      icon: '🔒' },
+		UNAVAILABLE: { label: 'Unavailable', icon: '🚫' },
+		WAITING:     { label: 'Waiting',     icon: '⏳' },
+	};
+	const EDGE_STATUSES = Object.keys(EDGE_STATUS_META) as NeuralEdgeStatus[];
+
+	// A small curated palette rather than a raw <input type="color"> — keeps
+	// connections visually consistent across a board with many DMs editing it,
+	// and every swatch is checked for contrast against both --bg-base and
+	// --bg-surface so a chosen colour never becomes unreadable on a dark theme.
+	const EDGE_COLOR_PRESETS: { value: string; label: string }[] = [
+		{ value: '',        label: 'Default' },
+		{ value: '#e05555', label: 'Red' },
+		{ value: '#f0a020', label: 'Orange' },
+		{ value: '#e6c95c', label: 'Gold' },
+		{ value: '#4a9d5f', label: 'Green' },
+		{ value: '#4a9fd8', label: 'Blue' },
+		{ value: '#a970d8', label: 'Purple' },
+		{ value: '#e880b8', label: 'Pink' },
+	];
+
 	let {
 		nodes = [],
 		edges = [],
@@ -50,6 +74,7 @@
 		onRemoveNode,
 		onAddEdge,
 		onUpdateEdge,
+		onReverseEdge,
 		onRemoveEdge,
 		onRelayout,
 	}: {
@@ -70,7 +95,8 @@
 			kind?: string;
 			layer?: NeuralMapLayer;
 		}) => Promise<void> | void;
-		onUpdateEdge?: (id: string, patch: { label?: string | null; notes?: string | null }) => Promise<void> | void;
+		onUpdateEdge?: (id: string, patch: { label?: string | null; notes?: string | null; directed?: boolean; color?: string | null; status?: NeuralEdgeStatus | null }) => Promise<void> | void;
+		onReverseEdge?: (id: string) => Promise<void> | void;
 		onRemoveEdge?: (id: string) => Promise<void> | void;
 		onRelayout?: () => Promise<void> | void;
 	} = $props();
@@ -115,6 +141,9 @@
 	let selectedEdgeId = $state<string | null>(null);
 	let edgeLabelDraft = $state('');
 	let edgeNotesDraft = $state('');
+	let edgeDirectedDraft = $state(true);
+	let edgeColorDraft = $state('');
+	let edgeStatusDraft = $state<NeuralEdgeStatus | ''>('');
 	let busy = $state(false);
 	let boardEl = $state<HTMLDivElement | null>(null);
 	/** Node pending remove confirmation (panel, not `<dialog>` — avoids canvas/pointer conflicts). */
@@ -134,6 +163,19 @@
 	});
 
 	const nodeById = $derived(Object.fromEntries(localNodes.map(n => [n.id, n])));
+
+	/** Distinct custom edge colours in use — one <marker> generated per colour
+	    so a coloured connection's arrowhead matches its line (an SVG <marker>
+	    can't inherit a per-path stroke colour on its own, so each colour needs
+	    its own marker definition, keyed by a sanitised id-safe string). */
+	const customEdgeColors = $derived.by(() => {
+		const set = new Set<string>();
+		for (const e of layerEdges) if (e.color) set.add(e.color);
+		return [...set];
+	});
+	function markerIdFor(color: string): string {
+		return `neural-arrow-c${color.replace(/[^a-zA-Z0-9]/g, '')}`;
+	}
 
 	const filteredCandidates = $derived(
 		layerCandidates.filter(c => {
@@ -157,6 +199,9 @@
 		if (selectedEdge) {
 			edgeLabelDraft = selectedEdge.label ?? '';
 			edgeNotesDraft = selectedEdge.notes ?? '';
+			edgeDirectedDraft = selectedEdge.directed;
+			edgeColorDraft = selectedEdge.color ?? '';
+			edgeStatusDraft = selectedEdge.status ?? '';
 		}
 	});
 
@@ -386,7 +431,20 @@
 			await onUpdateEdge?.(selectedEdgeId, {
 				label: edgeLabelDraft,
 				notes: edgeNotesDraft,
+				directed: edgeDirectedDraft,
+				color: edgeColorDraft || null,
+				status: edgeStatusDraft || null,
 			});
+		} finally {
+			busy = false;
+		}
+	}
+
+	async function reverseEdge() {
+		if (!selectedEdgeId || !canEdit) return;
+		busy = true;
+		try {
+			await onReverseEdge?.(selectedEdgeId);
 		} finally {
 			busy = false;
 		}
@@ -544,6 +602,11 @@
 						<marker id="neural-arrow-overlay" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
 							<path d="M0,0 L6,3 L0,6 Z" fill="var(--color-accent, #6b8cae)" />
 						</marker>
+						{#each customEdgeColors as color}
+							<marker id={markerIdFor(color)} markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+								<path d="M0,0 L6,3 L0,6 Z" fill={color} />
+							</marker>
+						{/each}
 					</defs>
 					{#each layerOverlay as edge (edge.id)}
 						{@const from = nodeById[edge.fromNodeId]}
@@ -590,7 +653,8 @@
 								class:neural-edge--on={selectedEdgeId === edge.id}
 								d={path.d}
 								fill="none"
-								marker-end={edge.directed ? 'url(#neural-arrow)' : undefined}
+								stroke={edge.color || undefined}
+								marker-end={edge.directed ? `url(#${edge.color ? markerIdFor(edge.color) : 'neural-arrow'})` : undefined}
 								pointer-events="stroke"
 							/>
 							<!-- Wide hit target: interactive for a11y -->
@@ -606,6 +670,16 @@
 								onclick={(ev) => selectEdge(edge.id, ev)}
 								onkeydown={(ev) => onEdgeKeydown(ev, edge.id)}
 							/>
+							{#if edge.status}
+								{@const statusMeta = EDGE_STATUS_META[edge.status]}
+								<text
+									class="neural-edge-status"
+									x={path.midX}
+									y={path.midY - (edge.label ? 14 : 0)}
+									text-anchor="middle"
+									pointer-events="none"
+								>{statusMeta.icon}<title>{statusMeta.label}</title></text>
+							{/if}
 							{#if edge.label}
 								<text
 									class="neural-edge-label"
@@ -725,14 +799,57 @@
 					<input id="edge-label" class="input" bind:value={edgeLabelDraft} placeholder="e.g. suspects, allied with" />
 					<label class="label" for="edge-notes">Notes</label>
 					<textarea id="edge-notes" class="input" rows="3" bind:value={edgeNotesDraft} placeholder="Plot notes…"></textarea>
+
+					<label class="label" style="margin-top:0.5rem;">
+						<input type="checkbox" bind:checked={edgeDirectedDraft} />
+						Directed (show an arrow)
+					</label>
+
+					<span class="label" style="display:block; margin-top:0.5rem;">Colour</span>
+					<div class="neural__color-picker" role="radiogroup" aria-label="Connection colour">
+						{#each EDGE_COLOR_PRESETS as preset}
+							<button
+								type="button"
+								class="neural__color-swatch"
+								class:neural__color-swatch--default={!preset.value}
+								class:neural__color-swatch--on={edgeColorDraft === preset.value}
+								style={preset.value ? `background:${preset.value};` : undefined}
+								title={preset.label}
+								aria-label={preset.label}
+								aria-pressed={edgeColorDraft === preset.value}
+								onclick={() => edgeColorDraft = preset.value}
+							></button>
+						{/each}
+					</div>
+
+					<span class="label" style="display:block; margin-top:0.5rem;">Status icon</span>
+					<div class="neural__status-picker" role="radiogroup" aria-label="Connection status">
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm"
+							class:btn-primary={!edgeStatusDraft}
+							onclick={() => edgeStatusDraft = ''}
+						>None</button>
+						{#each EDGE_STATUSES as st}
+							<button
+								type="button"
+								class="btn btn-ghost btn-sm"
+								class:btn-primary={edgeStatusDraft === st}
+								onclick={() => edgeStatusDraft = st}
+							>{EDGE_STATUS_META[st].icon} {EDGE_STATUS_META[st].label}</button>
+						{/each}
+					</div>
+
 					<div class="neural__edge-actions">
 						<button type="button" class="btn btn-primary btn-sm" onclick={saveEdge} disabled={busy}>Save</button>
+						<button type="button" class="btn btn-ghost btn-sm" onclick={reverseEdge} disabled={busy} title="Swap which end the arrow points to">↔ Reverse direction</button>
 						<button type="button" class="btn btn-danger btn-sm" onclick={deleteEdge} disabled={busy}>Delete</button>
 						<button type="button" class="btn btn-ghost btn-sm" onclick={() => selectedEdgeId = null}>Close</button>
 					</div>
 				{:else}
 					<p><strong>{selectedEdge.label || '(no label)'}</strong></p>
 					{#if selectedEdge.notes}<p class="neural__hint">{selectedEdge.notes}</p>{/if}
+					{#if selectedEdge.status}<p class="neural__hint">{EDGE_STATUS_META[selectedEdge.status].icon} {EDGE_STATUS_META[selectedEdge.status].label}</p>{/if}
 					<button type="button" class="btn btn-ghost btn-sm" onclick={() => selectedEdgeId = null}>Close</button>
 				{/if}
 			</div>
@@ -927,6 +1044,13 @@
 		fill: color-mix(in srgb, var(--accent) 80%, var(--text-secondary));
 		font-size: 10px;
 	}
+	.neural__edges :global(.neural-edge-status) {
+		font-size: 13px;
+		paint-order: stroke;
+		stroke: var(--bg-base, var(--bg-surface));
+		stroke-width: 3px;
+		pointer-events: none;
+	}
 
 	.neural-node-wrap {
 		position: absolute;
@@ -1036,6 +1160,17 @@
 	.neural__confirm-panel p { margin: 0; font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.45; }
 	.neural__edge-panel .label { margin-top: 0.4rem; }
 	.neural__edge-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
+	.neural__color-picker { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+	.neural__color-swatch {
+		width: 1.5rem; height: 1.5rem; border-radius: 50%;
+		border: 2px solid var(--border-base);
+		cursor: pointer; padding: 0;
+	}
+	.neural__color-swatch--default {
+		background: repeating-conic-gradient(var(--bg-overlay) 0% 25%, var(--bg-muted) 0% 50%) 50% / 0.6rem 0.6rem;
+	}
+	.neural__color-swatch--on { border-color: var(--text-primary); box-shadow: 0 0 0 2px var(--bg-surface), 0 0 0 3px var(--text-primary); }
+	.neural__status-picker { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem; }
 
 	@media (max-width: 800px) {
 		.neural { grid-template-columns: 1fr; }

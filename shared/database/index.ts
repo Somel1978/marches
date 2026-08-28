@@ -129,7 +129,7 @@ import {
 import { getNeuralMap, listNeuralCandidates } from './dbapi/read/world/get-neural-map.ts';
 import {
 	addNeuralNode, updateNeuralNode, updateNeuralNodeByEntity, removeNeuralNode,
-	addNeuralEdge, updateNeuralEdge, removeNeuralEdge,
+	addNeuralEdge, updateNeuralEdge, reverseNeuralEdge, removeNeuralEdge,
 	syncProgressionLayer, relayoutProgressionLayer,
 } from './dbapi/write/world/neural-map.ts';
 import {
@@ -448,6 +448,7 @@ export const worlds = {
         removeNode:      removeNeuralNode,
         addEdge:         addNeuralEdge,
         updateEdge:      updateNeuralEdge,
+        reverseEdge:     reverseNeuralEdge,
         removeEdge:      removeNeuralEdge,
         syncProgression: syncProgressionLayer,
         relayoutProgression: relayoutProgressionLayer,

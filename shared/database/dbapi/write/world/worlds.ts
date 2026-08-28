@@ -39,6 +39,18 @@ export async function updateWorld(
     if (!world) throw new NotFoundError('World', id);
     return db.$transaction(async (tx) => {
         const updated = await tx.world.update({ where: { id }, data: input });
+        // Keep the world's tavern channel name in sync — it's created once
+        // from the world name (see ensureWorldTavernChannel) but has no
+        // other sync point, so a later rename silently left the channel
+        // showing the old name until this was added. updateMany (not
+        // update) deliberately: worldId is unique on TavernChannel, but a
+        // world can exist without a channel yet in a race with
+        // ensureWorldTavernChannel — updateMany no-ops instead of throwing
+        // if there's nothing to update, so a missing channel never blocks
+        // the world rename itself.
+        if (input.name && input.name !== world.name) {
+            await tx.tavernChannel.updateMany({ where: { worldId: id }, data: { name: input.name } });
+        }
         await logAudit(tx, { actorId, action: 'UPDATE', resourceKey: 'World', resourceId: id, before: world, after: updated });
         return updated;
     });

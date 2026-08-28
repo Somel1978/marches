@@ -537,6 +537,15 @@ model NeuralMapNode {
   @@schema("world")
 }
 
+enum NeuralEdgeStatus {
+  BLOCKED
+  LOCKED
+  UNAVAILABLE
+  WAITING
+
+  @@schema("world")
+}
+
 model NeuralMapEdge {
   id         String        @id @default(uuid())
   worldId    String        @map("world_id")
@@ -548,6 +557,11 @@ model NeuralMapEdge {
   label      String?
   notes      String?
   directed   Boolean       @default(true)
+  // Custom arrow/line colour — a CSS colour string (hex or var()). Null = default theme colour.
+  color      String?
+  // Optional status icon on the connection (blocked, locked, unavailable, waiting on something).
+  // Independent of `directed` — a status icon can appear on an undirected connection too.
+  status     NeuralEdgeStatus?
   createdAt  DateTime      @default(now()) @map("created_at")
   updatedAt  DateTime      @updatedAt      @map("updated_at")
 

@@ -49,6 +49,8 @@ export type HydratedNeuralEdge = {
 	label: string | null;
 	notes: string | null;
 	directed: boolean;
+	color: string | null;
+	status: string | null;
 };
 
 async function hydrateEntityNames(
@@ -212,6 +214,8 @@ export async function getNeuralMap(worldId: string): Promise<{
 				label: e.label,
 				notes: e.notes,
 				directed: e.directed,
+				color: e.color,
+				status: e.status,
 			})),
 		overlayEdges: [],
 	};

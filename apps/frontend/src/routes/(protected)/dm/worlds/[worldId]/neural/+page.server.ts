@@ -108,7 +108,24 @@ export const actions: Actions = {
 			await worlds.neural.updateEdge(edgeId, {
 				label: data.get('label')?.toString() ?? null,
 				notes: data.get('notes')?.toString() ?? null,
+				directed: data.has('directed') ? data.get('directed') === 'true' : undefined,
+				color: data.has('color') ? (data.get('color')?.toString() ?? null) : undefined,
+				status: data.has('status') ? (data.get('status')?.toString() ?? null) : undefined,
 			}, locals.user!.id, params.worldId);
+			return { ok: true };
+		} catch (e) {
+			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
+			throw e;
+		}
+	},
+
+	reverseEdge: async ({ params, request, locals }) => {
+		if (!await assertCanManage(params.worldId, locals.user!.id)) return fail(403, { message: 'Forbidden' });
+		const data = await request.formData();
+		const edgeId = data.get('edgeId')?.toString() ?? '';
+		if (!edgeId) return fail(400, { message: 'edgeId required' });
+		try {
+			await worlds.neural.reverseEdge(edgeId, locals.user!.id, params.worldId);
 			return { ok: true };
 		} catch (e) {
 			if (isMarchesError(e)) return fail(e.statusCode, { message: e.message });
